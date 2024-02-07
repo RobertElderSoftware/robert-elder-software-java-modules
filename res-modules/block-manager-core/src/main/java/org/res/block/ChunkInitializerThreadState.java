@@ -208,6 +208,8 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 				return Pyrite.blockDataString.getBytes("UTF-8");
 			}else if(noiseAtPixel <= 0.95){
 				return Ilmenite.blockDataString.getBytes("UTF-8");
+			}else if(noiseAtPixel <= 0.96){
+				return MetallicCopper.blockDataString.getBytes("UTF-8");
 			}else if(noiseAtPixel <= 1.0){
 				return IronOxide.blockDataString.getBytes("UTF-8");
 			}else{

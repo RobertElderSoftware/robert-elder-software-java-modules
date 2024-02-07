@@ -1,0 +1,107 @@
+{
+	"version": 1,
+	"block_match_descriptions": [
+		{
+			"match_type": "json",
+			"json_schema": {
+				"type": "object",
+				"properties": {
+					"x" : {
+						"type": "number"
+					},
+					"y" : {
+						"type": "number"
+					},
+					"z" : {
+						"type": "number"
+					},
+					"player_uuid" : {
+						"type": "string"
+					}
+				},
+				"required" : ["x", "y", "z", "player_uuid"]
+			},
+			"block_class": "org.res.block.PlayerPositionXYZ"
+		},
+		{
+			"match_type": "json",
+			"json_schema": {
+				"type": "array",
+				"items": {
+					"type": "object",
+					"properties": {
+						"quantity" : {
+							"type": "number"
+						},
+						"block_data_base_64" : {
+							"type": "string"
+						}
+					},
+					"required" : ["quantity", "block_data_base_64"]
+				}
+			},
+			"block_class": "org.res.block.PlayerInventory"
+		},
+		{
+			"match_type": "byte_comparison",
+			"byte_pattern_base_64": "",
+			"block_class": "org.res.block.EmptyBlock"
+		},
+		{
+			"match_type": "byte_comparison",
+			"byte_pattern_base_64": "8J+qqA==",
+			"block_class": "org.res.block.Rock"
+		},
+		{
+			"match_type": "byte_comparison",
+			"byte_pattern_base_64": "8J+fpQ==",
+			"block_class": "org.res.block.IronOxide"
+		},
+		{
+			"match_type": "byte_comparison",
+			"byte_pattern_base_64": "4pqZ77iP",
+			"block_class": "org.res.block.MetallicIron"
+		},
+		{
+			"match_type": "byte_comparison",
+			"byte_pattern_base_64": "8J+fpw==",
+			"block_class": "org.res.block.MetallicCopper",
+			"dedication": "Anonymous"
+		},
+		{
+			"match_type": "byte_comparison",
+			"byte_pattern_base_64": "8J+qtQ==",
+			"block_class": "org.res.block.WoodenBlock",
+			"dedication": "skeggs"
+		},
+		{
+			"match_type": "byte_comparison",
+			"byte_pattern_base_64": "4puP77iP",
+			"block_class": "org.res.block.IronPick"
+		},
+		{
+			"match_type": "byte_comparison",
+			"byte_pattern_base_64": "8J+fqw==",
+			"block_class": "org.res.block.Bauxite",
+			"dedication": "Anonymous"
+		},
+		{
+			"match_type": "byte_comparison",
+			"byte_pattern_base_64": "4qyb",
+			"block_class": "org.res.block.Ilmenite",
+			"dedication": "Shae VanCleave"
+		},
+		{
+			"match_type": "byte_comparison",
+			"byte_pattern_base_64": "8J+fqA==",
+			"block_class": "org.res.block.Pyrite",
+			"dedication": "Johnny Salami"
+		},
+		{
+			"match_type": "byte_comparison",
+			"byte_pattern_base_64": "4qyc",
+			"block_class": "org.res.block.TitaniumDioxide",
+			"dedication": "ellip"
+		}
+	]
+}

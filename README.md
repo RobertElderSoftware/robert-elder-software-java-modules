@@ -43,7 +43,7 @@ Currently, the game has only been tested to work on a default installation of Ub
 Compiling the game from scratch is not necessary.  You can run the pre-compiled jar file included in this repo using following command:
 
 ```
-java -jar block-manager-single-player-client-0.0.1.jar
+java -jar block-manager-single-player-client-0.0.2.jar
 ```
 
 The game should immediately launch and fill up the terminal with graphics.  You can exit the game by pressing the 'q' key.  By default, the game saves it's world data into a SQLite database file that lives in the current directory.

@@ -80,7 +80,7 @@ public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelCon
 		String userDirectory = System.getProperty("user.dir");
 		this.logMessage("catalinaBase=" + catalinaBase + ", userDirectory=" + userDirectory);
 		String currentWorkingDirectory = catalinaBase == null ? userDirectory : catalinaBase + "/webapps/ROOT/WEB-INF/classes";
-		String blockSchemaLocation = currentWorkingDirectory + "/v1_block_schema.json";
+		String blockSchemaLocation = currentWorkingDirectory + "/v2_block_schema.json";
 		this.logMessage("About to look for block schema at location " + blockSchemaLocation + ".");
 		this.blockSchema = new BlockSchema(this, new String(Files.readAllBytes(Paths.get(blockSchemaLocation)), "UTF-8"));
 	}

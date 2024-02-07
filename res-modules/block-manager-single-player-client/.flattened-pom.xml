@@ -5,10 +5,10 @@
   <parent>
     <groupId>org.res</groupId>
     <artifactId>res-modules</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
   </parent>
   <artifactId>block-manager-single-player-client</artifactId>
-  <version>0.0.1</version>
+  <version>0.0.2</version>
   <name>Block Manager Single Player Client</name>
   <properties>
     <start-class>org.res.block.SinglePlayerBlockClient</start-class>
