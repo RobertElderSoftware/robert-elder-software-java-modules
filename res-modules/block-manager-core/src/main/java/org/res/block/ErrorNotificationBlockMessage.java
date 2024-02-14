@@ -30,30 +30,34 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.List;
-import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
+import java.util.List;
+import java.util.ArrayList;
 
-public class NotifySessionDescribeRegionsWorkItem extends BlockModelContextWorkItem {
+public class ErrorNotificationBlockMessage extends BlockMessage {
 
-	private Long numDimensions;
-	private BlockSession blockSession;
-	private List<Cuboid> cuboidsToDescribe;
+	private BlockMessageErrorType blockMessageErrorType;
 
-	public NotifySessionDescribeRegionsWorkItem(BlockModelContext blockModelContext, BlockSession blockSession, Long numDimensions, List<Cuboid> cuboidsToDescribe){
+	public ErrorNotificationBlockMessage(BlockModelContext blockModelContext, BlockMessageErrorType blockMessageErrorType){
 		super(blockModelContext);
-		this.blockSession = blockSession;
-		this.numDimensions = numDimensions;
-		this.cuboidsToDescribe = cuboidsToDescribe;
+		this.blockMessageErrorType = blockMessageErrorType;
 	}
 
-	public BlockSession getBlockSession(){
-		return this.blockSession;
+	public byte [] asByteArray() throws Exception{
+		BlockMessageBinaryBuffer buffer = new BlockMessageBinaryBuffer();
+		BlockMessage.writeBlockMessageType(buffer, BlockMessageType.BLOCK_MESSAGE_TYPE_ERROR_NOTIFICATION);
+		buffer.writeOneLongValue(this.blockMessageErrorType.toLong());
+		return buffer.getUsedBuffer();
 	}
 
-	public void doWork() throws Exception{
-		DescribeRegionsResponseBlockMessage response = new DescribeRegionsResponseBlockMessage(this.blockModelContext, this.numDimensions, this.cuboidsToDescribe);
-		this.blockModelContext.sendBlockMessage(response, this.blockSession);
+	public ErrorNotificationBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer) throws Exception {
+		super(blockModelContext);
+		long blockMessageErrorTypeLong = buffer.readOneLongValue();
+		this.blockMessageErrorType = BlockMessageErrorType.forValue(blockMessageErrorTypeLong);
+	}
+
+	public void doWork(BlockSession blockSession) throws Exception{
+		throw new Exception("Received BlockMessageErrorType=" + this.blockMessageErrorType);
 	}
 }

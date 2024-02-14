@@ -30,21 +30,35 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
+import java.util.Map;
+import java.util.HashMap;
 
-public class RequestChunkFromServerWorkItem extends BlockModelContextWorkItem {
+public enum BlockMessageErrorType {
+        MAX_REGION_SUBSCRPTIONS_EXCEEDED (1L);
 
-	private CuboidAddress cuboidAddress;
+        private final long id;
 
-	public RequestChunkFromServerWorkItem(ClientBlockModelContext clientBlockModelContext, CuboidAddress cuboidAddress){
-		super(clientBlockModelContext);
-		this.cuboidAddress = cuboidAddress;
+        private BlockMessageErrorType(long i) {
+                id = i;
+        }
+
+        public boolean equalsId(long i) {
+                return id == i;
+        }
+
+        public long toLong() {
+                return this.id;
+        }
+
+	private static final Map<Long, BlockMessageErrorType> blockMessagesErrorTypesByValue = new HashMap<Long, BlockMessageErrorType>();
+
+	static {
+		for(BlockMessageErrorType type : BlockMessageErrorType.values()) {
+			blockMessagesErrorTypesByValue.put(type.toLong(), type);
+		}
 	}
 
-	public void doWork() throws Exception{
-		((ClientBlockModelContext)this.blockModelContext).requestChunkFromServer(this.cuboidAddress);
+	public static BlockMessageErrorType forValue(long value) {
+		return blockMessagesErrorTypesByValue.get(value);
 	}
 }

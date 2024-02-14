@@ -41,6 +41,8 @@ import java.io.IOException;
 
 public abstract class BlockSession {
 
+	private static final Long MAX_REGION_SUBSCRIPTIONS = 5000L;
+
 	public abstract String getId();
 	public abstract void close(String reason) throws Exception;
 
@@ -52,18 +54,25 @@ public abstract class BlockSession {
 		this.blockModelContext = blockModelContext;
 	}
 
-	public List<CuboidAddress> getCuboidAddressesWithSubscriptionIntersections(List<CuboidAddress> addresses) throws Exception {
-		/* TODO:  Re-consider how this will work with partial region intersections, and duplicate/split regions. */
-		List<CuboidAddress> rtn = new ArrayList<CuboidAddress>();
+	public List<CuboidAddress> getSubscriptionIntersections(List<CuboidAddress> addresses) throws Exception {
+		List<CuboidAddress> intersections = new ArrayList<CuboidAddress>();
 		for(CuboidAddress address : addresses){
 			for(CuboidAddress existingRegionSubscription : this.subscribedRegions){
 				CuboidAddress intersection = existingRegionSubscription.getIntersectionCuboidAddress(address);
 				if(intersection != null){
-					rtn.add(address);
+					intersections.add(intersection);
 				}
 			}
 		}
-		return rtn;
+		return intersections;
+	}
+
+	public void unsubscribeFromRegions(List<CuboidAddress> regionsToUnsubscribeFrom) throws Exception {
+		Long proposedRegionSubscriptionCount = Long.valueOf(this.subscribedRegions.size() - regionsToUnsubscribeFrom.size());
+		blockModelContext.logMessage("-proposedRegionSubscriptionCount=" + proposedRegionSubscriptionCount + ", MAX_REGION_SUBSCRIPTIONS=" + BlockSession.MAX_REGION_SUBSCRIPTIONS);
+		for(CuboidAddress regionToUnsubscribe : regionsToUnsubscribeFrom){
+			this.subscribedRegions.remove(regionToUnsubscribe);
+		}
 	}
 
 	public void subscribeToRegions(List<CuboidAddress> regionsToSubscribeTo) throws Exception {
@@ -89,7 +98,14 @@ public abstract class BlockSession {
 				newSubscriptionsToAdd.add(regionToSubscribeTo);
 			}
 		}
-		this.subscribedRegions.addAll(newSubscriptionsToAdd);
-	}
 
+		Long proposedRegionSubscriptionCount = Long.valueOf(newSubscriptionsToAdd.size() + this.subscribedRegions.size());
+		blockModelContext.logMessage("+proposedRegionSubscriptionCount=" + proposedRegionSubscriptionCount + ", MAX_REGION_SUBSCRIPTIONS=" + BlockSession.MAX_REGION_SUBSCRIPTIONS);
+		if(proposedRegionSubscriptionCount < BlockSession.MAX_REGION_SUBSCRIPTIONS){
+			this.subscribedRegions.addAll(newSubscriptionsToAdd);
+		}else{
+			ErrorNotificationBlockMessage response = new ErrorNotificationBlockMessage(this.blockModelContext, BlockMessageErrorType.MAX_REGION_SUBSCRPTIONS_EXCEEDED);
+			this.blockModelContext.sendBlockMessage(response, this);
+		}
+	}
 }

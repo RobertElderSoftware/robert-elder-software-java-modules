@@ -109,7 +109,7 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 		return sortedCuboidAddresses;
 	}
 
-	public Cuboid initializeOneCuboid(Cuboid cuboid) throws Exception{
+	public void initializeOneCuboid(Cuboid cuboid) throws Exception{
 
 		// TODO:  Don't use sleep to slow down this thread, use blocking and rate limiting instead:
 		try {
@@ -160,11 +160,7 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 		Cuboid newGeneratedCuboid = new Cuboid(cuboidAddress, newCuboidDataLengths, newCuboidData);
 
 		if(numBlocksThatWereInitialized > 0L){ //  Only send the update back when there is actually something to initialize (otherwise, we get stuck in a loop)
-			SubmitChunkToServerWorkItem m = new SubmitChunkToServerWorkItem(clientBlockModelContext, newGeneratedCuboid, WorkItemPriority.PRIORITY_LOW);
-			clientBlockModelContext.putWorkItem(m, WorkItemPriority.PRIORITY_LOW);
-			return newGeneratedCuboid;
-		}else{
-			return null;
+			clientBlockModelContext.submitChunkToServer(newGeneratedCuboid, WorkItemPriority.PRIORITY_LOW);
 		}
 	}
 
@@ -248,7 +244,7 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 			//  This could still discard a few chunks from the initialization queue if they are outside the visible game area, but in the
 			//  initially loaded area before inMemoryChunks has had a chance to issue the pending request.  You can just move around to correctly load the area though.
 			if(
-				this.inMemoryChunks.readBlockAtCoordinate(cuboidAddressToInitialize.getCanonicalLowerCoordinate()) == null &&
+				(!this.inMemoryChunks.isChunkLoadedOrPending(cuboidAddressToInitialize)) &&
 				this.reachableGameArea != null && this.reachableGameArea.getIntersectionCuboidAddress(cuboidAddressToInitialize) == null
 			){
 				//  If the area we're trying to initialize is off screen, then just ignore this chunk and move on.
@@ -259,7 +255,8 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 			}
 			cuboidsToInitialize.remove(cuboidAddressToInitialize);
 			//  There is only more work if there are still cuboids to initialize
-			return cuboidsToInitialize.size() > 0;
+			//  Also, allow prioritization of new work items:
+			return cuboidsToInitialize.size() > 0 && this.workItemQueue.size() == 0;
 		}else{
 			return false;
 		}
