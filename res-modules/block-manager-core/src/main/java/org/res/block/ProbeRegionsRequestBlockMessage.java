@@ -35,38 +35,31 @@ import java.nio.LongBuffer;
 import java.util.List;
 import java.util.ArrayList;
 
-public class ReadOrSubscribeRegionsRequestBlockMessage extends BlockMessage {
+public class ProbeRegionsRequestBlockMessage extends BlockMessage {
 
+	private static final Long READ_FLAG_MASK = 0x0001L;
+	private static final Long SUBSCRIBE_FLAG_MASK = 0x0002L;
+	private Long flags = 0x0L;
 	private Long numDimensions = null;
-	private boolean doRead = false;
-	private boolean doSubscribe = false;
 	private List<CuboidAddress> cuboidAddresses = new ArrayList<CuboidAddress>();
 
-	public ReadOrSubscribeRegionsRequestBlockMessage(BlockModelContext blockModelContext, Long numDimensions, List<CuboidAddress> cuboidAddresses, boolean doRead, boolean doSubscribe){
+	public ProbeRegionsRequestBlockMessage(BlockModelContext blockModelContext, Long numDimensions, List<CuboidAddress> cuboidAddresses, boolean doRead, boolean doSubscribe){
 		super(blockModelContext);
 		this.numDimensions = numDimensions;
 		this.cuboidAddresses = cuboidAddresses;
-		this.doRead = doRead;
-		this.doSubscribe = doSubscribe;
+		if(doRead){
+			this.flags |= ProbeRegionsRequestBlockMessage.READ_FLAG_MASK;
+		}
+		if(doSubscribe){
+			this.flags |= ProbeRegionsRequestBlockMessage.SUBSCRIBE_FLAG_MASK;
+		}
 	}
 
 	public byte [] asByteArray() throws Exception{
 		BlockMessageBinaryBuffer buffer = new BlockMessageBinaryBuffer();
-		BlockMessageType t = (
-			(this.doRead == true && this.doSubscribe == false)
-			?
-			BlockMessageType.BLOCK_MESSAGE_TYPE_READ_REGIONS
-			:
-			(
-				(this.doRead == false && this.doSubscribe == true)
-				?
-				BlockMessageType.BLOCK_MESSAGE_TYPE_SUBSCRIBE_REGIONS
-				:
-				BlockMessageType.BLOCK_MESSAGE_TYPE_READ_AND_SUBSCRIBE_REGIONS
-			)
-		);
-		BlockMessage.writeBlockMessageType(buffer, t);
+		BlockMessage.writeBlockMessageType(buffer, BlockMessageType.BLOCK_MESSAGE_TYPE_PROBE_REGIONS);
 
+		buffer.writeOneLongValue(this.flags);
 		buffer.writeOneLongValue(this.numDimensions);
 		buffer.writeOneLongValue(this.cuboidAddresses.size());
 
@@ -77,12 +70,11 @@ public class ReadOrSubscribeRegionsRequestBlockMessage extends BlockMessage {
 		return buffer.getUsedBuffer();
 	}
 
-	public ReadOrSubscribeRegionsRequestBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer, boolean doRead, boolean doSubscribe) throws Exception {
+	public ProbeRegionsRequestBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer) throws Exception {
 		super(blockModelContext);
+		this.flags = buffer.readOneLongValue();
 		this.numDimensions = buffer.readOneLongValue();
 		Long numCuboidAddresses = buffer.readOneLongValue();
-		this.doRead = doRead;
-		this.doSubscribe = doSubscribe;
 		blockModelContext.logMessage("numDimensions is: " + this.numDimensions);
 		blockModelContext.logMessage("numCuboidAddresses is: " + numCuboidAddresses);
 
@@ -101,12 +93,19 @@ public class ReadOrSubscribeRegionsRequestBlockMessage extends BlockMessage {
 	}
 
 	public void doWork(BlockSession blockSession) throws Exception{
-		List<CuboidAddress> cuboidAddresses = this.getCuboidAddresses();
-		List<Cuboid> cuboids = blockModelContext.getBlockModelInterface().getBlocksInRegions(cuboidAddresses);
+		if((this.flags & ProbeRegionsRequestBlockMessage.READ_FLAG_MASK) != 0L){
+			List<Cuboid> cuboids = blockModelContext.getBlockModelInterface().getBlocksInRegions(this.cuboidAddresses);
 
-		NotifySessionDescribeRegionsWorkItem notifyWorkItem = new NotifySessionDescribeRegionsWorkItem(this.blockModelContext, blockSession, this.numDimensions, cuboids);
-		blockModelContext.putWorkItem(notifyWorkItem, WorkItemPriority.PRIORITY_LOW);
+			DescribeRegionsResponseBlockMessage notifyMessage = new DescribeRegionsResponseBlockMessage(this.blockModelContext, this.numDimensions, cuboids);
+			SendBlockMessageToSessionWorkItem notifyWorkItem = new SendBlockMessageToSessionWorkItem(this.blockModelContext, blockSession, notifyMessage);
 
-		blockSession.subscribeToRegions(this.cuboidAddresses);
+			blockModelContext.putWorkItem(notifyWorkItem, WorkItemPriority.PRIORITY_LOW);
+		}
+
+		if((this.flags & ProbeRegionsRequestBlockMessage.SUBSCRIBE_FLAG_MASK) == 0L){
+			blockSession.unsubscribeFromRegions(this.cuboidAddresses);
+		}else{
+			blockSession.subscribeToRegions(this.cuboidAddresses);
+		}
 	}
 }

@@ -34,10 +34,9 @@ import java.util.Map;
 import java.util.HashMap;
 
 public enum BlockMessageType {
-        BLOCK_MESSAGE_TYPE_READ_REGIONS (1L),
-        BLOCK_MESSAGE_TYPE_SUBSCRIBE_REGIONS (2L),
-        BLOCK_MESSAGE_TYPE_READ_AND_SUBSCRIBE_REGIONS (3L),
-        BLOCK_MESSAGE_TYPE_DESCRIBE_REGIONS (4L);
+        BLOCK_MESSAGE_TYPE_PROBE_REGIONS (1L),
+        BLOCK_MESSAGE_TYPE_DESCRIBE_REGIONS (2L),
+        BLOCK_MESSAGE_TYPE_ERROR_NOTIFICATION (3L);
 
         private final long id;
 

@@ -339,8 +339,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		CuboidData currentCuboidData = new CuboidData(dataForOneCuboid.getUsedBuffer());
 
 		Cuboid c = new Cuboid(blocksToChangeAddress, currentCuboidDataLengths, currentCuboidData);
-		SubmitChunkToServerWorkItem m = new SubmitChunkToServerWorkItem(this, c, WorkItemPriority.PRIORITY_LOW);
-		this.putWorkItem(m, WorkItemPriority.PRIORITY_HIGH);
+		this.submitChunkToServer(c, WorkItemPriority.PRIORITY_HIGH);
 	}
 
 	public void doBlockWriteAtPlayerPosition(byte [] data, Coordinate position, Long radius) throws Exception{
@@ -362,8 +361,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		CuboidData currentCuboidData = new CuboidData(dataForOneCuboid.getUsedBuffer());
 
 		Cuboid c = new Cuboid(blocksToChangeAddress, currentCuboidDataLengths, currentCuboidData);
-		SubmitChunkToServerWorkItem m = new SubmitChunkToServerWorkItem(this, c, WorkItemPriority.PRIORITY_HIGH);
-		this.putWorkItem(m, WorkItemPriority.PRIORITY_HIGH);
+		this.submitChunkToServer(c, WorkItemPriority.PRIORITY_HIGH);
 	}
 
 	public boolean isServer(){
@@ -480,8 +478,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		CuboidData currentCuboidData = new CuboidData(cuboidData.getUsedBuffer());
 
 		Cuboid c = new Cuboid(ca, currentCuboidDataLengths, currentCuboidData);
-		SubmitChunkToServerWorkItem m = new SubmitChunkToServerWorkItem(this, c, WorkItemPriority.PRIORITY_LOW);
-		this.putWorkItem(m, WorkItemPriority.PRIORITY_LOW);
+		this.submitChunkToServer(c, WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void writeBlocksInRegion(Cuboid cuboid) throws Exception{
@@ -513,10 +510,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			InitializeChunkWorkItem initializeChunkWorkItem = new InitializeChunkWorkItem(this.chunkInitializerThreadState, cuboid.copy());
 			this.chunkInitializerThreadState.putWorkItem(initializeChunkWorkItem, WorkItemPriority.PRIORITY_LOW);
 		}
-		//  Loaded regions didn't change, but this here is just here
-		//  to trigger loading of the next pending unloaded block.
-		//  TODO:  This should probably be named something better, or trigger a different named work item separate from updating loaded regions.
-		this.notifyLoadedRegionsChanged();
 	}
 
 	public void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception{
@@ -647,19 +640,28 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.viewport.putWorkItem(new PlayerInventoryChangeWorkItem(this.viewport, new PlayerInventory(this.playerInventory.getBlockData())), WorkItemPriority.PRIORITY_LOW);
 	}
 
-	public void requestChunkFromServer(CuboidAddress cuboidAddress) throws Exception{
+	public void enqueueChunkUnsubscriptionForServer(List<CuboidAddress> cuboidAddresses, WorkItemPriority priority) throws Exception{
+		BlockSession bs = this.getSessionMap().get(this.clientServerInterface.getClientSessionId());
+		ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddresses.get(0).getNumDimensions(), cuboidAddresses, false, false);
+		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, m);
+		this.putWorkItem(workItem, priority);
+	}
+
+	public void enqueueChunkRequestFromServer(CuboidAddress cuboidAddress, WorkItemPriority priority) throws Exception{
 		this.logMessage("Doing request to server for chunk=" + cuboidAddress);
 		List<CuboidAddress> l = new ArrayList<CuboidAddress>();
 		l.add(cuboidAddress);
 		BlockSession bs = this.getSessionMap().get(this.clientServerInterface.getClientSessionId());
-		SubmitReadOrSubscribeRequestWorkItem m = new SubmitReadOrSubscribeRequestWorkItem(this, bs, cuboidAddress.getNumDimensions(), l, true, true);
-		this.putWorkItem(m, WorkItemPriority.PRIORITY_LOW);
+		ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddress.getNumDimensions(), l, true, true);
+		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, m);
+		this.putWorkItem(workItem, priority);
 	}
 
 	public void submitChunkToServer(Cuboid cuboid, WorkItemPriority priority) throws Exception{
 		BlockSession bs = this.getSessionMap().get(this.clientServerInterface.getClientSessionId());
-		NotifySessionDescribeRegionsWorkItem notifyWorkItem = new NotifySessionDescribeRegionsWorkItem(this, bs, cuboid.getNumDimensions(), Arrays.asList(cuboid));
-		this.putWorkItem(notifyWorkItem, priority);
+		DescribeRegionsResponseBlockMessage response = new DescribeRegionsResponseBlockMessage(this, cuboid.getNumDimensions(), Arrays.asList(cuboid));
+		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, response);
+		this.putWorkItem(workItem, priority);
 	}
 
 }

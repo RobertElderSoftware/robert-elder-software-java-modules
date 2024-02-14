@@ -48,15 +48,17 @@ public class AfterWriteCuboidsWorkItem extends BlockModelContextWorkItem {
 	}
 
 	public void doWork() throws Exception {
-
+		/*  For each user session, check if they're subscribed to this region and if so, notify them: */
 		for(Map.Entry<String, BlockSession> e : blockModelContext.getSessionMap().entrySet()){
 			blockModelContext.logMessage("Enqueing a notify for session " + e.getKey() + " due to subscription intersection.");
 
-			List<CuboidAddress> intersectingSubscribedCuboids = e.getValue().getCuboidAddressesWithSubscriptionIntersections(this.cuboidAddresses);
+			List<CuboidAddress> intersectingSubscribedCuboids = e.getValue().getSubscriptionIntersections(this.cuboidAddresses);
 
 			List<Cuboid> notificationCuboids = blockModelContext.getBlockModelInterface().getBlocksInRegions(intersectingSubscribedCuboids);
 
-			NotifySessionDescribeRegionsWorkItem notifyWorkItem = new NotifySessionDescribeRegionsWorkItem(this.blockModelContext, e.getValue(), this.numDimensions, notificationCuboids);
+			DescribeRegionsResponseBlockMessage notifyMessage = new DescribeRegionsResponseBlockMessage(this.blockModelContext, this.numDimensions, notificationCuboids);
+			SendBlockMessageToSessionWorkItem notifyWorkItem = new SendBlockMessageToSessionWorkItem(this.blockModelContext, e.getValue(), notifyMessage);
+
 			blockModelContext.putWorkItem(notifyWorkItem, WorkItemPriority.PRIORITY_LOW);
 		}
 	}

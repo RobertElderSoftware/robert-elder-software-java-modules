@@ -54,14 +54,12 @@ public abstract class BlockMessage {
 
 		BlockMessageType blockMessageType = BlockMessage.readBlockMessageType(buffer);
 		switch(blockMessageType){
-			case BLOCK_MESSAGE_TYPE_READ_REGIONS:{
-				return new ReadOrSubscribeRegionsRequestBlockMessage(blockModelContext, buffer, true, false);
-			}case BLOCK_MESSAGE_TYPE_SUBSCRIBE_REGIONS:{
-				return new ReadOrSubscribeRegionsRequestBlockMessage(blockModelContext, buffer, false, true);
-			}case BLOCK_MESSAGE_TYPE_READ_AND_SUBSCRIBE_REGIONS:{
-				return new ReadOrSubscribeRegionsRequestBlockMessage(blockModelContext, buffer, true, true);
+			case BLOCK_MESSAGE_TYPE_PROBE_REGIONS:{
+				return new ProbeRegionsRequestBlockMessage(blockModelContext, buffer);
 			}case BLOCK_MESSAGE_TYPE_DESCRIBE_REGIONS:{
 				return new DescribeRegionsResponseBlockMessage(blockModelContext, buffer);
+			}case BLOCK_MESSAGE_TYPE_ERROR_NOTIFICATION:{
+				return new ErrorNotificationBlockMessage(blockModelContext, buffer);
 			}default:{
 				throw new Exception("Unknown message type: " + blockMessageType.toString());
 			}

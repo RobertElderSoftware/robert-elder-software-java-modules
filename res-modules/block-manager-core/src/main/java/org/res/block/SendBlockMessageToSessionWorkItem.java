@@ -35,21 +35,15 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class SubmitReadOrSubscribeRequestWorkItem extends BlockModelContextWorkItem {
+public class SendBlockMessageToSessionWorkItem extends BlockModelContextWorkItem {
 
-	private Long numDimensions;
+	private BlockMessage message;
 	private BlockSession blockSession;
-	private List<CuboidAddress> cuboidAddresses;
-	private boolean doRead = false;
-	private boolean doSubscribe = false;
 
-	public SubmitReadOrSubscribeRequestWorkItem(BlockModelContext blockModelContext, BlockSession blockSession, Long numDimensions, List<CuboidAddress> cuboidAddresses, boolean doRead, boolean doSubscribe){
+	public SendBlockMessageToSessionWorkItem(BlockModelContext blockModelContext, BlockSession blockSession, BlockMessage message){
 		super(blockModelContext);
 		this.blockSession = blockSession;
-		this.numDimensions = numDimensions;
-		this.cuboidAddresses = cuboidAddresses;
-		this.doRead = doRead;
-		this.doSubscribe = doSubscribe;
+		this.message = message;
 	}
 
 	public BlockSession getBlockSession(){
@@ -57,7 +51,6 @@ public class SubmitReadOrSubscribeRequestWorkItem extends BlockModelContextWorkI
 	}
 
 	public void doWork() throws Exception{
-		ReadOrSubscribeRegionsRequestBlockMessage m = new ReadOrSubscribeRegionsRequestBlockMessage(this.blockModelContext, this.numDimensions, this.cuboidAddresses, doRead, doSubscribe);
-		this.blockModelContext.sendBlockMessage(m, this.blockSession);
+		this.blockModelContext.sendBlockMessage(this.message, this.blockSession);
 	}
 }

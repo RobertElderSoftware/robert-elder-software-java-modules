@@ -107,7 +107,7 @@ public class ServerBackgroundTasks extends Thread {
 					blockModelContext.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
 					tickNumber++;
 
-					Thread.sleep(1000000);
+					Thread.sleep(1000);
 				}catch(InterruptedException e){
 					blockModelContext.logMessage("Caught a InterruptedException in ServerBackgroundTasks.  Set isFinished = true and gracefully exit.");
 					isFinished = true;
