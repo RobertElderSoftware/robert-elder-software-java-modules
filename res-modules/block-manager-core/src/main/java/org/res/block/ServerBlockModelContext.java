@@ -129,4 +129,7 @@ public class ServerBlockModelContext extends BlockModelContext {
 		this.putWorkItem(afterWriteCuboidsWorkItem, WorkItemPriority.PRIORITY_LOW);
 	}
 
+	public void onAcknowledgementMessage(Long conversationId) throws Exception{
+
+	}
 }

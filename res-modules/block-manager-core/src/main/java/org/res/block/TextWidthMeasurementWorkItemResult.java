@@ -35,23 +35,15 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class ViewportDimensionsChangeWorkItem extends ViewportWorkItem {
+public class TextWidthMeasurementWorkItemResult extends WorkItemResult {
 
-	private Long terminalWidth;
-	private Long terminalHeight;
-	private Long viewportWidth;
-	private Long viewportHeight;
+	private Long width;
 
-
-	public ViewportDimensionsChangeWorkItem(Viewport viewport, Long terminalWidth, Long terminalHeight, Long viewportWidth, Long viewportHeight){
-		super(viewport);
-		this.terminalWidth = terminalWidth;
-		this.terminalHeight = terminalHeight;
-		this.viewportWidth = viewportWidth;
-		this.viewportHeight = viewportHeight;
+	public TextWidthMeasurementWorkItemResult(Long width){
+		this.width = width;
 	}
 
-	public void doWork() throws Exception{
-		this.viewport.onViewportDimensionsChange(terminalWidth, terminalHeight, viewportWidth, viewportHeight);
+	public Long getWidth(){
+		return this.width;
 	}
 }

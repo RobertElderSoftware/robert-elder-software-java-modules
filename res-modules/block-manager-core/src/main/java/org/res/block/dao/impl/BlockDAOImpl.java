@@ -65,6 +65,13 @@ import org.res.block.RegionIteration;
 import org.res.block.BlockManagerServerApplicationContextParameters;
 
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionCallbackWithoutResult;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+
 import java.sql.PreparedStatement;
 
 public class BlockDAOImpl implements BlockDAO {
@@ -79,6 +86,8 @@ public class BlockDAOImpl implements BlockDAO {
 	private static final Long NUM_DIMENSION_IN_DATABASE = 5L;
 
 	private BlockModelContext blockModelContext;
+
+	private TransactionTemplate transactionTemplate;
 
 	public void setBlockModelContext(BlockModelContext blockModelContext){
 		this.blockModelContext = blockModelContext;
@@ -96,6 +105,10 @@ public class BlockDAOImpl implements BlockDAO {
                 this.namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
                 this.jdbcTemplate = new JdbcTemplate(dataSource);
         }
+
+	public void setTransactionManager(DataSourceTransactionManager transactionManager){
+		this.transactionTemplate = new TransactionTemplate(transactionManager);
+	}
 
         public void createBlockTable() throws Exception{
 		String SQL = "CREATE TABLE IF NOT EXISTS block (" + 
@@ -141,7 +154,6 @@ public class BlockDAOImpl implements BlockDAO {
 		}
         }
 
-        @Transactional
         public Cuboid getBlocksInRegion(CuboidAddress cuboidAddress) throws Exception{
 
         	List<String> selectCoordinatesString = new ArrayList<String>();
@@ -202,102 +214,126 @@ public class BlockDAOImpl implements BlockDAO {
 		return new Cuboid(cuboidAddress, currentCuboidDataLengths, currentCuboidData);
 	}
 
+        public List<Cuboid> getBlocksInRegionsInTransaction(List<CuboidAddress> cuboidAddresses, TransactionStatus status) {
+		try{
+			List<Cuboid> cuboids = new ArrayList<Cuboid>();
+
+			for(int i = 0; i < cuboidAddresses.size(); i++){
+				cuboids.add(this.getBlocksInRegion(cuboidAddresses.get(i)));
+			}
+
+			return cuboids;
+		}catch(Exception e){
+			status.setRollbackOnly();
+			return null;
+		}
+        }
+
         @Override
         public List<Cuboid> getBlocksInRegions(List<CuboidAddress> cuboidAddresses) throws Exception{
-		List<Cuboid> cuboids = new ArrayList<Cuboid>();
+		return transactionTemplate.execute(new TransactionCallback<List<Cuboid>>() {
+			public List<Cuboid> doInTransaction(TransactionStatus status) {
+				return getBlocksInRegionsInTransaction(cuboidAddresses, status);
+			}
+		});
+        }
 
-		for(int i = 0; i < cuboidAddresses.size(); i++){
-        		cuboids.add(this.getBlocksInRegion(cuboidAddresses.get(i)));
-		}
+        public void writeBlocksInRegionInTransaction(Cuboid c, TransactionStatus status) {
+		try{
+			CuboidAddress cuboidAddress = c.getCuboidAddress();
+			CuboidDataLengths dataLengths = c.getCuboidDataLengths();
+			CuboidData data = c.getCuboidData();
 
-		return cuboids;
+			Coordinate lower = cuboidAddress.getCanonicalLowerCoordinate();
+			Coordinate upper = cuboidAddress.getCanonicalUpperCoordinate();
+
+			Coordinate currentCoordinate = cuboidAddress.getCanonicalLowerCoordinate();
+
+
+			List<BlockUpdateRecord> blockUpdateRecords = new ArrayList<BlockUpdateRecord>();
+
+			RegionIteration regionIteration = new RegionIteration(cuboidAddress.getCanonicalLowerCoordinate(), cuboidAddress);
+			do{
+				currentCoordinate = regionIteration.getCurrentCoordinate();
+				blockModelContext.logMessage("Here is currentCoordinate: " + currentCoordinate);
+
+
+				long blockOffsetInArray = cuboidAddress.getLinearArrayIndexForCoordinate(currentCoordinate);
+				long sizeOfBlock = dataLengths.getLengths()[(int)blockOffsetInArray];
+				long offsetOfBlock = dataLengths.getOffsets()[(int)blockOffsetInArray];
+				blockModelContext.logMessage("OFFSET index is " + blockOffsetInArray + " offset of block in data is " + offsetOfBlock + " size of data is " + sizeOfBlock);
+				byte [] blockData = data.getDataAtOffset(offsetOfBlock, sizeOfBlock);
+
+				String blockClassName = this.blockModelContext.getBlockSchema().getFirstBlockMatchDescriptionForByteArray(blockData);
+				blockModelContext.logMessage("Write block of class '" + blockClassName + "' at coordinate:" + currentCoordinate.toString() + " with data '" + new String(blockData, "UTF-8") + "'.");
+				if(blockClassName == null){
+					throw new Exception("Refusing to allow block of unrecogned type into database.");
+				}
+
+				blockUpdateRecords.add(new BlockUpdateRecord(currentCoordinate, blockData));
+			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
+
+			List<String> coordinateStrings = new ArrayList<String>();
+			for(long i = 0; i < NUM_DIMENSION_IN_DATABASE; i++){
+				coordinateStrings.add("x" + String.valueOf(i));
+			}
+
+			List<String> coordinateParamQuestionMarks = new ArrayList<String>();
+			for(long i = 0; i < NUM_DIMENSION_IN_DATABASE; i++){
+				coordinateParamQuestionMarks.add("?");
+			}
+
+			this.jdbcTemplate.batchUpdate(
+				"INSERT INTO\n" +
+				"	block\n" +
+				"	(\n" +
+				"		" + String.join(",", coordinateStrings) + ",\n" +
+				"		data,\n" +
+				"		last_modified\n" +
+				"	)\n" +
+				"VALUES\n" +
+				"	(\n" +
+				"		" + String.join(",", coordinateParamQuestionMarks) + ",\n" +
+				"		?,\n" +
+				"		?\n" +
+				"	)\n" +
+				"ON CONFLICT (" + String.join(",", coordinateStrings) + ") DO UPDATE\n" +
+				"SET\n" +
+				"	data = EXCLUDED.data,\n" +
+				"	last_modified = EXCLUDED.last_modified\n",
+				new BatchPreparedStatementSetter() {
+					public void setValues(PreparedStatement ps, int i) throws SQLException {
+						BlockUpdateRecord blockUpdateRecord = blockUpdateRecords.get(i);
+
+						for(int index = 0; index < NUM_DIMENSION_IN_DATABASE; index++){
+							if(index < cuboidAddress.getNumDimensions()){
+								ps.setLong(index + 1, blockUpdateRecord.getCoordinate().getValueAtIndex(Long.valueOf(index)));
+							}else{
+								ps.setLong(index + 1, 0L);
+							}
+						}
+
+						ps.setBytes(NUM_DIMENSION_IN_DATABASE.intValue() + 1, blockUpdateRecord.getData());
+
+						ps.setLong(NUM_DIMENSION_IN_DATABASE.intValue() + 2, 0L); // Last modified
+					}
+
+					public int getBatchSize() {
+						return blockUpdateRecords.size();
+					}
+				}
+			);
+        	}catch(Exception e){
+			status.setRollbackOnly();
+        	}
         }
 
         @Override
-        @Transactional
         public void writeBlocksInRegion(Cuboid c) throws Exception{
-		CuboidAddress cuboidAddress = c.getCuboidAddress();
-		CuboidDataLengths dataLengths = c.getCuboidDataLengths();
-		CuboidData data = c.getCuboidData();
-
-		Coordinate lower = cuboidAddress.getCanonicalLowerCoordinate();
-		Coordinate upper = cuboidAddress.getCanonicalUpperCoordinate();
-
-		Coordinate currentCoordinate = cuboidAddress.getCanonicalLowerCoordinate();
-
-
-		List<BlockUpdateRecord> blockUpdateRecords = new ArrayList<BlockUpdateRecord>();
-
-		RegionIteration regionIteration = new RegionIteration(cuboidAddress.getCanonicalLowerCoordinate(), cuboidAddress);
-		do{
-			currentCoordinate = regionIteration.getCurrentCoordinate();
-			blockModelContext.logMessage("Here is currentCoordinate: " + currentCoordinate);
-
-
-			long blockOffsetInArray = cuboidAddress.getLinearArrayIndexForCoordinate(currentCoordinate);
-			long sizeOfBlock = dataLengths.getLengths()[(int)blockOffsetInArray];
-			long offsetOfBlock = dataLengths.getOffsets()[(int)blockOffsetInArray];
-			blockModelContext.logMessage("OFFSET index is " + blockOffsetInArray + " offset of block in data is " + offsetOfBlock + " size of data is " + sizeOfBlock);
-			byte [] blockData = data.getDataAtOffset(offsetOfBlock, sizeOfBlock);
-
-			String blockClassName = this.blockModelContext.getBlockSchema().getFirstBlockMatchDescriptionForByteArray(blockData);
-			blockModelContext.logMessage("Write block of class '" + blockClassName + "' at coordinate:" + currentCoordinate.toString() + " with data '" + new String(blockData, "UTF-8") + "'.");
-			if(blockClassName == null){
-				throw new Exception("Refusing to allow block of unrecogned type into database.");
+		this.transactionTemplate.execute(new TransactionCallbackWithoutResult() {
+			protected void doInTransactionWithoutResult(TransactionStatus status) {
+			        writeBlocksInRegionInTransaction(c, status);
 			}
-
-			blockUpdateRecords.add(new BlockUpdateRecord(currentCoordinate, blockData));
-		}while (regionIteration.incrementCoordinateWithinCuboidAddress());
-
-		List<String> coordinateStrings = new ArrayList<String>();
-		for(long i = 0; i < NUM_DIMENSION_IN_DATABASE; i++){
-			coordinateStrings.add("x" + String.valueOf(i));
-		}
-
-		List<String> coordinateParamQuestionMarks = new ArrayList<String>();
-		for(long i = 0; i < NUM_DIMENSION_IN_DATABASE; i++){
-			coordinateParamQuestionMarks.add("?");
-		}
-
-		this.jdbcTemplate.batchUpdate(
-			"INSERT INTO\n" +
-			"	block\n" +
-			"	(\n" +
-			"		" + String.join(",", coordinateStrings) + ",\n" +
-			"		data,\n" +
-			"		last_modified\n" +
-			"	)\n" +
-			"VALUES\n" +
-			"	(\n" +
-			"		" + String.join(",", coordinateParamQuestionMarks) + ",\n" +
-			"		?,\n" +
-			"		?\n" +
-			"	)\n" +
-			"ON CONFLICT (" + String.join(",", coordinateStrings) + ") DO UPDATE\n" +
-			"SET\n" +
-			"	data = EXCLUDED.data,\n" +
-			"	last_modified = EXCLUDED.last_modified\n",
-			new BatchPreparedStatementSetter() {
-				public void setValues(PreparedStatement ps, int i) throws SQLException {
-					BlockUpdateRecord blockUpdateRecord = blockUpdateRecords.get(i);
-
-					for(int index = 0; index < NUM_DIMENSION_IN_DATABASE; index++){
-						if(index < cuboidAddress.getNumDimensions()){
-							ps.setLong(index + 1, blockUpdateRecord.getCoordinate().getValueAtIndex(Long.valueOf(index)));
-						}else{
-							ps.setLong(index + 1, 0L);
-						}
-					}
-
-					ps.setBytes(NUM_DIMENSION_IN_DATABASE.intValue() + 1, blockUpdateRecord.getData());
-
-					ps.setLong(NUM_DIMENSION_IN_DATABASE.intValue() + 2, 0L); // Last modified
-				}
-
-				public int getBatchSize() {
-					return blockUpdateRecords.size();
-				}
-			}
-		);
-        }
+		});
+	}
 }

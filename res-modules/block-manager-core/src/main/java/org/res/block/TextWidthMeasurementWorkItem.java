@@ -30,29 +30,67 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.List;
+import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
+
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public abstract class WorkItem {
+public class TextWidthMeasurementWorkItem extends CharacterWidthMeasurementWorkItem {
 
+	private String text;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private Long threadId;
-	private boolean isBlocking;
+	private Long x1 = 1L;
+	private Long y1 = 1L;
+	private Long x2 = null; //  Reported second cursor position after printing text.
+	private Long y2 = null;
 
-	public WorkItem(boolean isBlocking){
-		this.isBlocking = isBlocking;
-		this.threadId = Thread.currentThread().getId();
-		logger.info("In constructor for WorkItem: isBlocking=" + isBlocking + " " + this.getClass().getName() + " and thread_id=" + this.threadId);
+	public TextWidthMeasurementWorkItem(CharacterWidthMeasurementThreadState characterWidthMeasurementThreadState, String text){
+		super(characterWidthMeasurementThreadState, true);
+		this.text = text;
 	}
 
-	public boolean getIsBlocking(){
-		return this.isBlocking;
+	public void notifyOfCurrentCursorPosition(Long x, Long y){
+		if(this.x2 == null){
+			this.x2 = x;
+			this.y2 = y;
+		}else{
+			logger.info("WARNING:  Discarding cursor position report (" + x + "," + y + ") because the class TextWidthMeasurementWorkItem has already seen a cursor position report?");
+		}
 	}
 
-	public Long getThreadId(){
-		return threadId;
+	public String getText(){
+		return text;
 	}
 
-	public abstract void doWork() throws Exception;
+	public void doWork() throws Exception{
+		this.characterWidthMeasurementThreadState.addPendingTextWidthRequest(this);
+		System.out.print("\033[" + this.y1 + ";" + this.x1 + "H"); //  Move cursor known reference point to calculate offset of text.
+		System.out.flush();
+		System.out.print(text); //  Print the text for which we want to measure width.
+		System.out.flush();
+		System.out.println("\033[6n");  //  Request cursor position measurement.
+		System.out.flush();
+		//  Move cursor back to 0,0 to and re-draw some of the corner of the frame
+		//  to overwrite the test character:
+		System.out.print("\033[0;0H\u2554\u2550\u2550\u2550");
+	}
+
+	public TextWidthMeasurementWorkItemResult getResult(){
+		if(x2 != null){
+			Long textWidth = x2 - x1;
+			if(textWidth >= 0L){
+				return new TextWidthMeasurementWorkItemResult(textWidth);
+			}else{
+				logger.info("WARNING:  Negative text width: " + textWidth + "?");
+				return new TextWidthMeasurementWorkItemResult(0L);
+			}
+		}else{
+			return null;
+		}
+	}
 }

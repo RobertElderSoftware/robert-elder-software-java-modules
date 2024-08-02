@@ -120,13 +120,13 @@ public class InMemoryChunks extends WorkItemQueueOwner<InMemoryChunksWorkItem> {
 					if(this.pendingNotYetRequestedChunks.contains(c)){
 						throw new Exception("Chunk=" + c + " just became newly required, but it was already listed in pendingNotYetRequestedChunks?");
 					}else if(this.pendingAlreadyRequestedChunks.contains(c)){
-						//logger.info(c + " is a newlyRequiredChunk that's in pendingAlreadyRequestedChunks. Keep waiting. TRACK1");
+						//logger.info(c + " is a newlyRequiredChunk that's in pendingAlreadyRequestedChunks. Keep waiting.");
 						//  Still waiting for the chunk to come back.
 					}else if(this.blockChunks.containsKey(c)){
 						//  This chunk is already loaded.
-						//logger.info(c + " is a newlyRequiredChunk that's still loaded. Do nothing. TRACK1");
+						//logger.info(c + " is a newlyRequiredChunk that's still loaded. Do nothing.");
 					}else{
-						//logger.info(c + " is a newlyRequiredChunk, add it to pendingNotYetRequestedChunks.TRACK1");
+						//logger.info(c + " is a newlyRequiredChunk, add it to pendingNotYetRequestedChunks.");
 						this.pendingNotYetRequestedChunks.add(c);
 						this.blockModelContext.inMemoryChunksCallbackOnChunkBecomesPending(c.copy());
 					}
@@ -138,19 +138,19 @@ public class InMemoryChunks extends WorkItemQueueOwner<InMemoryChunksWorkItem> {
 					if(this.pendingNotYetRequestedChunks.contains(c)){
 						//  Don't bother even requesting it if we're just going to dicard it anyway:
 						this.pendingNotYetRequestedChunks.remove(c);
-						//logger.info(c + " is a newlyObsoleteChunks, remove it from pendingNotYetRequestedChunks.TRACK1");
+						//logger.info(c + " is a newlyObsoleteChunks, remove it from pendingNotYetRequestedChunks.");
 					}else if(this.pendingAlreadyRequestedChunks.contains(c)){
 						//  Just let the chunk request come back and then discard it when it comes back.
-						//logger.info(c + " is a newlyObsoleteChunks, that's in pendingAlreadyRequestedChunks. Wait for it to come back, then discard.TRACK1");
+						//logger.info(c + " is a newlyObsoleteChunks, that's in pendingAlreadyRequestedChunks. Wait for it to come back, then discard.");
 						this.pendingObsoleteChunks.add(c);
 					}else if(this.blockChunks.containsKey(c)){
 						//  Remove the chunk to free up memory.
 						this.blockChunks.remove(c);
-						//logger.info(c + " is a newlyObsoleteChunks that's currently loaded.  Evict this chunk.TRACK1");
+						//logger.info(c + " is a newlyObsoleteChunks that's currently loaded.  Evict this chunk.");
 						recentlyDiscardedChunks.add(c.copy());
 						this.pendingObsoleteChunks.remove(c); //  It could have been a pendingAlreadyRequestedChunk that we were waiting on.
 					}else{
-						//logger.info(c + " is not pending in any way, or initialized, but it's 'obsolete'.  This should not happen. TRACK1");
+						//logger.info(c + " is not pending in any way, or initialized, but it's 'obsolete'.  This should not happen.");
 						//throw new Exception("Obsolete chunk is not pending or found in blockChunk map: " + c + ".  This should not happen.");
 					}
 				}
@@ -158,6 +158,58 @@ public class InMemoryChunks extends WorkItemQueueOwner<InMemoryChunksWorkItem> {
 				if(recentlyDiscardedChunks.size() > 0){
 					((ClientBlockModelContext)this.getBlockModelContext()).enqueueChunkUnsubscriptionForServer(recentlyDiscardedChunks, WorkItemPriority.PRIORITY_LOW);
 				}
+
+				if(this.pendingNotYetRequestedChunks.size() > 0){
+					this.putWorkItem(new InMemoryChunksHasPendingNotYetRequestedChunksWorkItem(this), WorkItemPriority.PRIORITY_LOW);
+				}
+			}
+		}
+	}
+
+	public void onHasPendingNotYetRequestedChunks() throws Exception{
+		synchronized(lock){
+			Long maxPendingChunks = 1L;
+			//  Only start a request for more chunks if we've not already exceeded the max outstanding chunks.
+			if(this.pendingAlreadyRequestedChunks.size() < maxPendingChunks){
+				List<CuboidAddress> closestFirstCuboidAddressList = this.getClosestCuboidAddressList(this.pendingNotYetRequestedChunks, this.playerPosition);
+
+				Long numChunksSelected = 0L;
+				Set<CuboidAddress> pendingChunksToRequest = new TreeSet<CuboidAddress>();
+				for(CuboidAddress chunkToRequest : closestFirstCuboidAddressList){
+					if(this.pendingAlreadyRequestedChunks.contains(chunkToRequest)){
+						throw new Exception("Chunk request already sent.  This is not supposed to happen.");
+					}else{
+						if(numChunksSelected < maxPendingChunks){
+							numChunksSelected++;
+							pendingChunksToRequest.add(chunkToRequest);
+						}else{
+							break;
+						}
+					}
+				}
+
+				if(pendingChunksToRequest.size() > 0){
+					Set<Long> uniqueDimensions = new HashSet<Long>();
+					for(CuboidAddress ca : pendingChunksToRequest){
+						uniqueDimensions.add(ca.getNumDimensions());
+					}
+
+					if(uniqueDimensions.size() == 1){
+						for(CuboidAddress cuboidAddress : pendingChunksToRequest){
+							//logger.info(cuboidAddress + " is transitioning from pendingNotYetRequestedChunks to pendingAlreadyRequestedChunks.");
+							this.pendingAlreadyRequestedChunks.add(cuboidAddress);
+							this.pendingNotYetRequestedChunks.remove(cuboidAddress);
+
+							/*  TODO: Eventually make this generic so it could work on client or server: */
+							((ClientBlockModelContext)this.getBlockModelContext()).enqueueChunkRequestToServer(cuboidAddress.copy(), WorkItemPriority.PRIORITY_LOW);
+							logger.info("Inside updateRequiredRegions just put a work item into block client for cuboidAddress=" + String.valueOf(cuboidAddress));
+						}
+					}else{
+						throw new Exception("Trying to read blocks from cuboids with multiple different dimensions: " + uniqueDimensions);
+					}
+				}
+			}else{
+				logger.info("Did not request any more chunks because: this.pendingAlreadyRequestedChunks.size()=" + this.pendingAlreadyRequestedChunks.size() + " < maxPendingChunks=" + maxPendingChunks);
 			}
 		}
 	}
@@ -197,7 +249,9 @@ public class InMemoryChunks extends WorkItemQueueOwner<InMemoryChunksWorkItem> {
 			if(this.pendingAlreadyRequestedChunks.contains(cuboidAddress)){
 				this.blockChunks.put(cuboidAddress, new IndividualBlock [(int)this.chunkSize.getVolume()]);
 				this.pendingAlreadyRequestedChunks.remove(cuboidAddress);
-				//logger.info(cuboidAddress + " transitioning from pendingAlreadyRequestedChunks to loaded.  TRACK1");
+				//logger.info(cuboidAddress + " transitioning from pendingAlreadyRequestedChunks to loaded.");
+				//  We just processed this outstanding chunk...Now check to see if there are more waiting:
+				this.putWorkItem(new InMemoryChunksHasPendingNotYetRequestedChunksWorkItem(this), WorkItemPriority.PRIORITY_LOW);
 			}
 
 			RegionIteration regionIteration = new RegionIteration(cuboidAddress.getCanonicalLowerCoordinate(), cuboidAddress);
@@ -277,48 +331,6 @@ public class InMemoryChunks extends WorkItemQueueOwner<InMemoryChunksWorkItem> {
 	}
 
 	public boolean doBackgroundProcessing() throws Exception{
-
-		synchronized(lock){
-			List<CuboidAddress> closestFirstCuboidAddressList = this.getClosestCuboidAddressList(this.pendingNotYetRequestedChunks, this.playerPosition);
-
-			Long maxPendingChunks = 1L;
-			Long numChunksSelected = 0L;
-			Set<CuboidAddress> pendingChunksToRequest = new TreeSet<CuboidAddress>();
-			for(CuboidAddress chunkToRequest : closestFirstCuboidAddressList){
-				if(this.pendingAlreadyRequestedChunks.contains(chunkToRequest)){
-					throw new Exception("Chunk request already sent.  This is not supposed to happen.");
-				}else{
-					if(numChunksSelected < maxPendingChunks){
-						numChunksSelected++;
-						pendingChunksToRequest.add(chunkToRequest);
-					}else{
-						break;
-					}
-				}
-			}
-
-			if(pendingChunksToRequest.size() > 0){
-				Set<Long> uniqueDimensions = new HashSet<Long>();
-				for(CuboidAddress ca : pendingChunksToRequest){
-					uniqueDimensions.add(ca.getNumDimensions());
-				}
-
-				if(uniqueDimensions.size() == 1){
-					for(CuboidAddress cuboidAddress : pendingChunksToRequest){
-						//logger.info(cuboidAddress + " is transitioning from pendingNotYetRequestedChunks to pendingAlreadyRequestedChunks.  TRACK1");
-						this.pendingAlreadyRequestedChunks.add(cuboidAddress);
-						this.pendingNotYetRequestedChunks.remove(cuboidAddress);
-
-						/*  TODO: Eventually make this generic so it could work on client or server: */
-						((ClientBlockModelContext)this.getBlockModelContext()).enqueueChunkRequestFromServer(cuboidAddress.copy(), WorkItemPriority.PRIORITY_LOW);
-						logger.info("Inside updateRequiredRegions just put a work item into block client for cuboidAddress=" + String.valueOf(cuboidAddress));
-					}
-				}else{
-					throw new Exception("Trying to read blocks from cuboids with multiple different dimensions: " + uniqueDimensions);
-				}
-			}
-			//  Allow prioritization of new work items:
-			return false;
-		}
+		return false;
 	}
 }

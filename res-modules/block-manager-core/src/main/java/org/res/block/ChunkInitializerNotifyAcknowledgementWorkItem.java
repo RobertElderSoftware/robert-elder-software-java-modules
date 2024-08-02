@@ -35,23 +35,16 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class ViewportDimensionsChangeWorkItem extends ViewportWorkItem {
+public class ChunkInitializerNotifyAcknowledgementWorkItem extends ChunkInitializerWorkItem {
 
-	private Long terminalWidth;
-	private Long terminalHeight;
-	private Long viewportWidth;
-	private Long viewportHeight;
+	private Long conversationId;
 
-
-	public ViewportDimensionsChangeWorkItem(Viewport viewport, Long terminalWidth, Long terminalHeight, Long viewportWidth, Long viewportHeight){
-		super(viewport);
-		this.terminalWidth = terminalWidth;
-		this.terminalHeight = terminalHeight;
-		this.viewportWidth = viewportWidth;
-		this.viewportHeight = viewportHeight;
+	public ChunkInitializerNotifyAcknowledgementWorkItem(ChunkInitializerThreadState chunkInitializerThreadState, Long conversationId){
+		super(chunkInitializerThreadState);
+		this.conversationId = conversationId;
 	}
 
 	public void doWork() throws Exception{
-		this.viewport.onViewportDimensionsChange(terminalWidth, terminalHeight, viewportWidth, viewportHeight);
+		this.chunkInitializerThreadState.onNewAcknowledgement(conversationId);
 	}
 }

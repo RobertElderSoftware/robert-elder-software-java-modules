@@ -34,6 +34,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.Comparator;
+import java.util.concurrent.ConcurrentHashMap;
 
 import java.util.List;
 import java.util.Map;
@@ -47,13 +48,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class WorkItemQueue<T> {
+public class WorkItemQueue<T extends WorkItem> {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private int MAX_ITEMS = 10000;
 	private PriorityBlockingQueue<PrioritizedWorkItem<T>> priorityBlockingQueue;
 	private int numPriorities = WorkItemPriority.size;
-
+	private Map<Long, BlockingQueue<WorkItemResult>> blockingWorkItemResults = new ConcurrentHashMap<Long, BlockingQueue<WorkItemResult>>();
 
 	public WorkItemQueue() {
 		this.priorityBlockingQueue = new PriorityBlockingQueue<PrioritizedWorkItem<T>>(MAX_ITEMS, new PrioritizedWorkItemComparator<T>());
@@ -63,7 +64,7 @@ public class WorkItemQueue<T> {
 		return this.priorityBlockingQueue.size();
 	}
 
-	public void putWorkItem(T workItem, WorkItemPriority priority) throws Exception {
+	private void putWorkItemInternal(T workItem, WorkItemPriority priority) throws Exception {
 		while (true) {
 			try {
 				if(this.priorityBlockingQueue.size() == this.MAX_ITEMS){
@@ -76,9 +77,39 @@ public class WorkItemQueue<T> {
 			}
 		}
 	}
+	public void putWorkItem(T workItem, WorkItemPriority priority) throws Exception {
+		if(workItem.getIsBlocking()){
+			throw new Exception("Expected a non-blocking work item.");
+		}else{
+			this.putWorkItemInternal(workItem, priority);
+		}
+	}
 
-	public T takeWorkItem() throws Exception {
+	protected T takeWorkItem() throws Exception {
 		T workItem = this.priorityBlockingQueue.take().getWorkItem();
 		return workItem;
+	}
+
+	public WorkItemResult putBlockingWorkItem(T workItem, WorkItemPriority priority) throws Exception {
+		/*
+		 * This method should always be called from another thread that wants to block
+		 * waiting for a response from this worker thread.
+		 */
+		if(workItem.getIsBlocking()){
+			Long currentThreadId = workItem.getThreadId();
+			if(!blockingWorkItemResults.containsKey(currentThreadId)){
+				blockingWorkItemResults.put(currentThreadId, new LinkedBlockingDeque<WorkItemResult>());
+				logger.info("Added a new result queue for blocking work items that will be returned to thread_id=" + currentThreadId);
+			}
+			this.putWorkItemInternal(workItem, priority);
+			return blockingWorkItemResults.get(currentThreadId).take();
+		}else{
+			throw new Exception("Expected a blocking work item.");
+		}
+	}
+
+	public void addResultForThreadId(WorkItemResult workItemResult, Long threadId) throws Exception {
+		logger.info("About to add a result queue item for blocking work items that will be returned to thread_id=" + threadId);
+		this.blockingWorkItemResults.get(threadId).put(workItemResult);
 	}
 }

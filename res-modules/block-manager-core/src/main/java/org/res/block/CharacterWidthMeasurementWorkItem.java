@@ -30,28 +30,11 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
+public abstract class CharacterWidthMeasurementWorkItem extends WorkItem{
+	protected CharacterWidthMeasurementThreadState characterWidthMeasurementThreadState;
 
-public class ViewportDimensionsChangeWorkItem extends ViewportWorkItem {
-
-	private Long terminalWidth;
-	private Long terminalHeight;
-	private Long viewportWidth;
-	private Long viewportHeight;
-
-
-	public ViewportDimensionsChangeWorkItem(Viewport viewport, Long terminalWidth, Long terminalHeight, Long viewportWidth, Long viewportHeight){
-		super(viewport);
-		this.terminalWidth = terminalWidth;
-		this.terminalHeight = terminalHeight;
-		this.viewportWidth = viewportWidth;
-		this.viewportHeight = viewportHeight;
-	}
-
-	public void doWork() throws Exception{
-		this.viewport.onViewportDimensionsChange(terminalWidth, terminalHeight, viewportWidth, viewportHeight);
+	public CharacterWidthMeasurementWorkItem(CharacterWidthMeasurementThreadState characterWidthMeasurementThreadState, boolean isBlocking){
+		super(isBlocking);
+		this.characterWidthMeasurementThreadState = characterWidthMeasurementThreadState;
 	}
 }

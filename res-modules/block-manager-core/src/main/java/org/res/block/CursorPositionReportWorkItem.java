@@ -35,23 +35,19 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class ViewportDimensionsChangeWorkItem extends ViewportWorkItem {
+public class CursorPositionReportWorkItem extends CharacterWidthMeasurementWorkItem {
 
-	private Long terminalWidth;
-	private Long terminalHeight;
-	private Long viewportWidth;
-	private Long viewportHeight;
+	private String text;
+	private Long x;
+	private Long y;
 
-
-	public ViewportDimensionsChangeWorkItem(Viewport viewport, Long terminalWidth, Long terminalHeight, Long viewportWidth, Long viewportHeight){
-		super(viewport);
-		this.terminalWidth = terminalWidth;
-		this.terminalHeight = terminalHeight;
-		this.viewportWidth = viewportWidth;
-		this.viewportHeight = viewportHeight;
+	public CursorPositionReportWorkItem(CharacterWidthMeasurementThreadState characterWidthMeasurementThreadState, Long x, Long y){
+		super(characterWidthMeasurementThreadState, false);
+		this.x = x;
+		this.y = y;
 	}
 
 	public void doWork() throws Exception{
-		this.viewport.onViewportDimensionsChange(terminalWidth, terminalHeight, viewportWidth, viewportHeight);
+		this.characterWidthMeasurementThreadState.notifyOfCurrentCursorPosition(x, y);
 	}
 }

@@ -43,8 +43,8 @@ public class ProbeRegionsRequestBlockMessage extends BlockMessage {
 	private Long numDimensions = null;
 	private List<CuboidAddress> cuboidAddresses = new ArrayList<CuboidAddress>();
 
-	public ProbeRegionsRequestBlockMessage(BlockModelContext blockModelContext, Long numDimensions, List<CuboidAddress> cuboidAddresses, boolean doRead, boolean doSubscribe){
-		super(blockModelContext);
+	public ProbeRegionsRequestBlockMessage(BlockModelContext blockModelContext, Long numDimensions, List<CuboidAddress> cuboidAddresses, boolean doRead, boolean doSubscribe, Long conversationId){
+		super(blockModelContext, conversationId);
 		this.numDimensions = numDimensions;
 		this.cuboidAddresses = cuboidAddresses;
 		if(doRead){
@@ -58,6 +58,7 @@ public class ProbeRegionsRequestBlockMessage extends BlockMessage {
 	public byte [] asByteArray() throws Exception{
 		BlockMessageBinaryBuffer buffer = new BlockMessageBinaryBuffer();
 		BlockMessage.writeBlockMessageType(buffer, BlockMessageType.BLOCK_MESSAGE_TYPE_PROBE_REGIONS);
+		BlockMessage.writeConversationId(buffer, this.conversationId);
 
 		buffer.writeOneLongValue(this.flags);
 		buffer.writeOneLongValue(this.numDimensions);
@@ -70,8 +71,8 @@ public class ProbeRegionsRequestBlockMessage extends BlockMessage {
 		return buffer.getUsedBuffer();
 	}
 
-	public ProbeRegionsRequestBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer) throws Exception {
-		super(blockModelContext);
+	public ProbeRegionsRequestBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer, Long conversationId) throws Exception {
+		super(blockModelContext, conversationId);
 		this.flags = buffer.readOneLongValue();
 		this.numDimensions = buffer.readOneLongValue();
 		Long numCuboidAddresses = buffer.readOneLongValue();
@@ -96,7 +97,7 @@ public class ProbeRegionsRequestBlockMessage extends BlockMessage {
 		if((this.flags & ProbeRegionsRequestBlockMessage.READ_FLAG_MASK) != 0L){
 			List<Cuboid> cuboids = blockModelContext.getBlockModelInterface().getBlocksInRegions(this.cuboidAddresses);
 
-			DescribeRegionsResponseBlockMessage notifyMessage = new DescribeRegionsResponseBlockMessage(this.blockModelContext, this.numDimensions, cuboids);
+			DescribeRegionsBlockMessage notifyMessage = new DescribeRegionsBlockMessage(this.blockModelContext, this.numDimensions, cuboids, this.getConversationId());
 			SendBlockMessageToSessionWorkItem notifyWorkItem = new SendBlockMessageToSessionWorkItem(this.blockModelContext, blockSession, notifyMessage);
 
 			blockModelContext.putWorkItem(notifyWorkItem, WorkItemPriority.PRIORITY_LOW);
@@ -105,7 +106,7 @@ public class ProbeRegionsRequestBlockMessage extends BlockMessage {
 		if((this.flags & ProbeRegionsRequestBlockMessage.SUBSCRIBE_FLAG_MASK) == 0L){
 			blockSession.unsubscribeFromRegions(this.cuboidAddresses);
 		}else{
-			blockSession.subscribeToRegions(this.cuboidAddresses);
+			blockSession.subscribeToRegions(this.cuboidAddresses, this.getConversationId());
 		}
 	}
 }

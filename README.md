@@ -50,6 +50,29 @@ java -jar block-manager-single-player-client-0.0.3.jar
 
 The game should immediately launch and fill up the terminal with graphics.  You can exit the game by pressing the 'q' key.  By default, the game saves it's world data into a SQLite database file that lives in the current directory.
 
+#  Verify The Jar Signature (Optional)
+
+If you are concerned about the authenticity of the .jar file, you can also verify the signature using GPG:
+
+```
+wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.3/block-manager-single-player-client-0.0.3.jar.asc
+gpg --search-keys robert@robertelder.org
+#  Should match the key for 'robert@robertelder.org'
+gpg --recv-keys ECBD481DBCA5C48804FBD08720B9852CF0558BAA
+gpg --verify block-manager-single-player-client-0.0.3.jar.asc block-manager-single-player-client-0.0.3.jar
+```
+
+The output should look something like this:
+
+```
+gpg: Signature made Thu 01 Aug 2024 01:49:03 PM EDT
+gpg:                using ECDSA key ECBD481DBCA5C48804FBD08720B9852CF0558BAA
+gpg: Good signature from "Robert Elder (Created on 2024-07-31) <robert@robertelder.org>" [unknown]
+gpg: WARNING: This key is not certified with a trusted signature!
+gpg:          There is no indication that the signature belongs to the owner.
+Primary key fingerprint: ECBD 481D BCA5 C488 04FB  D087 20B9 852C F055 8BAA
+```
+
 #  Building The Game
 
 To build the game, you will need to set up a development environment that can support Java 17 and a version of maven that can support Java 17.

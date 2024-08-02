@@ -42,6 +42,7 @@ import java.util.concurrent.Executors;
 
 import java.util.Set;
 import java.util.HashSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Date;
 import java.io.BufferedWriter;
 import java.text.SimpleDateFormat;
@@ -52,10 +53,18 @@ import java.nio.file.Paths;
 import java.util.Random;
 import java.lang.Thread;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.io.ByteArrayOutputStream;
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
+
 public class ClientBlockModelContext extends BlockModelContext implements BlockModelInterface {
 	private Random rand = new Random(1256);
+	private Map<String, Long> measuredTextLengths = new ConcurrentHashMap<String, Long>();
 	private InMemoryChunks inMemoryChunks;
 	private ChunkInitializerThreadState chunkInitializerThreadState;
+	private CharacterWidthMeasurementThreadState characterWidthMeasurementThreadState;
 	private CuboidAddress viewportCuboidAddress;
 	private Viewport viewport = null;
 	private Coordinate playerPositionBlockAddress = new Coordinate(Arrays.asList(99999999L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's position will be stored.
@@ -65,14 +74,14 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	private ClientServerInterface clientServerInterface;
 
 	private Long frameWidthTop = 1L;
-	private Long frameWidthLeft = 1L;
-	private Long frameWidthRight = 1L;
-	private Long frameWidthBottom = 11L;
+	private Long inventoryAreaHeight = 11L;
 	private Long edgeDistanceScreenX = 18L;
 	private Long edgeDistanceScreenY = 18L;
 	private Coordinate bottomleftHandCorner;
 	private Coordinate topRightHandCorner;
 	private CuboidAddress gameAreaCuboidAddress;
+
+	private byte[] unprocessedInputBytes = new byte[0];
 
 	public ClientBlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ClientServerInterface clientServerInterface) throws Exception {
 		super(blockManagerThreadCollection, clientServerInterface);
@@ -87,6 +96,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		CuboidAddress chunkSizeCuboidAddress = new CuboidAddress(new Coordinate(Arrays.asList(0L, 0L, 0L, 0L)), new Coordinate(Arrays.asList(2L, 2L, 4L, 0L)));
 		this.inMemoryChunks = new InMemoryChunks(blockManagerThreadCollection, this, chunkSizeCuboidAddress);
 		this.chunkInitializerThreadState = new ChunkInitializerThreadState(blockManagerThreadCollection, this, this.inMemoryChunks);
+		this.characterWidthMeasurementThreadState = new CharacterWidthMeasurementThreadState(blockManagerThreadCollection, this);
 
 		this.clientServerInterface.Connect();
 		this.viewport = new Viewport(this.blockManagerThreadCollection, this, this.getBlockSchema());
@@ -103,7 +113,8 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		threads.add(new WorkItemProcessorTask<ViewportWorkItem>(this.viewport));
 		threads.add(new WorkItemProcessorTask<InMemoryChunksWorkItem>(this.inMemoryChunks));
 		threads.add(new WorkItemProcessorTask<ChunkInitializerWorkItem>(this.chunkInitializerThreadState));
-		threads.add(new KeyboardInputReaderTask(this));
+		threads.add(new WorkItemProcessorTask<CharacterWidthMeasurementWorkItem>(this.characterWidthMeasurementThreadState));
+		threads.add(new StandardInputReaderTask(this, this.characterWidthMeasurementThreadState));
 		return threads;
 	}
 
@@ -115,15 +126,15 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		return this.playerInventory;
 	}
 
-
-	public Long getTerminalDimension(List<String> commandParts, Long defaultValue){
+	public Long getTerminalDimension(int index, Long defaultValue){
 		try{
+			List<String> commandParts = Arrays.asList("stty", "size", "-F", "/dev/tty");
 			ShellProcessRunner r = new ShellProcessRunner(commandParts);
 			ShellProcessFinalResult result = r.getFinalResult();
 			if(result.getReturnValue() == 0){
 				this.logMessage("Command '" + commandParts + "' ran with success:");
 				this.logMessage(new String(result.getOutput().getStdoutOutput(), "UTF-8"));
-				return Long.valueOf(new String(result.getOutput().getStdoutOutput(), "UTF-8").trim());
+				return Long.valueOf(new String(result.getOutput().getStdoutOutput(), "UTF-8").trim().split(" ")[index]);
 			}else{
 				this.logMessage(new String(result.getOutput().getStdoutOutput(), "UTF-8"));
 				this.logMessage(new String(result.getOutput().getStderrOutput(), "UTF-8"));
@@ -137,11 +148,11 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public Long getTerminalWidth(){
-		return this.getTerminalDimension(Arrays.asList("tput", "cols"), 80L);
+		return this.getTerminalDimension(1, 80L);
 	}
 
 	public Long getTerminalHeight(){
-		return this.getTerminalDimension(Arrays.asList("tput", "lines"), 30L);
+		return this.getTerminalDimension(0, 30L);
 	}
 
 	public Set<CuboidAddress> getRequiredRegionsSet() throws Exception{
@@ -275,11 +286,26 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.onPlayerInventoryChange();
 	}
 
+
+	public Long measureTextLengthOnTerminal(String text) throws Exception{
+		if(!measuredTextLengths.containsKey(text)){
+			TextWidthMeasurementWorkItem wm = new TextWidthMeasurementWorkItem(this.characterWidthMeasurementThreadState, text);
+			TextWidthMeasurementWorkItemResult m = (TextWidthMeasurementWorkItemResult)this.characterWidthMeasurementThreadState.putBlockingWorkItem(wm, WorkItemPriority.PRIORITY_LOW);
+			this.logMessage("Got this width value: " + m.getWidth() + " For text '" + text + "'.");
+			measuredTextLengths.put(text, m.getWidth());
+		}
+		return this.measuredTextLengths.get(text);
+	}
+
 	public boolean onKeyboardInput(byte [] characters) throws Exception {
+		ByteArrayOutputStream baosBoth = new ByteArrayOutputStream();
+		baosBoth.write(this.unprocessedInputBytes);
+		baosBoth.write(characters);
+		this.unprocessedInputBytes = baosBoth.toByteArray();
 		//System.out.println("Got input: '" + c + "'");
-		for(int i = 0; i < characters.length; i++){
-			byte c = characters[i];
-			boolean is_last = i == characters.length -1;
+		for(int i = 0; i < this.unprocessedInputBytes.length; i++){
+			byte c = this.unprocessedInputBytes[i];
+			boolean is_last = i == this.unprocessedInputBytes.length -1;
 			switch(c){
 				case 'q':{
 					this.logMessage("The 'q' key was pressed.  Exiting...");
@@ -314,11 +340,17 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 				}case 'm':{
 					this.doMineBlocksAtPosition(this.getPlayerPosition());
 					break;
+				}case 'i':{
+					//  A simple interactive way to test reading cursor position:
+					//  TODO
+					break;
 				}default:{
 					System.out.println("Got input: '" + c + "'");
 				}
 			}
 		}
+		//  All input bytes have been processed:
+		this.unprocessedInputBytes = new byte[0];
 		return false;
 	}
 
@@ -339,7 +371,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		CuboidData currentCuboidData = new CuboidData(dataForOneCuboid.getUsedBuffer());
 
 		Cuboid c = new Cuboid(blocksToChangeAddress, currentCuboidDataLengths, currentCuboidData);
-		this.submitChunkToServer(c, WorkItemPriority.PRIORITY_HIGH);
+		this.submitChunkToServer(c, WorkItemPriority.PRIORITY_HIGH, 12345L);
 	}
 
 	public void doBlockWriteAtPlayerPosition(byte [] data, Coordinate position, Long radius) throws Exception{
@@ -361,7 +393,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		CuboidData currentCuboidData = new CuboidData(dataForOneCuboid.getUsedBuffer());
 
 		Cuboid c = new Cuboid(blocksToChangeAddress, currentCuboidDataLengths, currentCuboidData);
-		this.submitChunkToServer(c, WorkItemPriority.PRIORITY_HIGH);
+		this.submitChunkToServer(c, WorkItemPriority.PRIORITY_HIGH, 12345L);
 	}
 
 	public boolean isServer(){
@@ -403,10 +435,14 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			}
 			this.onPlayerPositionChange(null, this.playerPositionXYZ.getPosition().copy());
 
+			//  Use the width of an iron oxide character as a reference to guess whether we're using narror or wide characters.
+			Long gameAreaCellWidth = this.measureTextLengthOnTerminal(IronOxide.blockDataString);
+			Long frameCharacterWidth = this.measureTextLengthOnTerminal("\u2550"); //  One of the characters used in the frame.
+
 			Long terminalWidth = this.getTerminalWidth();
 			Long terminalHeight = this.getTerminalHeight();
-			Long viewportWidth = (terminalWidth - (this.frameWidthLeft + this.frameWidthRight))/ 2L;
-			Long viewportHeight = terminalHeight - (this.frameWidthTop + this.frameWidthBottom);
+			Long viewportWidth = ((terminalWidth - (frameCharacterWidth + frameCharacterWidth)) / gameAreaCellWidth);
+			Long viewportHeight = terminalHeight - (this.frameWidthTop + this.inventoryAreaHeight);
 			Long topRightHandX = viewportWidth / 2L;
 			Long topRightHandZ = viewportHeight / 2L;
 			Long bottomLeftHandX = topRightHandX - (viewportWidth - 1L);
@@ -417,7 +453,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			this.topRightHandCorner = new Coordinate(Arrays.asList(topRightHandX + initialPlayerPosition.getX(), initialPlayerPosition.getY(), topRightHandZ + initialPlayerPosition.getZ(), 0L));
 
 			this.onViewportDimensionsChange(terminalWidth, terminalHeight, viewportWidth, viewportHeight);
-			this.onFrameDimensionsChange(this.frameWidthTop, this.frameWidthLeft, this.frameWidthRight, this.frameWidthBottom);
+			this.onFrameDimensionsChange(this.frameWidthTop, frameCharacterWidth, this.inventoryAreaHeight, gameAreaCellWidth);
 			this.onGameAreaChange(new CuboidAddress(this.bottomleftHandCorner, this.topRightHandCorner));
 
 			if(this.playerInventory != null){
@@ -478,7 +514,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		CuboidData currentCuboidData = new CuboidData(cuboidData.getUsedBuffer());
 
 		Cuboid c = new Cuboid(ca, currentCuboidDataLengths, currentCuboidData);
-		this.submitChunkToServer(c, WorkItemPriority.PRIORITY_LOW);
+		this.submitChunkToServer(c, WorkItemPriority.PRIORITY_LOW, 12345L);
 	}
 
 	public void writeBlocksInRegion(Cuboid cuboid) throws Exception{
@@ -628,8 +664,8 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 
-	public void onFrameDimensionsChange(Long frameWidthTop, Long frameWidthLeft, Long frameWidthRight, Long frameWidthBottom) throws Exception{
-		this.viewport.putWorkItem(new FrameDimensionsChangeWorkItem(this.viewport, frameWidthTop, frameWidthLeft, frameWidthRight, frameWidthBottom), WorkItemPriority.PRIORITY_LOW);
+	public void onFrameDimensionsChange(Long frameWidthTop, Long frameCharacterWidth, Long inventoryAreaHeight, Long gameAreaCellWidth) throws Exception{
+		this.viewport.putWorkItem(new FrameDimensionsChangeWorkItem(this.viewport, frameWidthTop, frameCharacterWidth, inventoryAreaHeight, gameAreaCellWidth), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void onViewportDimensionsChange(Long terminalWidth, Long terminalHeight, Long viewportWidth, Long viewportHeight) throws Exception{
@@ -642,26 +678,33 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	public void enqueueChunkUnsubscriptionForServer(List<CuboidAddress> cuboidAddresses, WorkItemPriority priority) throws Exception{
 		BlockSession bs = this.getSessionMap().get(this.clientServerInterface.getClientSessionId());
-		ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddresses.get(0).getNumDimensions(), cuboidAddresses, false, false);
+		Long conversationId = 12345L;// TODO
+		ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddresses.get(0).getNumDimensions(), cuboidAddresses, false, false, conversationId);
 		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, m);
 		this.putWorkItem(workItem, priority);
 	}
 
-	public void enqueueChunkRequestFromServer(CuboidAddress cuboidAddress, WorkItemPriority priority) throws Exception{
+	public void enqueueChunkRequestToServer(CuboidAddress cuboidAddress, WorkItemPriority priority) throws Exception{
 		this.logMessage("Doing request to server for chunk=" + cuboidAddress);
 		List<CuboidAddress> l = new ArrayList<CuboidAddress>();
 		l.add(cuboidAddress);
 		BlockSession bs = this.getSessionMap().get(this.clientServerInterface.getClientSessionId());
-		ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddress.getNumDimensions(), l, true, true);
+		Long conversationId = 12345L;// TODO
+		ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddress.getNumDimensions(), l, true, true, conversationId);
 		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, m);
 		this.putWorkItem(workItem, priority);
 	}
 
-	public void submitChunkToServer(Cuboid cuboid, WorkItemPriority priority) throws Exception{
+	public void submitChunkToServer(Cuboid cuboid, WorkItemPriority priority, Long conversationId) throws Exception{
 		BlockSession bs = this.getSessionMap().get(this.clientServerInterface.getClientSessionId());
-		DescribeRegionsResponseBlockMessage response = new DescribeRegionsResponseBlockMessage(this, cuboid.getNumDimensions(), Arrays.asList(cuboid));
+		DescribeRegionsBlockMessage response = new DescribeRegionsBlockMessage(this, cuboid.getNumDimensions(), Arrays.asList(cuboid), conversationId);
 		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, response);
 		this.putWorkItem(workItem, priority);
+	}
+
+	public void onAcknowledgementMessage(Long conversationId) throws Exception{
+		ChunkInitializerWorkItem workItem = new ChunkInitializerNotifyAcknowledgementWorkItem(this.chunkInitializerThreadState, conversationId);
+		this.chunkInitializerThreadState.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
 	}
 
 }

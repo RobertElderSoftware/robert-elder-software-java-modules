@@ -99,7 +99,7 @@ public class BlockManagerThreadCollection {
 			Long threadId = e.getKey();
 			Thread t = e.getValue();
 			logger.info(Thread.currentThread().getClass().getName() + " " + Thread.currentThread() + " " + Thread.currentThread().getId() + " " + t.getClass().getName() + " " + t + " " + t.getId() + " == " + Thread.currentThread().equals(t));
-			if(t instanceof KeyboardInputReaderTask){
+			if(t instanceof StandardInputReaderTask){
 				try{
 					//  Close stdin to trigger exit of 'read' call for keyboard input task:
 					logger.info("Calling System.in.close() for thread " + t.getClass().getName() + "...");

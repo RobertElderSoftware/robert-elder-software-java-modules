@@ -30,28 +30,30 @@
 //  SOFTWARE.
 package org.res.block;
 
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
+
 import java.util.List;
 import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
+import java.util.Arrays;
 
-public class ViewportDimensionsChangeWorkItem extends ViewportWorkItem {
+public class CursorPositionReport  extends AnsiEscapeSequence {
 
-	private Long terminalWidth;
-	private Long terminalHeight;
-	private Long viewportWidth;
-	private Long viewportHeight;
+	private Long x;
+	private Long y;
 
-
-	public ViewportDimensionsChangeWorkItem(Viewport viewport, Long terminalWidth, Long terminalHeight, Long viewportWidth, Long viewportHeight){
-		super(viewport);
-		this.terminalWidth = terminalWidth;
-		this.terminalHeight = terminalHeight;
-		this.viewportWidth = viewportWidth;
-		this.viewportHeight = viewportHeight;
+	public CursorPositionReport(Long x, Long y){
+		this.x = x;
+		this.y = y;
 	}
 
-	public void doWork() throws Exception{
-		this.viewport.onViewportDimensionsChange(terminalWidth, terminalHeight, viewportWidth, viewportHeight);
+	public Long getX(){
+		return this.x;
+	}
+
+	public Long getY(){
+		return this.y;
 	}
 }

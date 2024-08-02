@@ -48,13 +48,16 @@ import java.util.List;
 import java.util.ArrayList;
 
 
-public class KeyboardInputReaderTask extends Thread {
+public class StandardInputReaderTask extends Thread {
 
 	private BlockModelContext blockModelContext;
 	private ClientBlockModelContext clientBlockModelContext;
+	private CharacterWidthMeasurementThreadState characterWidthMeasurementThreadState;
+	private AnsiEscapeSequenceExtractor ansiEscapeSequenceExtractor = new AnsiEscapeSequenceExtractor();
 
-	public KeyboardInputReaderTask(ClientBlockModelContext clientBlockModelContext){
+	public StandardInputReaderTask(ClientBlockModelContext clientBlockModelContext, CharacterWidthMeasurementThreadState characterWidthMeasurementThreadState) throws Exception{
 		this.clientBlockModelContext = clientBlockModelContext;
+		this.characterWidthMeasurementThreadState = characterWidthMeasurementThreadState;
 	}
 
 	public void setTTYMode(List<String> commandParts) throws Exception{
@@ -76,9 +79,39 @@ public class KeyboardInputReaderTask extends Thread {
 		this.setTTYMode(Arrays.asList("stty", "cooked", "echo", "-F", "/dev/tty"));
 	}
 
+	public boolean onInputByte(byte b) throws Exception{
+		clientBlockModelContext.logMessage("onInputByte: " + String.valueOf(b));
+		this.ansiEscapeSequenceExtractor.addToBuffer(b);
+		while(this.ansiEscapeSequenceExtractor.getBuffer().size() > 0){ //  While there is still something to parse.
+			CursorPositionReport cpr = (CursorPositionReport)this.ansiEscapeSequenceExtractor.tryToParseBuffer();
+			if(cpr == null){
+				if(this.ansiEscapeSequenceExtractor.containsPartiallyParsedSequence()){
+					clientBlockModelContext.logMessage("->Input buffer contains partially parsed ansi sequence=" + String.valueOf(this.ansiEscapeSequenceExtractor.getBuffer()));
+					return false;  // Nothing more to do.
+				}else{
+					byte [] extracted = new byte [1];
+					extracted[0] = this.ansiEscapeSequenceExtractor.extractNextByte();
+					clientBlockModelContext.logMessage("->There is just regular text in the buffer: " + String.valueOf(extracted[0]));
+					boolean inputReadingFinished = this.clientBlockModelContext.onKeyboardInput(extracted);
+					if(inputReadingFinished){
+						return inputReadingFinished;
+					}
+				}
+			}else{
+				//  If we successfully parsed an ANSI escape sequence, extract those characters from the stream:
+				List<Byte> extracted = this.ansiEscapeSequenceExtractor.extractParsedBytes();
+				clientBlockModelContext.logMessage("Got Character Position Report: x=" + cpr.getX() + ", y=" + cpr.getY() + ", extracted=" + String.valueOf(extracted));
+
+				CursorPositionReportWorkItem wm = new CursorPositionReportWorkItem(this.characterWidthMeasurementThreadState, cpr.getX(), cpr.getY());
+				this.characterWidthMeasurementThreadState.putWorkItem(wm, WorkItemPriority.PRIORITY_LOW);
+			}
+		}
+		return false;
+	}
+
 	@Override
 	public void run() {
-		clientBlockModelContext.logMessage("Begin running KeyboardInputReaderTask (" + Thread.currentThread() + ") for " + this.clientBlockModelContext.getClass().getName());
+		clientBlockModelContext.logMessage("Begin running StandardInputReaderTask (" + Thread.currentThread() + ") for " + this.clientBlockModelContext.getClass().getName());
 		try{
 			try{
 				this.setToRawMode();
@@ -91,7 +124,7 @@ public class KeyboardInputReaderTask extends Thread {
 				do{
 					int buffer_len = 1024;
 					ByteBuffer buffer = ByteBuffer.allocate(buffer_len);
-					clientBlockModelContext.logMessage("Before input read... ");
+					clientBlockModelContext.logMessage("Before input read, stdinChannel.size()=" + stdinChannel.size() + "... ");
 					int read_rtn = stdinChannel.read(buffer);
 					clientBlockModelContext.logMessage("After input read... " + read_rtn);
 					if(read_rtn == -1){ //  When System.in has been closed
@@ -101,7 +134,12 @@ public class KeyboardInputReaderTask extends Thread {
 						buffer.rewind();
 						buffer.get(bytes_read);
 						clientBlockModelContext.logMessage("Bytes read are " + BlockModelContext.convertToHex(bytes_read));
-						inputReadingFinished = this.clientBlockModelContext.onKeyboardInput(bytes_read);
+						for(int i = 0; i < read_rtn; i++){
+							inputReadingFinished = this.onInputByte(bytes_read[i]);
+							if(inputReadingFinished){
+								break;
+							}
+						}
 					}
 				}while (!inputReadingFinished && !clientBlockModelContext.getBlockManagerThreadCollection().getIsFinished() && !Thread.currentThread().isInterrupted());
 			}catch(ClosedByInterruptException e){
@@ -122,6 +160,6 @@ public class KeyboardInputReaderTask extends Thread {
 		//  Put cursor position to top of screen:
 		System.out.println("\033[1;1H\033[0m");
 
-		clientBlockModelContext.logMessage("Finished running KeyboardInputReaderTask, exiting thread for " + this.clientBlockModelContext.getClass().getName());
+		clientBlockModelContext.logMessage("Finished running StandardInputReaderTask, exiting thread for " + this.clientBlockModelContext.getClass().getName());
 	}
 }

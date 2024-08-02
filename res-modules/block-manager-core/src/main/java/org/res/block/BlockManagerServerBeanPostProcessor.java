@@ -44,6 +44,7 @@ import javax.sql.DataSource;
 
 import org.sqlite.SQLiteDataSource;
 import org.sqlite.SQLiteConfig;
+import org.sqlite.SQLiteConfig.JournalMode;
 
 import org.springframework.beans.FatalBeanException;
 
@@ -113,6 +114,7 @@ public class BlockManagerServerBeanPostProcessor implements DestructionAwareBean
 				this.sqliteDataSource.setUrl("jdbc:" + subprotocol + ":" + filename);
 				SQLiteConfig config = new SQLiteConfig();
 				config.setDateClass("TEXT");
+				config.setJournalMode(JournalMode.MEMORY);
 				this.sqliteDataSource.setConfig(config);
 				this.sqliteDataSource.setEnforceForeignKeys(true);
 			}
@@ -149,6 +151,7 @@ public class BlockManagerServerBeanPostProcessor implements DestructionAwareBean
 		BlockDAOImpl blockDAOImpl = new BlockDAOImpl();
 		blockDAOImpl.setBlockModelContext(this.params.getBlockModelContext());
 		blockDAOImpl.setDataSource(this.dataSource());
+		blockDAOImpl.setTransactionManager(this.transactionManager());
         	blockDAOImpl.setBlockManagerServerApplicationContextParameters(this.params);
 		return blockDAOImpl; 
 	}

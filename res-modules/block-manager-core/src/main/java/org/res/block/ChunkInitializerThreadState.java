@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 
 import java.util.Set;
 import java.util.HashSet;
@@ -49,6 +50,7 @@ import java.lang.invoke.MethodHandles;
 public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitializerWorkItem> {
 
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
+	private Set<Long> outstandingChunkWriteConversations = new HashSet<Long>();
 	private MultiDimensionalNoiseGenerator noiseGenerator = new MultiDimensionalNoiseGenerator(0L);
 	private Coordinate playerPosition = null;
 	private CuboidAddress reachableGameArea = null;
@@ -86,6 +88,7 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 
 	public void onNewCuboidToInitialize(Cuboid cuboid) throws Exception{
 		cuboidsToInitialize.put(cuboid.getCuboidAddress(), cuboid);
+		this.doChunkInitializationActivity();
 	}
 
 	private List<CuboidAddress> getClosestCuboidAddressList(Set<CuboidAddress> cuboidAddresses, Coordinate currentCoordinate) throws Exception {
@@ -110,14 +113,6 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 	}
 
 	public void initializeOneCuboid(Cuboid cuboid) throws Exception{
-
-		// TODO:  Don't use sleep to slow down this thread, use blocking and rate limiting instead:
-		try {
-			Thread.sleep(100);
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-		}
-
 		CuboidAddress cuboidAddress = cuboid.getCuboidAddress();
 		long cuboidVolumeInBlocks = cuboidAddress.getVolume();
 		BlockMessageBinaryBuffer newDataForOneCuboid = new BlockMessageBinaryBuffer();
@@ -160,7 +155,9 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 		Cuboid newGeneratedCuboid = new Cuboid(cuboidAddress, newCuboidDataLengths, newCuboidData);
 
 		if(numBlocksThatWereInitialized > 0L){ //  Only send the update back when there is actually something to initialize (otherwise, we get stuck in a loop)
-			clientBlockModelContext.submitChunkToServer(newGeneratedCuboid, WorkItemPriority.PRIORITY_LOW);
+			Long conversationId = this.getUnusedOustandingChunkWriteConversationId();
+			clientBlockModelContext.submitChunkToServer(newGeneratedCuboid, WorkItemPriority.PRIORITY_LOW, conversationId);
+			outstandingChunkWriteConversations.add(conversationId);
 		}
 	}
 
@@ -235,30 +232,53 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 			}
 		}
 	}
+	public Long getUnusedOustandingChunkWriteConversationId(){
+		while (true){
+			Long l = new Random().nextLong();
+			if(!outstandingChunkWriteConversations.contains(l)){
+				return l;
+			}
+		}
+	}
+
+	public void doChunkInitializationActivity() throws Exception{
+		Long maxOutstandingInitializingChunkWrites = 1L;
+		if(outstandingChunkWriteConversations.size() < maxOutstandingInitializingChunkWrites){
+			List<CuboidAddress> closestCuboidAddressList = this.getClosestCuboidAddressList(cuboidsToInitialize.keySet(), this.playerPosition);
+			if(closestCuboidAddressList.size() > 0){
+				CuboidAddress cuboidAddressToInitialize = closestCuboidAddressList.get(0);
+				//  Don't bother initializing chunks that are not visible in the game area, and also not loaded/loading in memory:
+				//  This could still discard a few chunks from the initialization queue if they are outside the visible game area, but in the
+				//  initially loaded area before inMemoryChunks has had a chance to issue the pending request.  You can just move around to correctly load the area though.
+				if(
+					(!this.inMemoryChunks.isChunkLoadedOrPending(cuboidAddressToInitialize)) &&
+					this.reachableGameArea != null && this.reachableGameArea.getIntersectionCuboidAddress(cuboidAddressToInitialize) == null
+				){
+					//  If the area we're trying to initialize is off screen, then just ignore this chunk and move on.
+					logger.info("Chunk initializer thread discarding cuboid " + cuboidAddressToInitialize + " because it's not in a loaded memory area anymore.");
+				}else{
+					logger.info("Initializing this cuboid: " + cuboidAddressToInitialize + " because it was in the loaded memory area.");
+					this.initializeOneCuboid(cuboidsToInitialize.get(cuboidAddressToInitialize));
+				}
+				cuboidsToInitialize.remove(cuboidAddressToInitialize);
+			}else{
+				logger.info("Chunk initializer thread: no more cuboids left to initialize.");
+			}
+		}else{
+			logger.info("outstandingChunkWriteConversations=" + outstandingChunkWriteConversations + " but maxOutstandingInitializingChunkWrites=" + maxOutstandingInitializingChunkWrites);
+		}
+	}
+
+	public void onNewAcknowledgement(Long conversationId) throws Exception{
+		if(outstandingChunkWriteConversations.contains(conversationId)){
+			outstandingChunkWriteConversations.remove(conversationId);  // Server acknowledged this chunk write
+			this.doChunkInitializationActivity();
+		}else{
+			logger.info("Chunk initializer thread: conversationId=" + conversationId + " was not part of any initialied block write.  Most likely an unrelated write.");
+		}
+	}
 
 	public boolean doBackgroundProcessing() throws Exception{
-		List<CuboidAddress> closestCuboidAddressList = this.getClosestCuboidAddressList(cuboidsToInitialize.keySet(), this.playerPosition);
-		if(closestCuboidAddressList.size() > 0){
-			CuboidAddress cuboidAddressToInitialize = closestCuboidAddressList.get(0);
-			//  Don't bother initializing chunks that are not visible in the game area, and also not loaded/loading in memory:
-			//  This could still discard a few chunks from the initialization queue if they are outside the visible game area, but in the
-			//  initially loaded area before inMemoryChunks has had a chance to issue the pending request.  You can just move around to correctly load the area though.
-			if(
-				(!this.inMemoryChunks.isChunkLoadedOrPending(cuboidAddressToInitialize)) &&
-				this.reachableGameArea != null && this.reachableGameArea.getIntersectionCuboidAddress(cuboidAddressToInitialize) == null
-			){
-				//  If the area we're trying to initialize is off screen, then just ignore this chunk and move on.
-				logger.info("Chunk initializer thread discarding cuboid " + cuboidAddressToInitialize + " because it's not in a loaded memory area anymore.");
-			}else{
-				logger.info("Initializing this cuboid: " + cuboidAddressToInitialize + " because it was in the loaded memory area.");
-				this.initializeOneCuboid(cuboidsToInitialize.get(cuboidAddressToInitialize));
-			}
-			cuboidsToInitialize.remove(cuboidAddressToInitialize);
-			//  There is only more work if there are still cuboids to initialize
-			//  Also, allow prioritization of new work items:
-			return cuboidsToInitialize.size() > 0 && this.workItemQueue.size() == 0;
-		}else{
-			return false;
-		}
+		return false;
 	}
 }

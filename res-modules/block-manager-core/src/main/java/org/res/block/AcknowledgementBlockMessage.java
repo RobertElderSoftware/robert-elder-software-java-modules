@@ -30,28 +30,36 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.List;
-import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
+import java.util.List;
+import java.util.ArrayList;
 
-public class ViewportDimensionsChangeWorkItem extends ViewportWorkItem {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
 
-	private Long terminalWidth;
-	private Long terminalHeight;
-	private Long viewportWidth;
-	private Long viewportHeight;
+public class AcknowledgementBlockMessage extends BlockMessage {
 
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	public ViewportDimensionsChangeWorkItem(Viewport viewport, Long terminalWidth, Long terminalHeight, Long viewportWidth, Long viewportHeight){
-		super(viewport);
-		this.terminalWidth = terminalWidth;
-		this.terminalHeight = terminalHeight;
-		this.viewportWidth = viewportWidth;
-		this.viewportHeight = viewportHeight;
+	public AcknowledgementBlockMessage(BlockModelContext blockModelContext, Long conversationId){
+		super(blockModelContext, conversationId);
 	}
 
-	public void doWork() throws Exception{
-		this.viewport.onViewportDimensionsChange(terminalWidth, terminalHeight, viewportWidth, viewportHeight);
+	public byte [] asByteArray() throws Exception{
+		BlockMessageBinaryBuffer buffer = new BlockMessageBinaryBuffer();
+		BlockMessage.writeBlockMessageType(buffer, BlockMessageType.BLOCK_MESSAGE_TYPE_ACKNOWLEDGEMENT);
+		BlockMessage.writeConversationId(buffer, this.conversationId);
+		return buffer.getUsedBuffer();
+	}
+
+	public AcknowledgementBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer, Long conversationId) throws Exception {
+		super(blockModelContext, conversationId);
+	}
+
+	public void doWork(BlockSession blockSession) throws Exception{
+		this.blockModelContext.onAcknowledgementMessage(this.conversationId);
+		logger.info("In doWork for AcknowledgementBlockMessage conversationId=" + this.conversationId + ".");
 	}
 }

@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 import java.util.Map;
+import java.util.Arrays;
 
 public class AfterWriteCuboidsWorkItem extends BlockModelContextWorkItem {
 
@@ -52,14 +53,20 @@ public class AfterWriteCuboidsWorkItem extends BlockModelContextWorkItem {
 		for(Map.Entry<String, BlockSession> e : blockModelContext.getSessionMap().entrySet()){
 			blockModelContext.logMessage("Enqueing a notify for session " + e.getKey() + " due to subscription intersection.");
 
-			List<CuboidAddress> intersectingSubscribedCuboids = e.getValue().getSubscriptionIntersections(this.cuboidAddresses);
+			Map<CuboidAddress, Long> intersectingSubscribedCuboids = e.getValue().getSubscriptionIntersections(this.cuboidAddresses);
 
-			List<Cuboid> notificationCuboids = blockModelContext.getBlockModelInterface().getBlocksInRegions(intersectingSubscribedCuboids);
+			//  TODO:  This could be more efficient.  Group update notifications by conversation id:
+			for(Map.Entry<CuboidAddress, Long> intersectingSubscribedCuboid : intersectingSubscribedCuboids.entrySet()){
+				List<Cuboid> notificationCuboids = blockModelContext.getBlockModelInterface().getBlocksInRegions(Arrays.asList(intersectingSubscribedCuboid.getKey()));
 
-			DescribeRegionsResponseBlockMessage notifyMessage = new DescribeRegionsResponseBlockMessage(this.blockModelContext, this.numDimensions, notificationCuboids);
-			SendBlockMessageToSessionWorkItem notifyWorkItem = new SendBlockMessageToSessionWorkItem(this.blockModelContext, e.getValue(), notifyMessage);
+				Long subscriptionConversationId = intersectingSubscribedCuboid.getValue();
+				DescribeRegionsBlockMessage notifyMessage = new DescribeRegionsBlockMessage(this.blockModelContext, this.numDimensions, notificationCuboids, subscriptionConversationId);
+				SendBlockMessageToSessionWorkItem notifyWorkItem = new SendBlockMessageToSessionWorkItem(this.blockModelContext, e.getValue(), notifyMessage);
 
-			blockModelContext.putWorkItem(notifyWorkItem, WorkItemPriority.PRIORITY_LOW);
+				blockModelContext.putWorkItem(notifyWorkItem, WorkItemPriority.PRIORITY_LOW);
+			}
+
 		}
+
 	}
 }

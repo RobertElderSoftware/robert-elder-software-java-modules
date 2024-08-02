@@ -39,20 +39,21 @@ public class ErrorNotificationBlockMessage extends BlockMessage {
 
 	private BlockMessageErrorType blockMessageErrorType;
 
-	public ErrorNotificationBlockMessage(BlockModelContext blockModelContext, BlockMessageErrorType blockMessageErrorType){
-		super(blockModelContext);
+	public ErrorNotificationBlockMessage(BlockModelContext blockModelContext, BlockMessageErrorType blockMessageErrorType, Long conversationId){
+		super(blockModelContext, conversationId);
 		this.blockMessageErrorType = blockMessageErrorType;
 	}
 
 	public byte [] asByteArray() throws Exception{
 		BlockMessageBinaryBuffer buffer = new BlockMessageBinaryBuffer();
 		BlockMessage.writeBlockMessageType(buffer, BlockMessageType.BLOCK_MESSAGE_TYPE_ERROR_NOTIFICATION);
+		BlockMessage.writeConversationId(buffer, this.conversationId);
 		buffer.writeOneLongValue(this.blockMessageErrorType.toLong());
 		return buffer.getUsedBuffer();
 	}
 
-	public ErrorNotificationBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer) throws Exception {
-		super(blockModelContext);
+	public ErrorNotificationBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer, Long conversationId) throws Exception {
+		super(blockModelContext, conversationId);
 		long blockMessageErrorTypeLong = buffer.readOneLongValue();
 		this.blockMessageErrorType = BlockMessageErrorType.forValue(blockMessageErrorTypeLong);
 	}

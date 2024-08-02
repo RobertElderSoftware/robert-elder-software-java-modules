@@ -36,9 +36,15 @@ import java.nio.LongBuffer;
 public abstract class BlockMessage {
 
 	protected BlockModelContext blockModelContext;
+	protected Long conversationId;
 
-	public BlockMessage(BlockModelContext blockModelContext){
+	public BlockMessage(BlockModelContext blockModelContext, Long conversationId){
 		this.blockModelContext = blockModelContext;
+		this.conversationId = conversationId;
+	}
+
+	public Long getConversationId(){
+		return this.conversationId;
 	}
 
 	public void setBlockModelContext(BlockModelContext blockModelContext){
@@ -53,13 +59,16 @@ public abstract class BlockMessage {
 		int byteOffsetIntoMessage = 0;
 
 		BlockMessageType blockMessageType = BlockMessage.readBlockMessageType(buffer);
+		Long conversationId = buffer.readOneLongValue();
 		switch(blockMessageType){
 			case BLOCK_MESSAGE_TYPE_PROBE_REGIONS:{
-				return new ProbeRegionsRequestBlockMessage(blockModelContext, buffer);
+				return new ProbeRegionsRequestBlockMessage(blockModelContext, buffer, conversationId);
 			}case BLOCK_MESSAGE_TYPE_DESCRIBE_REGIONS:{
-				return new DescribeRegionsResponseBlockMessage(blockModelContext, buffer);
+				return new DescribeRegionsBlockMessage(blockModelContext, buffer, conversationId);
 			}case BLOCK_MESSAGE_TYPE_ERROR_NOTIFICATION:{
-				return new ErrorNotificationBlockMessage(blockModelContext, buffer);
+				return new ErrorNotificationBlockMessage(blockModelContext, buffer, conversationId);
+			}case BLOCK_MESSAGE_TYPE_ACKNOWLEDGEMENT:{
+				return new AcknowledgementBlockMessage(blockModelContext, buffer, conversationId);
 			}default:{
 				throw new Exception("Unknown message type: " + blockMessageType.toString());
 			}
@@ -79,6 +88,10 @@ public abstract class BlockMessage {
 	public static void writeBlockMessageType(BlockMessageBinaryBuffer buffer, BlockMessageType blockMessageType){
 		long messageType = blockMessageType.toLong();
 		buffer.writeOneLongValue(messageType);
+	}
+
+	public static void writeConversationId(BlockMessageBinaryBuffer buffer, Long conversationId){
+		buffer.writeOneLongValue(conversationId);
 	}
 
 	public BlockMessage() {

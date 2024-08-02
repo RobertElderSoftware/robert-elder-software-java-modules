@@ -36,6 +36,7 @@ public class UnitTestWorkItem extends WorkItem{
 	private int creationOrder;
 
 	public UnitTestWorkItem(WorkItemPriority workItemPriority, int creationOrder){
+		super(false);
 		this.workItemPriority = workItemPriority;
 		this.creationOrder = creationOrder;
 	}

@@ -35,13 +35,13 @@ import java.nio.LongBuffer;
 import java.util.List;
 import java.util.ArrayList;
 
-public class DescribeRegionsResponseBlockMessage extends BlockMessage {
+public class DescribeRegionsBlockMessage extends BlockMessage {
 
 	private Long numDimensions = null;
 	private List<Cuboid> cuboids = null;
 
-	public DescribeRegionsResponseBlockMessage(BlockModelContext blockModelContext, Long numDimensions, List<Cuboid> cuboids) throws Exception {
-		super(blockModelContext);
+	public DescribeRegionsBlockMessage(BlockModelContext blockModelContext, Long numDimensions, List<Cuboid> cuboids, Long conversationId) throws Exception {
+		super(blockModelContext, conversationId);
 		this.numDimensions = numDimensions;
 		this.cuboids = cuboids;
 	}
@@ -49,6 +49,7 @@ public class DescribeRegionsResponseBlockMessage extends BlockMessage {
 	public byte [] asByteArray() throws Exception{
 		BlockMessageBinaryBuffer buffer = new BlockMessageBinaryBuffer();
 		BlockMessage.writeBlockMessageType(buffer, BlockMessageType.BLOCK_MESSAGE_TYPE_DESCRIBE_REGIONS);
+		BlockMessage.writeConversationId(buffer, this.conversationId);
 
 		buffer.writeOneLongValue(this.numDimensions);
 		buffer.writeOneLongValue(this.cuboids.size());
@@ -68,8 +69,8 @@ public class DescribeRegionsResponseBlockMessage extends BlockMessage {
 		return buffer.getUsedBuffer();
 	}
 
-	public DescribeRegionsResponseBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer) throws Exception {
-		super(blockModelContext);
+	public DescribeRegionsBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer, Long conversationId) throws Exception {
+		super(blockModelContext, conversationId);
 		this.numDimensions = buffer.readOneLongValue();
 		Long numCuboids = buffer.readOneLongValue();
 
@@ -104,11 +105,15 @@ public class DescribeRegionsResponseBlockMessage extends BlockMessage {
 	}
 
 	public void doWork(BlockSession blockSession) throws Exception{
-		blockModelContext.logMessage("in doWork for DescribeRegionsResponseBlockMessage numDimensions=" + this.numDimensions + " getNumCuboids()=" + this.cuboids.size());
+		blockModelContext.logMessage("in doWork for DescribeRegionsBlockMessage numDimensions=" + this.numDimensions + " getNumCuboids()=" + this.cuboids.size());
 		for(Cuboid c : this.cuboids){
 			blockModelContext.logMessage("cuboid.getCuboidAddress()=" + c.getCuboidAddress());
 		}
 		WriteCuboidsWorkItem workItem = new WriteCuboidsWorkItem(this.blockModelContext, this.numDimensions, this.cuboids);
 		blockModelContext.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
+
+		AcknowledgementBlockMessage acknowledgementBlockMessage = new AcknowledgementBlockMessage(this.blockModelContext, this.conversationId);
+		SendBlockMessageToSessionWorkItem notifyWorkItem = new SendBlockMessageToSessionWorkItem(this.blockModelContext, blockSession, acknowledgementBlockMessage);
+		blockModelContext.putWorkItem(notifyWorkItem, WorkItemPriority.PRIORITY_LOW);
 	}
 }

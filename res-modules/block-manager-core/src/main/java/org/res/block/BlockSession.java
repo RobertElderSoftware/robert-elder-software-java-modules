@@ -30,9 +30,11 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.TreeSet;
+import java.util.TreeMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.nio.ByteBuffer;
@@ -47,20 +49,20 @@ public abstract class BlockSession {
 	public abstract void close(String reason) throws Exception;
 
 	protected Object monitor = new Object();
-	protected Set<CuboidAddress> subscribedRegions = new TreeSet<CuboidAddress>();
+	protected Map<CuboidAddress, Long> subscribedRegions = new TreeMap<CuboidAddress, Long>();
 	protected BlockModelContext blockModelContext;
 
 	public BlockSession(BlockModelContext blockModelContext) throws Exception {
 		this.blockModelContext = blockModelContext;
 	}
 
-	public List<CuboidAddress> getSubscriptionIntersections(List<CuboidAddress> addresses) throws Exception {
-		List<CuboidAddress> intersections = new ArrayList<CuboidAddress>();
+	public Map<CuboidAddress, Long> getSubscriptionIntersections(List<CuboidAddress> addresses) throws Exception {
+		Map<CuboidAddress, Long> intersections = new TreeMap<CuboidAddress, Long>();
 		for(CuboidAddress address : addresses){
-			for(CuboidAddress existingRegionSubscription : this.subscribedRegions){
-				CuboidAddress intersection = existingRegionSubscription.getIntersectionCuboidAddress(address);
+			for(Map.Entry<CuboidAddress, Long> existingRegionSubscription : this.subscribedRegions.entrySet()){
+				CuboidAddress intersection = existingRegionSubscription.getKey().getIntersectionCuboidAddress(address);
 				if(intersection != null){
-					intersections.add(intersection);
+					intersections.put(intersection, existingRegionSubscription.getValue());
 				}
 			}
 		}
@@ -75,16 +77,18 @@ public abstract class BlockSession {
 		}
 	}
 
-	public void subscribeToRegions(List<CuboidAddress> regionsToSubscribeTo) throws Exception {
+	public void subscribeToRegions(List<CuboidAddress> regionsToSubscribeTo, Long conversationId) throws Exception {
 		List<CuboidAddress> newSubscriptionsToAdd = new ArrayList<CuboidAddress>();
+		List<CuboidAddress> preExistingSubscription = new ArrayList<CuboidAddress>();
 		for(CuboidAddress regionToSubscribeTo : regionsToSubscribeTo){
 			boolean addThisRegion = true;
-			if(this.subscribedRegions.contains(regionToSubscribeTo)){
+			if(this.subscribedRegions.containsKey(regionToSubscribeTo)){
 				//blockModelContext.logMessage("Region " + regionToSubscribeTo + " is already subscribed to. Don't add it.");
 				addThisRegion = false;
+				preExistingSubscription.add(regionToSubscribeTo);
 			}else{
-				for(CuboidAddress existingRegionSubscription : this.subscribedRegions){
-					CuboidAddress intersection = existingRegionSubscription.getIntersectionCuboidAddress(regionToSubscribeTo);
+				for(Map.Entry<CuboidAddress, Long> existingRegionSubscription : this.subscribedRegions.entrySet()){
+					CuboidAddress intersection = existingRegionSubscription.getKey().getIntersectionCuboidAddress(regionToSubscribeTo);
 					if(intersection == null){
 						//blockModelContext.logMessage("Region " + regionToSubscribeTo + " has no intersection with " + existingRegionSubscription + ". Add it.");
 					}else{
@@ -101,10 +105,17 @@ public abstract class BlockSession {
 
 		Long proposedRegionSubscriptionCount = Long.valueOf(newSubscriptionsToAdd.size() + this.subscribedRegions.size());
 		blockModelContext.logMessage("+proposedRegionSubscriptionCount=" + proposedRegionSubscriptionCount + ", MAX_REGION_SUBSCRIPTIONS=" + BlockSession.MAX_REGION_SUBSCRIPTIONS);
-		if(proposedRegionSubscriptionCount < BlockSession.MAX_REGION_SUBSCRIPTIONS){
-			this.subscribedRegions.addAll(newSubscriptionsToAdd);
+
+		if(preExistingSubscription.size() > 0){
+			ErrorNotificationBlockMessage response = new ErrorNotificationBlockMessage(this.blockModelContext, BlockMessageErrorType.IDENTICAL_SUBSCRIPTION, conversationId);
+			this.blockModelContext.sendBlockMessage(response, this);
+		}else if(proposedRegionSubscriptionCount < BlockSession.MAX_REGION_SUBSCRIPTIONS){
+			for(CuboidAddress subscriptionToAdd : newSubscriptionsToAdd){
+				//  Track the subscription and the correspond conversation id that goes with it:
+				this.subscribedRegions.put(subscriptionToAdd, conversationId);
+			}
 		}else{
-			ErrorNotificationBlockMessage response = new ErrorNotificationBlockMessage(this.blockModelContext, BlockMessageErrorType.MAX_REGION_SUBSCRPTIONS_EXCEEDED);
+			ErrorNotificationBlockMessage response = new ErrorNotificationBlockMessage(this.blockModelContext, BlockMessageErrorType.MAX_REGION_SUBSCRPTIONS_EXCEEDED, conversationId);
 			this.blockModelContext.sendBlockMessage(response, this);
 		}
 	}

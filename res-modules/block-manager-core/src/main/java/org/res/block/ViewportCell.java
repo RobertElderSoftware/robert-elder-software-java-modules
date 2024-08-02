@@ -81,15 +81,6 @@ public class ViewportCell {
 	public String renderBlockCell() throws Exception {
 		//  null = block does not exist yet.
 		String presentedText = this.currentBlock == null ? "" : this.currentBlock.getTerminalPresentation();
-		Long presentedTextWidth = this.currentBlock == null ? 0L : this.currentBlock.getTerminalPresentationWidth();
-		
-		//  An empty cell with zero byte length will otherwise render to nothing causing the last cell to not get overprinted.
-		//  Adding the extra space after the Rocks because the 'rock' emoji only takes up one space for the background colour, and BG colour won't update correctly otherwise.
-		while(presentedTextWidth < 2L){
-			presentedText += " ";
-			presentedTextWidth += 1;
-		}
-
 		return presentedText;
 	}
 

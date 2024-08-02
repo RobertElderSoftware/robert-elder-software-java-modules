@@ -35,23 +35,13 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class ViewportDimensionsChangeWorkItem extends ViewportWorkItem {
+public class InMemoryChunksHasPendingNotYetRequestedChunksWorkItem extends InMemoryChunksWorkItem {
 
-	private Long terminalWidth;
-	private Long terminalHeight;
-	private Long viewportWidth;
-	private Long viewportHeight;
-
-
-	public ViewportDimensionsChangeWorkItem(Viewport viewport, Long terminalWidth, Long terminalHeight, Long viewportWidth, Long viewportHeight){
-		super(viewport);
-		this.terminalWidth = terminalWidth;
-		this.terminalHeight = terminalHeight;
-		this.viewportWidth = viewportWidth;
-		this.viewportHeight = viewportHeight;
+	public InMemoryChunksHasPendingNotYetRequestedChunksWorkItem(InMemoryChunks inMemoryChunks){
+		super(inMemoryChunks);
 	}
 
 	public void doWork() throws Exception{
-		this.viewport.onViewportDimensionsChange(terminalWidth, terminalHeight, viewportWidth, viewportHeight);
+		this.inMemoryChunks.onHasPendingNotYetRequestedChunks();
 	}
 }

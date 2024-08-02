@@ -38,19 +38,19 @@ import java.nio.LongBuffer;
 public class FrameDimensionsChangeWorkItem extends ViewportWorkItem {
 
 	private Long frameWidthTop;
-	private Long frameWidthLeft;
-	private Long frameWidthRight;
-	private Long frameWidthBottom;
+	private Long frameCharacterWidth;
+	private Long inventoryAreaHeight;
+	private Long gameAreaCellWidth;
 
-	public FrameDimensionsChangeWorkItem(Viewport viewport, Long frameWidthTop, Long frameWidthLeft, Long frameWidthRight, Long frameWidthBottom){
+	public FrameDimensionsChangeWorkItem(Viewport viewport, Long frameWidthTop, Long frameCharacterWidth, Long inventoryAreaHeight, Long gameAreaCellWidth){
 		super(viewport);
 		this.frameWidthTop = frameWidthTop;
-		this.frameWidthLeft = frameWidthLeft;
-		this.frameWidthRight = frameWidthRight;
-		this.frameWidthBottom = frameWidthBottom;
+		this.frameCharacterWidth = frameCharacterWidth;
+		this.inventoryAreaHeight = inventoryAreaHeight;
+		this.gameAreaCellWidth = gameAreaCellWidth;
 	}
 
 	public void doWork() throws Exception{
-		this.viewport.onFrameDimensionsChange(this.frameWidthTop, this.frameWidthLeft, this.frameWidthRight, this.frameWidthBottom);
+		this.viewport.onFrameDimensionsChange(this.frameWidthTop, this.frameCharacterWidth, this.inventoryAreaHeight, this.gameAreaCellWidth);
 	}
 }

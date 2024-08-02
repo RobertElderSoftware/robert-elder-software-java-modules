@@ -32,6 +32,7 @@ package org.res.block;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -60,9 +61,9 @@ public class Viewport extends WorkItemQueueOwner<ViewportWorkItem> {
 	private Long viewportWidth;
 	private Long viewportHeight;
 	private Long frameWidthTop;
-	private Long frameWidthLeft;
-	private Long frameWidthRight;
-	private Long frameWidthBottom;
+	private Long frameCharacterWidth;
+	private Long inventoryAreaHeight;
+	private Long gameAreaCellWidth;
 	private PlayerInventory playerInventory = null;
 	private Coordinate playerPosition;
 	private CuboidAddress gameAreaCuboidAddress;
@@ -250,11 +251,11 @@ public class Viewport extends WorkItemQueueOwner<ViewportWorkItem> {
 		}
 	}
 
-	public void onFrameDimensionsChange(Long frameWidthTop, Long frameWidthLeft, Long frameWidthRight, Long frameWidthBottom) throws Exception{
+	public void onFrameDimensionsChange(Long frameWidthTop, Long frameCharacterWidth, Long inventoryAreaHeight, Long gameAreaCellWidth) throws Exception{
 		this.frameWidthTop = frameWidthTop;
-		this.frameWidthLeft = frameWidthLeft;
-		this.frameWidthRight = frameWidthRight;
-		this.frameWidthBottom = frameWidthBottom;
+		this.frameCharacterWidth = frameCharacterWidth;
+		this.inventoryAreaHeight = inventoryAreaHeight;
+		this.gameAreaCellWidth = gameAreaCellWidth;
 		this.reprintFrame();
 	}
 
@@ -306,7 +307,7 @@ public class Viewport extends WorkItemQueueOwner<ViewportWorkItem> {
 
 	private void printTextInGameAreaXY(String blockDataString, Long x, Long y, boolean isPlayerPosition){
 		// A lot of the unicode characters in the game area take up two spaces:
-		printTextInAtScreenXY(blockDataString, (x * 2) + this.frameWidthLeft, y + this.frameWidthTop, isPlayerPosition);
+		printTextInAtScreenXY(blockDataString, (x * this.gameAreaCellWidth) + this.frameCharacterWidth, y + this.frameWidthTop, isPlayerPosition);
 	}
 
 	private void doScreenPrintIfChanged(String currentPrint, Long x, Long y){
@@ -327,7 +328,7 @@ public class Viewport extends WorkItemQueueOwner<ViewportWorkItem> {
 		this.doScreenPrintIfChanged(s, x, y);
 	}
 
-	private void printWordInAtScreenXY(String s, Long x, Long y, boolean isPlayerPosition){
+	public void printWordInAtScreenXY(String s, Long x, Long y, boolean isPlayerPosition){
 		for(int i = 0; i < s.length(); i++){
 			this.printTextInAtScreenXY(String.valueOf(s.charAt(i)), x + i, y, isPlayerPosition);
 		}
@@ -335,39 +336,40 @@ public class Viewport extends WorkItemQueueOwner<ViewportWorkItem> {
 
 	public void reprintFrame() throws Exception {
 		if(this.viewportCells != null && this.screenPrints != null){
+			Long fchrw = this.frameCharacterWidth;
 			//  Top border
+			this.printWordInAtScreenXY("                   ", 10L, 0L, false); //  Required in wide character mode otherwise coordinates don't show correctly.
 			this.printTextInAtScreenXY("\u2554", 0L, 0L, false);
-			for(long l = 1L; l < this.terminalWidth - 1L; l++){
-				this.printTextInAtScreenXY("\u2550", l, 0L, false);
+			for(long l = 1L; l < (this.terminalWidth / fchrw) -1L; l++){
+				this.printTextInAtScreenXY("\u2550", l * fchrw, 0L, false);
 			}
-			this.printTextInAtScreenXY("\u2557", this.terminalWidth -1L, 0L, false);
+			this.printTextInAtScreenXY("\u2557", this.terminalWidth - fchrw * 1L, 0L, false);
 
 			//  Player coordinate:
 			String playerCoordinateString = "X=" + this.getPlayerPosition().getX() + ", Y=" + this.getPlayerPosition().getY() + ", Z=" + this.getPlayerPosition().getZ();
 			this.printWordInAtScreenXY(playerCoordinateString, 10L, 0L, false);
 
-
-
 			//  Right border and left border
 			for(long l = 1L; l < this.terminalHeight; l++){
 				this.printTextInAtScreenXY("\u2551", 0L, l, false);
-				this.printTextInAtScreenXY("\u2551", this.terminalWidth - 1L, l, false);
+				this.printTextInAtScreenXY("\u2551", this.terminalWidth - fchrw * 1L, l, false);
 			}
 
 			//  Bottom border under game area:
-			this.printTextInAtScreenXY("\u2560", 0L, this.terminalHeight - this.frameWidthBottom, false);
-			for(long x = 1L; x < this.terminalWidth -1L; x++){
-				this.printTextInAtScreenXY("\u2550", x, this.terminalHeight - this.frameWidthBottom, false);
+			this.printTextInAtScreenXY("\u2560", 0L, this.terminalHeight - this.inventoryAreaHeight, false);
+			for(long x = 1L; x < (this.terminalWidth / fchrw) -1L; x++){
+				this.printTextInAtScreenXY("\u2550", x * fchrw, this.terminalHeight - this.inventoryAreaHeight, false);
 			}
-			this.printTextInAtScreenXY("\u2563", this.terminalWidth -1L, this.terminalHeight - this.frameWidthBottom, false);
-			this.printWordInAtScreenXY("- Inventory -", 10L, this.terminalHeight - this.frameWidthBottom, false);
+			this.printTextInAtScreenXY("\u2563", this.terminalWidth - fchrw * 1L, this.terminalHeight - this.inventoryAreaHeight, false);
+			this.printWordInAtScreenXY("             ", 10L, this.terminalHeight - this.inventoryAreaHeight, false); //  Required in wide character mode.
+			this.printWordInAtScreenXY("- Inventory -", 10L, this.terminalHeight - this.inventoryAreaHeight, false);
 			PlayerInventory inventory = this.getPlayerInventory();
 			if(inventory != null){
 				List<PlayerInventoryItemStack> itemStacks = inventory.getInventoryItemStackList();
 				logger.info("Here is the inventory: " + inventory.asJsonString() + ".");
 				Long inventoryItemsXOffset = 2L;
 				if(itemStacks.size() == 0){
-					this.printWordInAtScreenXY("Empty.", inventoryItemsXOffset, this.terminalHeight - this.frameWidthBottom + 2, false);
+					this.printWordInAtScreenXY("Empty.", inventoryItemsXOffset, this.terminalHeight - this.inventoryAreaHeight + 2, false);
 				}else{
 					for(int i = 0; i < itemStacks.size(); i++){
 						PlayerInventoryItemStack stack = itemStacks.get(i);
@@ -376,25 +378,43 @@ public class Viewport extends WorkItemQueueOwner<ViewportWorkItem> {
 						int maxItemsInColumn = 4;
 						int xOffset = (i / maxItemsInColumn) * 30;
 						int yOffset = (i % maxItemsInColumn) * 2;
-						this.printTextInAtScreenXY(blockFromStack.getTerminalPresentation(), inventoryItemsXOffset + xOffset, this.terminalHeight - this.frameWidthBottom + 2 + yOffset, false);
-						this.printWordInAtScreenXY("  (" + stack.getQuantity().toString() + ") " + blockFromStack.getClass().getSimpleName() + " ", inventoryItemsXOffset + 2L + xOffset, this.terminalHeight - this.frameWidthBottom + 2 + yOffset, false);
+						this.printTextInAtScreenXY(blockFromStack.getTerminalPresentation(), inventoryItemsXOffset + xOffset, this.terminalHeight - this.inventoryAreaHeight + 2 + yOffset, false);
+						this.printWordInAtScreenXY("  (" + stack.getQuantity().toString() + ") " + blockFromStack.getClass().getSimpleName() + " ", inventoryItemsXOffset + 2L + xOffset, this.terminalHeight - this.inventoryAreaHeight + 2 + yOffset, false);
 					}
 				}
 			}
 
 			//  Right border and left border down where inventory is
-			for(long y = this.terminalHeight - this.frameWidthBottom + 1L; y < this.terminalHeight -1L; y++){
+			for(long y = this.terminalHeight - this.inventoryAreaHeight + 1L; y < this.terminalHeight -1L; y++){
 				this.printTextInAtScreenXY("\u2551", 0L, y, false);
-				this.printTextInAtScreenXY("\u2551", this.terminalWidth - 1L, y, false);
+				this.printTextInAtScreenXY("\u2551", this.terminalWidth - fchrw * 1L, y, false);
 			}
 
 			//  Very bottom border:
 			this.printTextInAtScreenXY("\u255A", 0L, this.terminalHeight -1L, false);
-			for(long x = 1L; x < this.terminalWidth -1L; x++){
-				this.printTextInAtScreenXY("\u2550", x, this.terminalHeight -1L, false);
+			for(long x = 1L; x < (this.terminalWidth / fchrw) -1L; x++){
+				this.printTextInAtScreenXY("\u2550", x * fchrw, this.terminalHeight -1L, false);
 			}
-			this.printTextInAtScreenXY("\u255D", this.terminalWidth -1L, this.terminalHeight -1L, false);
+			this.printTextInAtScreenXY("\u255D", this.terminalWidth - fchrw * 1L, this.terminalHeight -1L, false);
 		}
+	}
+
+	public String whitespacePadViewportCell(String presentedText) throws Exception{
+		//  An empty cell with zero byte length will otherwise render to nothing causing the last cell to not get overprinted.
+		//  Adding the extra space after the Rocks because the 'rock' emoji only takes up one space for the background colour, and BG colour won't update correctly otherwise.
+
+		Long presentedTextWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(presentedText);
+		Long paddedViewportCellWidth = this.gameAreaCellWidth;
+		if(presentedTextWidth > paddedViewportCellWidth){
+			throw new Exception("Character has terminal width of " + presentedTextWidth + " which is wider than allowed paddedViewportCellWidth value of " + paddedViewportCellWidth);
+		}
+
+		while(presentedTextWidth < paddedViewportCellWidth){
+			presentedText += " ";
+			presentedTextWidth += 1;
+		}
+
+		return presentedText;
 	}
 
 	public void printViewportUpdates(CuboidAddress areaToUpdate) throws Exception {
@@ -421,18 +441,20 @@ public class Viewport extends WorkItemQueueOwner<ViewportWorkItem> {
 					//logger.info("printViewportUpdates() for " + currentViewportCoordinate + " xOffsetScreen=" + xOffsetScreen + " yOffsetScreen=" + yOffsetScreen);
 
 					if(currentViewportCell.hasBlockChangedFlags()){ /*  Updated cell */
-						this.printTextInGameAreaXY(currentViewportCell.renderBlockCell(), xOffsetScreen, yOffsetScreen, isPlayerPosition);
-						//this.printTextInGameAreaXY("U ", xOffsetScreen, yOffsetScreen, isPlayerPosition);
+						String padded = this.whitespacePadViewportCell(currentViewportCell.renderBlockCell());
+						this.printTextInGameAreaXY(padded, xOffsetScreen, yOffsetScreen, isPlayerPosition);
+						//this.printTextInGameAreaXY(this.whitespacePadViewportCell("U"), xOffsetScreen, yOffsetScreen, isPlayerPosition);
 						numPrints++;
 					}else if(currentViewportCell.hasPlayerMovementFlags()){ /*  Where player is or was */
-						this.printTextInGameAreaXY(currentViewportCell.renderBlockCell(), xOffsetScreen, yOffsetScreen, isPlayerPosition);
-						//this.printTextInGameAreaXY("P ", xOffsetScreen, yOffsetScreen, isPlayerPosition);
+						String padded = this.whitespacePadViewportCell(currentViewportCell.renderBlockCell());
+						this.printTextInGameAreaXY(padded, xOffsetScreen, yOffsetScreen, isPlayerPosition);
+						//this.printTextInGameAreaXY(this.whitespacePadViewportCell("P"), xOffsetScreen, yOffsetScreen, isPlayerPosition);
 						numPrints++;
 					}else if(currentViewportCell.hasPendingLoadFlags()){ /*  Loading cell */
-						this.printTextInGameAreaXY("? ", xOffsetScreen, yOffsetScreen, isPlayerPosition);
+						this.printTextInGameAreaXY(this.whitespacePadViewportCell("?"), xOffsetScreen, yOffsetScreen, isPlayerPosition);
 						numPrints++;
 					}else {
-						//this.printTextInGameAreaXY("- ", xOffsetScreen, yOffsetScreen, isPlayerPosition);
+						//this.printTextInGameAreaXY(this.whitespacePadViewportCell("-"), xOffsetScreen, yOffsetScreen, isPlayerPosition);
 					}
 					currentViewportCell.clearNonLoadingFlags();
 				}

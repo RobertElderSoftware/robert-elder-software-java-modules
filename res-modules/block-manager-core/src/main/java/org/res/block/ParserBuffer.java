@@ -30,29 +30,88 @@
 //  SOFTWARE.
 package org.res.block;
 
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public abstract class WorkItem {
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Arrays;
+
+public class ParserBuffer {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private Long threadId;
-	private boolean isBlocking;
+	private List<Byte> buffer = new ArrayList<Byte>();
+	private int position = 0;
+	private int highestObservedPosition = 0;
 
-	public WorkItem(boolean isBlocking){
-		this.isBlocking = isBlocking;
-		this.threadId = Thread.currentThread().getId();
-		logger.info("In constructor for WorkItem: isBlocking=" + isBlocking + " " + this.getClass().getName() + " and thread_id=" + this.threadId);
+	public ParserBuffer(){
 	}
 
-	public boolean getIsBlocking(){
-		return this.isBlocking;
+	public int getCurrentPosition() throws Exception{
+		return this.position;
 	}
 
-	public Long getThreadId(){
-		return threadId;
+	public void setPosition(int p) throws Exception{
+		this.position = p;
 	}
 
-	public abstract void doWork() throws Exception;
+	public void advance() throws Exception{
+		this.position++;
+		if(this.position > highestObservedPosition){
+			this.highestObservedPosition = this.position;
+		}
+	}
+
+	public List<Byte> extractParsedBytes(){
+		//  Extract only the portion of characters that were parsed:
+		List<Byte> rtn = new ArrayList<Byte>();
+		for(int i = 0; i < this.highestObservedPosition; i++){
+			rtn.add(this.buffer.remove(0));
+		}
+		return rtn;
+	}
+
+	public byte extractNextByte() throws Exception{
+		if(this.buffer.size() == 0){
+			throw new Exception("Parser buffer was empty?");
+		}else{
+			return (byte)this.buffer.remove(0);
+		}
+	}
+
+	public void addByte(Byte c) throws Exception{
+		this.buffer.add(c);
+	}
+
+	public int size() throws Exception{
+		return this.buffer.size();
+	}
+
+	public boolean atEnd() throws Exception{
+		return !(this.position < this.buffer.size());
+	}
+
+	public void resetParsingPositions() throws Exception{
+		this.position = 0;
+		this.highestObservedPosition = 0;
+	}
+
+	public boolean containsPartiallyParsedSequence() throws Exception{
+		return this.highestObservedPosition > 0;
+	}
+
+	public List<Byte> getBuffer(){
+		return this.buffer;
+	}
+
+
+	public Byte head() throws Exception{
+		if(position < buffer.size()){
+			return buffer.get(position);
+		}else{
+			throw new Exception("Position " + position + " past end of buffer of size " + buffer.size());
+		}
+	}
 }

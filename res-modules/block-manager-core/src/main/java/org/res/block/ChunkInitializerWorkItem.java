@@ -34,6 +34,7 @@ public abstract class ChunkInitializerWorkItem extends WorkItem{
 	protected ChunkInitializerThreadState chunkInitializerThreadState;
 
 	public ChunkInitializerWorkItem(ChunkInitializerThreadState chunkInitializerThreadState){
+		super(false);
 		this.chunkInitializerThreadState = chunkInitializerThreadState;
 	}
 }

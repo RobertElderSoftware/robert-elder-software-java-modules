@@ -34,6 +34,7 @@ public abstract class InMemoryChunksWorkItem extends WorkItem{
 	protected InMemoryChunks inMemoryChunks;
 
 	public InMemoryChunksWorkItem(InMemoryChunks inMemoryChunks){
+		super(false);
 		this.inMemoryChunks = inMemoryChunks;
 	}
 }

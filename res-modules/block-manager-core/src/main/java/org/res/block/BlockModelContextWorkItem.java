@@ -34,6 +34,7 @@ public abstract class BlockModelContextWorkItem extends WorkItem{
 	protected BlockModelContext blockModelContext;
 
 	public BlockModelContextWorkItem(BlockModelContext blockModelContext){
+		super(false);
 		this.blockModelContext = blockModelContext;
 	}
 }

@@ -34,6 +34,7 @@ public abstract class ViewportWorkItem extends WorkItem{
 	protected Viewport viewport;
 
 	public ViewportWorkItem(Viewport viewport){
+		super(false);
 		this.viewport = viewport;
 	}
 }
