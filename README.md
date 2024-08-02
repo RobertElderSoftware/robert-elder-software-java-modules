@@ -43,9 +43,9 @@ Currently, the game has only been tested to work on a default installation of Ub
 Compiling the game from scratch is not necessary.  You can download pre-compiled .jar files from GitHub in the 'Releases' section for this repo:
 
 ```
-wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.3/v2_block_schema.json
-wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.3/block-manager-single-player-client-0.0.3.jar
-java -jar block-manager-single-player-client-0.0.3.jar
+wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.4/v2_block_schema.json
+wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.4/block-mining-simulation-game-single-player-client-0.0.4.jar
+java -jar block-mining-simulation-game-single-player-client-0.0.4.jar
 ```
 
 The game should immediately launch and fill up the terminal with graphics.  You can exit the game by pressing the 'q' key.  By default, the game saves it's world data into a SQLite database file that lives in the current directory.
@@ -55,11 +55,11 @@ The game should immediately launch and fill up the terminal with graphics.  You 
 If you are concerned about the authenticity of the .jar file, you can also verify the signature using GPG:
 
 ```
-wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.3/block-manager-single-player-client-0.0.3.jar.asc
+wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.4/block-mining-simulation-game-single-player-client-0.0.4.jar.asc
 gpg --search-keys robert@robertelder.org
 #  Should match the key for 'robert@robertelder.org'
 gpg --recv-keys ECBD481DBCA5C48804FBD08720B9852CF0558BAA
-gpg --verify block-manager-single-player-client-0.0.3.jar.asc block-manager-single-player-client-0.0.3.jar
+gpg --verify block-mining-simulation-game-single-player-client-0.0.4.jar.asc block-mining-simulation-game-single-player-client-0.0.4.jar
 ```
 
 The output should look something like this:
@@ -80,7 +80,7 @@ To build the game, you will need to set up a development environment that can su
 Next, you can compile the game from source by running this command:
 
 ```
-./res-modules/block-manager-single-player-client/run_single_player_client.sh
+./res-modules/block-mining-simulation-game-single-player-client/run_single_player_client.sh
 ```
 
 Once it finishes building, it should launch right into the game.

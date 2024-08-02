@@ -10,7 +10,7 @@
     <version>${revision}</version>
   </parent>
 
-  <artifactId>block-manager-unit-tests</artifactId>
+  <artifactId>block-mining-simulation-game-unit-tests</artifactId>
   <packaging>jar</packaging>
   <name>Block Manager Unit Tests</name>
 
@@ -22,13 +22,13 @@
   <dependencies>
      <dependency>
          <groupId>org.res</groupId>
-         <artifactId>block-manager-core</artifactId>
+         <artifactId>block-mining-simulation-game-core</artifactId>
          <version>${project.version}</version>
      </dependency>
   </dependencies>
 
   <build>
-    <finalName>block-manager-unit-tests-${revision}</finalName>
+    <finalName>block-mining-simulation-game-unit-tests-${revision}</finalName>
   </build>
 
 </project>

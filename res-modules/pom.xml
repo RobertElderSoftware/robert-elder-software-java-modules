@@ -155,9 +155,9 @@
   </dependencyManagement>
  
   <modules>
-    <module>block-manager-core</module>
-    <module>block-manager-single-player-client</module>
-    <module>block-manager-unit-tests</module>
+    <module>block-mining-simulation-game-core</module>
+    <module>block-mining-simulation-game-single-player-client</module>
+    <module>block-mining-simulation-game-unit-tests</module>
   </modules>
 
   <build>

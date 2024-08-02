@@ -10,7 +10,7 @@
     <version>${revision}</version>
   </parent>
 
-  <artifactId>block-manager-core</artifactId>
+  <artifactId>block-mining-simulation-game-core</artifactId>
   <packaging>jar</packaging>
   <name>Block Manager Core</name>
 
@@ -50,7 +50,7 @@
   </dependencies>
 
   <build>
-    <finalName>final-block-manager-core</finalName>
+    <finalName>final-block-mining-simulation-game-core</finalName>
   </build>
 
 </project>

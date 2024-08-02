@@ -10,7 +10,7 @@
     <version>${revision}</version>
   </parent>
 
-  <artifactId>block-manager-single-player-client</artifactId>
+  <artifactId>block-mining-simulation-game-single-player-client</artifactId>
   <packaging>jar</packaging>
   <name>Block Manager Single Player Client</name>
 
@@ -22,13 +22,13 @@
   <dependencies>
      <dependency>
          <groupId>org.res</groupId>
-         <artifactId>block-manager-core</artifactId>
+         <artifactId>block-mining-simulation-game-core</artifactId>
          <version>${project.version}</version>
      </dependency>
   </dependencies>
 
   <build>
-    <finalName>block-manager-single-player-client-${revision}</finalName>
+    <finalName>block-mining-simulation-game-single-player-client-${revision}</finalName>
   </build>
 
 </project>
