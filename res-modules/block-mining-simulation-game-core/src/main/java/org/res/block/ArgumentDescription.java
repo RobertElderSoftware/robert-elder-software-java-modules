@@ -32,33 +32,31 @@ package org.res.block;
 
 import java.util.List;
 import java.util.ArrayList;
-import java.util.stream.Collectors;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.HashMap;
 
+class ArgumentDescription {
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSerializer;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonNull;
-import com.google.gson.reflect.TypeToken;
+	private String argumentKey;
+	private String explanation;
+	private int length;
 
-public class MetallicCopper extends IndividualBlock {
-
-	private byte [] data;
-
-	public MetallicCopper(byte [] data) throws Exception {
-		this.data = data;
+	public ArgumentDescription(String argumentKey, int length, String explanation) {
+		this.argumentKey = argumentKey;
+		this.length = length;
+		this.explanation = explanation;
 	}
 
-	public byte [] getBlockData()throws Exception {
-		return this.data;
+	public String getExplanation(){
+		return explanation;
 	}
 
-	public boolean isMineable() throws Exception{
-		return true;
+	public String getArgumentKey(){
+		return argumentKey;
+	}
+
+	public int getLength(){
+		return length;
 	}
 }

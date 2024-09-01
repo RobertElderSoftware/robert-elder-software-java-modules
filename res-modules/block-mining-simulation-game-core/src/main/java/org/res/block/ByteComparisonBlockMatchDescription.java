@@ -51,8 +51,8 @@ public class ByteComparisonBlockMatchDescription extends BlockMatchDescription{
 
 	private byte [] bytePattern;
 
-	public ByteComparisonBlockMatchDescription(BlockModelContext blockModelContext, JsonElement e) {
-		super(blockModelContext, e);
+	public ByteComparisonBlockMatchDescription(JsonElement e) {
+		super(e);
 		JsonObject o = (JsonObject)e;
 		this.bytePattern = Base64.getDecoder().decode(o.get("byte_pattern_base_64").getAsString());
 	}
@@ -62,6 +62,10 @@ public class ByteComparisonBlockMatchDescription extends BlockMatchDescription{
 		o.add("byte_pattern_base_64", new JsonPrimitive(Base64.getEncoder().encodeToString(this.bytePattern)));
 		o.add("block_class", new JsonPrimitive(this.blockClass));
 		return o;
+	}
+
+	public byte [] getBytePattern(){
+		return this.bytePattern;
 	}
 
 	public String asJsonString() throws Exception {

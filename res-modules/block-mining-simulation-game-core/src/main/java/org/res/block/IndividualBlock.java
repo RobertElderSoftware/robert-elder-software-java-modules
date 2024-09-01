@@ -44,8 +44,6 @@ public abstract class IndividualBlock {
 
 	public abstract byte [] getBlockData() throws Exception;
 	public abstract boolean isMineable() throws Exception;
-	public abstract String getTerminalPresentation() throws Exception;
-	public abstract Long getTerminalPresentationWidth() throws Exception;
 
 	public static IndividualBlock makeBlockInstanceFromClassName(String fullClassName, byte [] data) throws Exception {
 		if(fullClassName == null){

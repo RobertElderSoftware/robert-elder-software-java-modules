@@ -65,12 +65,4 @@ public class UninitializedBlock extends IndividualBlock {
 	public boolean isMineable() throws Exception{
 		return false;
 	}
-
-	public String getTerminalPresentation() throws Exception{
-		return "U";
-	}
-
-	public Long getTerminalPresentationWidth() throws Exception{
-		return 1L;
-	}
 }

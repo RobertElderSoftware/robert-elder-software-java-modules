@@ -30,35 +30,47 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.stream.Collectors;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.FileOutputStream;
+import java.io.File;
+import java.io.IOException;
+
+public class LinuxBlockJNIInterface {
+	static {
+		try{
+			boolean loadInsideJar = true;
+			if(loadInsideJar){ //  If loading the library from inside a jar file
+				String libraryResource = "/liblinux_block_jni.so";
+				InputStream inputStream = LinuxBlockJNIInterface.class.getResourceAsStream(libraryResource);
+				if(inputStream == null){
+					throw new Exception("InputStream was null when trying to load libraryResource='" + libraryResource + "' from jar.");
+				}else{
+					File file = File.createTempFile("lib", ".so");
+					OutputStream outputStream = new FileOutputStream(file);
+					byte[] buffer = new byte[4096];
+					int length;
+					while ((length = inputStream.read(buffer)) != -1) {
+						outputStream.write(buffer, 0, length);
+					}
+					inputStream.close();
+					outputStream.close();
+
+					System.load(file.getAbsolutePath());
+					file.deleteOnExit();
+				}
 
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSerializer;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonNull;
-import com.google.gson.reflect.TypeToken;
-
-public class MetallicCopper extends IndividualBlock {
-
-	private byte [] data;
-
-	public MetallicCopper(byte [] data) throws Exception {
-		this.data = data;
+			}else{ //  If loading the library as 'liblinux_block_jni.so' using -Djava.library.path=...
+				System.loadLibrary("linux_block_jni");
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
 	}
 
-	public byte [] getBlockData()throws Exception {
-		return this.data;
-	}
-
-	public boolean isMineable() throws Exception{
-		return true;
-	}
+	public native void shutdownInXMilliseconds(int millisecondsTimeout);
+	public native String getSIGWINCH();
+	public native String nativePrint(String text);
+	public native void setupSIGWINCHSignalHandler();
 }

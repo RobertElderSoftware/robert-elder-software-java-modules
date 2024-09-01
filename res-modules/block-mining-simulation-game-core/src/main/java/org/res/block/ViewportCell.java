@@ -78,9 +78,9 @@ public class ViewportCell {
 		return this.viewportCellFlags;
 	}
 
-	public String renderBlockCell() throws Exception {
+	public String renderBlockCell(boolean isRestrictedGraphics) throws Exception {
 		//  null = block does not exist yet.
-		String presentedText = this.currentBlock == null ? "" : this.currentBlock.getTerminalPresentation();
+		String presentedText = this.currentBlock == null ? "" : BlockSkins.getPresentation(this.currentBlock.getClass(), isRestrictedGraphics);
 		return presentedText;
 	}
 

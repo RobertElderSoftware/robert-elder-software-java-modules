@@ -192,39 +192,39 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 		/*  Below Ground */
 		if(c.getY() < 0L){
 			if(noiseAtPixel <= 0.75){
-				return Rock.blockDataString.getBytes("UTF-8");
+				return clientBlockModelContext.getBlockDataForClass(Rock.class);
 			}else if(noiseAtPixel <= 0.80){
-				return TitaniumDioxide.blockDataString.getBytes("UTF-8");
+				return clientBlockModelContext.getBlockDataForClass(TitaniumDioxide.class);
 			}else if(noiseAtPixel <= 0.85){
-				return Bauxite.blockDataString.getBytes("UTF-8");
+				return clientBlockModelContext.getBlockDataForClass(Bauxite.class);
 			}else if(noiseAtPixel <= 0.90){
-				return Pyrite.blockDataString.getBytes("UTF-8");
+				return clientBlockModelContext.getBlockDataForClass(Pyrite.class);
 			}else if(noiseAtPixel <= 0.95){
-				return Ilmenite.blockDataString.getBytes("UTF-8");
+				return clientBlockModelContext.getBlockDataForClass(Ilmenite.class);
 			}else if(noiseAtPixel <= 0.96){
-				return MetallicCopper.blockDataString.getBytes("UTF-8");
+				return clientBlockModelContext.getBlockDataForClass(MetallicCopper.class);
 			}else if(noiseAtPixel <= 1.0){
-				return IronOxide.blockDataString.getBytes("UTF-8");
+				return clientBlockModelContext.getBlockDataForClass(IronOxide.class);
 			}else{
-				return IronPick.blockDataString.getBytes("UTF-8");
+				return clientBlockModelContext.getBlockDataForClass(IronPick.class);
 			}
 		/*  Ground Level */
 		}else if(c.getY().equals(0L)){
 			if(smallWaveNoise <= -0.6){
-				return WoodenBlock.blockDataString.getBytes("UTF-8");
+				return clientBlockModelContext.getBlockDataForClass(WoodenBlock.class);
 			}else if(smallWaveNoise <= 0.5){
 				return "".getBytes("UTF-8");
 			}else if(smallWaveNoise <= 0.90){
-				return Rock.blockDataString.getBytes("UTF-8");
+				return clientBlockModelContext.getBlockDataForClass(Rock.class);
 			}else if(smallWaveNoise <= 1.0){
-				return IronOxide.blockDataString.getBytes("UTF-8");
+				return clientBlockModelContext.getBlockDataForClass(IronOxide.class);
 			}else{
 				return "".getBytes("UTF-8");
 			}
 		/*  Above Ground */
 		}else{
 			if(smallWaveNoise <= -0.7){
-				return WoodenBlock.blockDataString.getBytes("UTF-8");
+				return clientBlockModelContext.getBlockDataForClass(WoodenBlock.class);
 			}else if(smallWaveNoise <= 1.0){
 				return "".getBytes("UTF-8");
 			}else{
@@ -242,7 +242,7 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 	}
 
 	public void doChunkInitializationActivity() throws Exception{
-		Long maxOutstandingInitializingChunkWrites = 1L;
+		Long maxOutstandingInitializingChunkWrites = 2L;
 		if(outstandingChunkWriteConversations.size() < maxOutstandingInitializingChunkWrites){
 			List<CuboidAddress> closestCuboidAddressList = this.getClosestCuboidAddressList(cuboidsToInitialize.keySet(), this.playerPosition);
 			if(closestCuboidAddressList.size() > 0){

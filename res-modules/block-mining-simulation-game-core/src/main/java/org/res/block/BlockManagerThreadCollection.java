@@ -40,6 +40,8 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.HashMap;
@@ -69,12 +71,83 @@ public class BlockManagerThreadCollection {
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
 	protected Object shutdownLock = new Object();
+	protected boolean enableJNI;
 	protected boolean isFinished = false;
 	protected List<Exception> offendingExceptions = new ArrayList<Exception>();
-	private Map<Long , Thread> allThreads = new HashMap<Long, Thread>();
+	private Map<Long, Thread> allThreads = new HashMap<Long, Thread>();
+	private CommandLineArgumentCollection commandLineArgumentCollection;
 
-	public BlockManagerThreadCollection() throws Exception {
+	protected ClientServerInterface clientServerInterface = null;
+	private LinuxBlockJNIInterface linuxBlockJNIInterface = null;
 
+	private BlockSchema blockSchema = null;
+
+	public BlockManagerThreadCollection(CommandLineArgumentCollection commandLineArgumentCollection) throws Exception {
+		this.commandLineArgumentCollection = commandLineArgumentCollection;
+		if(this.getIsJNIEnabled()){
+			this.linuxBlockJNIInterface = new LinuxBlockJNIInterface();
+		}
+
+		//String catalinaBase = System.getProperty("catalina.base");
+		//String userDirectory = System.getProperty("user.dir");
+		//this.logMessage("catalinaBase=" + catalinaBase + ", userDirectory=" + userDirectory);
+		//String currentWorkingDirectory = catalinaBase == null ? userDirectory : catalinaBase + "/webapps/ROOT/WEB-INF/classes";
+		//String blockSchemaLocation = currentWorkingDirectory + "/v3_block_schema.json";
+		//this.logMessage("About to look for block schema at location " + blockSchemaLocation + ".");
+		
+		String explicitBlockSchemaFile = this.getBlockSchemaFile();
+		String blockSchemaFileString = null;
+		if(explicitBlockSchemaFile == null){
+			InputStream in = getClass().getResourceAsStream("/v3_block_schema.json");
+			ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+			int nRead;
+			byte[] data = new byte[1024*4];
+
+			while ((nRead = in.read(data, 0, data.length)) != -1) {
+				buffer.write(data, 0, nRead);
+			}
+
+			byte [] blockSchemaFileBytes = buffer.toByteArray();
+			blockSchemaFileString = new String(blockSchemaFileBytes, "UTF-8");
+		}else{
+			blockSchemaFileString = new String(Files.readAllBytes(Paths.get(explicitBlockSchemaFile)), "UTF-8");
+		}
+
+		this.blockSchema = new BlockSchema(blockSchemaFileString, this.getAllowUnrecognizedBlockTypes());
+	}
+
+	public void printBlockSchema(){
+		//  Print block schema json to standard out:
+		System.out.print(this.blockSchema.getInputJsonBlockSchema());
+	}
+
+	public BlockSchema getBlockSchema() {
+		return this.blockSchema;
+	}
+
+	public boolean getPrintBlockSchema() {
+		return this.commandLineArgumentCollection.hasUsedKey("--print-block-schema");
+	}
+
+	public boolean getIsRestrictedGraphics() {
+		return this.commandLineArgumentCollection.hasUsedKey("--restricted-graphics");
+	}
+
+	public String getBlockSchemaFile() throws Exception {
+		return this.commandLineArgumentCollection.getUsedSingleValue("--block-schema-file");
+	}
+
+	public boolean getAllowUnrecognizedBlockTypes() {
+		return this.commandLineArgumentCollection.hasUsedKey("--allow-unrecognized-block-types");
+	}
+
+	public boolean getIsJNIEnabled() {
+		return !this.commandLineArgumentCollection.hasUsedKey("--disable-jni");
+	}
+
+	public LinuxBlockJNIInterface getLinuxBlockJNIInterface(){
+		return this.linuxBlockJNIInterface;
 	}
 
 	public void addThread(Thread t){
@@ -133,6 +206,10 @@ public class BlockManagerThreadCollection {
 					}
 				}catch(Exception exception){
 					exception.printStackTrace();
+				}
+				//  Wake up threads that are blocked getting signals so they can shut down
+				if(this.getIsJNIEnabled()){
+					this.getLinuxBlockJNIInterface().shutdownInXMilliseconds(0);
 				}
 			}
 		}

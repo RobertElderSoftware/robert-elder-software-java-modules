@@ -49,7 +49,6 @@ import com.google.gson.reflect.TypeToken;
 public class TitaniumDioxide extends IndividualBlock {
 
 	private byte [] data;
-	public static String blockDataString = "\u2B1C";
 
 	public TitaniumDioxide(byte [] data) throws Exception {
 		this.data = data;
@@ -61,13 +60,5 @@ public class TitaniumDioxide extends IndividualBlock {
 
 	public boolean isMineable() throws Exception{
 		return true;
-	}
-
-	public String getTerminalPresentation() throws Exception{
-		return TitaniumDioxide.blockDataString;
-	}
-
-	public Long getTerminalPresentationWidth() throws Exception{
-		return 2L;
 	}
 }

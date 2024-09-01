@@ -127,7 +127,7 @@ public class BlockManagerServerBeanPostProcessor implements DestructionAwareBean
 				String databaseName = this.params.getDatabaseConnectionParameters().getDatabaseName();
 				String username = this.params.getDatabaseConnectionParameters().getUsername();
 				String password = this.params.getDatabaseConnectionParameters().getPassword();
-				this.postgresDataSource = new DriverManagerDataSource("jdbc:" + subprotocol + "://" + hostname + ":" + port + "/" + databaseName, username, password);
+				this.postgresDataSource = new DriverManagerDataSource("jdbc:" + subprotocol + "://" + hostname + ":" + port + "/" + databaseName + "?rewriteBatchedStatements=true", username, password);
 				this.postgresDataSource.setDriverClassName("org.postgresql.Driver");
 			}
 			return this.postgresDataSource;

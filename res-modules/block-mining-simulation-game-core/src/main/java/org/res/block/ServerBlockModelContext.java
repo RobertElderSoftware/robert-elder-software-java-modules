@@ -113,7 +113,6 @@ public class ServerBlockModelContext extends BlockModelContext {
 	public List<Thread> getThreads() throws Exception{
 		List<Thread> threads = new ArrayList<Thread>();
 		threads.add(new WorkItemProcessorTask<BlockModelContextWorkItem>(this));
-		threads.add(new ServerBackgroundTasks(this));
 		return threads;
 	}
 

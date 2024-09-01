@@ -145,6 +145,10 @@ public class AnsiEscapeSequenceExtractor {
 		return this.buffer.containsPartiallyParsedSequence();
 	}
 
+	public boolean wasParsingIncomplete() throws Exception{
+		return this.buffer.wasParsingIncomplete();
+	}
+
 	public AnsiEscapeSequenceExtractor() throws Exception{
 
 	}

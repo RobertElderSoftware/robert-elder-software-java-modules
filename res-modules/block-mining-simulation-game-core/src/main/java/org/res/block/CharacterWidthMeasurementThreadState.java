@@ -49,6 +49,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
 public class CharacterWidthMeasurementThreadState extends WorkItemQueueOwner<CharacterWidthMeasurementWorkItem> {
+	protected Object lock = new Object();
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 	private ClientBlockModelContext clientBlockModelContext;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -66,14 +67,18 @@ public class CharacterWidthMeasurementThreadState extends WorkItemQueueOwner<Cha
 	}
 
 	public void addPendingTextWidthRequest(TextWidthMeasurementWorkItem w){
-		this.pendingTextWidthRequests.add(w);
+		synchronized(lock){
+			this.pendingTextWidthRequests.add(w);
+		}
 	}
 
 	public void notifyOfCurrentCursorPosition(Long x, Long y){
-		if(this.currentTextWidthMeasurement == null){
-			logger.info("WARNING:  Discarding cursor position report (" + x + "," + y + ") since there appears to be no active text width request?");
-		}else{
-			this.currentTextWidthMeasurement.notifyOfCurrentCursorPosition(x, y);
+		synchronized(lock){
+			if(this.currentTextWidthMeasurement == null){
+				logger.info("WARNING:  Discarding cursor position report (" + x + "," + y + ") since there appears to be no active text width request?");
+			}else{
+				this.currentTextWidthMeasurement.notifyOfCurrentCursorPosition(x, y);
+			}
 		}
 	}
 
@@ -87,16 +92,33 @@ public class CharacterWidthMeasurementThreadState extends WorkItemQueueOwner<Cha
 	}
 
 	public boolean doBackgroundProcessing() throws Exception{
-		//  If there is a character width measurement request available, start working on it:
-		if(currentTextWidthMeasurement == null && this.pendingTextWidthRequests.size() > 0){
-			this.currentTextWidthMeasurement = this.pendingTextWidthRequests.take();
-		}
-		if(this.currentTextWidthMeasurement != null){
-			TextWidthMeasurementWorkItemResult r = this.currentTextWidthMeasurement.getResult();
-			if(r != null){ //  Did we actually get a result yet?
-				this.addResultForThreadId(r, this.currentTextWidthMeasurement.getThreadId()); //  Unblock whatever thread was waiting.
-				logger.info("In CharacterWidthMeasurementThreadState, Added a text width result for thread_id=" + this.currentTextWidthMeasurement.getThreadId());
-				this.currentTextWidthMeasurement = null; //  Allow for processing of next character width request.
+		synchronized(lock){
+			//  If there is a character width measurement request available, start working on it:
+			if(currentTextWidthMeasurement == null && this.pendingTextWidthRequests.size() > 0){
+				this.currentTextWidthMeasurement = this.pendingTextWidthRequests.take();
+				Long x1 = currentTextWidthMeasurement.getX1();
+				Long y1 = currentTextWidthMeasurement.getY1();
+				String text = currentTextWidthMeasurement.getText();
+
+				logger.info("About to print test text '" + text + "' so width can be measured.");
+				System.out.print("\033[" + y1 + ";" + x1 + "H"); //  Move cursor known reference point to calculate offset of text.
+				System.out.flush();
+				System.out.print(text); //  Print the text for which we want to measure width.
+				System.out.flush();
+				System.out.println("\033[6n");  //  Request cursor position measurement.
+				System.out.flush();
+				//  Move cursor back to 0,0 to and re-draw some of the corner of the frame
+				//  to overwrite the test character:
+				System.out.print("\033[0;0H\u2554\u2550\u2550\u2550");
+				logger.info("Finished printing test text '" + text + "' and issued cursor re-positioning request. Waiting for result on stdin...");
+			}
+			if(this.currentTextWidthMeasurement != null){
+				TextWidthMeasurementWorkItemResult r = this.currentTextWidthMeasurement.getResult();
+				if(r != null){ //  Did we actually get a result yet?
+					this.addResultForThreadId(r, this.currentTextWidthMeasurement.getThreadId()); //  Unblock whatever thread was waiting.
+					logger.info("In CharacterWidthMeasurementThreadState, Added a text width result for thread_id=" + this.currentTextWidthMeasurement.getThreadId());
+					this.currentTextWidthMeasurement = null; //  Allow for processing of next character width request.
+				}
 			}
 		}
 		return false; // There is no additional work we can do until we get another work item.

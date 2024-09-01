@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.List;
 import java.util.ArrayList;
 
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -70,28 +71,21 @@ public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelCon
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	private BlockSchema blockSchema = null;
-
 	protected ClientServerInterface clientServerInterface = null;
 
 	public BlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ClientServerInterface clientServerInterface) throws Exception{
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientServerInterface = clientServerInterface;
-		String catalinaBase = System.getProperty("catalina.base");
-		String userDirectory = System.getProperty("user.dir");
-		this.logMessage("catalinaBase=" + catalinaBase + ", userDirectory=" + userDirectory);
-		String currentWorkingDirectory = catalinaBase == null ? userDirectory : catalinaBase + "/webapps/ROOT/WEB-INF/classes";
-		String blockSchemaLocation = currentWorkingDirectory + "/v2_block_schema.json";
-		this.logMessage("About to look for block schema at location " + blockSchemaLocation + ".");
-		this.blockSchema = new BlockSchema(this, new String(Files.readAllBytes(Paths.get(blockSchemaLocation)), "UTF-8"));
+
 	}
+
 
 	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
 		return this.blockManagerThreadCollection;
 	}
 
 	public BlockSchema getBlockSchema(){
-		return this.blockSchema;
+		return this.blockManagerThreadCollection.getBlockSchema();
 	}
 
 	public ClientServerInterface getClientServerInterface(){
@@ -197,6 +191,14 @@ public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelCon
 			throw new Exception("Unable to determine block class for data '" + BlockModelContext.convertToHex(blockData) + "'");
 		}else{
 			return IndividualBlock.makeBlockInstanceFromClassName(blockClassName, blockData);
+		}
+	}
+
+	public byte [] getBlockDataForClass(Class<?> c) throws Exception{
+		if(this.getBlockSchema() == null){
+			throw new Exception("Cannot lookup byte pattern for  '" + c.getName() + "' because block schema has not been initialized yet.");
+		}else{
+			return this.getBlockSchema().getBinaryDataForByteComparisonBlockForClass(c);
 		}
 	}
 

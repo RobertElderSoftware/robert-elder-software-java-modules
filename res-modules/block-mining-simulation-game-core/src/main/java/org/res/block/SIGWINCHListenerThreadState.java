@@ -30,59 +30,65 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.stream.Collectors;
+import java.util.Arrays;
+import java.util.Random;
 
+import java.io.OutputStream;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.TreeMap;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSerializer;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonNull;
-import com.google.gson.reflect.TypeToken;
+import java.lang.Thread;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class JsonBlockMatchDescription extends BlockMatchDescription{
+public class SIGWINCHListenerThreadState extends WorkItemQueueOwner<SIGWINCHListenerWorkItem> {
 
-	private JsonSchema jsonSchema;
+	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
+	private ClientBlockModelContext clientBlockModelContext;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+	private boolean initialized = false;
+	private ShellProcessRunner sigWinchProcess = null;
+	private OutputStream inputForSigWinchProcess = null;
 
-	public JsonBlockMatchDescription(JsonElement e) {
-		super(e);
-		JsonObject o = (JsonObject)e;
-		this.jsonSchema =  new JsonSchema(o.get("json_schema"));
+	public SIGWINCHListenerThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception{
+		this.blockManagerThreadCollection = blockManagerThreadCollection;
+		this.clientBlockModelContext = clientBlockModelContext;
+
+		this.blockManagerThreadCollection.getLinuxBlockJNIInterface().setupSIGWINCHSignalHandler();
 	}
 
-	public JsonElement asJsonElement() throws Exception{
-		JsonObject o = new JsonObject();
-		o.add("block_class", new JsonPrimitive(this.blockClass));
-		return o;
+	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
+		return this.blockManagerThreadCollection;
 	}
 
-	public String asJsonString() throws Exception {
-		return gson.toJson(this.asJsonElement());
+	public SIGWINCHListenerWorkItem takeWorkItem() throws Exception {
+		SIGWINCHListenerWorkItem w = this.workItemQueue.takeWorkItem();
+		return w;
 	}
 
-	public boolean doesMatch(byte [] data) throws Exception{
-		JsonElement element = null;
-		try{
-			element = new Gson().fromJson(new String(data, "UTF-8"), JsonElement.class);
-		}catch(Exception e){
-			logger.info("Caught exception trying to deserialize block, so it must not have been json.");
-			return false;
+	public void putWorkItem(SIGWINCHListenerWorkItem workItem, WorkItemPriority priority) throws Exception{
+		this.workItemQueue.putWorkItem(workItem, priority);
+	}
+
+	public boolean doBackgroundProcessing() throws Exception{
+		while(true){
+			logger.info("Before getSIGWINCH.");
+			String signalInfo = this.blockManagerThreadCollection.getLinuxBlockJNIInterface().getSIGWINCH();
+			logger.info("After getSIGWINCH, returned '" + signalInfo + "'");
+			if(signalInfo.equals("{\"EVENT\":\"QUIT\"}")){
+				logger.info("SIGWINCHListenerThreadState got message to shut down...");
+				break;
+			}else{
+				clientBlockModelContext.putWorkItem(new NotifySIGWINCHWorkItem(clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+			}
 		}
-		if(this.jsonSchema.doesMatchElement(element)){
-			return true;
-		}else{
-			return false;
-		}
+		return false;
 	}
 }

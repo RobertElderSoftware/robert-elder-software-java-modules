@@ -46,15 +46,15 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonNull;
 import com.google.gson.reflect.TypeToken;
 
-public class MetallicCopper extends IndividualBlock {
+public class StonePick extends IndividualBlock {
 
 	private byte [] data;
 
-	public MetallicCopper(byte [] data) throws Exception {
+	public StonePick(byte [] data) throws Exception {
 		this.data = data;
 	}
 
-	public byte [] getBlockData()throws Exception {
+	public byte [] getBlockData() throws Exception {
 		return this.data;
 	}
 

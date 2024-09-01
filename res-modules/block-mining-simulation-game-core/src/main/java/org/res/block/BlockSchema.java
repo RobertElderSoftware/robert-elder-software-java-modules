@@ -45,16 +45,22 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonNull;
 import com.google.gson.reflect.TypeToken;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
 
 public class BlockSchema {
 
 	protected final Long version;
+	protected final String json;
 	protected final Gson gson = new GsonBuilder().serializeNulls().setPrettyPrinting().create();
 	protected final List<BlockMatchDescription> blockMatchDescriptions;
-	protected final BlockModelContext blockModelContext;
+	protected final boolean allowUnrecognizedBlockTypes;
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	public BlockSchema(BlockModelContext blockModelContext, String json) throws Exception {
-		this.blockModelContext = blockModelContext;
+	public BlockSchema(String json, boolean allowUnrecognizedBlockTypes) throws Exception {
+		this.json = json;
+		this.allowUnrecognizedBlockTypes = allowUnrecognizedBlockTypes;
 		JsonElement topElement = new Gson().fromJson(json, JsonElement.class);
 		JsonObject blockSchemaObject = (JsonObject)topElement;
 
@@ -63,15 +69,19 @@ public class BlockSchema {
 		for(JsonElement e : blockMatchDescriptions){
 			JsonObject o = (JsonObject)e;
 			if(o.get("match_type").getAsString().equals("json")){
-				l.add(new JsonBlockMatchDescription(this.blockModelContext, e));
+				l.add(new JsonBlockMatchDescription(e));
 			}else if(o.get("match_type").getAsString().equals("byte_comparison")){
-				l.add(new ByteComparisonBlockMatchDescription(this.blockModelContext, e));
+				l.add(new ByteComparisonBlockMatchDescription(e));
 			}else{
 				throw new Exception("Unknown match type:" + o.get("match_type").getAsString());
 			}
 		}
 		this.blockMatchDescriptions = l;
 		this.version = blockSchemaObject.get("version").getAsLong();
+	}
+
+	public String getInputJsonBlockSchema(){
+		return json;
 	}
 
 	public JsonElement asJsonElement() throws Exception{
@@ -87,11 +97,27 @@ public class BlockSchema {
 	public String getFirstBlockMatchDescriptionForByteArray(byte [] data) throws Exception{
 		for(BlockMatchDescription bmd : this.blockMatchDescriptions){
 			if(bmd.doesMatch(data)){
-				this.blockModelContext.logMessage("Block class name is: " + bmd.getBlockInstanceClassName());
+				logger.info("Block class name is: " + bmd.getBlockInstanceClassName());
 				return bmd.getBlockInstanceClassName();
 			}
 		}
-		this.blockModelContext.logMessage("No match.");
-		return null;
+		logger.info("No match found...");
+		if(this.allowUnrecognizedBlockTypes){
+			return UnrecognizedBlock.class.getName();
+		}else{
+			return null;
+		}
+	}
+
+	public byte [] getBinaryDataForByteComparisonBlockForClass(Class<?> c) throws Exception{
+		for(BlockMatchDescription bmd : this.blockMatchDescriptions){
+			if(bmd instanceof ByteComparisonBlockMatchDescription){
+				ByteComparisonBlockMatchDescription bcbmd = (ByteComparisonBlockMatchDescription)bmd;
+				if(c.getName().equals(bmd.getBlockInstanceClassName())){
+					return bcbmd.getBytePattern();
+				}
+			}
+		}
+		throw new Exception("Cannot get byte pattern for unknown class: " + c.getName());
 	}
 }

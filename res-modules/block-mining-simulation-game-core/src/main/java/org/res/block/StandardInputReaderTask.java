@@ -85,7 +85,15 @@ public class StandardInputReaderTask extends Thread {
 		while(this.ansiEscapeSequenceExtractor.getBuffer().size() > 0){ //  While there is still something to parse.
 			CursorPositionReport cpr = (CursorPositionReport)this.ansiEscapeSequenceExtractor.tryToParseBuffer();
 			if(cpr == null){
-				if(this.ansiEscapeSequenceExtractor.containsPartiallyParsedSequence()){
+				if(this.ansiEscapeSequenceExtractor.wasParsingIncomplete()){
+					//  This case happens when we encounter a control sequence we haven't considered yet.
+					//  Just extract the portion of the control sequence that we were able to parse,
+					//  and then handle any remaining characters like normal input.  This isn't ideal,
+					//  but it's better than letting the input get blocked forever due to the parser
+					//  repeatedly failing to match the expected ANSI escape sequence patterns:
+					List<Byte> extracted = this.ansiEscapeSequenceExtractor.extractParsedBytes();
+					clientBlockModelContext.logMessage("->Parsing was incomplete!  Discarding these bytes: " + String.valueOf(extracted));
+				}if(this.ansiEscapeSequenceExtractor.containsPartiallyParsedSequence()){
 					clientBlockModelContext.logMessage("->Input buffer contains partially parsed ansi sequence=" + String.valueOf(this.ansiEscapeSequenceExtractor.getBuffer()));
 					return false;  // Nothing more to do.
 				}else{

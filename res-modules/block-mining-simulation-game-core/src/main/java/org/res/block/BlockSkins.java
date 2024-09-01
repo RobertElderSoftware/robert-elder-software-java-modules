@@ -30,7 +30,10 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Collections;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
@@ -46,19 +49,45 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonNull;
 import com.google.gson.reflect.TypeToken;
 
-public class MetallicCopper extends IndividualBlock {
-
-	private byte [] data;
-
-	public MetallicCopper(byte [] data) throws Exception {
-		this.data = data;
+public class BlockSkins {
+	private static final Map<String, String> patterns;
+	static {
+		Map<String, String> tmp = new HashMap<String, String>();
+		tmp.put(Rock.class.getName(), "\uD83E\uDEA8");
+		tmp.put(WoodenPick.class.getName(),"\u26CF\uFE0F");
+		tmp.put(StonePick.class.getName(),"\u26CF\uFE0F");
+		tmp.put(IronPick.class.getName(),"\u26CF\uFE0F");
+		tmp.put(TitaniumDioxide.class.getName(),"\u2B1C");
+		tmp.put(Ilmenite.class.getName(),"\u2B1B");
+		tmp.put(Rock.class.getName(),"\uD83E\uDEA8");
+		tmp.put(Bauxite.class.getName(),"\uD83D\uDFEB");
+		tmp.put(IronOxide.class.getName(),"\ud83d\udfe5");
+		tmp.put(MetallicIron.class.getName(),"\u2699\uFE0F");
+		tmp.put(MetallicCopper.class.getName(),"\uD83D\uDFE7");
+		tmp.put(Pyrite.class.getName(),"\uD83D\uDFE8");
+		tmp.put(WoodenBlock.class.getName(),"\uD83E\uDEB5");
+		tmp.put(UnrecognizedBlock.class.getName(),"\uD83D\uDEAB");
+		tmp.put(EmptyBlock.class.getName(),"");
+		tmp.put(UninitializedBlock.class.getName(),"U");
+		tmp.put(PlayerPositionXYZ.class.getName(),"P");
+		tmp.put(PlayerInventory.class.getName(),"!");
+		patterns = Collections.unmodifiableMap(tmp);
 	}
 
-	public byte [] getBlockData()throws Exception {
-		return this.data;
-	}
 
-	public boolean isMineable() throws Exception{
-		return true;
+	public static String getPresentation(Class<?> c, boolean restrictedGraphics) throws Exception{
+		if(patterns.containsKey(c.getName())){
+			if(restrictedGraphics){
+				if(c.getName().equals(EmptyBlock.class.getName())){
+					return "";
+				}else{
+					return c.getSimpleName().substring(0, 1);
+				}
+			}else{
+				return patterns.get(c.getName());
+			}
+		}else{
+			throw new Exception("Did not find an entry for " + c.getName());
+		}
 	}
 }

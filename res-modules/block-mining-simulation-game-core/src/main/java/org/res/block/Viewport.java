@@ -94,6 +94,13 @@ public class Viewport extends WorkItemQueueOwner<ViewportWorkItem> {
 		this.viewportWidth = viewportWidth;
 		this.viewportHeight = viewportHeight;
 
+		//  Print spaces to clear entire screen because ANSI clear screen does not work if run twice in rapid succession: (TODO: Improve this.)
+		for(int i = 0; i < terminalWidth; i++){
+			for(int j = 0; j < terminalHeight; j++){
+				System.out.println("\033[" + (j+1) + ";" + (i+1) + "H" + "\033[0m" + " ");
+			}
+		}
+
 		this.viewportCells = new ViewportCell[this.viewportWidth.intValue()][this.viewportHeight.intValue()];
 		this.screenPrints = new String[this.terminalWidth.intValue()][this.terminalHeight.intValue()];
 		for(int i = 0; i < this.viewportWidth.intValue(); i++){
@@ -246,7 +253,9 @@ public class Viewport extends WorkItemQueueOwner<ViewportWorkItem> {
 					this.printViewportUpdates(this.gameAreaCuboidAddress);
 				}
 			}else{
-				throw new Exception("Case not considered: diffLower=" + diffLower + " but diffUpper=" + diffUpper);
+				//  This case happens when terminal window is resized.  Just redraw everything for now:
+				this.updateViewportFlags(this.gameAreaCuboidAddress);
+				this.printViewportUpdates(this.gameAreaCuboidAddress);
 			}
 		}
 	}
@@ -263,26 +272,31 @@ public class Viewport extends WorkItemQueueOwner<ViewportWorkItem> {
 		IndividualBlock b = clientBlockModelContext.readBlockAtCoordinate(currentViewportCoordinate);
 		Long xOffsetScreen = currentViewportCoordinate.getX() - this.gameAreaCuboidAddress.getCanonicalLowerCoordinate().getX();
 		Long yOffsetScreen = (this.gameAreaCuboidAddress.getWidthForIndex(2L) - 1L) - (currentViewportCoordinate.getZ() - this.gameAreaCuboidAddress.getCanonicalLowerCoordinate().getZ());
-		ViewportCell currentViewportCell = this.viewportCells[xOffsetScreen.intValue()][yOffsetScreen.intValue()];
+		if(xOffsetScreen < this.viewportWidth && yOffsetScreen < this.viewportHeight){
+			ViewportCell currentViewportCell = this.viewportCells[xOffsetScreen.intValue()][yOffsetScreen.intValue()];
 
-		if(b == null){ /* Chunk not even loaded. */
-			currentViewportCell.setCurrentBlock(b);
-			currentViewportCell.addViewportCellFlag(ViewportCellFlag.PENDING_LOAD);
-		}else{
-			currentViewportCell.setCurrentBlock(b);
+			if(b == null){ /* Chunk not even loaded. */
+				currentViewportCell.setCurrentBlock(b);
+				currentViewportCell.addViewportCellFlag(ViewportCellFlag.PENDING_LOAD);
+			}else{
+				currentViewportCell.setCurrentBlock(b);
 
-			if(currentViewportCell.hasPendingLoadFlags()){ //  If this block was pending before, but now it's not, this requires a reprint.
-				currentViewportCell.addViewportCellFlag(ViewportCellFlag.BLOCK_CHANGE);
-				currentViewportCell.clearPendingLoadFlags();
+				if(currentViewportCell.hasPendingLoadFlags()){ //  If this block was pending before, but now it's not, this requires a reprint.
+					currentViewportCell.addViewportCellFlag(ViewportCellFlag.BLOCK_CHANGE);
+					currentViewportCell.clearPendingLoadFlags();
+				}
 			}
-		}
 
-		/*  Does player position need to be re-rendered? */
-		if(this.stalePlayerPositions.contains(currentViewportCoordinate)){
-			currentViewportCell.addViewportCellFlag(ViewportCellFlag.PLAYER_MOVEMENT);
-			this.stalePlayerPositions.remove(currentViewportCoordinate);
+			/*  Does player position need to be re-rendered? */
+			if(this.stalePlayerPositions.contains(currentViewportCoordinate)){
+				currentViewportCell.addViewportCellFlag(ViewportCellFlag.PLAYER_MOVEMENT);
+				this.stalePlayerPositions.remove(currentViewportCoordinate);
+			}
+			return currentViewportCell;
+		}else{
+			logger.info("Saw xOffsetScreen=" + xOffsetScreen + " < this.viewportWidth=" + this.viewportWidth + " || yOffsetScreen=" + yOffsetScreen + " < this.viewportHeight=" + this.viewportHeight + ".  TODO: Fix this error case with a more robust design.");
+			return null;
 		}
-		return currentViewportCell;
 	}
 
 	public void updateViewportFlags(CuboidAddress areaToUpdate) throws Exception {
@@ -330,7 +344,9 @@ public class Viewport extends WorkItemQueueOwner<ViewportWorkItem> {
 
 	public void printWordInAtScreenXY(String s, Long x, Long y, boolean isPlayerPosition){
 		for(int i = 0; i < s.length(); i++){
-			this.printTextInAtScreenXY(String.valueOf(s.charAt(i)), x + i, y, isPlayerPosition);
+			if((x + i) < (this.terminalWidth.intValue()) && y < (this.terminalHeight.intValue())){ // Don't draw past boundary.
+				this.printTextInAtScreenXY(String.valueOf(s.charAt(i)), x + i, y, isPlayerPosition);
+			}
 		}
 	}
 
@@ -363,6 +379,7 @@ public class Viewport extends WorkItemQueueOwner<ViewportWorkItem> {
 			this.printTextInAtScreenXY("\u2563", this.terminalWidth - fchrw * 1L, this.terminalHeight - this.inventoryAreaHeight, false);
 			this.printWordInAtScreenXY("             ", 10L, this.terminalHeight - this.inventoryAreaHeight, false); //  Required in wide character mode.
 			this.printWordInAtScreenXY("- Inventory -", 10L, this.terminalHeight - this.inventoryAreaHeight, false);
+			logger.info("Inventory y value: " + (this.terminalHeight - this.inventoryAreaHeight) + ", terminalHeight=" + this.terminalHeight + " inventoryAreaHeight=" + this.inventoryAreaHeight);
 			PlayerInventory inventory = this.getPlayerInventory();
 			if(inventory != null){
 				List<PlayerInventoryItemStack> itemStacks = inventory.getInventoryItemStackList();
@@ -378,8 +395,14 @@ public class Viewport extends WorkItemQueueOwner<ViewportWorkItem> {
 						int maxItemsInColumn = 4;
 						int xOffset = (i / maxItemsInColumn) * 30;
 						int yOffset = (i % maxItemsInColumn) * 2;
-						this.printTextInAtScreenXY(blockFromStack.getTerminalPresentation(), inventoryItemsXOffset + xOffset, this.terminalHeight - this.inventoryAreaHeight + 2 + yOffset, false);
-						this.printWordInAtScreenXY("  (" + stack.getQuantity().toString() + ") " + blockFromStack.getClass().getSimpleName() + " ", inventoryItemsXOffset + 2L + xOffset, this.terminalHeight - this.inventoryAreaHeight + 2 + yOffset, false);
+						String blockPresentation = BlockSkins.getPresentation(blockFromStack.getClass(), blockManagerThreadCollection.getIsRestrictedGraphics());
+
+						Long printTextX = inventoryItemsXOffset + xOffset;
+						Long printTextY = this.terminalHeight - this.inventoryAreaHeight + 2 + yOffset;
+						if((printTextX < this.terminalWidth.intValue()) && (printTextY < this.terminalHeight.intValue())){ // Don't draw past boundary.
+							this.printTextInAtScreenXY(blockPresentation, printTextX, printTextY, false);
+							this.printWordInAtScreenXY("  (" + stack.getQuantity().toString() + ") " + blockFromStack.getClass().getSimpleName() + " ", printTextX + 2L, printTextY, false);
+						}
 					}
 				}
 			}
@@ -422,6 +445,7 @@ public class Viewport extends WorkItemQueueOwner<ViewportWorkItem> {
 			Long numPrints = 0L;
 			logger.info("Doing printViewportUpdates with viewport cuboid as " + this.gameAreaCuboidAddress + ".");
 		
+			boolean restrictedGraphics = blockManagerThreadCollection.getIsRestrictedGraphics();
 			RegionIteration regionIteration = new RegionIteration(areaToUpdate.getCanonicalLowerCoordinate(), areaToUpdate);
 			do{
 				Coordinate currentViewportCoordinate = regionIteration.getCurrentCoordinate();
@@ -437,26 +461,31 @@ public class Viewport extends WorkItemQueueOwner<ViewportWorkItem> {
 					}
 					Long xOffsetScreen = currentViewportCoordinate.getX() - this.gameAreaCuboidAddress.getCanonicalLowerCoordinate().getX();
 					Long yOffsetScreen = (this.gameAreaCuboidAddress.getWidthForIndex(2L) -1L) - (currentViewportCoordinate.getZ() - this.gameAreaCuboidAddress.getCanonicalLowerCoordinate().getZ());
-					ViewportCell currentViewportCell = this.viewportCells[xOffsetScreen.intValue()][yOffsetScreen.intValue()];
-					//logger.info("printViewportUpdates() for " + currentViewportCoordinate + " xOffsetScreen=" + xOffsetScreen + " yOffsetScreen=" + yOffsetScreen);
+					if(xOffsetScreen < this.viewportWidth && yOffsetScreen < this.viewportHeight){
+						ViewportCell currentViewportCell = this.viewportCells[xOffsetScreen.intValue()][yOffsetScreen.intValue()];
+						//logger.info("printViewportUpdates() for " + currentViewportCoordinate + " xOffsetScreen=" + xOffsetScreen + " yOffsetScreen=" + yOffsetScreen);
 
-					if(currentViewportCell.hasBlockChangedFlags()){ /*  Updated cell */
-						String padded = this.whitespacePadViewportCell(currentViewportCell.renderBlockCell());
-						this.printTextInGameAreaXY(padded, xOffsetScreen, yOffsetScreen, isPlayerPosition);
-						//this.printTextInGameAreaXY(this.whitespacePadViewportCell("U"), xOffsetScreen, yOffsetScreen, isPlayerPosition);
-						numPrints++;
-					}else if(currentViewportCell.hasPlayerMovementFlags()){ /*  Where player is or was */
-						String padded = this.whitespacePadViewportCell(currentViewportCell.renderBlockCell());
-						this.printTextInGameAreaXY(padded, xOffsetScreen, yOffsetScreen, isPlayerPosition);
-						//this.printTextInGameAreaXY(this.whitespacePadViewportCell("P"), xOffsetScreen, yOffsetScreen, isPlayerPosition);
-						numPrints++;
-					}else if(currentViewportCell.hasPendingLoadFlags()){ /*  Loading cell */
-						this.printTextInGameAreaXY(this.whitespacePadViewportCell("?"), xOffsetScreen, yOffsetScreen, isPlayerPosition);
-						numPrints++;
-					}else {
-						//this.printTextInGameAreaXY(this.whitespacePadViewportCell("-"), xOffsetScreen, yOffsetScreen, isPlayerPosition);
+						if(currentViewportCell.hasBlockChangedFlags()){ /*  Updated cell */
+							String padded = this.whitespacePadViewportCell(currentViewportCell.renderBlockCell(restrictedGraphics));
+							this.printTextInGameAreaXY(padded, xOffsetScreen, yOffsetScreen, isPlayerPosition);
+							//this.printTextInGameAreaXY(this.whitespacePadViewportCell("U"), xOffsetScreen, yOffsetScreen, isPlayerPosition);
+							numPrints++;
+						}else if(currentViewportCell.hasPlayerMovementFlags()){ /*  Where player is or was */
+							String padded = this.whitespacePadViewportCell(currentViewportCell.renderBlockCell(restrictedGraphics));
+							this.printTextInGameAreaXY(padded, xOffsetScreen, yOffsetScreen, isPlayerPosition);
+							//this.printTextInGameAreaXY(this.whitespacePadViewportCell("P"), xOffsetScreen, yOffsetScreen, isPlayerPosition);
+							numPrints++;
+						}else if(currentViewportCell.hasPendingLoadFlags()){ /*  Loading cell */
+							this.printTextInGameAreaXY(this.whitespacePadViewportCell("?"), xOffsetScreen, yOffsetScreen, isPlayerPosition);
+							numPrints++;
+						}else {
+							//this.printTextInGameAreaXY(this.whitespacePadViewportCell("-"), xOffsetScreen, yOffsetScreen, isPlayerPosition);
+						}
+						currentViewportCell.clearNonLoadingFlags();
+
+					}else{
+						logger.info("Saw xOffsetScreen=" + xOffsetScreen + " < this.viewportWidth=" + this.viewportWidth + " || yOffsetScreen=" + yOffsetScreen + " < this.viewportHeight=" + this.viewportHeight + ".  TODO: Fix this error case with a more robust design.");
 					}
-					currentViewportCell.clearNonLoadingFlags();
 				}
 			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
 			System.out.print("\033[0;0H"); //  Move cursor to 0,0 after every print.

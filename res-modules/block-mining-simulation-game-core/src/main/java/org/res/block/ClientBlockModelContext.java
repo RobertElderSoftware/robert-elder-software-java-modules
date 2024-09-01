@@ -65,6 +65,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	private InMemoryChunks inMemoryChunks;
 	private ChunkInitializerThreadState chunkInitializerThreadState;
 	private CharacterWidthMeasurementThreadState characterWidthMeasurementThreadState;
+	private SIGWINCHListenerThreadState sigwinchListenerThreadState;
 	private CuboidAddress viewportCuboidAddress;
 	private Viewport viewport = null;
 	private Coordinate playerPositionBlockAddress = new Coordinate(Arrays.asList(99999999L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's position will be stored.
@@ -98,6 +99,10 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.chunkInitializerThreadState = new ChunkInitializerThreadState(blockManagerThreadCollection, this, this.inMemoryChunks);
 		this.characterWidthMeasurementThreadState = new CharacterWidthMeasurementThreadState(blockManagerThreadCollection, this);
 
+		if(this.blockManagerThreadCollection.getIsJNIEnabled()){
+			this.sigwinchListenerThreadState = new SIGWINCHListenerThreadState(blockManagerThreadCollection, this);
+		}
+
 		this.clientServerInterface.Connect();
 		this.viewport = new Viewport(this.blockManagerThreadCollection, this, this.getBlockSchema());
 
@@ -114,6 +119,9 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		threads.add(new WorkItemProcessorTask<InMemoryChunksWorkItem>(this.inMemoryChunks));
 		threads.add(new WorkItemProcessorTask<ChunkInitializerWorkItem>(this.chunkInitializerThreadState));
 		threads.add(new WorkItemProcessorTask<CharacterWidthMeasurementWorkItem>(this.characterWidthMeasurementThreadState));
+		if(this.blockManagerThreadCollection.getIsJNIEnabled()){
+			threads.add(new WorkItemProcessorTask<SIGWINCHListenerWorkItem>(this.sigwinchListenerThreadState));
+		}
 		threads.add(new StandardInputReaderTask(this, this.characterWidthMeasurementThreadState));
 		return threads;
 	}
@@ -196,23 +204,42 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void doMineBlocksAtPosition(Coordinate centerPosition) throws Exception {
-		Coordinate [] coordinatesToCheck = new Coordinate[]{
-			centerPosition.changeByDeltaXYZ(-1L, 0L, 1L), // Upper left
-			centerPosition.changeByDeltaXYZ(0L, 0L, 1L), // Upper center
-			centerPosition.changeByDeltaXYZ(1L, 0L, 1L), // Upper right
-
-			centerPosition.changeByDeltaXYZ(-1L, 0L, 0L), // Left block
-			centerPosition.changeByDeltaXYZ(0L, 0L, 0L), // Center block
-			centerPosition.changeByDeltaXYZ(1L, 0L, 0L), // Right block
-
-			centerPosition.changeByDeltaXYZ(-1L, 0L, -1L), // Lower left
-			centerPosition.changeByDeltaXYZ(0L, 0L, -1L), // Lower center
-			centerPosition.changeByDeltaXYZ(1L, 0L, -1L) // Lower right
-		};
-
-		byte [] ironPickeData = IronPick.blockDataString.getBytes("UTF-8");
+		byte [] woodenPickData = this.getBlockDataForClass(WoodenPick.class);
+		byte [] stonePickData = this.getBlockDataForClass(StonePick.class);
+		byte [] ironPickData = this.getBlockDataForClass(IronPick.class);
 		/*  If they have at least one mining pick, mine all the blocks. */
-		boolean hasAMiningPick = this.playerInventory.containsBlockCount(ironPickeData, 1L);
+		boolean hasWoodenPick = this.playerInventory.containsBlockCount(woodenPickData, 1L);
+		boolean hasStonePick = this.playerInventory.containsBlockCount(stonePickData, 1L);
+		boolean hasIronPick = this.playerInventory.containsBlockCount(ironPickData, 1L);
+
+		byte [] pickDataToUse = null;
+		Long miningDistance = null;
+		if(hasIronPick){
+			miningDistance = 3L;
+			pickDataToUse = ironPickData;
+		}else{
+			if(hasStonePick){
+				miningDistance = 2L;
+				pickDataToUse = stonePickData;
+			}else{
+				if(hasWoodenPick){
+					miningDistance = 1L;
+					pickDataToUse = woodenPickData;
+				}else{
+					miningDistance = 1L; //  Distance of 1, but only mines one at a time.
+				}
+			}
+		}
+
+		Coordinate startingPosition = centerPosition.changeByDeltaXYZ(-miningDistance, 0L, -miningDistance);
+		CuboidAddress regionToMine = new CuboidAddress(startingPosition, startingPosition.changeByDeltaXYZ(2L*miningDistance, 0L, 2L*miningDistance));
+		
+		List<Coordinate> coordinatesToCheck = new ArrayList<Coordinate>();
+		RegionIteration regionIteration = new RegionIteration(startingPosition, regionToMine);
+		do{
+			coordinatesToCheck.add(regionIteration.getCurrentCoordinate());
+		}while (regionIteration.incrementCoordinateWithinCuboidAddress());
+
 		Long numBlocksMined = 0L;
 
 		for(Coordinate c : coordinatesToCheck){
@@ -220,25 +247,29 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			this.logMessage("block at coordinate " + c + " (block instanceof Rock)=" + (block instanceof Rock));
 			if(block != null && block.isMineable()){
 				this.playerInventory.addItemCountToInventory(block.getBlockData(), 1L);
-				this.onPlayerInventoryChange();
 				//  TODO:  Group these into a single transaction:
 				this.logMessage("Writing inventory as " + this.playerInventory.asJsonString());
-				this.doBlockWriteAtPlayerPosition("".getBytes("UTF-8"), c, 0L);
 				numBlocksMined++;
-				if(!hasAMiningPick){
+				if(pickDataToUse == null){ //  If they don't have a pick, only mine a single block around the player:
+					this.doBlockWriteAtPlayerPosition("".getBytes("UTF-8"), c, 0L);
 					break;
 				}
 			}
 		}
+		if(pickDataToUse != null){
+			this.doBlockWriteAtPlayerPosition("".getBytes("UTF-8"), centerPosition, miningDistance);
+		}
 		if(numBlocksMined > 1L){
-			this.playerInventory.addItemCountToInventory(ironPickeData, -1L);
+			this.playerInventory.addItemCountToInventory(pickDataToUse, -1L);
+		}
+		if(numBlocksMined > 0L){
 			this.onPlayerInventoryChange();
 		}
 		this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
 	}
 
 	public void doPlaceRockAtPlayerPosition() throws Exception{
-		byte [] blockDataToPlace = Rock.blockDataString.getBytes("UTF-8");
+		byte [] blockDataToPlace = this.getBlockDataForClass(Rock.class);
 		if(this.playerInventory.containsBlockCount(blockDataToPlace, 1L)){
 			this.playerInventory.addItemCountToInventory(blockDataToPlace, -1L);
 			this.onPlayerInventoryChange();
@@ -250,27 +281,40 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void onTryCrafting() throws Exception{
-		byte [] ironPickData = IronPick.blockDataString.getBytes("UTF-8");
-		byte [] ironOxideData = IronOxide.blockDataString.getBytes("UTF-8");
-		byte [] woodenBlockData = WoodenBlock.blockDataString.getBytes("UTF-8");
-		byte [] metallicIronBlockData = MetallicIron.blockDataString.getBytes("UTF-8");
+		byte [] rockData = this.getBlockDataForClass(Rock.class);
+		byte [] ironPickData = this.getBlockDataForClass(IronPick.class);
+		byte [] stonePickData = this.getBlockDataForClass(StonePick.class);
+		byte [] woodenPickData = this.getBlockDataForClass(WoodenPick.class);
+		byte [] ironOxideData = this.getBlockDataForClass(IronOxide.class);
+		byte [] woodenBlockData = this.getBlockDataForClass(WoodenBlock.class);
+		byte [] metallicIronBlockData = this.getBlockDataForClass(MetallicIron.class);
 		/*  Try to craft a pick: */
-		Long requiredMetallicIronForPick = 1L;
-		Long requiredWoodenBlocksForPick = 1L;
-		Long numIronPicksCreated = 5L;
+		Long requiredMetallicIronForIronPick = 3L;
+		Long requiredWoodenBlocksForIronPick = 2L;
+		Long numIronPicksCreated = 1L;
+
+		Long requiredIronOxide = 5L;
+		Long requiredWoodenBlocks = 5L;
+		Long numMetallicIronCreated = 1L;
+
+		Long requiredRocksForStonePick = 3L;
+		Long requiredWoodenBlocksForStonePick = 2L;
+		Long numStonePicksCreated = 1L;
+
+		Long requiredWoodForWoodenPick = 5L;
+		Long numWoodenPicksCreated = 1L;
+
+		//  Try crafting iron pick axe
 		if(
-			this.playerInventory.containsBlockCount(metallicIronBlockData, requiredMetallicIronForPick) &&
-			this.playerInventory.containsBlockCount(woodenBlockData, requiredWoodenBlocksForPick)
+			this.playerInventory.containsBlockCount(metallicIronBlockData, requiredMetallicIronForIronPick) &&
+			this.playerInventory.containsBlockCount(woodenBlockData, requiredWoodenBlocksForIronPick)
 		){
-			this.playerInventory.addItemCountToInventory(metallicIronBlockData, -requiredMetallicIronForPick);
-			this.playerInventory.addItemCountToInventory(woodenBlockData, -requiredWoodenBlocksForPick);
+			this.playerInventory.addItemCountToInventory(metallicIronBlockData, -requiredMetallicIronForIronPick);
+			this.playerInventory.addItemCountToInventory(woodenBlockData, -requiredWoodenBlocksForIronPick);
 			this.playerInventory.addItemCountToInventory(ironPickData, numIronPicksCreated);
 			this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
 		}else{
 			/*  Try to craft metallic iron: */
-			Long requiredIronOxide = 5L;
-			Long requiredWoodenBlocks = 5L;
-			Long numMetallicIronCreated = 1L;
 			if(
 				this.playerInventory.containsBlockCount(ironOxideData, requiredIronOxide) &&
 				this.playerInventory.containsBlockCount(woodenBlockData, requiredWoodenBlocks)
@@ -280,12 +324,31 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 				this.playerInventory.addItemCountToInventory(metallicIronBlockData, numMetallicIronCreated);
 				this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
 			}else{
-				this.logMessage("Did not have enough reagents to craft anything.");
+				//  Try crafting stone pick axe
+				if(
+					this.playerInventory.containsBlockCount(rockData, requiredRocksForStonePick) &&
+					this.playerInventory.containsBlockCount(woodenBlockData, requiredWoodenBlocksForStonePick)
+				){
+					this.playerInventory.addItemCountToInventory(rockData, -requiredRocksForStonePick);
+					this.playerInventory.addItemCountToInventory(woodenBlockData, -requiredWoodenBlocksForStonePick);
+					this.playerInventory.addItemCountToInventory(stonePickData, numStonePicksCreated);
+					this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
+				}else{
+					//  Try crafting wooden pick axe
+					if(
+						this.playerInventory.containsBlockCount(woodenBlockData, requiredWoodForWoodenPick)
+					){
+						this.playerInventory.addItemCountToInventory(woodenBlockData, -requiredWoodForWoodenPick);
+						this.playerInventory.addItemCountToInventory(woodenPickData, numWoodenPicksCreated);
+						this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
+					}else{
+						this.logMessage("Did not have enough reagents to craft anything.");
+					}
+				}
 			}
 		}
 		this.onPlayerInventoryChange();
 	}
-
 
 	public Long measureTextLengthOnTerminal(String text) throws Exception{
 		if(!measuredTextLengths.containsKey(text)){
@@ -418,6 +481,41 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.logMessage("Ran shutdown of ClientBlockModelContext.");
 	}
 
+	public void notifyOfSIGWINCH() throws Exception{
+		this.onTerminalWindowChanged();
+	}
+
+	public void onTerminalWindowChanged() throws Exception{
+		//  Use the width of an iron oxide character as a reference to guess whether we're using narror or wide characters.
+		Long gameAreaCellWidth = this.measureTextLengthOnTerminal(BlockSkins.getPresentation(IronOxide.class, blockManagerThreadCollection.getIsRestrictedGraphics()));
+		Long frameCharacterWidth = this.measureTextLengthOnTerminal("\u2550"); //  One of the characters used in the frame.
+
+		Long terminalWidth = this.getTerminalWidth();
+		Long terminalHeight = this.getTerminalHeight();
+		if(terminalHeight < this.inventoryAreaHeight){
+			terminalHeight = this.inventoryAreaHeight; //  TODO: Replace this with something better. Prevents crashes right now.
+		}
+		Long viewportWidth = ((terminalWidth - (frameCharacterWidth + frameCharacterWidth)) / gameAreaCellWidth);
+		Long viewportHeight = terminalHeight - (this.frameWidthTop + this.inventoryAreaHeight);
+		viewportWidth = viewportWidth < 1L ? 1L : viewportWidth; //  TODO:  This is required to prevent crashes when game area is too small.  Improve this.
+		viewportHeight = viewportHeight < 1L ? 1L : viewportHeight;
+		Long topRightHandX = viewportWidth / 2L;
+		Long topRightHandZ = viewportHeight / 2L;
+		Long bottomLeftHandX = topRightHandX - (viewportWidth - 1L);
+		Long bottomLeftHandZ = topRightHandZ - (viewportHeight - 1L);
+
+		Coordinate playerPosition = this.playerPositionXYZ.getPosition();
+		this.bottomleftHandCorner = new Coordinate(Arrays.asList(bottomLeftHandX + playerPosition.getX(), playerPosition.getY(), bottomLeftHandZ + playerPosition.getZ(), 0L));
+		this.topRightHandCorner = new Coordinate(Arrays.asList(topRightHandX + playerPosition.getX(), playerPosition.getY(), topRightHandZ + playerPosition.getZ(), 0L));
+
+		this.onViewportDimensionsChange(terminalWidth, terminalHeight, viewportWidth, viewportHeight);
+		this.onFrameDimensionsChange(this.frameWidthTop, frameCharacterWidth, this.inventoryAreaHeight, gameAreaCellWidth);
+		this.onGameAreaChange(new CuboidAddress(this.bottomleftHandCorner, this.topRightHandCorner));
+
+		if(this.playerInventory != null){
+			this.onPlayerInventoryChange();
+		}
+	}
 
 	public void checkForSpecialCoordinateUpdates(Coordinate currentCoordinate, byte [] blockData) throws Exception{
 		//  TODO:  Figure out a better way to have custom event handlers for specific blocks of interest like this:
@@ -434,31 +532,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 				throw new Exception("Expected block to be of type PlayerPositionXYZ, but it was type " + blockWritten.getClass().getName());
 			}
 			this.onPlayerPositionChange(null, this.playerPositionXYZ.getPosition().copy());
-
-			//  Use the width of an iron oxide character as a reference to guess whether we're using narror or wide characters.
-			Long gameAreaCellWidth = this.measureTextLengthOnTerminal(IronOxide.blockDataString);
-			Long frameCharacterWidth = this.measureTextLengthOnTerminal("\u2550"); //  One of the characters used in the frame.
-
-			Long terminalWidth = this.getTerminalWidth();
-			Long terminalHeight = this.getTerminalHeight();
-			Long viewportWidth = ((terminalWidth - (frameCharacterWidth + frameCharacterWidth)) / gameAreaCellWidth);
-			Long viewportHeight = terminalHeight - (this.frameWidthTop + this.inventoryAreaHeight);
-			Long topRightHandX = viewportWidth / 2L;
-			Long topRightHandZ = viewportHeight / 2L;
-			Long bottomLeftHandX = topRightHandX - (viewportWidth - 1L);
-			Long bottomLeftHandZ = topRightHandZ - (viewportHeight - 1L);
-
-			Coordinate initialPlayerPosition = this.playerPositionXYZ.getPosition();
-			this.bottomleftHandCorner = new Coordinate(Arrays.asList(bottomLeftHandX + initialPlayerPosition.getX(), initialPlayerPosition.getY(), bottomLeftHandZ + initialPlayerPosition.getZ(), 0L));
-			this.topRightHandCorner = new Coordinate(Arrays.asList(topRightHandX + initialPlayerPosition.getX(), initialPlayerPosition.getY(), topRightHandZ + initialPlayerPosition.getZ(), 0L));
-
-			this.onViewportDimensionsChange(terminalWidth, terminalHeight, viewportWidth, viewportHeight);
-			this.onFrameDimensionsChange(this.frameWidthTop, frameCharacterWidth, this.inventoryAreaHeight, gameAreaCellWidth);
-			this.onGameAreaChange(new CuboidAddress(this.bottomleftHandCorner, this.topRightHandCorner));
-
-			if(this.playerInventory != null){
-				this.onPlayerInventoryChange();
-			}
+			this.onTerminalWindowChanged();
 		}else if(this.playerInventory == null && currentCoordinate.equals(playerInventoryBlockAddress)){
 
 			IndividualBlock blockWritten = blockData == null ? new UninitializedBlock() : this.deserializeBlockData(blockData);
@@ -495,10 +569,10 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		CuboidAddress ca = new CuboidAddress(lower, upper);
 		BlockMessageBinaryBuffer cuboidData = new BlockMessageBinaryBuffer();
 
-		byte [] rockData = Rock.blockDataString.getBytes("UTF-8");
-		byte [] ironOxideData = IronOxide.blockDataString.getBytes("UTF-8");
-		byte [] metallicIronData = MetallicIron.blockDataString.getBytes("UTF-8");
-		byte [] ironPickData = IronPick.blockDataString.getBytes("UTF-8");
+		byte [] rockData = this.getBlockDataForClass(Rock.class);
+		byte [] ironOxideData = this.getBlockDataForClass(IronOxide.class);
+		byte [] metallicIronData = this.getBlockDataForClass(MetallicIron.class);
+		byte [] ironPickData = this.getBlockDataForClass(IronPick.class);
 
 		long [] dataLengths = new long [4];
 		dataLengths[0] = rockData.length;

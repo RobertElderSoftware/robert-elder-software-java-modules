@@ -46,11 +46,11 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonNull;
 import com.google.gson.reflect.TypeToken;
 
-public class MetallicCopper extends IndividualBlock {
+public class UnrecognizedBlock extends IndividualBlock {
 
 	private byte [] data;
 
-	public MetallicCopper(byte [] data) throws Exception {
+	public UnrecognizedBlock(byte [] data) throws Exception {
 		this.data = data;
 	}
 
@@ -59,6 +59,6 @@ public class MetallicCopper extends IndividualBlock {
 	}
 
 	public boolean isMineable() throws Exception{
-		return true;
+		return false;
 	}
 }

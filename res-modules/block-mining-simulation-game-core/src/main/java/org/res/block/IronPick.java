@@ -49,7 +49,6 @@ import com.google.gson.reflect.TypeToken;
 public class IronPick extends IndividualBlock {
 
 	private byte [] data;
-	public static String blockDataString = "\u26CF\uFE0F";
 
 	public IronPick(byte [] data) throws Exception {
 		this.data = data;
@@ -61,13 +60,5 @@ public class IronPick extends IndividualBlock {
 
 	public boolean isMineable() throws Exception{
 		return true;
-	}
-
-	public String getTerminalPresentation() throws Exception{
-		return blockDataString;
-	}
-
-	public Long getTerminalPresentationWidth() throws Exception{
-		return 2L;
 	}
 }

@@ -28,11 +28,46 @@ Press the 'm' key to mine blocks.
 
 #  Crafting
 
-You can press the 'c' key to try and craft new blocks, such as metallic iron, and an iron pickaxe.  Currently, the game only supports these two crafting recipes.
+You can press the 'c' key to try and craft new blocks, such as metallic iron, and an iron pickaxe.  Currently, the game only supports four different crafting recepies:
+
+-  Using wood to make a Wooden Pick Axe
+-  Using stone and wood to make a Stone Pick Axe
+-  Using iron oxide and wood to make Metallic Iron
+-  Using metallic iron and wood to make an Iron Pick Axe
 
 #  Place Blocks
 
 Press the 'p' key to place blocks (currently only supports placing rock blocks).
+
+#  Help Menu
+
+
+You can run the .jar file with the '--help' flag to show a help menu:
+
+```
+java -jar block-mining-simulation-game-single-player-client-0.0.5.jar --help
+```
+
+
+```
+Block Mining Simulation Game - Available Command-line Arguments:
+
+--help                                     - Display this help menu.
+--debug-arguments                          - Echo back info about the value of command line argument values were parsed, and what the default values are.
+--log-file                        <arg>    - The name of the log file to use.  If not provided, there will be no logging.
+--disable-jni                              - Disable the use of JNI (may cause some events like to window size changes to be ignored).
+--restricted-graphics                      - Use only the simplest ASCII characters to produce graphics.  Required when running on non-graphical display ttys.
+--allow-unrecognized-block-types           - Allow the game to run even when there are block types that aren't supported in the block schema.
+--block-world-file                <arg>    - The name of the sqlite database file (SQLITE only).
+--block-schema-file               <arg>    - If specified, ignore the default built-in block schema and uses the one provided at file/path.
+--print-block-schema                       - Print current block schema and exit.
+--database-subprotocol            <arg>    - The protocol for the database connection string.  Currently supports 'postgresql' and 'sqlite'.
+--database-hostname               <arg>    - The 'hostname' for the database connection. Can be IP address or DNS name.
+--database-port                   <arg>    - The port for the database connection.
+--database-name                   <arg>    - The 'name' of the database to connect to for the database connection string.
+--database-username               <arg>    - The username for the database connection.
+--database-password               <arg>    - The password for the database connection.
+```
 
 #  Supported Platforms
 
@@ -43,9 +78,8 @@ Currently, the game has only been tested to work on a default installation of Ub
 Compiling the game from scratch is not necessary.  You can download pre-compiled .jar files from GitHub in the 'Releases' section for this repo:
 
 ```
-wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.4/v2_block_schema.json
-wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.4/block-mining-simulation-game-single-player-client-0.0.4.jar
-java -jar block-mining-simulation-game-single-player-client-0.0.4.jar
+wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.5/block-mining-simulation-game-single-player-client-0.0.5.jar
+java -jar block-mining-simulation-game-single-player-client-0.0.5.jar
 ```
 
 The game should immediately launch and fill up the terminal with graphics.  You can exit the game by pressing the 'q' key.  By default, the game saves it's world data into a SQLite database file that lives in the current directory.
@@ -55,11 +89,11 @@ The game should immediately launch and fill up the terminal with graphics.  You 
 If you are concerned about the authenticity of the .jar file, you can also verify the signature using GPG:
 
 ```
-wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.4/block-mining-simulation-game-single-player-client-0.0.4.jar.asc
+wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.5/block-mining-simulation-game-single-player-client-0.0.5.jar.asc
 gpg --search-keys robert@robertelder.org
 #  Should match the key for 'robert@robertelder.org'
 gpg --recv-keys ECBD481DBCA5C48804FBD08720B9852CF0558BAA
-gpg --verify block-mining-simulation-game-single-player-client-0.0.4.jar.asc block-mining-simulation-game-single-player-client-0.0.4.jar
+gpg --verify block-mining-simulation-game-single-player-client-0.0.5.jar.asc block-mining-simulation-game-single-player-client-0.0.5.jar
 ```
 
 The output should look something like this:
@@ -76,6 +110,12 @@ Primary key fingerprint: ECBD 481D BCA5 C488 04FB  D087 20B9 852C F055 8BAA
 #  Building The Game
 
 To build the game, you will need to set up a development environment that can support Java 17 and a version of maven that can support Java 17.
+
+To build the JNI library, you will also need a c++ compiler and make
+
+```
+sudo apt-get install g++ make
+```
 
 Next, you can compile the game from source by running this command:
 

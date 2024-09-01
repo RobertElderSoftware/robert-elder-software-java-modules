@@ -49,8 +49,36 @@
      </dependency>
   </dependencies>
 
-  <build>
-    <finalName>final-block-mining-simulation-game-core</finalName>
-  </build>
-
+	<build>
+		<finalName>final-block-mining-simulation-game-core</finalName>
+		<plugins>
+			<plugin>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>1.7</version>
+				<executions>
+					<execution>
+						<phase>process-classes</phase>
+						<configuration>
+							<target name="jni" description="Generate headers and compile the native code">
+								<echo>-- In pom.xml, Generating JNI headers --</echo>
+								<exec executable="javac" >
+									<arg value="-d" />
+									<arg value="target/classes" />
+									<arg value="-h" />
+									<arg value="src/main/c++" />
+									<arg value="-cp" />
+									<arg value="target/classes" />
+									<arg value="src/main/java/org/res/block/LinuxBlockJNIInterface.java" />
+								</exec>
+								<exec executable="make" ></exec>
+							</target>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
 </project>

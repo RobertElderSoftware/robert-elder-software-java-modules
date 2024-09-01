@@ -50,25 +50,28 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonNull;
 import com.google.gson.reflect.TypeToken;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
+
 public class JsonSchema{
-	private BlockModelContext blockModelContext;
 	private String type;
 	private Map<String, JsonSchema> properties;
 	private List<String> required;
 	private JsonSchema arrayItemsSchema = null;
 	protected final Gson gson = new GsonBuilder().serializeNulls().setPrettyPrinting().create();
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	public JsonSchema(BlockModelContext blockModelContext, JsonElement e) {
-		this.blockModelContext = blockModelContext;
+	public JsonSchema(JsonElement e) {
 		JsonObject o = (JsonObject)e;
 		this.type = o.get("type").getAsString();
 		if(o.has("items")){
-			this.arrayItemsSchema = new JsonSchema(this.blockModelContext, o.get("items"));
+			this.arrayItemsSchema = new JsonSchema(o.get("items"));
 		}
 		if(o.has("properties")){
 			Map<String, JsonSchema> m = new HashMap<String, JsonSchema>();
 			for(Map.Entry<String, JsonElement> oneProperty: ((JsonObject)o.get("properties")).entrySet()){
-				m.put(oneProperty.getKey(), new JsonSchema(blockModelContext, oneProperty.getValue()));
+				m.put(oneProperty.getKey(), new JsonSchema(oneProperty.getValue()));
 			}
 			this.properties = m;
 		}
@@ -108,19 +111,19 @@ public class JsonSchema{
 							return false;
 						}
 					}else{
-						this.blockModelContext.logMessage("Saw a property " + propertyKey + " that was not supposed to be there.");
+						logger.info("Saw a property " + propertyKey + " that was not supposed to be there.");
 						return false;
 					}
 				}
 				for(String requiredProperty : this.required){
 					if(!observedKeys.contains(requiredProperty)){
-						this.blockModelContext.logMessage("Requied property " + requiredProperty + " not seen.");
+						logger.info("Requied property " + requiredProperty + " not seen.");
 						return false;
 					}
 				}
 				return true;
 			}else{
-				this.blockModelContext.logMessage("Excpected type to be " + this.type + ", but it was JSON Object.");
+				logger.info("Excpected type to be " + this.type + ", but it was JSON Object.");
 				return false;
 			}
 		}else if(e.isJsonArray()){
@@ -134,7 +137,7 @@ public class JsonSchema{
 				}
 				return true;
 			}else{
-				this.blockModelContext.logMessage("Excpected type to be " + this.type + ", but it was JSON Array.");
+				logger.info("Excpected type to be " + this.type + ", but it was JSON Array.");
 				return false;
 			}
 		}else if(e.isJsonPrimitive()){
@@ -143,36 +146,36 @@ public class JsonSchema{
 				if(this.type.equals("boolean")){
 					return true;
 				}else{
-					this.blockModelContext.logMessage("Excpected type to be " + this.type + ", but it was boolean.");
+					logger.info("Excpected type to be " + this.type + ", but it was boolean.");
 					return false;
 				}
 			}else if(p.isNumber()){
 				if(this.type.equals("number")){
 					return true;
 				}else{
-					this.blockModelContext.logMessage("Excpected type to be " + this.type + ", but it was number.");
+					logger.info("Excpected type to be " + this.type + ", but it was number.");
 					return false;
 				}
 			}else if(p.isString()){
 				if(this.type.equals("string")){
 					return true;
 				}else{
-					this.blockModelContext.logMessage("Excpected type to be " + this.type + ", but it was string.");
+					logger.info("Excpected type to be " + this.type + ", but it was string.");
 					return false;
 				}
 			}else{
-				this.blockModelContext.logMessage("Excpected type to be " + this.type + ", but it was something else.");
+				logger.info("Excpected type to be " + this.type + ", but it was something else.");
 				return false;
 			}
 		}else if(e.isJsonNull()){
 			if(this.type.equals("null")){
 				return true;
 			}else{
-				this.blockModelContext.logMessage("Excpected type to be " + this.type + ", but it was JSON Null.");
+				logger.info("Excpected type to be " + this.type + ", but it was JSON Null.");
 				return false;
 			}
 		}else{
-			this.blockModelContext.logMessage("JsonElement was something other than object, array or primitive?");
+			logger.info("JsonElement was something other than object, array or primitive?");
 			return false;
 		}
 	}

@@ -111,12 +111,4 @@ public class PlayerPositionXYZ extends IndividualBlock {
 	public boolean isMineable() throws Exception{
 		return false;
 	}
-
-	public String getTerminalPresentation() throws Exception{
-		return "!";
-	}
-
-	public Long getTerminalPresentationWidth() throws Exception{
-		return 1L;
-	}
 }

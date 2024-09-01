@@ -32,33 +32,20 @@ package org.res.block;
 
 import java.util.List;
 import java.util.ArrayList;
-import java.util.stream.Collectors;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 
+public class NotifySIGWINCHWorkItem extends BlockModelContextWorkItem {
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSerializer;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonNull;
-import com.google.gson.reflect.TypeToken;
-
-public class MetallicCopper extends IndividualBlock {
-
-	private byte [] data;
-
-	public MetallicCopper(byte [] data) throws Exception {
-		this.data = data;
+	public NotifySIGWINCHWorkItem(BlockModelContext blockModelContext){
+		super(blockModelContext);
 	}
 
-	public byte [] getBlockData()throws Exception {
-		return this.data;
-	}
-
-	public boolean isMineable() throws Exception{
-		return true;
+	public void doWork() throws Exception{
+		if(this.blockModelContext instanceof ClientBlockModelContext){
+			((ClientBlockModelContext)blockModelContext).notifyOfSIGWINCH();
+		}else{
+			throw new Exception("Cannot send window resize to server block model context.");
+		}
 	}
 }

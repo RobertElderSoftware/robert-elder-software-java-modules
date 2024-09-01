@@ -168,7 +168,7 @@ public class InMemoryChunks extends WorkItemQueueOwner<InMemoryChunksWorkItem> {
 
 	public void onHasPendingNotYetRequestedChunks() throws Exception{
 		synchronized(lock){
-			Long maxPendingChunks = 1L;
+			Long maxPendingChunks = 2L;
 			//  Only start a request for more chunks if we've not already exceeded the max outstanding chunks.
 			if(this.pendingAlreadyRequestedChunks.size() < maxPendingChunks){
 				List<CuboidAddress> closestFirstCuboidAddressList = this.getClosestCuboidAddressList(this.pendingNotYetRequestedChunks, this.playerPosition);

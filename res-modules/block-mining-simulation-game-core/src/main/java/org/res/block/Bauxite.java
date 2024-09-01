@@ -49,7 +49,6 @@ import com.google.gson.reflect.TypeToken;
 public class Bauxite extends IndividualBlock {
 
 	private byte [] data;
-	public static String blockDataString = "\uD83D\uDFEB";
 
 	public Bauxite(byte [] data) throws Exception {
 		this.data = data;
@@ -61,13 +60,5 @@ public class Bauxite extends IndividualBlock {
 
 	public boolean isMineable() throws Exception{
 		return true;
-	}
-
-	public String getTerminalPresentation() throws Exception{
-		return Bauxite.blockDataString;
-	}
-
-	public Long getTerminalPresentationWidth() throws Exception{
-		return 2L;
 	}
 }

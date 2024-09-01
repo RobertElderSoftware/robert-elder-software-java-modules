@@ -49,7 +49,6 @@ import com.google.gson.reflect.TypeToken;
 public class Rock extends IndividualBlock {
 
 	private byte [] data;
-	public static String blockDataString = "\uD83E\uDEA8";
 
 	public Rock(byte [] data) throws Exception {
 		this.data = data;
@@ -61,13 +60,5 @@ public class Rock extends IndividualBlock {
 
 	public boolean isMineable() throws Exception{
 		return true;
-	}
-
-	public String getTerminalPresentation() throws Exception{
-		return Rock.blockDataString;
-	}
-
-	public Long getTerminalPresentationWidth() throws Exception{
-		return 1L;
 	}
 }

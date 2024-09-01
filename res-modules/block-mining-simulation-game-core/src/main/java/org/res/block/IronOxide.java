@@ -49,7 +49,6 @@ import com.google.gson.reflect.TypeToken;
 public class IronOxide extends IndividualBlock {
 
 	private byte [] data;
-	public static String blockDataString = "\ud83d\udfe5";
 
 	public IronOxide(byte [] data) throws Exception {
 		this.data = data;
@@ -61,13 +60,5 @@ public class IronOxide extends IndividualBlock {
 
 	public boolean isMineable() throws Exception{
 		return true;
-	}
-
-	public String getTerminalPresentation() throws Exception{
-		return IronOxide.blockDataString;
-	}
-
-	public Long getTerminalPresentationWidth() throws Exception{
-		return 2L;
 	}
 }

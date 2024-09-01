@@ -109,11 +109,8 @@ public class DescribeRegionsBlockMessage extends BlockMessage {
 		for(Cuboid c : this.cuboids){
 			blockModelContext.logMessage("cuboid.getCuboidAddress()=" + c.getCuboidAddress());
 		}
-		WriteCuboidsWorkItem workItem = new WriteCuboidsWorkItem(this.blockModelContext, this.numDimensions, this.cuboids);
+		WriteCuboidsWorkItem workItem = new WriteCuboidsWorkItem(this.blockModelContext, this.numDimensions, this.cuboids, this.conversationId, blockSession);
 		blockModelContext.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
 
-		AcknowledgementBlockMessage acknowledgementBlockMessage = new AcknowledgementBlockMessage(this.blockModelContext, this.conversationId);
-		SendBlockMessageToSessionWorkItem notifyWorkItem = new SendBlockMessageToSessionWorkItem(this.blockModelContext, blockSession, acknowledgementBlockMessage);
-		blockModelContext.putWorkItem(notifyWorkItem, WorkItemPriority.PRIORITY_LOW);
 	}
 }

@@ -57,7 +57,7 @@ import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import org.slf4j.LoggerFactory;
 
 class SinglePlayerBlockClient {
-
+	
 	public static void setupLogging(String logfileName) throws Exception {
 		LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
 		Logger logbackLogger = loggerContext.getLogger("ROOT");
@@ -82,42 +82,26 @@ class SinglePlayerBlockClient {
 		//StatusPrinter.print(loggerContext);
 	}
 
-	public static Map<String, String> parseArguments(String[] args) throws Exception {
-		String blockWorldFile = null;
-		//  Default to no logging:
-		String logFile = null;
-		for (int i = 0; i < args.length; i+=2){
-			if (args[i].equals("--block-world-file") && args.length > i + 1){
-				blockWorldFile = args[i+1];
-			} else if (args[i].equals("--log-file")){
-				logFile = args[i+1];
-			}
+	public static void startSinglePlayerClient(CommandLineArgumentCollection commandLineArgumentCollection) throws Exception{
+		SinglePlayerBlockClient.setupLogging(commandLineArgumentCollection.getUsedSingleValue("--log-file"));
+
+		BlockManagerThreadCollection blockManagerThreadCollection = new BlockManagerThreadCollection(commandLineArgumentCollection);
+
+		if(blockManagerThreadCollection.getPrintBlockSchema()){
+			blockManagerThreadCollection.printBlockSchema();
+			return;
 		}
-		Map<String, String> params = new HashMap<String, String>();
-		params.put("--block-world-file", blockWorldFile);
-		params.put("--log-file", logFile);
-		return params;
-	}
-
-	public static void main(String[] args) throws Exception {
-		Map<String, String> commandlineArguments = parseArguments(args);
-
-		SinglePlayerBlockClient.setupLogging(commandlineArguments.get("--log-file"));
-
-		BlockManagerThreadCollection blockManagerThreadCollection = new BlockManagerThreadCollection();
 
 		SinglePlayerClientServerInterface clientServerInterface = new SinglePlayerClientServerInterface();
 
-		String databaseFile = commandlineArguments.get("--block-world-file") == null ? "world-1.sqlite" : commandlineArguments.get("--block-world-file");
-
 		DatabaseConnectionParameters dbParams = new DatabaseConnectionParameters(
-			"sqlite", //String subprotocol,
-			null, //String hostname,
-			null, //String port,
-			null, //String databaseName,
-			null, //String username,
-			null, //String password,
-			databaseFile //String filename
+			commandLineArgumentCollection.getUsedSingleValue("--database-subprotocol"), //String subprotocol,
+			commandLineArgumentCollection.getUsedSingleValue("--database-hostname"), //String hostname,
+			commandLineArgumentCollection.getUsedSingleValue("--database-port"), //String port,
+			commandLineArgumentCollection.getUsedSingleValue("--database-name"), //String databaseName,
+			commandLineArgumentCollection.getUsedSingleValue("--database-username"), //String username,
+			commandLineArgumentCollection.getUsedSingleValue("--database-password"), //String password,
+			commandLineArgumentCollection.getUsedSingleValue("--block-world-file") //String filename
 		);
 
 		ServerBlockModelContext serverBlockModelContext = new ServerBlockModelContext(blockManagerThreadCollection, clientServerInterface, dbParams);
@@ -158,6 +142,29 @@ class SinglePlayerBlockClient {
 			for(Exception e : offendingExceptions){
 				e.printStackTrace();
 			}
+		}
+	}
+
+	public static void main(String[] args) throws Exception {
+		Map<String, List<String>> defaultArgumentValues = new HashMap<String, List<String>>();
+		defaultArgumentValues.put("--block-world-file", Arrays.asList("world-1.sqlite"));
+		defaultArgumentValues.put("--database-subprotocol", Arrays.asList("sqlite"));
+		defaultArgumentValues.put("--database-hostname", null);
+		defaultArgumentValues.put("--database-port", null);
+		defaultArgumentValues.put("--database-name", null);
+		defaultArgumentValues.put("--database-username", null);
+		defaultArgumentValues.put("--database-password", null);
+		CommandLineArgumentCollection commandLineArgumentCollection = ArgumentParser.parseArguments(args, defaultArgumentValues);
+
+		if(commandLineArgumentCollection.hasUsedKey("--help")){
+			//  Just print help menu an exit:
+			if(commandLineArgumentCollection.hasUsedKey("--debug-arguments")){
+				commandLineArgumentCollection.printHelpMenu(true);
+			}else{
+				commandLineArgumentCollection.printHelpMenu(false);
+			}
+		}else{
+			SinglePlayerBlockClient.startSinglePlayerClient(commandLineArgumentCollection);
 		}
 	}
 }

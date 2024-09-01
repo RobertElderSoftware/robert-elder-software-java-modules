@@ -49,7 +49,6 @@ import com.google.gson.reflect.TypeToken;
 public class Pyrite extends IndividualBlock {
 
 	private byte [] data;
-	public static String blockDataString = "\uD83D\uDFE8";
 
 	public Pyrite(byte [] data) throws Exception {
 		this.data = data;
@@ -61,13 +60,5 @@ public class Pyrite extends IndividualBlock {
 
 	public boolean isMineable() throws Exception{
 		return true;
-	}
-
-	public String getTerminalPresentation() throws Exception{
-		return Pyrite.blockDataString;
-	}
-
-	public Long getTerminalPresentationWidth() throws Exception{
-		return 2L;
 	}
 }

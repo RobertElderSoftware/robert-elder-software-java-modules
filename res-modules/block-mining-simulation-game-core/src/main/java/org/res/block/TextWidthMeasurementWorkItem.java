@@ -69,15 +69,14 @@ public class TextWidthMeasurementWorkItem extends CharacterWidthMeasurementWorkI
 
 	public void doWork() throws Exception{
 		this.characterWidthMeasurementThreadState.addPendingTextWidthRequest(this);
-		System.out.print("\033[" + this.y1 + ";" + this.x1 + "H"); //  Move cursor known reference point to calculate offset of text.
-		System.out.flush();
-		System.out.print(text); //  Print the text for which we want to measure width.
-		System.out.flush();
-		System.out.println("\033[6n");  //  Request cursor position measurement.
-		System.out.flush();
-		//  Move cursor back to 0,0 to and re-draw some of the corner of the frame
-		//  to overwrite the test character:
-		System.out.print("\033[0;0H\u2554\u2550\u2550\u2550");
+	}
+
+	public Long getX1(){
+		return this.x1;
+	}
+
+	public Long getY1(){
+		return this.y1;
 	}
 
 	public TextWidthMeasurementWorkItemResult getResult(){

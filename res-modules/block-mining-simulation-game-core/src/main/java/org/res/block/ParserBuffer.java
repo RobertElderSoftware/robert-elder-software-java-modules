@@ -102,6 +102,12 @@ public class ParserBuffer {
 		return this.highestObservedPosition > 0;
 	}
 
+	public boolean wasParsingIncomplete() throws Exception{
+		boolean rtn = this.highestObservedPosition > 0 && (this.highestObservedPosition != this.buffer.size());
+		logger.info("wasParsingIncomplete=" + rtn + " this.highestObservedPosition=" + this.highestObservedPosition + " this.buffer.size()=" + this.buffer.size());
+		return rtn;
+	}
+
 	public List<Byte> getBuffer(){
 		return this.buffer;
 	}

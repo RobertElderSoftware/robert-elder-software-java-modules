@@ -73,9 +73,13 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 import java.sql.PreparedStatement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
 
 public class BlockDAOImpl implements BlockDAO {
 
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
         private DataSource dataSource = null;
 
 	private BlockManagerServerApplicationContextParameters blockManagerServerApplicationContextParameters = null;
@@ -111,7 +115,8 @@ public class BlockDAOImpl implements BlockDAO {
 	}
 
         public void createBlockTable() throws Exception{
-		String SQL = "CREATE TABLE IF NOT EXISTS block (" + 
+		String createTableSQL =
+		"CREATE TABLE IF NOT EXISTS block (" + 
 		"	x0 bigint NOT NULL," + 
 		"	x1 bigint NOT NULL," + 
 		"	x2 bigint NOT NULL," + 
@@ -119,39 +124,70 @@ public class BlockDAOImpl implements BlockDAO {
 		"	x4 bigint NOT NULL," + 
 		"	data bytea NOT NULL," + 
 		"	last_modified bigint NOT NULL," + 
-		"	PRIMARY KEY (x0,x1,x2,x3,x4)" + 
+		"	PRIMARY KEY(x0, x1, x2, x3, x4)" + 
 		");";
 		Map<String, Object> queryParams = new HashMap<String, Object>();
-                this.namedParameterJdbcTemplate.update(SQL, queryParams);
+                logger.info("About to run: " + createTableSQL);
+                this.namedParameterJdbcTemplate.update(createTableSQL, queryParams);
+
+		String createIndexSQL =
+		"CREATE UNIQUE INDEX block_idx ON block (x0, x1, x2, x3, x4, data, last_modified);";
+                logger.info("About to run: " + createIndexSQL);
+                this.namedParameterJdbcTemplate.update(createIndexSQL, queryParams);
         }
 
 	public void turnOffAutoCommit() throws Exception{
                 this.dataSource.getConnection().setAutoCommit(false);
 	}
 
-        @Transactional
-        public void ensureBlockTableExists() throws Exception{
+	public String getDatabaseHexLiteral(byte [] data) throws Exception {
 		if(blockManagerServerApplicationContextParameters.getDatabaseConnectionParameters().getSubprotocol().equals("sqlite")){
-			String SQL = "SELECT CASE WHEN (SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'block') > 0 THEN true ELSE false END;";
-			Map<String, Object> queryParams = new HashMap<String, Object>();
-                	Boolean hasBlockTable = this.namedParameterJdbcTemplate.queryForObject(SQL, queryParams, Boolean.class);
-                	if(!hasBlockTable){
-        			this.createBlockTable();
-                	}
+			return "x'" + BlockModelContext.convertToHex(data) + "'";
 		}else if(blockManagerServerApplicationContextParameters.getDatabaseConnectionParameters().getSubprotocol().equals("postgresql")){
-			String SQL = "SELECT EXISTS (" + 
-			"	SELECT FROM information_schema.tables" + 
-			"	WHERE  table_schema = 'public'" + 
-			"	AND    table_name   = 'block'" + 
-			");";
-			Map<String, Object> queryParams = new HashMap<String, Object>();
-                	Boolean hasBlockTable = this.namedParameterJdbcTemplate.queryForObject(SQL, queryParams, Boolean.class);
-                	if(!hasBlockTable){
-        			this.createBlockTable();
-                	}
+			return "decode('" + BlockModelContext.convertToHex(data) + "', 'hex')";
 		}else{
-			throw new Exception("Unknown database subprotocol.");
+			throw new Exception("Unknown db: " + blockManagerServerApplicationContextParameters.getDatabaseConnectionParameters().getSubprotocol());
 		}
+	}
+
+        public void ensureBlockTableExistsInTransaction(TransactionStatus status) {
+		try{
+			if(blockManagerServerApplicationContextParameters.getDatabaseConnectionParameters().getSubprotocol().equals("sqlite")){
+				String SQL = "SELECT CASE WHEN (SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'block') > 0 THEN true ELSE false END;";
+				Map<String, Object> queryParams = new HashMap<String, Object>();
+				Boolean hasBlockTable = this.namedParameterJdbcTemplate.queryForObject(SQL, queryParams, Boolean.class);
+				if(hasBlockTable){
+					logger.info("Verified that table 'block' exists for sqlite.  No need to create.");
+				}else{
+					logger.info("Verified that table 'block' DOES NOT exist for sqlite.  Need to create...");
+					this.createBlockTable();
+				}
+			}else if(blockManagerServerApplicationContextParameters.getDatabaseConnectionParameters().getSubprotocol().equals("postgresql")){
+				String SQL = "SELECT EXISTS (" + 
+				"	SELECT FROM information_schema.tables" + 
+				"	WHERE  table_schema = 'public'" + 
+				"	AND    table_name   = 'block'" + 
+				");";
+				Map<String, Object> queryParams = new HashMap<String, Object>();
+				Boolean hasBlockTable = this.namedParameterJdbcTemplate.queryForObject(SQL, queryParams, Boolean.class);
+				if(!hasBlockTable){
+					this.createBlockTable();
+				}
+			}else{
+				status.setRollbackOnly();
+				this.blockModelContext.getBlockManagerThreadCollection().setIsFinished(true, new Exception("Unknown database subprotocol."));
+			}
+		}catch(Exception e){
+			this.blockModelContext.getBlockManagerThreadCollection().setIsFinished(true, e);
+		}
+        }
+
+        public void ensureBlockTableExists() throws Exception{
+		this.transactionTemplate.execute(new TransactionCallbackWithoutResult() {
+			protected void doInTransactionWithoutResult(TransactionStatus status) {
+			        ensureBlockTableExistsInTransaction(status);
+			}
+		});
         }
 
         public Cuboid getBlocksInRegion(CuboidAddress cuboidAddress) throws Exception{
@@ -225,6 +261,7 @@ public class BlockDAOImpl implements BlockDAO {
 			return cuboids;
 		}catch(Exception e){
 			status.setRollbackOnly();
+			this.blockModelContext.getBlockManagerThreadCollection().setIsFinished(true, e);
 			return null;
 		}
         }
@@ -236,6 +273,77 @@ public class BlockDAOImpl implements BlockDAO {
 				return getBlocksInRegionsInTransaction(cuboidAddresses, status);
 			}
 		});
+        }
+
+        public void writeBlocksInRegionInTransactionWithoutBatch(Cuboid c, TransactionStatus status) {
+		try{
+			CuboidAddress cuboidAddress = c.getCuboidAddress();
+			CuboidDataLengths dataLengths = c.getCuboidDataLengths();
+			CuboidData data = c.getCuboidData();
+
+			Coordinate lower = cuboidAddress.getCanonicalLowerCoordinate();
+			Coordinate upper = cuboidAddress.getCanonicalUpperCoordinate();
+
+			Coordinate currentCoordinate = cuboidAddress.getCanonicalLowerCoordinate();
+
+			List<String> rowStrings = new ArrayList<String>();
+
+			RegionIteration regionIteration = new RegionIteration(cuboidAddress.getCanonicalLowerCoordinate(), cuboidAddress);
+			do{
+				currentCoordinate = regionIteration.getCurrentCoordinate();
+				blockModelContext.logMessage("Here is currentCoordinate: " + currentCoordinate);
+
+
+				long blockOffsetInArray = cuboidAddress.getLinearArrayIndexForCoordinate(currentCoordinate);
+				long sizeOfBlock = dataLengths.getLengths()[(int)blockOffsetInArray];
+				long offsetOfBlock = dataLengths.getOffsets()[(int)blockOffsetInArray];
+				blockModelContext.logMessage("OFFSET index is " + blockOffsetInArray + " offset of block in data is " + offsetOfBlock + " size of data is " + sizeOfBlock);
+				byte [] blockData = data.getDataAtOffset(offsetOfBlock, sizeOfBlock);
+
+				String blockClassName = this.blockModelContext.getBlockSchema().getFirstBlockMatchDescriptionForByteArray(blockData);
+				blockModelContext.logMessage("Write block of class '" + blockClassName + "' at coordinate:" + currentCoordinate.toString() + " with data '" + new String(blockData, "UTF-8") + "'.");
+				if(blockClassName == null){
+					throw new Exception("Refusing to allow block of unrecogned type into database.");
+				}
+
+				List<String> coordinateParts = new ArrayList<String>();
+				for(int index = 0; index < NUM_DIMENSION_IN_DATABASE; index++){
+					if(index < cuboidAddress.getNumDimensions()){
+						coordinateParts.add(String.valueOf(currentCoordinate.getValueAtIndex(Long.valueOf(index))));
+					}else{
+						coordinateParts.add(String.valueOf(0L)); //  Coordinate was not specified.
+					}
+				}
+
+				rowStrings.add("(" + String.join(",", coordinateParts) + ", " + getDatabaseHexLiteral(blockData) + ", 0)");
+			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
+
+			List<String> coordinateStrings = new ArrayList<String>();
+			for(long i = 0; i < NUM_DIMENSION_IN_DATABASE; i++){
+				coordinateStrings.add("x" + String.valueOf(i));
+			}
+
+			String sql = 
+				"INSERT INTO\n" +
+				"	block\n" +
+				"	(\n" +
+				"		" + String.join(",", coordinateStrings) + ",\n" +
+				"		data,\n" +
+				"		last_modified\n" +
+				"	)\n" +
+				"VALUES\n" + String.join(",\n", rowStrings) +
+				"ON CONFLICT (" + String.join(",", coordinateStrings) + ") DO UPDATE\n" +
+				"SET\n" +
+				"	data = EXCLUDED.data,\n" +
+				"	last_modified = EXCLUDED.last_modified\n";
+
+			blockModelContext.logMessage("Here is the query: " + sql);
+
+			this.jdbcTemplate.update(sql);
+        	}catch(Exception e){
+			status.setRollbackOnly();
+			this.blockModelContext.getBlockManagerThreadCollection().setIsFinished(true, e);
+        	}
         }
 
         public void writeBlocksInRegionInTransaction(Cuboid c, TransactionStatus status) {
@@ -325,6 +433,7 @@ public class BlockDAOImpl implements BlockDAO {
 			);
         	}catch(Exception e){
 			status.setRollbackOnly();
+			this.blockModelContext.getBlockManagerThreadCollection().setIsFinished(true, e);
         	}
         }
 
@@ -332,7 +441,8 @@ public class BlockDAOImpl implements BlockDAO {
         public void writeBlocksInRegion(Cuboid c) throws Exception{
 		this.transactionTemplate.execute(new TransactionCallbackWithoutResult() {
 			protected void doInTransactionWithoutResult(TransactionStatus status) {
-			        writeBlocksInRegionInTransaction(c, status);
+			        //writeBlocksInRegionInTransaction(c, status);
+			        writeBlocksInRegionInTransactionWithoutBatch(c, status);
 			}
 		});
 	}

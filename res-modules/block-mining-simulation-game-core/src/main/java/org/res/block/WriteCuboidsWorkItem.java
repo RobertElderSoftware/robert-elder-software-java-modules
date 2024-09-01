@@ -39,11 +39,15 @@ public class WriteCuboidsWorkItem extends BlockModelContextWorkItem {
 
 	private Long numDimensions;
 	private List<Cuboid> cuboidsToWrite;
+	private Long conversationId;
+	private BlockSession blockSession;
 
-	public WriteCuboidsWorkItem(BlockModelContext blockModelContext, Long numDimensions, List<Cuboid> cuboidsToWrite){
+	public WriteCuboidsWorkItem(BlockModelContext blockModelContext, Long numDimensions, List<Cuboid> cuboidsToWrite, Long conversationId, BlockSession blockSession){
 		super(blockModelContext);
 		this.numDimensions = numDimensions;
 		this.cuboidsToWrite = cuboidsToWrite;
+		this.conversationId = conversationId;
+		this.blockSession = blockSession;
 	}
 
 	public void doWork() throws Exception{
@@ -58,5 +62,9 @@ public class WriteCuboidsWorkItem extends BlockModelContextWorkItem {
 		}
 
 		blockModelContext.postCuboidsWrite(this.numDimensions, cuboidAddresses);
+
+		AcknowledgementBlockMessage acknowledgementBlockMessage = new AcknowledgementBlockMessage(this.blockModelContext, this.conversationId);
+		SendBlockMessageToSessionWorkItem notifyWorkItem = new SendBlockMessageToSessionWorkItem(this.blockModelContext, this.blockSession, acknowledgementBlockMessage);
+		blockModelContext.putWorkItem(notifyWorkItem, WorkItemPriority.PRIORITY_LOW);
 	}
 }
