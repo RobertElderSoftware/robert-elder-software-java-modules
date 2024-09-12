@@ -81,6 +81,7 @@ public class BlockManagerThreadCollection {
 	private LinuxBlockJNIInterface linuxBlockJNIInterface = null;
 
 	private BlockSchema blockSchema = null;
+	private UserInteractionConfig userInteractionConfig = null;
 
 	public BlockManagerThreadCollection(CommandLineArgumentCollection commandLineArgumentCollection) throws Exception {
 		this.commandLineArgumentCollection = commandLineArgumentCollection;
@@ -98,28 +99,51 @@ public class BlockManagerThreadCollection {
 		String explicitBlockSchemaFile = this.getBlockSchemaFile();
 		String blockSchemaFileString = null;
 		if(explicitBlockSchemaFile == null){
-			InputStream in = getClass().getResourceAsStream("/v3_block_schema.json");
-			ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-
-			int nRead;
-			byte[] data = new byte[1024*4];
-
-			while ((nRead = in.read(data, 0, data.length)) != -1) {
-				buffer.write(data, 0, nRead);
-			}
-
-			byte [] blockSchemaFileBytes = buffer.toByteArray();
-			blockSchemaFileString = new String(blockSchemaFileBytes, "UTF-8");
+			blockSchemaFileString = this.loadJarResourceIntoString("/v3_block_schema.json");
 		}else{
 			blockSchemaFileString = new String(Files.readAllBytes(Paths.get(explicitBlockSchemaFile)), "UTF-8");
 		}
-
 		this.blockSchema = new BlockSchema(blockSchemaFileString, this.getAllowUnrecognizedBlockTypes());
+
+
+		String explicitUserInteractionConfigFile = this.getUserInteractionConfigFile();
+		String userInteractionJsonString = null;
+		if(explicitUserInteractionConfigFile == null){
+			userInteractionJsonString = this.loadJarResourceIntoString("/user_interaction.json");
+		}else{
+			userInteractionJsonString = new String(Files.readAllBytes(Paths.get(explicitUserInteractionConfigFile)), "UTF-8");
+		}
+		
+		this.userInteractionConfig = new UserInteractionConfig(userInteractionJsonString);
+	}
+
+	public String loadJarResourceIntoString(String filename) throws Exception{
+		InputStream in = getClass().getResourceAsStream(filename);
+		ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+		int nRead;
+		byte[] data = new byte[1024*4];
+
+		while ((nRead = in.read(data, 0, data.length)) != -1) {
+			buffer.write(data, 0, nRead);
+		}
+
+		byte [] fileBytes = buffer.toByteArray();
+		return new String(fileBytes, "UTF-8");
+	}
+
+	public UserInteractionConfig getUserInteractionConfig(){
+		return this.userInteractionConfig;
 	}
 
 	public void printBlockSchema(){
 		//  Print block schema json to standard out:
 		System.out.print(this.blockSchema.getInputJsonBlockSchema());
+	}
+
+	public void printUserInteractionConfig(){
+		//  Print block schema json to standard out:
+		System.out.print(this.userInteractionConfig.getInputJson());
 	}
 
 	public BlockSchema getBlockSchema() {
@@ -130,8 +154,16 @@ public class BlockManagerThreadCollection {
 		return this.commandLineArgumentCollection.hasUsedKey("--print-block-schema");
 	}
 
+	public boolean getPrintUserInteractionConfig() {
+		return this.commandLineArgumentCollection.hasUsedKey("--print-user-interaction-config");
+	}
+
 	public boolean getIsRestrictedGraphics() {
 		return this.commandLineArgumentCollection.hasUsedKey("--restricted-graphics");
+	}
+
+	public String getUserInteractionConfigFile() throws Exception {
+		return this.commandLineArgumentCollection.getUsedSingleValue("--user-interaction-config-file");
 	}
 
 	public String getBlockSchemaFile() throws Exception {

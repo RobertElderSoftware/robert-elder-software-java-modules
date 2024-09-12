@@ -92,6 +92,11 @@ class SinglePlayerBlockClient {
 			return;
 		}
 
+		if(blockManagerThreadCollection.getPrintUserInteractionConfig()){
+			blockManagerThreadCollection.printUserInteractionConfig();
+			return;
+		}
+
 		SinglePlayerClientServerInterface clientServerInterface = new SinglePlayerClientServerInterface();
 
 		DatabaseConnectionParameters dbParams = new DatabaseConnectionParameters(

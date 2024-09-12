@@ -1,0 +1,12 @@
+{
+	"ACTION_Y_PLUS": "w",
+	"ACTION_Y_MINUS": "s",
+	"ACTION_X_PLUS": "d",
+	"ACTION_X_MINUS": "a",
+	"ACTION_Z_PLUS": " ",
+	"ACTION_Z_MINUS": "x",
+	"ACTION_MINING": "m",
+	"ACTION_CRAFTING": "c",
+	"ACTION_QUIT": "q",
+	"ACTION_PLACE_BLOCK": "p"
+}

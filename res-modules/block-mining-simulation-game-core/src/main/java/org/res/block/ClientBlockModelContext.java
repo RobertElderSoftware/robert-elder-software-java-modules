@@ -361,6 +361,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public boolean onKeyboardInput(byte [] characters) throws Exception {
+		UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
 		ByteArrayOutputStream baosBoth = new ByteArrayOutputStream();
 		baosBoth.write(this.unprocessedInputBytes);
 		baosBoth.write(characters);
@@ -368,47 +369,50 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		//System.out.println("Got input: '" + c + "'");
 		for(int i = 0; i < this.unprocessedInputBytes.length; i++){
 			byte c = this.unprocessedInputBytes[i];
+			String actionString = new String(new byte [] {c}, "UTF-8");
 			boolean is_last = i == this.unprocessedInputBytes.length -1;
-			switch(c){
-				case 'q':{
-					this.logMessage("The 'q' key was pressed.  Exiting...");
-					this.blockManagerThreadCollection.setIsFinished(true, null); // Start shutting down the entire application.
-					//  Move to bottom of drawn area:
-					System.out.print("\033[" + 30 + ";" + 0 + "H");
-					return true;
-				}case 'w':{
-					this.onTryPositionChange(0L, 0L, 1L, is_last);
-					break;
-				}case 'a':{
-					this.onTryPositionChange(-1L, 0L, 0L, is_last);
-					break;
-				}case 's':{
-					this.onTryPositionChange(0L, 0L, -1L, is_last);
-					break;
-				}case 'd':{
-					this.onTryPositionChange(1L, 0L, 0L, is_last);
-					break;
-				}case 'x':{
-					this.onTryPositionChange(0L, -1L, 0L, is_last);
-					break;
-				}case ' ':{
-					this.onTryPositionChange(0L, 1L, 0L, is_last);
-					break;
-				}case 'p':{
-					this.doPlaceRockAtPlayerPosition();
-					break;
-				}case 'c':{
-					this.onTryCrafting();
-					break;
-				}case 'm':{
-					this.doMineBlocksAtPosition(this.getPlayerPosition());
-					break;
-				}case 'i':{
-					//  A simple interactive way to test reading cursor position:
-					//  TODO
-					break;
-				}default:{
-					System.out.println("Got input: '" + c + "'");
+			UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
+
+			if(action == null){
+				this.logMessage("Discarding ");
+			}else{
+				switch(action){
+					case ACTION_QUIT:{
+						this.logMessage("The 'q' key was pressed.  Exiting...");
+						this.blockManagerThreadCollection.setIsFinished(true, null); // Start shutting down the entire application.
+						//  Move to bottom of drawn area:
+						System.out.print("\033[" + 30 + ";" + 0 + "H");
+						return true;
+					}case ACTION_Y_PLUS:{
+						this.onTryPositionChange(0L, 0L, 1L, is_last);
+						break;
+					}case ACTION_X_MINUS:{
+						this.onTryPositionChange(-1L, 0L, 0L, is_last);
+						break;
+					}case ACTION_Y_MINUS:{
+						this.onTryPositionChange(0L, 0L, -1L, is_last);
+						break;
+					}case ACTION_X_PLUS:{
+						this.onTryPositionChange(1L, 0L, 0L, is_last);
+						break;
+					}case ACTION_Z_MINUS:{
+						this.onTryPositionChange(0L, -1L, 0L, is_last);
+						break;
+					}case ACTION_Z_PLUS:{
+						this.onTryPositionChange(0L, 1L, 0L, is_last);
+						break;
+					}case ACTION_PLACE_BLOCK:{
+						this.doPlaceRockAtPlayerPosition();
+						break;
+					}case ACTION_CRAFTING:{
+						this.onTryCrafting();
+						break;
+					}case ACTION_MINING:{
+						this.doMineBlocksAtPosition(this.getPlayerPosition());
+						break;
+					}default:{
+						throw new Exception("Unexpected action=" + action.toString());
+					}
 				}
 			}
 		}

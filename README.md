@@ -59,8 +59,10 @@ Block Mining Simulation Game - Available Command-line Arguments:
 --restricted-graphics                      - Use only the simplest ASCII characters to produce graphics.  Required when running on non-graphical display ttys.
 --allow-unrecognized-block-types           - Allow the game to run even when there are block types that aren't supported in the block schema.
 --block-world-file                <arg>    - The name of the sqlite database file (SQLITE only).
---block-schema-file               <arg>    - If specified, ignore the default built-in block schema and uses the one provided at file/path.
 --print-block-schema                       - Print current block schema and exit.
+--block-schema-file               <arg>    - If specified, ignore the default built-in block schema and uses the one provided at file/path.
+--print-user-interaction-config            - Print the current configuration that describes which keys control the game.
+--user-interaction-config-file    <arg>    - If specified, ignore the default built-in user interaction config and uses the one provided at file/path.
 --database-subprotocol            <arg>    - The protocol for the database connection string.  Currently supports 'postgresql' and 'sqlite'.
 --database-hostname               <arg>    - The 'hostname' for the database connection. Can be IP address or DNS name.
 --database-port                   <arg>    - The port for the database connection.
@@ -124,6 +126,37 @@ Next, you can compile the game from source by running this command:
 ```
 
 Once it finishes building, it should launch right into the game.
+
+#  Alternative Key Mappings (Dvorak)
+
+I received a couple requests to add support for reconfiguring the mapping of keyboard inputs, so I've added an option to specify a JSON config file where you can customize which input characters will trigger different actions in the game:
+
+```
+--user-interaction-config-file custom_key_config.json
+```
+
+For a Dvorak keyboard, I believe the following should work to give you the same experience that you'd get on a querty keyboard (although I can't say for sure as I don't have a Dvorak keyboard):
+
+```
+{
+	"ACTION_Y_PLUS": ",",
+	"ACTION_Y_MINUS": "o",
+	"ACTION_X_PLUS": "e",
+	"ACTION_X_MINUS": "a",
+	"ACTION_Z_PLUS": " ",
+	"ACTION_Z_MINUS": "q",
+	"ACTION_MINING": "m",
+	"ACTION_CRAFTING": "j",
+	"ACTION_QUIT": "'",
+	"ACTION_PLACE_BLOCK": "l"
+}
+```
+
+You can see the default user interaction config file printed to standard out by running the jar with the following parameter:
+
+```
+--print-user-interaction-config
+```
 
 #  License
 
