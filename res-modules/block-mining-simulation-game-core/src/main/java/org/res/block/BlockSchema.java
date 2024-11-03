@@ -64,9 +64,9 @@ public class BlockSchema {
 		JsonElement topElement = new Gson().fromJson(json, JsonElement.class);
 		JsonObject blockSchemaObject = (JsonObject)topElement;
 
-		JsonArray blockMatchDescriptions = (JsonArray)blockSchemaObject.get("block_match_descriptions");
+		JsonArray blockMatchDescriptionsJson = (JsonArray)blockSchemaObject.get("block_match_descriptions");
 		List<BlockMatchDescription> l = new ArrayList<BlockMatchDescription>();
-		for(JsonElement e : blockMatchDescriptions){
+		for(JsonElement e : blockMatchDescriptionsJson){
 			JsonObject o = (JsonObject)e;
 			if(o.get("match_type").getAsString().equals("json")){
 				l.add(new JsonBlockMatchDescription(e));
@@ -92,6 +92,10 @@ public class BlockSchema {
 
 	public String asJsonString() throws Exception {
 		return gson.toJson(this.asJsonElement());
+	}
+
+	public List<BlockMatchDescription> getBlockMatchDescriptions(){
+		return this.blockMatchDescriptions;
 	}
 
 	public String getFirstBlockMatchDescriptionForByteArray(byte [] data) throws Exception{

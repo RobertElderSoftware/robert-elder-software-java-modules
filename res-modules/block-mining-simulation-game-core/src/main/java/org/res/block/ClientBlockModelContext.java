@@ -59,30 +59,41 @@ import java.io.ByteArrayOutputStream;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
+
 public class ClientBlockModelContext extends BlockModelContext implements BlockModelInterface {
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private Random rand = new Random(1256);
-	private Map<String, Long> measuredTextLengths = new ConcurrentHashMap<String, Long>();
+	private Map<String, TextWidthMeasurementWorkItemResult> measuredTextLengths = new ConcurrentHashMap<String, TextWidthMeasurementWorkItemResult>();
 	private InMemoryChunks inMemoryChunks;
 	private ChunkInitializerThreadState chunkInitializerThreadState;
-	private CharacterWidthMeasurementThreadState characterWidthMeasurementThreadState;
+	private ConsoleWriterThreadState consoleWriterThreadState;
 	private SIGWINCHListenerThreadState sigwinchListenerThreadState;
-	private CuboidAddress viewportCuboidAddress;
-	private Viewport viewport = null;
+	private MapAreaInterfaceThreadState mapAreaInterfaceThreadState = null;
+	private InventoryInterfaceThreadState inventoryInterfaceThreadState = null;
 	private Coordinate playerPositionBlockAddress = new Coordinate(Arrays.asList(99999999L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's position will be stored.
 	private Coordinate playerInventoryBlockAddress = new Coordinate(Arrays.asList(99999998L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's inventory will be stored.
 	private PlayerPositionXYZ playerPositionXYZ = null;
 	private PlayerInventory playerInventory = null;
 	private ClientServerInterface clientServerInterface;
 
-	private Long frameWidthTop = 1L;
-	private Long inventoryAreaHeight = 11L;
-	private Long edgeDistanceScreenX = 18L;
-	private Long edgeDistanceScreenY = 18L;
 	private Coordinate bottomleftHandCorner;
 	private Coordinate topRightHandCorner;
-	private CuboidAddress gameAreaCuboidAddress;
+	private CuboidAddress mapAreaCuboidAddress;
 
-	private byte[] unprocessedInputBytes = new byte[0];
+	private WorkItemProcessorTask<UIWorkItem> helpMenuThread = null;
+	private HelpMenuFrameThreadState helpMenuThreadState = null;
+
+	private EmptyFrameThreadState emptyFrameThreadState1 = null;
+	private EmptyFrameThreadState emptyFrameThreadState2 = null;
+	private EmptyFrameThreadState emptyFrameThreadState3 = null;
+	private EmptyFrameThreadState emptyFrameThreadState4 = null;
+	private EmptyFrameThreadState emptyFrameThreadState5 = null;
+	private EmptyFrameThreadState emptyFrameThreadState6 = null;
+	private EmptyFrameThreadState emptyFrameThreadState7 = null;
 
 	public ClientBlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ClientServerInterface clientServerInterface) throws Exception {
 		super(blockManagerThreadCollection, clientServerInterface);
@@ -96,34 +107,108 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		/*  This defines the dimensions of the 'chunks' that are loaded into memory as we move around */
 		CuboidAddress chunkSizeCuboidAddress = new CuboidAddress(new Coordinate(Arrays.asList(0L, 0L, 0L, 0L)), new Coordinate(Arrays.asList(2L, 2L, 4L, 0L)));
 		this.inMemoryChunks = new InMemoryChunks(blockManagerThreadCollection, this, chunkSizeCuboidAddress);
+		this.notifyLoadedRegionsChanged();
 		this.chunkInitializerThreadState = new ChunkInitializerThreadState(blockManagerThreadCollection, this, this.inMemoryChunks);
-		this.characterWidthMeasurementThreadState = new CharacterWidthMeasurementThreadState(blockManagerThreadCollection, this);
+		this.consoleWriterThreadState = new ConsoleWriterThreadState(blockManagerThreadCollection, this);
+
+		
 
 		if(this.blockManagerThreadCollection.getIsJNIEnabled()){
 			this.sigwinchListenerThreadState = new SIGWINCHListenerThreadState(blockManagerThreadCollection, this);
 		}
 
 		this.clientServerInterface.Connect();
-		this.viewport = new Viewport(this.blockManagerThreadCollection, this, this.getBlockSchema());
+		this.mapAreaInterfaceThreadState = new MapAreaInterfaceThreadState(this.blockManagerThreadCollection, this);
+		this.inventoryInterfaceThreadState = new InventoryInterfaceThreadState(this.blockManagerThreadCollection, this);
 
-	}
+		this.emptyFrameThreadState1 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this);
+		this.emptyFrameThreadState2 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this);
+		this.emptyFrameThreadState3 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this);
+		this.emptyFrameThreadState4 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this);
+		this.emptyFrameThreadState5 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this);
+		this.emptyFrameThreadState6 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this);
+		this.emptyFrameThreadState7 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this);
 
-	public void init() throws Exception{
-		this.notifyLoadedRegionsChanged();
-	}
+		boolean useMultiSplitDemo = false;
+		if(useMultiSplitDemo){
+			List<UserInterfaceSplit> splits1 = new ArrayList<UserInterfaceSplit>();
+			splits1.add(new UserInterfaceSplitLeafNode(this.mapAreaInterfaceThreadState));
+			splits1.add(new UserInterfaceSplitLeafNode(this.inventoryInterfaceThreadState));
+			splits1.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState1));
 
-	public List<Thread> getThreads() throws Exception{
-		List<Thread> threads = new ArrayList<Thread>();
-		threads.add(new WorkItemProcessorTask<BlockModelContextWorkItem>(this));
-		threads.add(new WorkItemProcessorTask<ViewportWorkItem>(this.viewport));
-		threads.add(new WorkItemProcessorTask<InMemoryChunksWorkItem>(this.inMemoryChunks));
-		threads.add(new WorkItemProcessorTask<ChunkInitializerWorkItem>(this.chunkInitializerThreadState));
-		threads.add(new WorkItemProcessorTask<CharacterWidthMeasurementWorkItem>(this.characterWidthMeasurementThreadState));
-		if(this.blockManagerThreadCollection.getIsJNIEnabled()){
-			threads.add(new WorkItemProcessorTask<SIGWINCHListenerWorkItem>(this.sigwinchListenerThreadState));
+			List<UserInterfaceSplit> splits2 = new ArrayList<UserInterfaceSplit>();
+			splits2.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState2));
+			splits2.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState3));
+			splits2.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState4));
+
+			List<UserInterfaceSplit> splits3 = new ArrayList<UserInterfaceSplit>();
+			splits3.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState5));
+			splits3.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState6));
+			splits3.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState7));
+
+			List<UserInterfaceSplit> topSplits = new ArrayList<UserInterfaceSplit>();
+			topSplits.add(new UserInterfaceSplitHorizontal(splits1));
+			topSplits.add(new UserInterfaceSplitHorizontal(splits2));
+			topSplits.add(new UserInterfaceSplitHorizontal(splits3));
+
+			this.consoleWriterThreadState.setRootSplit(new UserInterfaceSplitVertical(topSplits));
+
+			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState1, UIWorkItem.class));
+			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState2, UIWorkItem.class));
+			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState3, UIWorkItem.class));
+			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState4, UIWorkItem.class));
+			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState5, UIWorkItem.class));
+			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState6, UIWorkItem.class));
+			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState7, UIWorkItem.class));
+		}else{
+			List<UserInterfaceSplit> splits = new ArrayList<UserInterfaceSplit>();
+			splits.add(new UserInterfaceSplitLeafNode(this.mapAreaInterfaceThreadState));
+			splits.add(new UserInterfaceSplitLeafNode(this.inventoryInterfaceThreadState));
+
+			this.consoleWriterThreadState.setRootSplit(new UserInterfaceSplitHorizontal(splits, Arrays.asList(0.75, 0.25)));
 		}
-		threads.add(new StandardInputReaderTask(this, this.characterWidthMeasurementThreadState));
-		return threads;
+
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(this, BlockModelContextWorkItem.class));
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.mapAreaInterfaceThreadState, UIWorkItem.class));
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.inventoryInterfaceThreadState, UIWorkItem.class));
+
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(this.inMemoryChunks, InMemoryChunksWorkItem.class));
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ChunkInitializerWorkItem>(this.chunkInitializerThreadState, ChunkInitializerWorkItem.class));
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ConsoleWriterWorkItem>(this.consoleWriterThreadState, ConsoleWriterWorkItem.class));
+		if(this.blockManagerThreadCollection.getIsJNIEnabled()){
+			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<SIGWINCHListenerWorkItem>(this.sigwinchListenerThreadState, SIGWINCHListenerWorkItem.class));
+		}
+		this.blockManagerThreadCollection.addThread(new StandardInputReaderTask(this, this.consoleWriterThreadState));
+	}
+
+	public void openHelpMenu() throws Exception{
+		if(this.helpMenuThreadState == null){
+			this.helpMenuThreadState = new HelpMenuFrameThreadState(this.blockManagerThreadCollection, this);
+			this.helpMenuThread = new WorkItemProcessorTask<UIWorkItem>(this.helpMenuThreadState, UIWorkItem.class);
+			this.blockManagerThreadCollection.addThread(this.helpMenuThread);
+
+			List<UserInterfaceSplit> newTopSplit = new ArrayList<UserInterfaceSplit>();
+			newTopSplit.add(this.consoleWriterThreadState.getRootSplit());
+			newTopSplit.add(new UserInterfaceSplitLeafNode(this.helpMenuThreadState));
+
+			this.consoleWriterThreadState.setRootSplit(new UserInterfaceSplitVertical(newTopSplit));
+			this.onTerminalWindowChanged();
+		}else{
+			UserInterfaceSplitVertical top = (UserInterfaceSplitVertical)this.consoleWriterThreadState.getRootSplit();
+
+			this.consoleWriterThreadState.setRootSplit(top.getSplitParts().get(0));
+
+			this.helpMenuThreadState = null;
+			this.helpMenuThread.setIsThreadFinished(true);
+			this.helpMenuThread.interrupt();
+			this.blockManagerThreadCollection.removeThread(this.helpMenuThread);
+			this.helpMenuThread = null;
+			this.onTerminalWindowChanged();
+		}
+	}
+
+	public ConsoleWriterThreadState getConsoleWriterThreadState(){
+		return consoleWriterThreadState;
 	}
 
 	public Coordinate getPlayerPosition(){
@@ -165,9 +250,9 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	public Set<CuboidAddress> getRequiredRegionsSet() throws Exception{
 		Set<CuboidAddress> requiredRegions = new HashSet<CuboidAddress>();
-		CuboidAddress reachableGameArea = this.getReachableGameAreaCuboidAddress();
-		if(reachableGameArea != null){
-			requiredRegions.add(reachableGameArea.copy());
+		CuboidAddress reachableMapArea = this.getReachableMapAreaCuboidAddress();
+		if(reachableMapArea != null){
+			requiredRegions.add(reachableMapArea.copy());
 		}
 		requiredRegions.add(new CuboidAddress(playerPositionBlockAddress.copy(), playerPositionBlockAddress.copy()));
 		requiredRegions.add(new CuboidAddress(playerInventoryBlockAddress.copy(), playerInventoryBlockAddress.copy()));
@@ -178,29 +263,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		Coordinate playerPosition = this.getPlayerPosition();
 		this.inMemoryChunks.putWorkItem(new UpdateRequiredRegionsWorkItem(this.inMemoryChunks, getRequiredRegionsSet()), WorkItemPriority.PRIORITY_LOW);
 		this.logMessage("Just sent an update required regions work item request with " + String.valueOf(getRequiredRegionsSet()));
-	}
-
-	public void onTryPositionChange(Long deltaX, Long deltaY, Long deltaZ, boolean is_last) throws Exception{
-		Coordinate currentPosition = this.getPlayerPosition();
-		if(currentPosition != null){
-			Coordinate newCandiatePosition = currentPosition.changeByDeltaXYZ(deltaX, deltaY, deltaZ);
-
-			IndividualBlock blockAtCandidatePlayerPosition = readBlockAtCoordinate(newCandiatePosition);
-			if(blockAtCandidatePlayerPosition == null){
-				this.logMessage("Not moving to " + newCandiatePosition + " because block at that location is not loaded by client yet and we don't know what's there.");
-			}else{
-				boolean disableCollisionDetection = false;
-				if(
-					disableCollisionDetection ||
-					blockAtCandidatePlayerPosition instanceof EmptyBlock
-				){
-					this.onPositionChange(deltaX, deltaY, deltaZ, is_last);
-				}else{
-					//  Don't move, there is something in the way.
-					this.logMessage("Not moving to " + newCandiatePosition + " because block at that location has class '" + blockAtCandidatePlayerPosition.getClass().getName() + "'");
-				}
-			}
-		}
 	}
 
 	public void doMineBlocksAtPosition(Coordinate centerPosition) throws Exception {
@@ -350,75 +412,30 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.onPlayerInventoryChange();
 	}
 
-	public Long measureTextLengthOnTerminal(String text) throws Exception{
+	public TextWidthMeasurementWorkItemResult measureTextLengthOnTerminal(String text) throws Exception{
 		if(!measuredTextLengths.containsKey(text)){
-			TextWidthMeasurementWorkItem wm = new TextWidthMeasurementWorkItem(this.characterWidthMeasurementThreadState, text);
-			TextWidthMeasurementWorkItemResult m = (TextWidthMeasurementWorkItemResult)this.characterWidthMeasurementThreadState.putBlockingWorkItem(wm, WorkItemPriority.PRIORITY_LOW);
-			this.logMessage("Got this width value: " + m.getWidth() + " For text '" + text + "'.");
-			measuredTextLengths.put(text, m.getWidth());
+			TextWidthMeasurementWorkItem wm = new TextWidthMeasurementWorkItem(this.consoleWriterThreadState, text);
+			TextWidthMeasurementWorkItemResult m = (TextWidthMeasurementWorkItemResult)this.consoleWriterThreadState.putBlockingWorkItem(wm, WorkItemPriority.PRIORITY_LOW);
+			measuredTextLengths.put(text, m);
 		}
 		return this.measuredTextLengths.get(text);
 	}
 
-	public boolean onKeyboardInput(byte [] characters) throws Exception {
-		UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
-		ByteArrayOutputStream baosBoth = new ByteArrayOutputStream();
-		baosBoth.write(this.unprocessedInputBytes);
-		baosBoth.write(characters);
-		this.unprocessedInputBytes = baosBoth.toByteArray();
-		//System.out.println("Got input: '" + c + "'");
-		for(int i = 0; i < this.unprocessedInputBytes.length; i++){
-			byte c = this.unprocessedInputBytes[i];
-			String actionString = new String(new byte [] {c}, "UTF-8");
-			boolean is_last = i == this.unprocessedInputBytes.length -1;
-			UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
-
-			if(action == null){
-				this.logMessage("Discarding ");
-			}else{
-				switch(action){
-					case ACTION_QUIT:{
-						this.logMessage("The 'q' key was pressed.  Exiting...");
-						this.blockManagerThreadCollection.setIsFinished(true, null); // Start shutting down the entire application.
-						//  Move to bottom of drawn area:
-						System.out.print("\033[" + 30 + ";" + 0 + "H");
-						return true;
-					}case ACTION_Y_PLUS:{
-						this.onTryPositionChange(0L, 0L, 1L, is_last);
-						break;
-					}case ACTION_X_MINUS:{
-						this.onTryPositionChange(-1L, 0L, 0L, is_last);
-						break;
-					}case ACTION_Y_MINUS:{
-						this.onTryPositionChange(0L, 0L, -1L, is_last);
-						break;
-					}case ACTION_X_PLUS:{
-						this.onTryPositionChange(1L, 0L, 0L, is_last);
-						break;
-					}case ACTION_Z_MINUS:{
-						this.onTryPositionChange(0L, -1L, 0L, is_last);
-						break;
-					}case ACTION_Z_PLUS:{
-						this.onTryPositionChange(0L, 1L, 0L, is_last);
-						break;
-					}case ACTION_PLACE_BLOCK:{
-						this.doPlaceRockAtPlayerPosition();
-						break;
-					}case ACTION_CRAFTING:{
-						this.onTryCrafting();
-						break;
-					}case ACTION_MINING:{
-						this.doMineBlocksAtPosition(this.getPlayerPosition());
-						break;
-					}default:{
-						throw new Exception("Unexpected action=" + action.toString());
-					}
-				}
+	public void onUserInterfaceAction(UserInterfaceActionType action) throws Exception {
+		switch(action){
+			case ACTION_PLACE_BLOCK:{
+				this.doPlaceRockAtPlayerPosition();
+				break;
+			}case ACTION_CRAFTING:{
+				this.onTryCrafting();
+				break;
+			}case ACTION_MINING:{
+				this.doMineBlocksAtPosition(this.getPlayerPosition());
+				break;
+			}default:{
+				throw new Exception("Unexpected action=" + action.toString());
 			}
 		}
-		//  All input bytes have been processed:
-		this.unprocessedInputBytes = new byte[0];
-		return false;
 	}
 
 	public void writeSingleBlockAtPosition(byte [] data, Coordinate position) throws Exception{
@@ -491,30 +508,12 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	public void onTerminalWindowChanged() throws Exception{
 		//  Use the width of an iron oxide character as a reference to guess whether we're using narror or wide characters.
-		Long gameAreaCellWidth = this.measureTextLengthOnTerminal(BlockSkins.getPresentation(IronOxide.class, blockManagerThreadCollection.getIsRestrictedGraphics()));
-		Long frameCharacterWidth = this.measureTextLengthOnTerminal("\u2550"); //  One of the characters used in the frame.
 
 		Long terminalWidth = this.getTerminalWidth();
 		Long terminalHeight = this.getTerminalHeight();
-		if(terminalHeight < this.inventoryAreaHeight){
-			terminalHeight = this.inventoryAreaHeight; //  TODO: Replace this with something better. Prevents crashes right now.
-		}
-		Long viewportWidth = ((terminalWidth - (frameCharacterWidth + frameCharacterWidth)) / gameAreaCellWidth);
-		Long viewportHeight = terminalHeight - (this.frameWidthTop + this.inventoryAreaHeight);
-		viewportWidth = viewportWidth < 1L ? 1L : viewportWidth; //  TODO:  This is required to prevent crashes when game area is too small.  Improve this.
-		viewportHeight = viewportHeight < 1L ? 1L : viewportHeight;
-		Long topRightHandX = viewportWidth / 2L;
-		Long topRightHandZ = viewportHeight / 2L;
-		Long bottomLeftHandX = topRightHandX - (viewportWidth - 1L);
-		Long bottomLeftHandZ = topRightHandZ - (viewportHeight - 1L);
-
-		Coordinate playerPosition = this.playerPositionXYZ.getPosition();
-		this.bottomleftHandCorner = new Coordinate(Arrays.asList(bottomLeftHandX + playerPosition.getX(), playerPosition.getY(), bottomLeftHandZ + playerPosition.getZ(), 0L));
-		this.topRightHandCorner = new Coordinate(Arrays.asList(topRightHandX + playerPosition.getX(), playerPosition.getY(), topRightHandZ + playerPosition.getZ(), 0L));
-
-		this.onViewportDimensionsChange(terminalWidth, terminalHeight, viewportWidth, viewportHeight);
-		this.onFrameDimensionsChange(this.frameWidthTop, frameCharacterWidth, this.inventoryAreaHeight, gameAreaCellWidth);
-		this.onGameAreaChange(new CuboidAddress(this.bottomleftHandCorner, this.topRightHandCorner));
+		
+		Long frameCharacterWidth = this.measureTextLengthOnTerminal("\u2550").getDeltaX();
+		this.consoleWriterThreadState.putWorkItem(new TerminalDimensionsChangedWorkItem(this.consoleWriterThreadState, terminalWidth, terminalHeight, frameCharacterWidth), WorkItemPriority.PRIORITY_LOW);
 
 		if(this.playerInventory != null){
 			this.onPlayerInventoryChange();
@@ -535,7 +534,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			}else{
 				throw new Exception("Expected block to be of type PlayerPositionXYZ, but it was type " + blockWritten.getClass().getName());
 			}
-			this.onPlayerPositionChange(null, this.playerPositionXYZ.getPosition().copy());
+			this.mapAreaInterfaceThreadState.putWorkItem(new MapAreaNotifyPlayerPositionChangeWorkItem(this.mapAreaInterfaceThreadState, null, this.playerPositionXYZ.getPosition().copy()), WorkItemPriority.PRIORITY_LOW);
 			this.onTerminalWindowChanged();
 		}else if(this.playerInventory == null && currentCoordinate.equals(playerInventoryBlockAddress)){
 
@@ -639,102 +638,47 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void inMemoryChunksCallbackOnChunkWasWritten(CuboidAddress ca) throws Exception{
-		this.viewport.putWorkItem(new UpdateViewportFlagsWorkItem(this.viewport, ca.copy()), WorkItemPriority.PRIORITY_LOW);
+		this.mapAreaInterfaceThreadState.putWorkItem(new UpdateMapAreaFlagsWorkItem(this.mapAreaInterfaceThreadState, ca.copy()), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void inMemoryChunksCallbackOnChunkBecomesPending(CuboidAddress ca) throws Exception{
-		this.viewport.putWorkItem(new UpdateViewportFlagsWorkItem(this.viewport, ca.copy()), WorkItemPriority.PRIORITY_MEDIUM);
+		this.mapAreaInterfaceThreadState.putWorkItem(new UpdateMapAreaFlagsWorkItem(this.mapAreaInterfaceThreadState, ca.copy()), WorkItemPriority.PRIORITY_MEDIUM);
 	}
 
 	public void postCuboidsWrite(Long numDimensions, List<CuboidAddress> cuboidAddresses) throws Exception{
 
 	}
 
-	public void onPositionChange(Long deltaX, Long deltaY, Long deltaZ, boolean redraw_viewport) throws Exception {
-		if(this.getPlayerPosition() == null){
-			return;
-		}
-		/*  Move camera around if the player tries to move out of bounds. */
-		Coordinate lower = this.gameAreaCuboidAddress.getCanonicalLowerCoordinate();
-		Coordinate upper = this.gameAreaCuboidAddress.getCanonicalUpperCoordinate();
-
-		CuboidAddress gameAreaBefore = this.gameAreaCuboidAddress.copy();
-		CuboidAddress gameAreaAfter = this.gameAreaCuboidAddress.copy();
-
-		if((deltaX < 0L) && (this.getPlayerPosition().getX() - lower.getValueAtIndex(0L) < this.edgeDistanceScreenX)){
-			Coordinate newLower = lower.changeValueAtIndex(0L, lower.getValueAtIndex(0L) - 1L);
-			Coordinate newUpper = upper.changeValueAtIndex(0L, upper.getValueAtIndex(0L) - 1L);
-			gameAreaAfter = new CuboidAddress(newLower, newUpper);
-		}
-		if((deltaX > 0L) && (upper.getValueAtIndex(0L) - this.getPlayerPosition().getX() < this.edgeDistanceScreenX)){
-			Coordinate newLower = lower.changeValueAtIndex(0L, lower.getValueAtIndex(0L) + 1L);
-			Coordinate newUpper = upper.changeValueAtIndex(0L, upper.getValueAtIndex(0L) + 1L);
-			gameAreaAfter = new CuboidAddress(newLower, newUpper);
-		}
-
-		if(deltaY != 0L){
-			Coordinate newLower = lower.changeValueAtIndex(1L, lower.getValueAtIndex(1L) + deltaY);
-			Coordinate newUpper = upper.changeValueAtIndex(1L, upper.getValueAtIndex(1L) + deltaY);
-			gameAreaAfter = new CuboidAddress(newLower, newUpper);
-		}
-
-		if((deltaZ < 0L) && (this.getPlayerPosition().getZ() - lower.getValueAtIndex(2L) < this.edgeDistanceScreenY)){
-			Coordinate newLower = lower.changeValueAtIndex(2L, lower.getValueAtIndex(2L) - 1L);
-			Coordinate newUpper = upper.changeValueAtIndex(2L, upper.getValueAtIndex(2L) - 1L);
-			gameAreaAfter = new CuboidAddress(newLower, newUpper);
-		}
-
-		if((deltaZ > 0L) && (upper.getValueAtIndex(2L) - this.getPlayerPosition().getZ() < this.edgeDistanceScreenY)){
-			Coordinate newLower = lower.changeValueAtIndex(2L, lower.getValueAtIndex(2L) + 1L);
-			Coordinate newUpper = upper.changeValueAtIndex(2L, upper.getValueAtIndex(2L) + 1L);
-			gameAreaAfter = new CuboidAddress(newLower, newUpper);
-		}
-
-
-		Coordinate previousPosition = this.getPlayerPosition().copy(); /*  Keep track of the before and after position so we can update them on next print*/
-
-		Long newX = this.getPlayerPosition().getX() + deltaX;
-		Long newY = this.getPlayerPosition().getY() + deltaY;
-		Long newZ = this.getPlayerPosition().getZ() + deltaZ;
-
-		this.playerPositionXYZ = new PlayerPositionXYZ(this.playerPositionXYZ.getPlayerUUID(), newX, newY, newZ);
-
-		this.writeSingleBlockAtPosition(this.playerPositionXYZ.asJsonString().getBytes("UTF-8"), playerPositionBlockAddress);
-
-		if(!gameAreaBefore.equals(gameAreaAfter)){
-			this.onGameAreaChange(gameAreaAfter);
-		}
-
-		this.onPlayerPositionChange(previousPosition, this.playerPositionXYZ.getPosition().copy());
-	}
-
-	public void onGameAreaChange(CuboidAddress newGameArea) throws Exception{
-		this.gameAreaCuboidAddress = newGameArea;
-		CuboidAddress ga = newGameArea == null ? null : newGameArea.copy();
-		this.viewport.putWorkItem(new GameAreaChangeWorkItem(this.viewport, ga), WorkItemPriority.PRIORITY_LOW);
+	public void onMapAreaChange(CuboidAddress newMapArea) throws Exception{
+		this.mapAreaCuboidAddress = newMapArea;
+		CuboidAddress ga = newMapArea == null ? null : newMapArea.copy();
 		//  The chunk initializer needs to know about the reachable area which extends beyond the viewport:
-		this.chunkInitializerThreadState.putWorkItem(new ChunkInitializerNotifyGameAreaChangeWorkItem(this.chunkInitializerThreadState, getReachableGameAreaCuboidAddress().copy()), WorkItemPriority.PRIORITY_HIGH);
+		this.chunkInitializerThreadState.putWorkItem(new ChunkInitializerNotifyMapAreaChangeWorkItem(this.chunkInitializerThreadState, getReachableMapAreaCuboidAddress().copy()), WorkItemPriority.PRIORITY_HIGH);
 		this.notifyLoadedRegionsChanged();
 	}
 
 	public void onPlayerPositionChange(Coordinate previousPosition, Coordinate newPosition) throws Exception{
+		this.playerPositionXYZ = new PlayerPositionXYZ(this.playerPositionXYZ.getPlayerUUID(), newPosition.getX(), newPosition.getY(), newPosition.getZ());
+
+		this.writeSingleBlockAtPosition(this.playerPositionXYZ.asJsonString().getBytes("UTF-8"), playerPositionBlockAddress);
+
 		Coordinate prev = previousPosition == null ? null : previousPosition.copy();
-		this.viewport.putWorkItem(new ViewportNotifyPlayerPositionChangeWorkItem(this.viewport, prev, newPosition.copy()), WorkItemPriority.PRIORITY_LOW);
 		this.chunkInitializerThreadState.putWorkItem(new ChunkInitializerNotifyPlayerPositionChangeWorkItem(this.chunkInitializerThreadState, prev, newPosition.copy()), WorkItemPriority.PRIORITY_HIGH);
 		this.inMemoryChunks.putWorkItem(new InMemoryChunksNotifyPlayerPositionChangeWorkItem(this.inMemoryChunks, newPosition.copy()), WorkItemPriority.PRIORITY_HIGH);
+		this.logMessage("Client acknowledged player position update from " + previousPosition  + " to " + newPosition + ".");
 	}
 
-	public CuboidAddress getReachableGameAreaCuboidAddress() throws Exception{
-		if(this.gameAreaCuboidAddress == null){
+	public CuboidAddress getReachableMapAreaCuboidAddress() throws Exception{
+		if(this.mapAreaCuboidAddress == null){
 			return null;
 		}else{
-			Coordinate lower = this.gameAreaCuboidAddress.getCanonicalLowerCoordinate();
-			Coordinate upper = this.gameAreaCuboidAddress.getCanonicalUpperCoordinate();
+			Coordinate lower = this.mapAreaCuboidAddress.getCanonicalLowerCoordinate();
+			Coordinate upper = this.mapAreaCuboidAddress.getCanonicalUpperCoordinate();
 
 			//  Load some area outside the viewport to make moving around more pleasant.
-			Long paddingAroundViewport = 20L;
-			Coordinate reachableLower = lower.changeByDeltaXYZ(-paddingAroundViewport, - 1L, -paddingAroundViewport);
-			Coordinate reachableUpper = upper.changeByDeltaXYZ(paddingAroundViewport, 1L, paddingAroundViewport);
+			Long paddingAroundMapArea = 20L;
+			Coordinate reachableLower = lower.changeByDeltaXYZ(-paddingAroundMapArea, - 1L, -paddingAroundMapArea);
+			Coordinate reachableUpper = upper.changeByDeltaXYZ(paddingAroundMapArea, 1L, paddingAroundMapArea);
 			//  We need to be able to load the entire 'reachable' area so that it's possible to 
 			//  check what the adjacent block is, so we can check if it's possible to move there.
 			return new CuboidAddress(reachableLower, reachableUpper);
@@ -742,16 +686,8 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 
-	public void onFrameDimensionsChange(Long frameWidthTop, Long frameCharacterWidth, Long inventoryAreaHeight, Long gameAreaCellWidth) throws Exception{
-		this.viewport.putWorkItem(new FrameDimensionsChangeWorkItem(this.viewport, frameWidthTop, frameCharacterWidth, inventoryAreaHeight, gameAreaCellWidth), WorkItemPriority.PRIORITY_LOW);
-	}
-
-	public void onViewportDimensionsChange(Long terminalWidth, Long terminalHeight, Long viewportWidth, Long viewportHeight) throws Exception{
-		this.viewport.putWorkItem(new ViewportDimensionsChangeWorkItem(this.viewport, terminalWidth, terminalHeight, viewportWidth, viewportHeight), WorkItemPriority.PRIORITY_LOW);
-	}
-
 	public void onPlayerInventoryChange() throws Exception{
-		this.viewport.putWorkItem(new PlayerInventoryChangeWorkItem(this.viewport, new PlayerInventory(this.playerInventory.getBlockData())), WorkItemPriority.PRIORITY_LOW);
+		this.inventoryInterfaceThreadState.putWorkItem(new PlayerInventoryChangeWorkItem(this.inventoryInterfaceThreadState, new PlayerInventory(this.playerInventory.getBlockData())), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void enqueueChunkUnsubscriptionForServer(List<CuboidAddress> cuboidAddresses, WorkItemPriority priority) throws Exception{

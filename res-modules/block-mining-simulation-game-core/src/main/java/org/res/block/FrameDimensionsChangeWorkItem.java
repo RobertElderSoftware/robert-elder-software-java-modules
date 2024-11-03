@@ -31,26 +31,24 @@
 package org.res.block;
 
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
 import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class FrameDimensionsChangeWorkItem extends ViewportWorkItem {
+public class FrameDimensionsChangeWorkItem extends UIWorkItem {
 
-	private Long frameWidthTop;
-	private Long frameCharacterWidth;
-	private Long inventoryAreaHeight;
-	private Long gameAreaCellWidth;
+	private FrameDimensions frameDimensions;
+	private FrameBordersDescription frameBordersDescription;
 
-	public FrameDimensionsChangeWorkItem(Viewport viewport, Long frameWidthTop, Long frameCharacterWidth, Long inventoryAreaHeight, Long gameAreaCellWidth){
-		super(viewport);
-		this.frameWidthTop = frameWidthTop;
-		this.frameCharacterWidth = frameCharacterWidth;
-		this.inventoryAreaHeight = inventoryAreaHeight;
-		this.gameAreaCellWidth = gameAreaCellWidth;
+	public FrameDimensionsChangeWorkItem(UserInterfaceFrameThreadState userInterfaceFrameThreadState, FrameDimensions frameDimensions, FrameBordersDescription frameBordersDescription){
+		super(userInterfaceFrameThreadState, false);
+		this.frameDimensions = frameDimensions;
+		this.frameBordersDescription = frameBordersDescription;
 	}
 
 	public void doWork() throws Exception{
-		this.viewport.onFrameDimensionsChange(this.frameWidthTop, this.frameCharacterWidth, this.inventoryAreaHeight, this.gameAreaCellWidth);
+		this.userInterfaceFrameThreadState.onFrameDimensionsChange(this.frameDimensions, this.frameBordersDescription);
 	}
 }

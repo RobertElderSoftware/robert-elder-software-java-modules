@@ -30,24 +30,27 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
+import java.util.Map;
+import java.util.HashMap;
 
-public class CursorPositionReportWorkItem extends CharacterWidthMeasurementWorkItem {
+public enum MapAreaCellFlag {
+        PLAYER_MOVEMENT ("PLAYER_MOVEMENT", "P"),
+        BLOCK_CHANGE ("BLOCK_CHANGE", "B"),
+        PENDING_LOAD ("PENDING_LOAD", "?");
 
-	private String text;
-	private Long x;
-	private Long y;
+        private final String longName;
+        private final String shortName;
 
-	public CursorPositionReportWorkItem(CharacterWidthMeasurementThreadState characterWidthMeasurementThreadState, Long x, Long y){
-		super(characterWidthMeasurementThreadState, false);
-		this.x = x;
-		this.y = y;
+        private MapAreaCellFlag(String longName, String shortName) {
+                this.longName = longName;
+                this.shortName = shortName;
+        }
+
+	public String getLongName(String longName) {
+		return this.longName;
 	}
 
-	public void doWork() throws Exception{
-		this.characterWidthMeasurementThreadState.notifyOfCurrentCursorPosition(x, y);
+	public String getShortName(String shortName) {
+		return this.shortName;
 	}
 }

@@ -1,4 +1,7 @@
 {
+	"ACTION_QUIT": "q",
+	"ACTION_TAB_NEXT_FRAME": "	",
+	"ACTION_HELP_MENU_TOGGLE": "",
 	"ACTION_Y_PLUS": "w",
 	"ACTION_Y_MINUS": "s",
 	"ACTION_X_PLUS": "d",
@@ -7,6 +10,5 @@
 	"ACTION_Z_MINUS": "x",
 	"ACTION_MINING": "m",
 	"ACTION_CRAFTING": "c",
-	"ACTION_QUIT": "q",
 	"ACTION_PLACE_BLOCK": "p"
 }

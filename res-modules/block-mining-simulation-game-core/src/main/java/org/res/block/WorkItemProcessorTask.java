@@ -32,48 +32,74 @@ package org.res.block;
 
 import java.lang.Runnable;
 import java.lang.Thread;
+import java.lang.reflect.ParameterizedType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class WorkItemProcessorTask<T extends WorkItem> extends Thread {
+public class WorkItemProcessorTask<T extends WorkItem> extends BlockManagerThread {
 
+	protected Class<T> entityClass;
 	private WorkItemQueueOwner<T> workItemQueueOwner;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+	private boolean isThreadFinished = false;
 
-	public WorkItemProcessorTask(WorkItemQueueOwner<T> workItemQueueOwner){
+	public WorkItemProcessorTask(WorkItemQueueOwner<T> workItemQueueOwner, Class<T> entityClass){
 		this.workItemQueueOwner = workItemQueueOwner;
+		this.entityClass = entityClass;
+	}
+
+	public void setIsThreadFinished(boolean isThreadFinished){
+		this.isThreadFinished = isThreadFinished;
+	}
+
+	public boolean getIsThreadFinished(){
+		return this.isThreadFinished;
+	}
+
+	@Override
+	public String getBetterClassName() throws Exception{
+		return this.getClass().getName() + "<" + this.entityClass.getName() + ">, thread.getId()=" + getId();
 	}
 
 	@Override
 	public void run() {
 		logger.info("Begin running WorkItemProcessorTask (id=" + Thread.currentThread().getId() + ") for " + this.workItemQueueOwner.getClass().getName());
-		while (!this.workItemQueueOwner.getBlockManagerThreadCollection().getIsFinished() && !Thread.currentThread().isInterrupted()) {
+		while (
+			!this.workItemQueueOwner.getBlockManagerThreadCollection().getIsProcessFinished() &&
+			!this.getIsThreadFinished() &&
+			!Thread.currentThread().isInterrupted()
+		) {
 			try {
 				try{
 					//  If this thread is about to block on an empty work item queue, spend a bit of time
 					//  on background tasks:
 					while(
-						!this.workItemQueueOwner.getBlockManagerThreadCollection().getIsFinished() &&
+						!this.workItemQueueOwner.getBlockManagerThreadCollection().getIsProcessFinished() &&
+						!this.getIsThreadFinished() &&
 						!Thread.currentThread().isInterrupted() && 
 						this.workItemQueueOwner.getWorkItemQueueSize() == 0 &&
 						this.workItemQueueOwner.doBackgroundProcessing()
 					){ }
-					//logger.info("before take " + this.workItemQueueOwner.getClass().getName());
+					logger.info("before take " + this.workItemQueueOwner.getClass().getName());
 					WorkItem workItem = this.workItemQueueOwner.takeWorkItem();
-					//logger.info("after take " + this.workItemQueueOwner.getClass().getName());
+					logger.info("after take " + this.workItemQueueOwner.getClass().getName());
 					workItem.doWork();
 				}catch(InterruptedException e){
-					logger.info("Caught a InterruptedException from takeWorkItem.  Set isFinished = true and gracefully exit for " + this.workItemQueueOwner.getClass().getName());
-					this.workItemQueueOwner.getBlockManagerThreadCollection().setIsFinished(true, null);
+					if(this.getIsThreadFinished()){ // If we're only shutting down the current thread, there is no need to shut down all the others:
+						logger.info("Caught a InterruptedException from takeWorkItem, and this.getIsThreadFinished()=" + this.getIsThreadFinished() + ".  Gracefully exit for " + this.workItemQueueOwner.getClass().getName());
+					}else{
+						logger.info("Caught a InterruptedException from takeWorkItem.  Set isFinished = true and gracefully exit for " + this.workItemQueueOwner.getClass().getName());
+						this.workItemQueueOwner.getBlockManagerThreadCollection().setIsProcessFinished(true, null);
+					}
 				}
 			} catch (Exception e) {
 				/*  Exit immediately if there is any unexpected exception so it can be detected and debugged. */
 				logger.error("Exception in WorkItemProcessorTask for " + this.workItemQueueOwner.getClass().getName() + ":", e);
-				this.workItemQueueOwner.getBlockManagerThreadCollection().setIsFinished(true, e);
+				this.workItemQueueOwner.getBlockManagerThreadCollection().setIsProcessFinished(true, e);
 			}
 		}
-		logger.info("Finished running WorkItemProcessorTask (id=" + Thread.currentThread().getId() + "), exiting thread for " + this.workItemQueueOwner.getClass().getName());
+		logger.info("Exiting WorkItemProcessorTask (id=" + Thread.currentThread().getId() + "), exiting thread getName()=" + this.workItemQueueOwner.getClass().getName() + ", getIsProcessFinished()=" + this.workItemQueueOwner.getBlockManagerThreadCollection().getIsProcessFinished() + ", isInterrupted()=" + Thread.currentThread().isInterrupted() + ", this.getIsThreadFinished()=" + this.getIsThreadFinished());
 	}
 }

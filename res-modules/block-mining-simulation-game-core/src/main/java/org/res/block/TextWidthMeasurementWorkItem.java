@@ -40,7 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class TextWidthMeasurementWorkItem extends CharacterWidthMeasurementWorkItem {
+public class TextWidthMeasurementWorkItem extends ConsoleWriterWorkItem {
 
 	private String text;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -49,8 +49,8 @@ public class TextWidthMeasurementWorkItem extends CharacterWidthMeasurementWorkI
 	private Long x2 = null; //  Reported second cursor position after printing text.
 	private Long y2 = null;
 
-	public TextWidthMeasurementWorkItem(CharacterWidthMeasurementThreadState characterWidthMeasurementThreadState, String text){
-		super(characterWidthMeasurementThreadState, true);
+	public TextWidthMeasurementWorkItem(ConsoleWriterThreadState consoleWriterThreadState, String text){
+		super(consoleWriterThreadState, true);
 		this.text = text;
 	}
 
@@ -68,7 +68,7 @@ public class TextWidthMeasurementWorkItem extends CharacterWidthMeasurementWorkI
 	}
 
 	public void doWork() throws Exception{
-		this.characterWidthMeasurementThreadState.addPendingTextWidthRequest(this);
+		this.consoleWriterThreadState.addPendingTextWidthRequest(this);
 	}
 
 	public Long getX1(){
@@ -80,13 +80,14 @@ public class TextWidthMeasurementWorkItem extends CharacterWidthMeasurementWorkI
 	}
 
 	public TextWidthMeasurementWorkItemResult getResult(){
-		if(x2 != null){
-			Long textWidth = x2 - x1;
-			if(textWidth >= 0L){
-				return new TextWidthMeasurementWorkItemResult(textWidth);
+		if(x2 != null && y2 != null){
+			Long deltaX = x2 - x1;
+			Long deltaY = y2 - y1;
+			if(deltaX >= 0L && deltaY >= 0L){
+				return new TextWidthMeasurementWorkItemResult(deltaX, deltaY);
 			}else{
-				logger.info("WARNING:  Negative text width: " + textWidth + "?");
-				return new TextWidthMeasurementWorkItemResult(0L);
+				logger.info("WARNING:  Negative text movement? : deltaX=" + deltaX + ", deltaY=" + deltaY + "?");
+				return new TextWidthMeasurementWorkItemResult(0L, 0L);
 			}
 		}else{
 			return null;

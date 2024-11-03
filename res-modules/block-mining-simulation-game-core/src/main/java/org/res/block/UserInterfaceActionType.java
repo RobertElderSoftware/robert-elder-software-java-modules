@@ -35,6 +35,8 @@ import java.util.HashMap;
 
 public enum UserInterfaceActionType {
 
+        ACTION_HELP_MENU_TOGGLE ("ACTION_HELP_MENU_TOGGLE"),
+        ACTION_TAB_NEXT_FRAME ("ACTION_TAB_NEXT_FRAME"),
         ACTION_Y_PLUS ("ACTION_Y_PLUS"),
         ACTION_Y_MINUS ("ACTION_Y_MINUS"),
         ACTION_X_PLUS ("ACTION_X_PLUS"),

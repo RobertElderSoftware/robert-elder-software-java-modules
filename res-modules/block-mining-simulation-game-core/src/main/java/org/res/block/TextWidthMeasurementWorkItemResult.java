@@ -37,13 +37,19 @@ import java.nio.LongBuffer;
 
 public class TextWidthMeasurementWorkItemResult extends WorkItemResult {
 
-	private Long width;
+	private Long deltaX;
+	private Long deltaY;
 
-	public TextWidthMeasurementWorkItemResult(Long width){
-		this.width = width;
+	public TextWidthMeasurementWorkItemResult(Long deltaX, Long deltaY){
+		this.deltaX = deltaX;
+		this.deltaY = deltaY;
 	}
 
-	public Long getWidth(){
-		return this.width;
+	public Long getDeltaX(){
+		return this.deltaX;
+	}
+
+	public Long getDeltaY(){
+		return this.deltaY;
 	}
 }

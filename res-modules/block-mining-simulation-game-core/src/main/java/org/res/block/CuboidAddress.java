@@ -40,11 +40,17 @@ import java.util.HashSet;
 import java.util.TreeSet;
 import java.lang.Comparable;
 
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
+
 public class CuboidAddress implements Comparable<CuboidAddress>{
 
 	private final Coordinate lower;
 	private final Coordinate upper;
 	private final Long numDimensions;
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
 	private final int hashCode;
 
@@ -170,7 +176,7 @@ public class CuboidAddress implements Comparable<CuboidAddress>{
 			long lowerValue = Math.floorDiv(regionLower.getValueAtIndex(l), chunkDimensionWidth) * chunkDimensionWidth; // Floor of coordinate divide by chunk 
 			long rounding = (regionUpper.getValueAtIndex(l) % chunkDimensionWidth) == 0L ? 0L : 1L;
 			long upperValue = (Math.floorDiv(regionUpper.getValueAtIndex(l), chunkDimensionWidth) * chunkDimensionWidth) + rounding;
-			//System.out.println("For dimension " + l + " chunkDimensionWidth=" + chunkDimensionWidth + " lowerValue=" + lowerValue + " upperValue=" + upperValue);
+			//logger.info("For dimension " + l + " chunkDimensionWidth=" + chunkDimensionWidth + " lowerValue=" + lowerValue + " upperValue=" + upperValue);
 
 			Set<CuboidAddress> rtn = new TreeSet<CuboidAddress>();
 			for(long p = lowerValue; p <= upperValue; p+= chunkDimensionWidth){
@@ -216,7 +222,7 @@ public class CuboidAddress implements Comparable<CuboidAddress>{
 
 	public CuboidAddress getIntersectionCuboidAddress(CuboidAddress other) throws Exception {
 		List<Vector> dimensionalOverlapRanges = this.getDimensionalOverlapRangesWith(other);
-		//System.out.println("Here are the the dimensional overlap ranges: " + dimensionalOverlapRanges + ".");
+		//logger.info("Here are the the dimensional overlap ranges: " + dimensionalOverlapRanges + ".");
 		return CuboidAddress.calculateIntersectionCuboidAddressFromDimensionalOverlapRanges(dimensionalOverlapRanges);
 	}
 

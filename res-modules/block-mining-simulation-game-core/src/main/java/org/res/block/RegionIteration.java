@@ -38,10 +38,15 @@ import java.util.Random;
 import java.util.Set;
 import java.util.HashSet;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
+
 public class RegionIteration {
 
 	private Coordinate coordinate;
 	private CuboidAddress cuboidAddress;
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
 	public RegionIteration(Coordinate coordinate, CuboidAddress cuboidAddress) {
 		this.coordinate = coordinate;
@@ -67,7 +72,7 @@ public class RegionIteration {
 			if(this.coordinate.getValueAtIndex(i).equals(upper.getValueAtIndex(i))){
 				this.coordinate = coordinate.changeValueAtIndex(i, lower.getValueAtIndex(i));
 				if(this.coordinate.getNumDimensions().equals(i + 1L)){ /* Overflow condition. */
-					//System.out.println("Reached overflow condition: " + this.toString());
+					//logger.info("Reached overflow condition: " + this.toString());
 					isOverflow = false;
 					break;
 				}

@@ -51,29 +51,62 @@ import com.google.gson.reflect.TypeToken;
 
 public class BlockSkins {
 	private static final Map<String, String> patterns;
+	private static final Map<String, String> descriptions;
 	static {
-		Map<String, String> tmp = new HashMap<String, String>();
-		tmp.put(Rock.class.getName(), "\uD83E\uDEA8");
-		tmp.put(WoodenPick.class.getName(),"\u26CF\uFE0F");
-		tmp.put(StonePick.class.getName(),"\u26CF\uFE0F");
-		tmp.put(IronPick.class.getName(),"\u26CF\uFE0F");
-		tmp.put(TitaniumDioxide.class.getName(),"\u2B1C");
-		tmp.put(Ilmenite.class.getName(),"\u2B1B");
-		tmp.put(Rock.class.getName(),"\uD83E\uDEA8");
-		tmp.put(Bauxite.class.getName(),"\uD83D\uDFEB");
-		tmp.put(IronOxide.class.getName(),"\ud83d\udfe5");
-		tmp.put(MetallicIron.class.getName(),"\u2699\uFE0F");
-		tmp.put(MetallicCopper.class.getName(),"\uD83D\uDFE7");
-		tmp.put(Pyrite.class.getName(),"\uD83D\uDFE8");
-		tmp.put(WoodenBlock.class.getName(),"\uD83E\uDEB5");
-		tmp.put(UnrecognizedBlock.class.getName(),"\uD83D\uDEAB");
-		tmp.put(EmptyBlock.class.getName(),"");
-		tmp.put(UninitializedBlock.class.getName(),"U");
-		tmp.put(PlayerPositionXYZ.class.getName(),"P");
-		tmp.put(PlayerInventory.class.getName(),"!");
-		patterns = Collections.unmodifiableMap(tmp);
+		Map<String, String> patternsTmp = new HashMap<String, String>();
+		patternsTmp.put(Rock.class.getName(), "\uD83E\uDEA8");
+		patternsTmp.put(WoodenPick.class.getName(),"\u26CF\uFE0F");
+		patternsTmp.put(StonePick.class.getName(),"\u26CF\uFE0F");
+		patternsTmp.put(IronPick.class.getName(),"\u26CF\uFE0F");
+		patternsTmp.put(TitaniumDioxide.class.getName(),"\u2B1C");
+		patternsTmp.put(Ilmenite.class.getName(),"\u2B1B");
+		patternsTmp.put(Rock.class.getName(),"\uD83E\uDEA8");
+		patternsTmp.put(Bauxite.class.getName(),"\uD83D\uDFEB");
+		patternsTmp.put(IronOxide.class.getName(),"\ud83d\udfe5");
+		patternsTmp.put(MetallicIron.class.getName(),"\u2699\uFE0F");
+		patternsTmp.put(MetallicCopper.class.getName(),"\uD83D\uDFE7");
+		patternsTmp.put(MetallicSilver.class.getName(),"\u2B1C");
+		patternsTmp.put(Chrysoberyl.class.getName(),"\uD83D\uDC8E");
+		patternsTmp.put(Pyrite.class.getName(),"\uD83D\uDFE8");
+		patternsTmp.put(WoodenBlock.class.getName(),"\uD83E\uDEB5");
+		patternsTmp.put(UnrecognizedBlock.class.getName(),"\uD83D\uDEAB");
+		patternsTmp.put(EmptyBlock.class.getName(),"");
+		patternsTmp.put(UninitializedBlock.class.getName(),"U");
+		patternsTmp.put(PlayerPositionXYZ.class.getName(),"P");
+		patternsTmp.put(PlayerInventory.class.getName(),"!");
+		patterns = Collections.unmodifiableMap(patternsTmp);
+
+		Map<String, String> descriptionsTmp = new HashMap<String, String>();
+		descriptionsTmp.put(Rock.class.getName(), "One cubic meter of an unspecified type of rocks.");
+		descriptionsTmp.put(WoodenPick.class.getName(),"A wooden pick axe.  Capable of mining all blocks within a radius of 1 from the player.");
+		descriptionsTmp.put(StonePick.class.getName(),"A stone pick axe.  Capable of mining all blocks within a radius of 2 from the player.");
+		descriptionsTmp.put(IronPick.class.getName(),"An iron pick axe.  Capable of mining all blocks within a radius of 3 from the player.");
+		descriptionsTmp.put(TitaniumDioxide.class.getName(),"One cubic meter of titanium dioxide, chemical formula TiO₂");
+		descriptionsTmp.put(Ilmenite.class.getName(),"One cubic meter of ilmenite, chemical formula FeTiO₃");
+		descriptionsTmp.put(Rock.class.getName(),"One cubic meter of limestone rocks (calcium carbonate), chemical formula CaCO₃");
+		descriptionsTmp.put(Bauxite.class.getName(),"One cubic meter of bauxite (aluminum ore), chemical formula Al₂H₂O₄");
+		descriptionsTmp.put(IronOxide.class.getName(),"One cubic meter of iron oxide, chemical formula Fe₂O₃");
+		descriptionsTmp.put(MetallicIron.class.getName(),"One cubic meter of metallic iron, the element with atomic number 26.");
+		descriptionsTmp.put(MetallicCopper.class.getName(),"One cubic meter of metallic copper, the element with atomic number 29.");
+		descriptionsTmp.put(MetallicSilver.class.getName(),"One cubic meter of metallic silver, the element with atomic number 47.");
+		descriptionsTmp.put(Chrysoberyl.class.getName(),"One cubic meter of the mineral or gemstone chrysoberyl, an aluminate of beryllium with the formula BeAl₂O₄");
+		descriptionsTmp.put(Pyrite.class.getName(),"One cubic meter of the mineral pyrite (also known as fool's gold).  Chemical formula FeS₂");
+		descriptionsTmp.put(WoodenBlock.class.getName(),"One cubic meter of wooden block.");
+		descriptionsTmp.put(UnrecognizedBlock.class.getName(),"An unrecognized block that is not found existing block schema.");
+		descriptionsTmp.put(EmptyBlock.class.getName(),"An empty block that represents a region of the world that contains nothing.");
+		descriptionsTmp.put(UninitializedBlock.class.getName(),"Uninitialized block.");
+		descriptionsTmp.put(PlayerPositionXYZ.class.getName(),"Player position block.");
+		descriptionsTmp.put(PlayerInventory.class.getName(),"Player inventory block.");
+		descriptions = Collections.unmodifiableMap(descriptionsTmp);
 	}
 
+	public static String getBlockDescription(Class<?> c) throws Exception{
+		if(descriptions.containsKey(c.getName())){
+			return descriptions.get(c.getName());
+		}else{
+			throw new Exception("Did not find an entry for " + c.getName());
+		}
+	}
 
 	public static String getPresentation(Class<?> c, boolean restrictedGraphics) throws Exception{
 		if(patterns.containsKey(c.getName())){

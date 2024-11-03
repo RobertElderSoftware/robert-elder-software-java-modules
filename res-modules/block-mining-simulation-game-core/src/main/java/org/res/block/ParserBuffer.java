@@ -64,25 +64,27 @@ public class ParserBuffer {
 		}
 	}
 
-	public List<Byte> extractParsedBytes(){
+	public byte [] extractParsedBytes(){
 		//  Extract only the portion of characters that were parsed:
-		List<Byte> rtn = new ArrayList<Byte>();
+		byte [] rtn = new byte [this.highestObservedPosition];
 		for(int i = 0; i < this.highestObservedPosition; i++){
-			rtn.add(this.buffer.remove(0));
+			rtn[i] = (byte)this.buffer.remove(0);
 		}
 		return rtn;
 	}
 
-	public byte extractNextByte() throws Exception{
-		if(this.buffer.size() == 0){
-			throw new Exception("Parser buffer was empty?");
-		}else{
-			return (byte)this.buffer.remove(0);
+	public byte [] extractNextBytes(int numBytes) throws Exception{
+		byte [] rtn = new byte [numBytes];
+		for(int i = 0; i < numBytes; i++){
+			rtn[i] = (byte)this.buffer.remove(0);
 		}
+		return rtn;
 	}
 
-	public void addByte(Byte c) throws Exception{
-		this.buffer.add(c);
+	public void addBytes(byte [] bytes) throws Exception{
+		for(byte b : bytes){
+			this.buffer.add(b);
+		}
 	}
 
 	public int size() throws Exception{
@@ -111,7 +113,6 @@ public class ParserBuffer {
 	public List<Byte> getBuffer(){
 		return this.buffer;
 	}
-
 
 	public Byte head() throws Exception{
 		if(position < buffer.size()){

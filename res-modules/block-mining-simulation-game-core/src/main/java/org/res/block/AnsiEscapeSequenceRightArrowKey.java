@@ -30,21 +30,17 @@
 //  SOFTWARE.
 package org.res.block;
 
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
+
 import java.util.List;
 import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
+import java.util.Arrays;
 
-public class GameAreaChangeWorkItem extends ViewportWorkItem {
+public class AnsiEscapeSequenceRightArrowKey extends AnsiEscapeSequence {
 
-	private CuboidAddress gameArea;
-
-	public GameAreaChangeWorkItem(Viewport viewport, CuboidAddress gameArea){
-		super(viewport);
-		this.gameArea = gameArea;
-	}
-
-	public void doWork() throws Exception{
-		this.viewport.onGameAreaChange(gameArea);
+	public AnsiEscapeSequenceRightArrowKey(){
 	}
 }

@@ -35,18 +35,16 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class ViewportNotifyPlayerPositionChangeWorkItem extends ViewportWorkItem {
+public class ProcessFrameInputBytesWorkItem extends UIWorkItem {
 
-	private Coordinate previousPosition;
-	private Coordinate newPosition;
+	private byte [] input;
 
-	public ViewportNotifyPlayerPositionChangeWorkItem(Viewport viewport, Coordinate previousPosition, Coordinate newPosition){
-		super(viewport);
-		this.previousPosition = previousPosition;
-		this.newPosition = newPosition;
+	public ProcessFrameInputBytesWorkItem(UserInterfaceFrameThreadState userInterfaceFrameThreadState, byte [] input){
+		super(userInterfaceFrameThreadState, false);
+		this.input = input;
 	}
 
 	public void doWork() throws Exception{
-		this.viewport.onPlayerPositionChange(previousPosition, newPosition);
+		this.userInterfaceFrameThreadState.onKeyboardInput(input);
 	}
 }

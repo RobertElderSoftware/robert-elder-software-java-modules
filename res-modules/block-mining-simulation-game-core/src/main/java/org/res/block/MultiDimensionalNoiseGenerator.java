@@ -48,8 +48,13 @@ import java.nio.LongBuffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
+
 public class MultiDimensionalNoiseGenerator {
 
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private Long seed;
 	private MessageDigest digest;
 
@@ -70,7 +75,7 @@ public class MultiDimensionalNoiseGenerator {
 		hashInputByteBuffer.asLongBuffer().put(hashInput);
 
 		byte [] hashOutput = this.digest.digest(hashInputByteBuffer.array());
-		//System.out.println("Hash output was: " + BlockModelContext.convertToHex(this.digest.digest(hashInputByteBuffer.array())));
+		//logger.info("Hash output was: " + BlockModelContext.convertToHex(this.digest.digest(hashInputByteBuffer.array())));
 
 		byte [] bytesForVector = Arrays.copyOfRange(hashOutput, 0, (coordinateLong.length) * Long.BYTES);
 
@@ -82,9 +87,9 @@ public class MultiDimensionalNoiseGenerator {
 			randomGradientVector[i] = (double)longHashOutputByteBuffer.get(i) / (double)Long.MAX_VALUE;
 		}
 
-		//System.out.println("randomGradientVector[0]=" + randomGradientVector[0] + " randomGradientVector[1]=" + randomGradientVector[1]);
+		//logger.info("randomGradientVector[0]=" + randomGradientVector[0] + " randomGradientVector[1]=" + randomGradientVector[1]);
 		double subtraction [] = doubleVectorSubtraction(coordinateDouble, longVectorToDouble(coordinateLong));
-		//System.out.println(coordinateDouble[0] + " - " + coordinateLong[0] + " = subtraction[0]=" + subtraction[0] + ", " + coordinateDouble[1] + " - " + coordinateLong[1] + " = subtraction[1]=" + subtraction[1]);
+		//logger.info(coordinateDouble[0] + " - " + coordinateLong[0] + " = subtraction[0]=" + subtraction[0] + ", " + coordinateDouble[1] + " - " + coordinateLong[1] + " = subtraction[1]=" + subtraction[1]);
 		double dotProduct = dotProduct(randomGradientVector, doubleVectorSubtraction(coordinateDouble, longVectorToDouble(coordinateLong))) / randomGradientVector.length;
 		if(dotProduct > 1.0 || dotProduct < -1.0){
 			throw new Exception("getNoiseDotProductAtVertex returning dotProduct out of range: " + dotProduct + " Numerical Imprecision?");
@@ -94,7 +99,7 @@ public class MultiDimensionalNoiseGenerator {
 
 	double smoothInterploation(double start, double end, double c) {
 		double result = (end - start) * ((c * (c * 6.0 - 15.0) + 10.0) * c * c * c) + start;
-		//System.out.println("Interpolation a=" + a + " b=" + b + " offset=" + offset + " result=" + result);
+		//logger.info("Interpolation a=" + a + " b=" + b + " offset=" + offset + " result=" + result);
 		return result;
 	}
 
@@ -136,7 +141,7 @@ public class MultiDimensionalNoiseGenerator {
 		double [] offsetInSquare = doubleVectorSubtraction(coordinateDouble, longVectorToDouble(coordinateLong));
 
 		double r = getInterpolatedGradientForDimension(coordinateLong, coordinateDouble, new long [] {}, 0, offsetInSquare);
-		//System.out.println("ix0: " + ix0 + " ix1: " + ix1 + " smothed=" + r);
+		//logger.info("ix0: " + ix0 + " ix1: " + ix1 + " smothed=" + r);
 		return r;
 	}
 
@@ -209,7 +214,7 @@ public class MultiDimensionalNoiseGenerator {
 		double [] coordinateDouble = longVectorToDouble(coordinateLong);
 
 		for(int i = 0; i < frequencies.length; i++) {
-			//System.out.println("Multiplying coordinate by frequency: " + frequency);
+			//logger.info("Multiplying coordinate by frequency: " + frequency);
 			double n = noiseAtCoordinate(multiplyDoubleVectorByScalar(coordinateDouble, frequencies[i]));
 			if(n < -1.0 || n > 1.0){
 				throw new Exception("Nose value of range: " + n + ".  Numerical precision error?");

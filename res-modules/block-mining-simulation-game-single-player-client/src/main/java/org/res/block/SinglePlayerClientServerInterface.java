@@ -44,6 +44,7 @@ public class SinglePlayerClientServerInterface extends ClientServerInterface{
 	private ServerBlockModelContext serverBlockModelContext;
 	private LocalBlockSession clientBlockSession;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+	private Object lock = new Object();
 
 	public void setServerBlockModelContext(ServerBlockModelContext serverBlockModelContext){
 		this.serverBlockModelContext = serverBlockModelContext;
@@ -54,7 +55,15 @@ public class SinglePlayerClientServerInterface extends ClientServerInterface{
 	}
 
 	public void setClientToServerSession(LocalBlockSession clientBlockSession){
-		this.clientBlockSession = clientBlockSession;
+		synchronized(lock){
+			this.clientBlockSession = clientBlockSession;
+		}
+	}
+
+	public LocalBlockSession getClientToServerSession(){
+		synchronized(lock){
+			return this.clientBlockSession;
+		}
 	}
 
 	public void Connect() throws Exception{
@@ -66,7 +75,12 @@ public class SinglePlayerClientServerInterface extends ClientServerInterface{
 	}
 
 	public String getClientSessionId() throws Exception{
-		return this.clientBlockSession.getId();
+		//  There is a case where another thread starts up a bit too fast
+		//  and tries to send some data over the socket before the client session
+		//  has been set.  For now, let the thread spin until this variable is initailized.
+		//  TODO: Improve this to use a better design:
+		while(this.getClientToServerSession() == null){};
+		return this.getClientToServerSession().getId();
 	}
 
 	public void onBlockSessionOpen(BlockSession blockSession) throws Exception{

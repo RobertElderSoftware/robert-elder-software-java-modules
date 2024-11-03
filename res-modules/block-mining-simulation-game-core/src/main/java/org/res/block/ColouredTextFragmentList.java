@@ -31,20 +31,38 @@
 package org.res.block;
 
 import java.util.List;
+import java.util.Arrays;
 import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
 
-public class UpdateViewportFlagsWorkItem extends ViewportWorkItem {
+public class ColouredTextFragmentList{
 
-	private CuboidAddress cuboidAddress;
+	private List<ColouredTextFragment> colouredTextFragements = new ArrayList<ColouredTextFragment>();
 
-	public UpdateViewportFlagsWorkItem(Viewport viewport, CuboidAddress cuboidAddress){
-		super(viewport);
-		this.cuboidAddress = cuboidAddress;
+	public ColouredTextFragmentList() {
+
 	}
 
-	public void doWork() throws Exception{
-		this.viewport.updateViewportFlags(this.cuboidAddress);
+	public ColouredTextFragmentList(ColouredTextFragment colouredTextFragement) {
+		this.colouredTextFragements = new ArrayList<ColouredTextFragment>(Arrays.asList(colouredTextFragement));
+	}
+
+	public ColouredTextFragmentList(List<ColouredTextFragment> colouredTextFragements) {
+		this.colouredTextFragements = colouredTextFragements;
+	}
+
+	public List<ColouredTextFragment> getColouredTextFragments(){
+		return this.colouredTextFragements;
+	}
+
+	public List<ColouredCharacter> getColouredCharacters(){
+		List<ColouredCharacter> rtn = new ArrayList<ColouredCharacter>();
+		for(ColouredTextFragment c : colouredTextFragements){
+			rtn.addAll(c.getColouredCharacters());
+		}
+		return rtn;
+	}
+
+	public void add(ColouredTextFragment colouredTextFragment){
+		this.colouredTextFragements.add(colouredTextFragment);
 	}
 }

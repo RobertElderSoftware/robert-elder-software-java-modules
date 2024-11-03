@@ -48,7 +48,10 @@ import com.google.gson.reflect.TypeToken;
 
 public abstract class BlockMatchDescription {
 	protected final Gson gson = new GsonBuilder().serializeNulls().setPrettyPrinting().create();
+
 	protected final String blockClass;
+	protected final String dedication;
+	protected final String matchType;
 
 	public abstract boolean doesMatch(byte [] data) throws Exception;
 
@@ -56,8 +59,22 @@ public abstract class BlockMatchDescription {
 		return blockClass;
 	}
 
+	public String getMatchType(){
+		return matchType;
+	}
+
+	public String getDedication(){
+		return dedication;
+	}
+
 	public BlockMatchDescription(JsonElement e) {
 		JsonObject o = (JsonObject)e;
 		this.blockClass = o.get("block_class").getAsString();
+		this.matchType = o.get("match_type").getAsString();
+		if(o.has("dedication")){
+			this.dedication = o.get("dedication").getAsString();
+		}else{
+			this.dedication = null;
+		}
 	}
 }

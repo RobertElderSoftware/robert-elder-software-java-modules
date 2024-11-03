@@ -30,27 +30,17 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.Map;
-import java.util.HashMap;
 
-public enum ViewportCellFlag {
-        PLAYER_MOVEMENT ("PLAYER_MOVEMENT", "P"),
-        BLOCK_CHANGE ("BLOCK_CHANGE", "B"),
-        PENDING_LOAD ("PENDING_LOAD", "?");
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
 
-        private final String longName;
-        private final String shortName;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Arrays;
 
-        private ViewportCellFlag(String longName, String shortName) {
-                this.longName = longName;
-                this.shortName = shortName;
-        }
+public class AnsiEscapeSequenceDownArrowKey extends AnsiEscapeSequence {
 
-	public String getLongName(String longName) {
-		return this.longName;
-	}
-
-	public String getShortName(String shortName) {
-		return this.shortName;
+	public AnsiEscapeSequenceDownArrowKey(){
 	}
 }

@@ -35,16 +35,16 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class PlayerInventoryChangeWorkItem extends ViewportWorkItem {
+public class PlayerInventoryChangeWorkItem extends InventoryInterfaceWorkItem {
 
 	private PlayerInventory playerInventory;
 
-	public PlayerInventoryChangeWorkItem(Viewport viewport, PlayerInventory playerInventory){
-		super(viewport);
+	public PlayerInventoryChangeWorkItem(InventoryInterfaceThreadState inventoryInterfaceThreadState, PlayerInventory playerInventory){
+		super(inventoryInterfaceThreadState);
 		this.playerInventory = playerInventory;
 	}
 
 	public void doWork() throws Exception{
-		this.viewport.onPlayerInventoryChange(playerInventory);
+		this.inventoryInterfaceThreadState.onPlayerInventoryChange(playerInventory);
 	}
 }

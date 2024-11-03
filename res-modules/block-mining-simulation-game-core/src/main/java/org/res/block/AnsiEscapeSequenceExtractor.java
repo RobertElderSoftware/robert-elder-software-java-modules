@@ -84,32 +84,49 @@ public class AnsiEscapeSequenceExtractor {
 		}
 	}
 
-	public CursorPositionReport acceptCursorPositionReport() throws Exception{
+	public AnsiEscapeSequence acceptEscapeSequence() throws Exception{
 		int initialPosition = this.buffer.getCurrentPosition();
 		if(acceptByte((byte)'\033') != null){
 			if(acceptByte((byte)'[') != null){
 				Long y = acceptIntegerConstant();
-				if(y == null){
-					this.buffer.setPosition(initialPosition);
-					return null;
-				}else{
+				if(y != null){
 					if(acceptByte((byte)';') != null){
 						Long x = acceptIntegerConstant();
-						if(x == null){
-							this.buffer.setPosition(initialPosition);
-							return null;
-						}else{
+						if(x != null){
 							if(acceptByte((byte)'R') != null){
 								return new CursorPositionReport(x, y);
 							}else{
 								this.buffer.setPosition(initialPosition);
 								return null;
 							}
+						}else{
+							this.buffer.setPosition(initialPosition);
+							return null;
+						}
+					}else if(acceptByte((byte)'~') != null){
+						if(y.equals(5L)){
+							return new AnsiEscapeSequencePageUpKey();
+						}else if(y.equals(6L)){
+							return new AnsiEscapeSequencePageDownKey();
+						}else{
+							this.buffer.setPosition(initialPosition);
+							return null;
 						}
 					}else{
 						this.buffer.setPosition(initialPosition);
 						return null;
 					}
+				}else if(acceptByte((byte)'A') != null){
+					return new AnsiEscapeSequenceUpArrowKey();
+				}else if(acceptByte((byte)'B') != null){
+					return new AnsiEscapeSequenceDownArrowKey();
+				}else if(acceptByte((byte)'C') != null){
+					return new AnsiEscapeSequenceRightArrowKey();
+				}else if(acceptByte((byte)'D') != null){
+					return new AnsiEscapeSequenceLeftArrowKey();
+				}else{
+					this.buffer.setPosition(initialPosition);
+					return null;
 				}
 			}else{
 				this.buffer.setPosition(initialPosition);
@@ -122,19 +139,19 @@ public class AnsiEscapeSequenceExtractor {
 
 	public AnsiEscapeSequence tryToParseBuffer() throws Exception{
 		this.buffer.resetParsingPositions();
-		return acceptCursorPositionReport();
+		return acceptEscapeSequence();
 	}
 
-	public void addToBuffer(Byte c) throws Exception{
-		this.buffer.addByte(c);
+	public void addToBuffer(byte [] bytes) throws Exception{
+		this.buffer.addBytes(bytes);
 	}
 
-	public List<Byte> extractParsedBytes(){
+	public byte [] extractParsedBytes(){
 		return this.buffer.extractParsedBytes();
 	}
 
-	public byte extractNextByte() throws Exception{
-		return this.buffer.extractNextByte();
+	public byte [] extractNextBytes(int numBytes) throws Exception{
+		return this.buffer.extractNextBytes(numBytes);
 	}
 
 	public List<Byte> getBuffer(){

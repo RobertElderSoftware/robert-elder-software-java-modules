@@ -30,11 +30,35 @@
 //  SOFTWARE.
 package org.res.block;
 
-public abstract class CharacterWidthMeasurementWorkItem extends WorkItem{
-	protected CharacterWidthMeasurementThreadState characterWidthMeasurementThreadState;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
-	public CharacterWidthMeasurementWorkItem(CharacterWidthMeasurementThreadState characterWidthMeasurementThreadState, boolean isBlocking){
-		super(isBlocking);
-		this.characterWidthMeasurementThreadState = characterWidthMeasurementThreadState;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonNull;
+import com.google.gson.reflect.TypeToken;
+
+public class Chrysoberyl extends IndividualBlock {
+
+	private byte [] data;
+
+	public Chrysoberyl(byte [] data) throws Exception {
+		this.data = data;
+	}
+
+	public byte [] getBlockData() throws Exception {
+		return this.data;
+	}
+
+	public boolean isMineable() throws Exception{
+		return true;
 	}
 }

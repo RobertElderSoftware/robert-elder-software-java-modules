@@ -30,11 +30,47 @@
 //  SOFTWARE.
 package org.res.block;
 
-public abstract class ViewportWorkItem extends WorkItem{
-	protected Viewport viewport;
+import java.util.stream.Collectors;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
+import java.util.ArrayList;
 
-	public ViewportWorkItem(Viewport viewport){
-		super(false);
-		this.viewport = viewport;
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import java.util.Date;
+import java.util.Set;
+import java.util.HashSet;
+import java.io.BufferedWriter;
+import java.text.SimpleDateFormat;
+import java.io.File;
+import java.io.FileOutputStream;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
+
+public class LinePrintingInstructionAtOffset {
+
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
+	private LinePrintingInstruction linePrintingInstruction;
+	private Long offsetY;
+
+	public LinePrintingInstructionAtOffset(LinePrintingInstruction linePrintingInstruction, Long offsetY) throws Exception{
+		this.linePrintingInstruction = linePrintingInstruction;
+		this.offsetY = offsetY;
+	}
+
+	public Long getOffsetY(){
+		return this.offsetY;
+	}
+
+	public LinePrintingInstruction getLinePrintingInstruction(){
+		return this.linePrintingInstruction;
 	}
 }

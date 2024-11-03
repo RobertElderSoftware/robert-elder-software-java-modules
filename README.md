@@ -12,7 +12,7 @@ Having said this, please do file issues if you notice something broken or undesi
 
 ![Terminal Block Mining Simulation Game](block-mining-simulation-game-thumbnail.png "Terminal Block Mining Simulation Game")
 
-This project contains the 'Terminal Block Mining Simulation Game', a video game where you simulate mining blocks of iron ore in the terminal.  The game uses procedural terrain generation and the game world itself is infinite.  The terrain will start generating automatically in the background near the player.  All generated terrain and player data is stored in a SQLite database file.  The location of this world file defaults to the directory where you launch the game, but you can configure it with the '--block-world-file' flag.  You can also use the '--log-file' to set the location of a log file.  If the '--log-file' flag is omitted, logging will be disabled.
+This project contains the 'Terminal Block Mining Simulation Game', a video game where you simulate mining blocks of iron ore in the terminal.  The game uses procedural terrain generation and the game world itself is infinite.  The terrain will start generating automatically in the background near the player.  All generated terrain and player data is stored in a SQLite (or Postgres) database file.  The location of this world file defaults to the directory where you launch the game, but you can configure it with the '--block-world-file' flag.  You can also use the '--log-file' to set the location of a log file.  If the '--log-file' flag is omitted, logging will be disabled.
 
 #  Player Movement
 
@@ -28,7 +28,7 @@ Press the 'm' key to mine blocks.
 
 #  Crafting
 
-You can press the 'c' key to try and craft new blocks, such as metallic iron, and an iron pickaxe.  Currently, the game only supports four different crafting recepies:
+You can press the 'c' key to try and craft new blocks, such as metallic iron, and an iron pickaxe.  Currently, the game only supports four different crafting recipes:
 
 -  Using wood to make a Wooden Pick Axe
 -  Using stone and wood to make a Stone Pick Axe
@@ -39,8 +39,15 @@ You can press the 'c' key to try and craft new blocks, such as metallic iron, an
 
 Press the 'p' key to place blocks (currently only supports placing rock blocks).
 
-#  Help Menu
+#  In Game Help Menu
 
+You can access an in-game help menu by pressing the 'ESC' key.
+
+#  Switch Between Frames
+
+You can switch focus between the 'frames' in the game's UI by pressing the 'TAB' key.
+
+#  Command Line Arguments
 
 You can run the .jar file with the '--help' flag to show a help menu:
 
@@ -139,6 +146,8 @@ For a Dvorak keyboard, I believe the following should work to give you the same 
 
 ```
 {
+	"ACTION_TAB_NEXT_FRAME": "	",
+	"ACTION_HELP_MENU_TOGGLE": "",
 	"ACTION_Y_PLUS": ",",
 	"ACTION_Y_MINUS": "o",
 	"ACTION_X_PLUS": "e",

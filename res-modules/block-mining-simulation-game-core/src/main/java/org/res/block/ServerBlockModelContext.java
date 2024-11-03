@@ -87,6 +87,7 @@ public class ServerBlockModelContext extends BlockModelContext {
 
         	this.blockDAO.ensureBlockTableExists();
         	this.blockDAO.turnOffAutoCommit();
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(this, BlockModelContextWorkItem.class));
 	}
 
 	public BlockDAO getBlockDAO(){
@@ -109,13 +110,6 @@ public class ServerBlockModelContext extends BlockModelContext {
 		}
 		this.logMessage("Ran shutdown of ServerBlockModelContext.");
 	}
-
-	public List<Thread> getThreads() throws Exception{
-		List<Thread> threads = new ArrayList<Thread>();
-		threads.add(new WorkItemProcessorTask<BlockModelContextWorkItem>(this));
-		return threads;
-	}
-
 
 	public void inMemoryChunksCallbackOnChunkWasWritten(CuboidAddress ca) throws Exception{
 	}

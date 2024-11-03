@@ -53,7 +53,7 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 	private Set<Long> outstandingChunkWriteConversations = new HashSet<Long>();
 	private MultiDimensionalNoiseGenerator noiseGenerator = new MultiDimensionalNoiseGenerator(0L);
 	private Coordinate playerPosition = null;
-	private CuboidAddress reachableGameArea = null;
+	private CuboidAddress reachableMapArea = null;
 	private Map<CuboidAddress, Cuboid> cuboidsToInitialize = new HashMap<CuboidAddress, Cuboid>();
 	private ClientBlockModelContext clientBlockModelContext;
 	private InMemoryChunks inMemoryChunks;
@@ -82,8 +82,8 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 		this.playerPosition = newPosition;
 	}
 
-	public void onGameAreaChange(CuboidAddress reachableGameArea) throws Exception{
-		this.reachableGameArea = reachableGameArea;
+	public void onMapAreaChange(CuboidAddress reachableMapArea) throws Exception{
+		this.reachableMapArea = reachableMapArea;
 	}
 
 	public void onNewCuboidToInitialize(Cuboid cuboid) throws Exception{
@@ -191,8 +191,12 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 
 		/*  Below Ground */
 		if(c.getY() < 0L){
-			if(noiseAtPixel <= 0.75){
+			if(noiseAtPixel <= 0.65){
 				return clientBlockModelContext.getBlockDataForClass(Rock.class);
+			}else if(noiseAtPixel <= 0.70){
+				return clientBlockModelContext.getBlockDataForClass(Chrysoberyl.class);
+			}else if(noiseAtPixel <= 0.75){
+				return clientBlockModelContext.getBlockDataForClass(MetallicSilver.class);
 			}else if(noiseAtPixel <= 0.80){
 				return clientBlockModelContext.getBlockDataForClass(TitaniumDioxide.class);
 			}else if(noiseAtPixel <= 0.85){
@@ -243,7 +247,7 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 
 	public void doChunkInitializationActivity() throws Exception{
 		Long maxOutstandingInitializingChunkWrites = 2L;
-		if(outstandingChunkWriteConversations.size() < maxOutstandingInitializingChunkWrites){
+		while(cuboidsToInitialize.size() > 0 && outstandingChunkWriteConversations.size() < maxOutstandingInitializingChunkWrites){
 			List<CuboidAddress> closestCuboidAddressList = this.getClosestCuboidAddressList(cuboidsToInitialize.keySet(), this.playerPosition);
 			if(closestCuboidAddressList.size() > 0){
 				CuboidAddress cuboidAddressToInitialize = closestCuboidAddressList.get(0);
@@ -252,7 +256,7 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 				//  initially loaded area before inMemoryChunks has had a chance to issue the pending request.  You can just move around to correctly load the area though.
 				if(
 					(!this.inMemoryChunks.isChunkLoadedOrPending(cuboidAddressToInitialize)) &&
-					this.reachableGameArea != null && this.reachableGameArea.getIntersectionCuboidAddress(cuboidAddressToInitialize) == null
+					this.reachableMapArea != null && this.reachableMapArea.getIntersectionCuboidAddress(cuboidAddressToInitialize) == null
 				){
 					//  If the area we're trying to initialize is off screen, then just ignore this chunk and move on.
 					logger.info("Chunk initializer thread discarding cuboid " + cuboidAddressToInitialize + " because it's not in a loaded memory area anymore.");
@@ -264,8 +268,6 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 			}else{
 				logger.info("Chunk initializer thread: no more cuboids left to initialize.");
 			}
-		}else{
-			logger.info("outstandingChunkWriteConversations=" + outstandingChunkWriteConversations + " but maxOutstandingInitializingChunkWrites=" + maxOutstandingInitializingChunkWrites);
 		}
 	}
 

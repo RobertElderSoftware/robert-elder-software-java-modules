@@ -115,9 +115,6 @@ class SinglePlayerBlockClient {
 		clientServerInterface.setServerBlockModelContext(serverBlockModelContext);
 		clientServerInterface.setClientBlockModelContext(clientBlockModelContext);
 
-		blockManagerThreadCollection.addThreads(serverBlockModelContext.getThreads());
-		blockManagerThreadCollection.addThreads(clientBlockModelContext.getThreads());
-
 		LocalBlockSession serverToClientSession = new LocalBlockSession(serverBlockModelContext, "local_server_to_client_connection");
 		LocalBlockSession clientToServerSession = new LocalBlockSession(clientBlockModelContext, "local_server_to_client_connection");
 
@@ -133,7 +130,6 @@ class SinglePlayerBlockClient {
 		clientToServerSession.setRemoteSession(serverToClientSession);
 
 		//  Start the game loading process
-		clientBlockModelContext.init();
 		blockManagerThreadCollection.blockUntilAllTasksHaveTerminated();
 		serverBlockModelContext.shutdown();
 		clientBlockModelContext.shutdown();

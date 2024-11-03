@@ -36,6 +36,8 @@ import java.lang.Thread;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.nio.channels.AsynchronousCloseException;
+import java.nio.channels.ClosedByInterruptException;
 
 import org.res.block.Coordinate;
 import java.io.IOException;
@@ -43,31 +45,39 @@ import java.io.FileDescriptor;
 import java.nio.channels.FileChannel;
 import java.io.FileInputStream;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedByInterruptException;
 import java.util.List;
 import java.util.ArrayList;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
 
-public class StandardInputReaderTask extends Thread {
+public class StandardInputReaderTask extends BlockManagerThread {
 
 	private BlockModelContext blockModelContext;
 	private ClientBlockModelContext clientBlockModelContext;
-	private CharacterWidthMeasurementThreadState characterWidthMeasurementThreadState;
+	private ConsoleWriterThreadState consoleWriterThreadState;
 	private AnsiEscapeSequenceExtractor ansiEscapeSequenceExtractor = new AnsiEscapeSequenceExtractor();
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	public StandardInputReaderTask(ClientBlockModelContext clientBlockModelContext, CharacterWidthMeasurementThreadState characterWidthMeasurementThreadState) throws Exception{
+	public StandardInputReaderTask(ClientBlockModelContext clientBlockModelContext, ConsoleWriterThreadState consoleWriterThreadState) throws Exception{
 		this.clientBlockModelContext = clientBlockModelContext;
-		this.characterWidthMeasurementThreadState = characterWidthMeasurementThreadState;
+		this.consoleWriterThreadState = consoleWriterThreadState;
+	}
+
+	@Override
+	public String getBetterClassName() throws Exception{
+		return this.getClass().getName();
 	}
 
 	public void setTTYMode(List<String> commandParts) throws Exception{
 		ShellProcessRunner r = new ShellProcessRunner(commandParts);
 		ShellProcessFinalResult result = r.getFinalResult();
 		if(result.getReturnValue() == 0){
-			this.clientBlockModelContext.logMessage("Command '" + commandParts + "' ran with success:");
+			logger.info("Command '" + commandParts + "' ran with success:");
 		}else{
-			this.clientBlockModelContext.logMessage(new String(result.getOutput().getStdoutOutput(), "UTF-8"));
-			this.clientBlockModelContext.logMessage(new String(result.getOutput().getStderrOutput(), "UTF-8"));
+			logger.info(new String(result.getOutput().getStdoutOutput(), "UTF-8"));
+			logger.info(new String(result.getOutput().getStderrOutput(), "UTF-8"));
 		}
 	}
 
@@ -79,39 +89,42 @@ public class StandardInputReaderTask extends Thread {
 		this.setTTYMode(Arrays.asList("stty", "cooked", "echo", "-F", "/dev/tty"));
 	}
 
-	public boolean onInputByte(byte b) throws Exception{
-		clientBlockModelContext.logMessage("onInputByte: " + String.valueOf(b));
-		this.ansiEscapeSequenceExtractor.addToBuffer(b);
+	public boolean onInputBytes(byte [] bytes) throws Exception{
+		logger.info("onInputByte: " + BlockModelContext.convertToHex(bytes));
+		this.ansiEscapeSequenceExtractor.addToBuffer(bytes);
 		while(this.ansiEscapeSequenceExtractor.getBuffer().size() > 0){ //  While there is still something to parse.
-			CursorPositionReport cpr = (CursorPositionReport)this.ansiEscapeSequenceExtractor.tryToParseBuffer();
-			if(cpr == null){
+			AnsiEscapeSequence escapeSequence = this.ansiEscapeSequenceExtractor.tryToParseBuffer();
+			if(escapeSequence == null){
 				if(this.ansiEscapeSequenceExtractor.wasParsingIncomplete()){
 					//  This case happens when we encounter a control sequence we haven't considered yet.
 					//  Just extract the portion of the control sequence that we were able to parse,
 					//  and then handle any remaining characters like normal input.  This isn't ideal,
 					//  but it's better than letting the input get blocked forever due to the parser
 					//  repeatedly failing to match the expected ANSI escape sequence patterns:
-					List<Byte> extracted = this.ansiEscapeSequenceExtractor.extractParsedBytes();
-					clientBlockModelContext.logMessage("->Parsing was incomplete!  Discarding these bytes: " + String.valueOf(extracted));
+					byte [] extracted = this.ansiEscapeSequenceExtractor.extractParsedBytes();
+					logger.info("->Parsing was incomplete!  Discarding these bytes: " + BlockModelContext.convertToHex(extracted));
 				}if(this.ansiEscapeSequenceExtractor.containsPartiallyParsedSequence()){
-					clientBlockModelContext.logMessage("->Input buffer contains partially parsed ansi sequence=" + String.valueOf(this.ansiEscapeSequenceExtractor.getBuffer()));
-					return false;  // Nothing more to do.
-				}else{
-					byte [] extracted = new byte [1];
-					extracted[0] = this.ansiEscapeSequenceExtractor.extractNextByte();
-					clientBlockModelContext.logMessage("->There is just regular text in the buffer: " + String.valueOf(extracted[0]));
-					boolean inputReadingFinished = this.clientBlockModelContext.onKeyboardInput(extracted);
-					if(inputReadingFinished){
-						return inputReadingFinished;
+					//  Single escape character?
+					if(this.ansiEscapeSequenceExtractor.getBuffer().size() == 1 && this.ansiEscapeSequenceExtractor.getBuffer().get(0) == 0x1b){
+						byte [] extracted = this.ansiEscapeSequenceExtractor.extractNextBytes(1);
+						ProcessStandardInputBytesWorkItem workItem = new ProcessStandardInputBytesWorkItem(this.consoleWriterThreadState, extracted);
+						this.consoleWriterThreadState.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
+					}else{
+						logger.info("->Input buffer contains partially parsed ansi sequence=" + String.valueOf(this.ansiEscapeSequenceExtractor.getBuffer()));
+						return false;  // Nothing more to do.
 					}
+				}else{
+					byte [] extracted = this.ansiEscapeSequenceExtractor.extractNextBytes(1);
+					logger.info("->There is just regular text in the buffer: " + BlockModelContext.convertToHex(extracted));
+					ProcessStandardInputBytesWorkItem workItem = new ProcessStandardInputBytesWorkItem(this.consoleWriterThreadState, extracted);
+					this.consoleWriterThreadState.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
 				}
 			}else{
 				//  If we successfully parsed an ANSI escape sequence, extract those characters from the stream:
-				List<Byte> extracted = this.ansiEscapeSequenceExtractor.extractParsedBytes();
-				clientBlockModelContext.logMessage("Got Character Position Report: x=" + cpr.getX() + ", y=" + cpr.getY() + ", extracted=" + String.valueOf(extracted));
-
-				CursorPositionReportWorkItem wm = new CursorPositionReportWorkItem(this.characterWidthMeasurementThreadState, cpr.getX(), cpr.getY());
-				this.characterWidthMeasurementThreadState.putWorkItem(wm, WorkItemPriority.PRIORITY_LOW);
+				byte [] extracted = this.ansiEscapeSequenceExtractor.extractParsedBytes();
+				logger.info("Got escape sequence, extracted=" + BlockModelContext.convertToHex(extracted));
+				ProcessStandardInputAnsiEscapeSequenceWorkItem wm = new ProcessStandardInputAnsiEscapeSequenceWorkItem(this.consoleWriterThreadState, escapeSequence);
+				this.consoleWriterThreadState.putWorkItem(wm, WorkItemPriority.PRIORITY_LOW);
 			}
 		}
 		return false;
@@ -119,7 +132,7 @@ public class StandardInputReaderTask extends Thread {
 
 	@Override
 	public void run() {
-		clientBlockModelContext.logMessage("Begin running StandardInputReaderTask (" + Thread.currentThread() + ") for " + this.clientBlockModelContext.getClass().getName());
+		logger.info("Begin running StandardInputReaderTask (" + Thread.currentThread() + ") for " + this.clientBlockModelContext.getClass().getName());
 		try{
 			try{
 				this.setToRawMode();
@@ -132,25 +145,20 @@ public class StandardInputReaderTask extends Thread {
 				do{
 					int buffer_len = 1024;
 					ByteBuffer buffer = ByteBuffer.allocate(buffer_len);
-					clientBlockModelContext.logMessage("Before input read, stdinChannel.size()=" + stdinChannel.size() + "... ");
+					logger.info("Before input read, stdinChannel.size()=" + stdinChannel.size() + "... ");
 					int read_rtn = stdinChannel.read(buffer);
-					clientBlockModelContext.logMessage("After input read... " + read_rtn);
+					logger.info("After input read... " + read_rtn);
 					if(read_rtn == -1){ //  When System.in has been closed
 						inputReadingFinished = true;
 					}else{
 						byte[] bytes_read = new byte[read_rtn];
 						buffer.rewind();
 						buffer.get(bytes_read);
-						clientBlockModelContext.logMessage("Bytes read are " + BlockModelContext.convertToHex(bytes_read));
-						for(int i = 0; i < read_rtn; i++){
-							inputReadingFinished = this.onInputByte(bytes_read[i]);
-							if(inputReadingFinished){
-								break;
-							}
-						}
+						logger.info("Bytes read are " + BlockModelContext.convertToHex(bytes_read));
+						inputReadingFinished = this.onInputBytes(bytes_read);
 					}
-				}while (!inputReadingFinished && !clientBlockModelContext.getBlockManagerThreadCollection().getIsFinished() && !Thread.currentThread().isInterrupted());
-			}catch(ClosedByInterruptException e){
+				}while (!inputReadingFinished && !clientBlockModelContext.getBlockManagerThreadCollection().getIsProcessFinished() && !Thread.currentThread().isInterrupted());
+			}catch(AsynchronousCloseException e){
 				//  This is expected during normal shutdown.
 			}
 			this.setToCookedMode();
@@ -158,16 +166,16 @@ public class StandardInputReaderTask extends Thread {
 			try{
 				this.setToCookedMode();
 			}catch(Exception ee){
-				clientBlockModelContext.logMessage("Unable to restore cooked mode.");
+				logger.info("Unable to restore cooked mode.");
 			}
 
-			clientBlockModelContext.logMessage("Exception:");
-			e.printStackTrace();
+			logger.info("run method terminated with an exception.");
+			clientBlockModelContext.getBlockManagerThreadCollection().setIsProcessFinished(true, e);
 		}
 
 		//  Put cursor position to top of screen:
 		System.out.println("\033[1;1H\033[0m");
 
-		clientBlockModelContext.logMessage("Finished running StandardInputReaderTask, exiting thread for " + this.clientBlockModelContext.getClass().getName());
+		logger.info("Finished running StandardInputReaderTask, exiting thread for " + this.clientBlockModelContext.getClass().getName());
 	}
 }

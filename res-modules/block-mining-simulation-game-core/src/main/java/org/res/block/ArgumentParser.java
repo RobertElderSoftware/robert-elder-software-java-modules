@@ -36,7 +36,13 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.HashMap;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
+
 class ArgumentParser {
+
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
 	private static List<ArgumentDescription> possibleArguments = Arrays.asList(
 		new ArgumentDescription("--help", 0, "Display this help menu."),
@@ -96,7 +102,7 @@ class ArgumentParser {
 			boolean foundArgMatch = false;
 			for (int argNum = 0; argNum < possibleArguments.size(); argNum++){
 				ArgumentDescription currentArg = possibleArguments.get(argNum);
-				//System.out.println("argNum=" + argNum + "=" + currentArg.getArgumentKey() + ",  possibleArguments.size()=" + possibleArguments.size());
+				//logger.info("argNum=" + argNum + "=" + currentArg.getArgumentKey() + ",  possibleArguments.size()=" + possibleArguments.size());
 
 				//  Support arguments of the form --arg 123 and --arg=123
 				if (args[i].contains("=")){
@@ -116,16 +122,16 @@ class ArgumentParser {
 						throw new Exception("Unexpected number of parts in argument: " + argParts.length);
 					}
 				}else{
-					//System.out.println("i=" + i + args[i] + " versus " + currentArg.getArgumentKey());
+					//logger.info("i=" + i + args[i] + " versus " + currentArg.getArgumentKey());
 					if(args[i].equals(currentArg.getArgumentKey())){
-						//System.out.println("-here0 for " + currentArg.getArgumentKey());
+						//logger.info("-here0 for " + currentArg.getArgumentKey());
 						if(currentArg.getLength() == 0){
 							
-							//System.out.println("-here1 for " + currentArg.getArgumentKey());
+							//logger.info("-here1 for " + currentArg.getArgumentKey());
 							ArgumentParser.tryToAddParam(params, currentArg.getArgumentKey(), new ArrayList<String>());
 							foundArgMatch = true;
 						}else{
-							//System.out.println("-here2 for " + currentArg.getArgumentKey());
+							//logger.info("-here2 for " + currentArg.getArgumentKey());
 							if(i + currentArg.getLength() < args.length){
 								List<String> valuesForThisArg = new ArrayList<String>();
 								for(int l = 0; l < currentArg.getLength(); l++){

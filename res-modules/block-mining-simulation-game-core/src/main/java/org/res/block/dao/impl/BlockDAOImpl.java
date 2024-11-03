@@ -175,10 +175,10 @@ public class BlockDAOImpl implements BlockDAO {
 				}
 			}else{
 				status.setRollbackOnly();
-				this.blockModelContext.getBlockManagerThreadCollection().setIsFinished(true, new Exception("Unknown database subprotocol."));
+				this.blockModelContext.getBlockManagerThreadCollection().setIsProcessFinished(true, new Exception("Unknown database subprotocol."));
 			}
 		}catch(Exception e){
-			this.blockModelContext.getBlockManagerThreadCollection().setIsFinished(true, e);
+			this.blockModelContext.getBlockManagerThreadCollection().setIsProcessFinished(true, e);
 		}
         }
 
@@ -261,7 +261,7 @@ public class BlockDAOImpl implements BlockDAO {
 			return cuboids;
 		}catch(Exception e){
 			status.setRollbackOnly();
-			this.blockModelContext.getBlockManagerThreadCollection().setIsFinished(true, e);
+			this.blockModelContext.getBlockManagerThreadCollection().setIsProcessFinished(true, e);
 			return null;
 		}
         }
@@ -342,7 +342,7 @@ public class BlockDAOImpl implements BlockDAO {
 			this.jdbcTemplate.update(sql);
         	}catch(Exception e){
 			status.setRollbackOnly();
-			this.blockModelContext.getBlockManagerThreadCollection().setIsFinished(true, e);
+			this.blockModelContext.getBlockManagerThreadCollection().setIsProcessFinished(true, e);
         	}
         }
 
@@ -433,7 +433,7 @@ public class BlockDAOImpl implements BlockDAO {
 			);
         	}catch(Exception e){
 			status.setRollbackOnly();
-			this.blockModelContext.getBlockManagerThreadCollection().setIsFinished(true, e);
+			this.blockModelContext.getBlockManagerThreadCollection().setIsProcessFinished(true, e);
         	}
         }
 

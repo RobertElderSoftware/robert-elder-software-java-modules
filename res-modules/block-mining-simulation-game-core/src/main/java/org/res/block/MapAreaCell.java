@@ -52,30 +52,30 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class ViewportCell {
+public class MapAreaCell {
 
-	private Set<ViewportCellFlag> viewportCellFlags = new TreeSet<ViewportCellFlag>();
+	private Set<MapAreaCellFlag> mapAreaCellFlags = new TreeSet<MapAreaCellFlag>();
 	private IndividualBlock currentBlock = null;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	public ViewportCell() throws Exception {
+	public MapAreaCell() throws Exception {
 
 	}
 
-	public boolean equals(ViewportCell other) throws Exception{
+	public boolean equals(MapAreaCell other) throws Exception{
 		if(this.getCurrentBlock() == null){
-			return other.getCurrentBlock() == null && this.viewportCellFlags.equals(other.getViewportCellFlags());
+			return other.getCurrentBlock() == null && this.mapAreaCellFlags.equals(other.getMapAreaCellFlags());
 		}else{
-			return this.getCurrentBlock().equals(other.getCurrentBlock()) && this.viewportCellFlags.equals(other.getViewportCellFlags());
+			return this.getCurrentBlock().equals(other.getCurrentBlock()) && this.mapAreaCellFlags.equals(other.getMapAreaCellFlags());
 		}
 	}
 
-	public void addViewportCellFlag(ViewportCellFlag flag){
-		this.viewportCellFlags.add(flag);
+	public void addMapAreaCellFlag(MapAreaCellFlag flag){
+		this.mapAreaCellFlags.add(flag);
 	}
 
-	public Set<ViewportCellFlag> getViewportCellFlags(){
-		return this.viewportCellFlags;
+	public Set<MapAreaCellFlag> getMapAreaCellFlags(){
+		return this.mapAreaCellFlags;
 	}
 
 	public String renderBlockCell(boolean isRestrictedGraphics) throws Exception {
@@ -93,17 +93,17 @@ public class ViewportCell {
 			if(b == null){
 				// No change
 			}else{
-				this.addViewportCellFlag(ViewportCellFlag.BLOCK_CHANGE);
+				this.addMapAreaCellFlag(MapAreaCellFlag.BLOCK_CHANGE);
 			}
 		}else{
 			if(b == null){
 				//  Last time it was set, but now it's not:
-				this.addViewportCellFlag(ViewportCellFlag.BLOCK_CHANGE);
+				this.addMapAreaCellFlag(MapAreaCellFlag.BLOCK_CHANGE);
 			}else{
 				if(Arrays.equals(this.currentBlock.getBlockData(), b.getBlockData())){
 					// No change
 				}else{
-					this.addViewportCellFlag(ViewportCellFlag.BLOCK_CHANGE);
+					this.addMapAreaCellFlag(MapAreaCellFlag.BLOCK_CHANGE);
 				}
 			}
 		}
@@ -111,24 +111,24 @@ public class ViewportCell {
 	}
 
 	public boolean hasBlockChangedFlags(){
-		return this.viewportCellFlags.contains(ViewportCellFlag.BLOCK_CHANGE);
+		return this.mapAreaCellFlags.contains(MapAreaCellFlag.BLOCK_CHANGE);
 	}
 
 	public boolean hasPlayerMovementFlags(){
-		return this.viewportCellFlags.contains(ViewportCellFlag.PLAYER_MOVEMENT);
+		return this.mapAreaCellFlags.contains(MapAreaCellFlag.PLAYER_MOVEMENT);
 	}
 
 	public boolean hasPendingLoadFlags(){
-		return this.viewportCellFlags.contains(ViewportCellFlag.PENDING_LOAD);
+		return this.mapAreaCellFlags.contains(MapAreaCellFlag.PENDING_LOAD);
 	}
 
 	public void clearNonLoadingFlags(){
 		/*  Remove all flags, except for the pending load flag: */
-		this.viewportCellFlags.remove(ViewportCellFlag.PLAYER_MOVEMENT);
-		this.viewportCellFlags.remove(ViewportCellFlag.BLOCK_CHANGE);
+		this.mapAreaCellFlags.remove(MapAreaCellFlag.PLAYER_MOVEMENT);
+		this.mapAreaCellFlags.remove(MapAreaCellFlag.BLOCK_CHANGE);
 	}
 
 	public void clearPendingLoadFlags(){
-		this.viewportCellFlags.remove(ViewportCellFlag.PENDING_LOAD);
+		this.mapAreaCellFlags.remove(MapAreaCellFlag.PENDING_LOAD);
 	}
 }

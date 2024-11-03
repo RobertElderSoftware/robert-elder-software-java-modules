@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.List;
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.lang.reflect.ParameterizedType;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -66,15 +67,15 @@ import java.lang.InterruptedException;
 
 public class BlockManagerThreadCollection {
 
-	private Object lock = new Object();
 	private boolean shutdownNotifiesSent = false; //  This variable prevents a cascade of 'shutdown' notifies from every other task once shutdown is triggered by one task.
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	protected Object shutdownLock = new Object();
+	protected Object lock = new Object();
 	protected boolean enableJNI;
-	protected boolean isFinished = false;
+	protected boolean isProcessFinished = false;
 	protected List<Exception> offendingExceptions = new ArrayList<Exception>();
-	private Map<Long, Thread> allThreads = new HashMap<Long, Thread>();
+	private Map<Long, BlockManagerThread> allThreads = new HashMap<Long, BlockManagerThread>();
+	private List<Long> activeThreadIds = new ArrayList<Long>();
 	private CommandLineArgumentCollection commandLineArgumentCollection;
 
 	protected ClientServerInterface clientServerInterface = null;
@@ -89,17 +90,10 @@ public class BlockManagerThreadCollection {
 			this.linuxBlockJNIInterface = new LinuxBlockJNIInterface();
 		}
 
-		//String catalinaBase = System.getProperty("catalina.base");
-		//String userDirectory = System.getProperty("user.dir");
-		//this.logMessage("catalinaBase=" + catalinaBase + ", userDirectory=" + userDirectory);
-		//String currentWorkingDirectory = catalinaBase == null ? userDirectory : catalinaBase + "/webapps/ROOT/WEB-INF/classes";
-		//String blockSchemaLocation = currentWorkingDirectory + "/v3_block_schema.json";
-		//this.logMessage("About to look for block schema at location " + blockSchemaLocation + ".");
-		
 		String explicitBlockSchemaFile = this.getBlockSchemaFile();
 		String blockSchemaFileString = null;
 		if(explicitBlockSchemaFile == null){
-			blockSchemaFileString = this.loadJarResourceIntoString("/v3_block_schema.json");
+			blockSchemaFileString = this.loadJarResourceIntoString("/v4_block_schema.json");
 		}else{
 			blockSchemaFileString = new String(Files.readAllBytes(Paths.get(explicitBlockSchemaFile)), "UTF-8");
 		}
@@ -182,13 +176,40 @@ public class BlockManagerThreadCollection {
 		return this.linuxBlockJNIInterface;
 	}
 
-	public void addThread(Thread t){
+	public void addThread(BlockManagerThread t) throws Exception{
 		t.start();
-		this.allThreads.put(t.getId(), t);
+		synchronized(lock){
+			Long threadId = t.getId();
+			if(this.allThreads.containsKey(threadId)){
+				throw new Exception("threadId=" + threadId + " already exists.");
+			}else{
+				this.allThreads.put(threadId, t);
+				this.activeThreadIds.add(threadId);
+			}
+		}
 	}
 
-	public void addThreads(List<Thread> threads){
-		for(Thread t : threads){
+	public void removeThread(BlockManagerThread t) throws Exception{
+		synchronized(lock){
+			Long threadId = t.getId();
+			if(this.allThreads.containsKey(threadId)){
+				this.allThreads.remove(threadId);
+				int offset = this.activeThreadIds.indexOf(threadId);
+				if(offset == -1){
+					throw new Exception("Did not find threadId=" + threadId + " in list.");
+				}else{
+					//logger.info("Before removing threadId=" + threadId + ": this.activeThreadIds=" + this.activeThreadIds);
+					this.activeThreadIds.remove(offset);
+					//logger.info("After removing threadId=" + threadId + ": this.activeThreadIds=" + this.activeThreadIds);
+				}
+			}else{
+				throw new Exception("Did not find threadId=" + threadId + " in map.");
+			}
+		}
+	}
+
+	public void addThreads(List<BlockManagerThread> threads) throws Exception{
+		for(BlockManagerThread t : threads){
 			this.addThread(t);
 		}
 	}
@@ -200,64 +221,83 @@ public class BlockManagerThreadCollection {
 	public void sendShutdownNotifies() throws Exception{
 		// Initiates an orderly shutdown in which previously submitted tasks are executed, but
 		// no new tasks will be accepted. Invocation has no additional effect if already shut down.
-		for(Map.Entry<Long, Thread> e : this.allThreads.entrySet()){
-			Long threadId = e.getKey();
-			Thread t = e.getValue();
-			logger.info(Thread.currentThread().getClass().getName() + " " + Thread.currentThread() + " " + Thread.currentThread().getId() + " " + t.getClass().getName() + " " + t + " " + t.getId() + " == " + Thread.currentThread().equals(t));
+		for(int i = 0; i < this.activeThreadIds.size(); i++){
+			Long threadId = this.activeThreadIds.get(i);
+			BlockManagerThread t = this.allThreads.get(threadId);
+			logger.info(Thread.currentThread().getClass().getName() + " " + Thread.currentThread() + " " + Thread.currentThread().getId() + " " + t.getBetterClassName() + " " + t + " " + t.getId() + " == " + Thread.currentThread().equals(t));
 			if(t instanceof StandardInputReaderTask){
 				try{
 					//  Close stdin to trigger exit of 'read' call for keyboard input task:
-					logger.info("Calling System.in.close() for thread " + t.getClass().getName() + "...");
+					logger.info("Calling System.in.close() for thread " + t.getBetterClassName() + "...");
 					System.in.close();
 				}catch (IOException ex){
 					this.offendingExceptions.add(ex);
 				}
 			}else{
 				if(Thread.currentThread().equals(t)){
-					logger.info("Don't interrupt the current thread because it's the one interrupting the others: " + t.getClass().getName() + "...");
+					logger.info("Don't interrupt the current thread because it's the one interrupting the others: " + t.getBetterClassName() + "...");
 				}else{
-					logger.info("t.isInterrupted()=" + t.isInterrupted() + ". Calling t.interrupt() on thread " + t.getClass().getName() + "...");
+					logger.info("t.isInterrupted()=" + t.isInterrupted() + ". Calling t.interrupt() on thread " + t.getBetterClassName() + "...");
 					t.interrupt();
-					logger.info("t.isInterrupted()=" + t.isInterrupted() + " now on thread " + t.getClass().getName() + "...");
+					logger.info("t.isInterrupted()=" + t.isInterrupted() + " now on thread " + t.getBetterClassName() + "...");
 				}
 			}
 		}
 	}
 
-	public void setIsFinished(boolean isFinished, Exception e){
+	public void setIsProcessFinished(boolean isProcessFinished, Exception e){
 		synchronized(lock){
-			this.isFinished = isFinished;
+			this.isProcessFinished = isProcessFinished;
 			if(e != null){
 				this.offendingExceptions.add(e);
 			}
-			if(this.isFinished){
+			if(this.isProcessFinished){
 				try{
 					if(!this.shutdownNotifiesSent){
 						this.sendShutdownNotifies();
 						this.shutdownNotifiesSent = true;
+						//  Wake up threads that are blocked getting signals so they can shut down
+						if(this.getIsJNIEnabled()){
+							this.getLinuxBlockJNIInterface().shutdownInXMilliseconds(0);
+						}
 					}
 				}catch(Exception exception){
 					exception.printStackTrace();
-				}
-				//  Wake up threads that are blocked getting signals so they can shut down
-				if(this.getIsJNIEnabled()){
-					this.getLinuxBlockJNIInterface().shutdownInXMilliseconds(0);
 				}
 			}
 		}
 	}
 
-	public void blockUntilAllTasksHaveTerminated(){
+	public void blockUntilAllTasksHaveTerminated() throws Exception{
 		//  Wait for all threads to finish:
-		for(Map.Entry<Long, Thread> e : this.allThreads.entrySet()){
+		int numActiveThreads = this.activeThreadIds.size();
+		while(numActiveThreads > 0){
 			try{
-				e.getValue().join();
+				BlockManagerThread t = null;
+				Long threadId = null;
+				synchronized(lock){
+					threadId = this.activeThreadIds.get(0);
+					t = this.allThreads.get(threadId);
+				}
+				t.join();
+				//  Only remove it from the list after it's finished:
+				synchronized(lock){
+					this.activeThreadIds.remove(0);
+					//logger.info("blockUntilAllTasksHaveTerminated, Before removing threadId=" + threadId + ": this.activeThreadIds=" + this.activeThreadIds);
+					this.allThreads.remove(threadId);
+					//logger.info("blockUntilAllTasksHaveTerminated, After removing threadId=" + threadId + ": this.activeThreadIds=" + this.activeThreadIds);
+					if(!(t.getId() == threadId)){
+						throw new Exception("t.getId()=" + t.getId() + " != threadId=" + threadId);
+					}
+					logger.info("After thread join, removed threadId=" + threadId);
+					numActiveThreads = this.activeThreadIds.size();
+				}
 			}catch(InterruptedException ex){
 			}
 		}
 	}
 
-	public boolean getIsFinished(){
-		return this.isFinished;
+	public boolean getIsProcessFinished(){
+		return this.isProcessFinished;
 	}
 }

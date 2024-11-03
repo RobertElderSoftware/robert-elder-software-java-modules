@@ -30,21 +30,40 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.stream.Collectors;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Arrays;
 import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
 
-public class ChunkInitializerNotifyGameAreaChangeWorkItem extends ChunkInitializerWorkItem {
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-	private CuboidAddress gameArea;
+import java.util.Date;
+import java.util.Set;
+import java.util.HashSet;
+import java.io.BufferedWriter;
+import java.text.SimpleDateFormat;
+import java.io.File;
+import java.io.FileOutputStream;
 
-	public ChunkInitializerNotifyGameAreaChangeWorkItem(ChunkInitializerThreadState chunkInitializerThreadState, CuboidAddress gameArea){
-		super(chunkInitializerThreadState);
-		this.gameArea = gameArea;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
+import java.util.concurrent.atomic.AtomicLong;
+
+public class FrameBordersDescription {
+
+	private Set<Coordinate> framePoints;
+
+	public FrameBordersDescription(Set<Coordinate> framePoints){
+		this.framePoints = framePoints;
 	}
 
-	public void doWork() throws Exception{
-		this.chunkInitializerThreadState.onGameAreaChange(gameArea);
+	public Set<Coordinate> getFramePoints(){
+		return this.framePoints;
 	}
 }

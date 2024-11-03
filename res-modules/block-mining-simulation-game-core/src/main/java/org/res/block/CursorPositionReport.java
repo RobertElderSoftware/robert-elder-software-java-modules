@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class CursorPositionReport  extends AnsiEscapeSequence {
+public class CursorPositionReport extends AnsiEscapeSequence {
 
 	private Long x;
 	private Long y;
