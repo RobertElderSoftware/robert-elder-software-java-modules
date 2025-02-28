@@ -52,7 +52,7 @@ You can switch focus between the 'frames' in the game's UI by pressing the 'TAB'
 You can run the .jar file with the '--help' flag to show a help menu:
 
 ```
-java -jar block-mining-simulation-game-single-player-client-0.0.5.jar --help
+java -jar block-mining-simulation-game-single-player-client-0.0.6.jar --help
 ```
 
 
@@ -87,8 +87,8 @@ Currently, the game has only been tested to work on a default installation of Ub
 Compiling the game from scratch is not necessary.  You can download pre-compiled .jar files from GitHub in the 'Releases' section for this repo:
 
 ```
-wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.5/block-mining-simulation-game-single-player-client-0.0.5.jar
-java -jar block-mining-simulation-game-single-player-client-0.0.5.jar
+wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.6/block-mining-simulation-game-single-player-client-0.0.6.jar
+java -jar block-mining-simulation-game-single-player-client-0.0.6.jar
 ```
 
 The game should immediately launch and fill up the terminal with graphics.  You can exit the game by pressing the 'q' key.  By default, the game saves it's world data into a SQLite database file that lives in the current directory.
@@ -98,11 +98,11 @@ The game should immediately launch and fill up the terminal with graphics.  You 
 If you are concerned about the authenticity of the .jar file, you can also verify the signature using GPG:
 
 ```
-wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.5/block-mining-simulation-game-single-player-client-0.0.5.jar.asc
+wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.6/block-mining-simulation-game-single-player-client-0.0.6.jar.asc
 gpg --search-keys robert@robertelder.org
 #  Should match the key for 'robert@robertelder.org'
 gpg --recv-keys ECBD481DBCA5C48804FBD08720B9852CF0558BAA
-gpg --verify block-mining-simulation-game-single-player-client-0.0.5.jar.asc block-mining-simulation-game-single-player-client-0.0.5.jar
+gpg --verify block-mining-simulation-game-single-player-client-0.0.6.jar.asc block-mining-simulation-game-single-player-client-0.0.6.jar
 ```
 
 The output should look something like this:

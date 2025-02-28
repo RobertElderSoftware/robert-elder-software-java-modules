@@ -46,12 +46,13 @@ import java.lang.Thread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
+import java.security.MessageDigest;
 
 public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitializerWorkItem> {
 
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 	private Set<Long> outstandingChunkWriteConversations = new HashSet<Long>();
-	private MultiDimensionalNoiseGenerator noiseGenerator = new MultiDimensionalNoiseGenerator(0L);
+	private MultiDimensionalNoiseGenerator noiseGenerator = new MultiDimensionalNoiseGenerator(0L, MessageDigest.getInstance("SHA-512"));
 	private Coordinate playerPosition = null;
 	private CuboidAddress reachableMapArea = null;
 	private Map<CuboidAddress, Cuboid> cuboidsToInitialize = new HashMap<CuboidAddress, Cuboid>();

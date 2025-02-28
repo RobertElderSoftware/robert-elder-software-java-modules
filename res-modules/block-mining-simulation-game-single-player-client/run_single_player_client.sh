@@ -20,8 +20,7 @@ mvn -e -Dmaven.repo.local=${MVN_REPO} -pl res-modules/block-mining-simulation-ga
 if [ $? -eq 0 ]; then
 	#  If there's a second param, just copy the jar for release:
 	if [ $# -ge 2 ]; then
-		cp res-modules/block-mining-simulation-game-single-player-client/target/block-mining-simulation-game-single-player-client-${CURRENT_REVISION}.jar ./
-		sha512sum block-mining-simulation-game-single-player-client-${CURRENT_REVISION}.jar > block-mining-simulation-game-single-player-client-${CURRENT_REVISION}.jar.sha512
+		cd res-modules/block-mining-simulation-game-single-player-client/target/ && sha512sum block-mining-simulation-game-single-player-client-${CURRENT_REVISION}.jar > block-mining-simulation-game-single-player-client-${CURRENT_REVISION}.jar.sha512
 	#  Otherwise, run the game:
 	else
 		#  Just run the game

@@ -58,9 +58,9 @@ public class MultiDimensionalNoiseGenerator {
 	private Long seed;
 	private MessageDigest digest;
 
-	public MultiDimensionalNoiseGenerator(Long seed) throws Exception {
+	public MultiDimensionalNoiseGenerator(Long seed, MessageDigest digest) throws Exception {
 		this.seed = seed;
-		this.digest = MessageDigest.getInstance("SHA-512");
+		this.digest = digest;
 	}
 
 	double getNoiseDotProductAtVertex(long [] coordinateLong, double [] coordinateDouble) throws Exception {
@@ -204,10 +204,10 @@ public class MultiDimensionalNoiseGenerator {
 		if(frequencies.length != amplitudes.length){
 			throw new Exception("Length missmatch between frequencies: " + frequencies.length + " and amplitudes:" + amplitudes.length);
 		}
-		int requiredHashOutputSize = ((coordinateLong.length + 1) * Long.BYTES);
-		int actualHashOutputSize = (512 / 8);
-		if(requiredHashOutputSize > actualHashOutputSize){
-			throw new Exception("Cannot handle this many dimensions: " + coordinateLong.length + ".  You could easily fix this by using a different noise hash function with a larger output size. requiredHashOutputSize=" + requiredHashOutputSize + ", actualHashOutputSize=" + actualHashOutputSize);
+		int requiredHashOutputSizeBytes = ((coordinateLong.length + 1) * Long.BYTES);
+		int actualHashOutputSizeBytes = this.digest.getDigestLength();
+		if(requiredHashOutputSizeBytes > actualHashOutputSizeBytes){
+			throw new Exception("Cannot handle this many dimensions: " + coordinateLong.length + ".  You could easily fix this by using a different noise hash function with a larger output size. requiredHashOutputSizeBytes=" + requiredHashOutputSizeBytes + ", actualHashOutputSizeBytes=" + actualHashOutputSizeBytes);
 		}
 		double totalSoFar = 0.0;
 

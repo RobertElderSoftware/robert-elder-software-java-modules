@@ -57,6 +57,8 @@ import java.io.InputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -73,15 +75,131 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.security.MessageDigest;
 
 class BlockManagerUnitTests {
+
+	private static String noiseTestOutputFolder = "/tmp";
 
 	public static void main(String[] args) throws Exception {
 		//  Just uncomment whichever unit test you want to run:
 		runWorkItemQueueTest();
-		//runIntersectingChunkSetUnitTest();
-		//runCuboidAddressIntersectionUnitTest();
-		//runMultiDimensionalNoiseGeneratorUnitTest();
+		runIntersectingChunkSetUnitTest();
+		runCuboidAddressIntersectionUnitTest();
+		runMultiDimensionalNoiseGeneratorUnitTest(
+			new MultiDimensionalNoiseGeneratorUnitTestParameters(
+				"example-ore-islands",
+				MessageDigest.getInstance("SHA-512"),
+				false,      // Make video or not?
+				600,        // width
+				600,        // height
+				-200,       // x offset
+				-200,       // y offset
+				1,          // num frames
+				(p, noiseGenerator, x, y, z) -> {
+					long [] coordinate = new long [3];
+					coordinate[0] = x + p.getXOffset();
+					coordinate[1] = y + p.getYOffset();
+					coordinate[2] = z;
+					double smallWaveNoise = noiseGenerator.multiOctaveNoiseAtCoordinate(coordinate, new double [] {0.08}, new double [] {Math.pow(0.08, 1.2)}) * 100;
+					double largeWaveNoise = (noiseGenerator.multiOctaveNoiseAtCoordinate(coordinate, new double [] {0.01}, new double [] {Math.pow(0.01, 1.2)}) * 10000) - 3.0;
+					double positiveLargeWaveNoise = largeWaveNoise < 0.0 ? 0.0 : largeWaveNoise;
+					double noiseAtPixel = smallWaveNoise * positiveLargeWaveNoise;
+					return noiseAtPixel;
+				}
+			)
+		);
+		runMultiDimensionalNoiseGeneratorUnitTest(
+			new MultiDimensionalNoiseGeneratorUnitTestParameters(
+				"two-frequencies",
+				MessageDigest.getInstance("SHA-512"),
+				false,      // Make video or not?
+				600,        // width
+				600,        // height
+				-200,       // x offset
+				-200,       // y offset
+				1,          // num frames
+				(p, noiseGenerator, x, y, z) -> {
+					long [] coordinate = new long [3];
+					coordinate[0] = x + p.getXOffset();
+					coordinate[1] = y + p.getYOffset();
+					coordinate[2] = z;
+					double [] frequencies = new double [] {0.08, 0.01};
+					double [] amplitudes = new double [] {1.0 / Math.pow(0.08, 1.2), 1.0 / Math.pow(0.01, 1.2)};
+					double noiseAtPixel = noiseGenerator.multiOctaveNoiseAtCoordinate(coordinate, frequencies, amplitudes) / 8;
+					return noiseAtPixel;
+				}
+			)
+		);
+		runMultiDimensionalNoiseGeneratorUnitTest(
+			new MultiDimensionalNoiseGeneratorUnitTestParameters(
+				"pink-noise",
+				MessageDigest.getInstance("SHA-512"),
+				false,      // Make video or not?
+				1920,        // width
+				1080,        // height
+				-200,       // x offset
+				-200,       // y offset
+				1,          // num frames
+				(p, noiseGenerator, x, y, z) -> {
+					long [] coordinate = new long [3];
+					coordinate[0] = x + p.getXOffset();
+					coordinate[1] = y + p.getYOffset();
+					coordinate[2] = z;
+
+					int num_octaves = 1;
+					double [] frequencies = new double [num_octaves];
+					double [] amplitudes = new double [num_octaves];
+					double frequency = 0.01;
+					double total_amplitude = 0.0;
+					for(int i = 0; i < num_octaves; i++){
+						frequencies[i] = frequency;
+						amplitudes[i] = 1.0 / Math.pow(frequency, 1.2);
+						total_amplitude += amplitudes[i];
+						frequency *= 2;
+					}
+
+					double noiseAtPixel = noiseGenerator.multiOctaveNoiseAtCoordinate(coordinate, frequencies, amplitudes) / Math.pow(total_amplitude, 0.9);
+					return noiseAtPixel;
+				}
+			)
+		);
+                runMultiDimensionalNoiseGeneratorUnitTest(
+                        new MultiDimensionalNoiseGeneratorUnitTestParameters(
+                                "4k-interesting-demo",
+				MessageDigest.getInstance("SHA-512"),
+				true,       // Make video or not?
+                                3840,        // width
+                                2160,        // height
+                                10000,       // x offset
+                                10000,       // y offset
+                                //120,         // num frames
+                                1,         // num frames
+                                (p, noiseGenerator, x, y, z) -> {
+                                        long [] coordinate = new long [3];
+                                        coordinate[0] = x + p.getXOffset();
+                                        coordinate[1] = y + p.getYOffset();
+                                        coordinate[2] = z;
+
+                                        int num_octaves = 6;
+                                        double [] frequencies = new double [num_octaves];
+                                        double [] amplitudes = new double [num_octaves];
+                                        double frequency_base = 0.07;
+                                        double current_frequency = frequency_base;
+                                        double total_amplitude = 0.0;
+                                        for(int i = 0; i < num_octaves; i++){
+                                                frequencies[i] = current_frequency;
+                                                double denominator = Math.pow(current_frequency, 0.9);
+                                                amplitudes[i] = 1.0 / denominator;
+                                                total_amplitude += amplitudes[i];
+                                                current_frequency /= 2;
+                                        }
+
+                                        double noiseAtPixel = noiseGenerator.multiOctaveNoiseAtCoordinate(coordinate, frequencies, amplitudes) / Math.pow(total_amplitude, 0.65);
+                                        return noiseAtPixel;
+                                }
+                        )
+                );
 	}
 
 	public static void runWorkItemQueueTest() throws Exception {
@@ -123,48 +241,59 @@ class BlockManagerUnitTests {
 		System.out.println("TEST PASSED.");
 	}
 
-	public static void runMultiDimensionalNoiseGeneratorUnitTest() throws Exception {
-		/*
-		int num_octaves = 1;
-		double [] frequencies = new double [num_octaves];
-		double [] amplitudes = new double [num_octaves];
-		double frequency = 0.01;
-		for(int i = 0; i < num_octaves; i++){
-			frequencies[i] = frequency;
-			amplitudes[i] = 1.0 / Math.pow(frequency, 1.2);
-			frequency *= 3;
-		}
-		*/
-		double [] frequencies = new double [] {0.08, 0.01};
-		double [] amplitudes = new double [] {1.0 / Math.pow(0.08, 1.2), 1.0 / Math.pow(0.01, 1.2)};
-		int width = 600;
-		int height = 600;
-		int x_offset = -200;
-		int y_offset = -200;
-		int num_frames = 10;
+	public static void runMultiDimensionalNoiseGeneratorUnitTest(MultiDimensionalNoiseGeneratorUnitTestParameters params) throws Exception {
+
+		int width = params.getWidth();
+		int height = params.getHeight();
+		int x_offset = params.getXOffset();
+		int y_offset = params.getYOffset();
+		int num_frames = params.getNumFrames();
 		int[] flattenedData = new int[width*height*3];
 
-		//  This will produce a video file that actually shows you drifting through the noise field.  The 'success' for this test is whether the noise actually looks smooth or not.
-		List<String> commandParts = Arrays.asList(new String [] {"ffmpeg", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", width + "x" + height, "-r", "30", "-i", "-", "-c:v", "libx264", "-crf", "0", "-preset", "ultrafast", "-qp", "0", "-an", "/tmp/out_vid.mp4"});
+		ShellProcessRunner r = null;
+		OutputStream inputForffmpegProcess = null;
+		if(params.getMakeVideo()){
+			//  This will produce a video file that actually shows you drifting through the noise field.
+			//  The 'success' for this test is whether the noise actually looks smooth or not.
+			List<String> commandParts = Arrays.asList(
+				new String [] {
+					"ffmpeg",
+					"-y",
+					"-f",
+					"rawvideo",
+					"-pix_fmt",
+					"rgb24",
+					"-s",
+					width + "x" + height,
+					"-r",
+					"30",
+					"-i",
+					"-",
+					"-c:v",
+					"libx264",
+					"-crf",
+					"0",
+					"-preset",
+					"ultrafast",
+					"-qp",
+					"0",
+					"-an",
+					BlockManagerUnitTests.noiseTestOutputFolder + "/" + params.getTestName() + ".mp4"
+				}
+			);
 
-		ShellProcessRunner r = new ShellProcessRunner(commandParts, null, null, true);
-		OutputStream inputForffmpegProcess = r.getOutputStreamForStdin();
+			r = new ShellProcessRunner(commandParts, null, null, true);
+			inputForffmpegProcess = r.getOutputStreamForStdin();
+		}
 
-		MultiDimensionalNoiseGenerator noiseGenerator = new MultiDimensionalNoiseGenerator(0L);
+		MultiDimensionalNoiseGenerator noiseGenerator = new MultiDimensionalNoiseGenerator(0L, params.getMessageDigest());
 
 		for(int z = 0; z < num_frames; z++){
+			long frameStartTime = System.currentTimeMillis();
 			BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
 			for(int x = 0; x < width; x++){
 				for(int y = 0; y < height; y++){
-					long [] coordinate = new long [3];
-					coordinate[0] = x + x_offset;
-					coordinate[1] = y + y_offset;
-					coordinate[2] = z;
-					//double noiseAtPixel = noiseGenerator.multiOctaveNoiseAtCoordinate(coordinate, frequencies, amplitudes) / 8;
-					double smallWaveNoise = noiseGenerator.multiOctaveNoiseAtCoordinate(coordinate, new double [] {0.08}, new double [] {Math.pow(0.08, 1.2)}) * 100;
-					double largeWaveNoise = (noiseGenerator.multiOctaveNoiseAtCoordinate(coordinate, new double [] {0.01}, new double [] {Math.pow(0.01, 1.2)}) * 10000) - 3.0;
-					double positiveLargeWaveNoise = largeWaveNoise < 0.0 ? 0.0 : largeWaveNoise;
-					double noiseAtPixel = smallWaveNoise * positiveLargeWaveNoise;
+					double noiseAtPixel = params.getNoiseFunction().noiseFunction(params, noiseGenerator, x, y, z);
 					noiseAtPixel = noiseAtPixel > 1.0 ? 1.0 : noiseAtPixel;
 					noiseAtPixel = noiseAtPixel < -1.0 ? -1.0 : noiseAtPixel;
 					if(noiseAtPixel < -1.0 || noiseAtPixel > 1.0){
@@ -174,38 +303,51 @@ class BlockManagerUnitTests {
 					int greyShade = ((int)(normalizedPositiveNose * (double)255));
 					int alpha = 0xFF;
 					img.setRGB(x, (height - y -1), greyShade + (greyShade << 8) + (greyShade << 16) + (alpha << 24));
-					//System.out.println("Using pixel value " + greyShade);
 				}
+				System.out.println("Finished " + params.getTestName() + " x=" + x + " of " + width + ", frame z=" + z + " of " + num_frames);
 			}
+			long frameEndTime = System.currentTimeMillis();
+			System.out.println("Finished frame z=" + z + " in " + (frameEndTime - frameStartTime) + " milliseconds.");
 			Graphics2D g2d = img.createGraphics();
-			g2d.setFont(new Font("TimesRoman", Font.PLAIN, 20));
-			g2d.drawString("z=" + z, 10, 20);
+			int fontSize = params.getHeight() / 30;
+			g2d.setFont(new Font("TimesRoman", Font.PLAIN, fontSize));
+			int xOffsetText = params.getWidth() / 60;
+			int yOffsetText = params.getHeight() / 30;
+			g2d.drawString("z=" + z, xOffsetText, yOffsetText);
 
 			byte [] imageData = ((DataBufferByte)img.getRaster().getDataBuffer()).getData();
 
-			inputForffmpegProcess.write(imageData, 0, imageData.length);
+			if(params.getMakeVideo()){
+				inputForffmpegProcess.write(imageData, 0, imageData.length);
 
-			ShellProcessPartialResult pr = r.getPartialResult();
-			System.out.print(new String(pr.getStdoutOutput(), "UTF-8"));
-			System.err.print(new String(pr.getStderrOutput(), "UTF-8"));
-
-			/*
-			//  For inspection of individual noise frames:
-			String fname = "/tmp/filename" + z + ".dat";
-			try (FileOutputStream fos = new FileOutputStream(fname)) {
-				fos.write(imageData);
+				ShellProcessPartialResult pr = r.getPartialResult();
+				System.out.print(new String(pr.getStdoutOutput(), "UTF-8"));
+				System.err.print(new String(pr.getStderrOutput(), "UTF-8"));
+			}else{
+				//  For inspection of individual noise frames:
+				String currentTestFolder = BlockManagerUnitTests.noiseTestOutputFolder + "/" + params.getTestName();
+				String rawFilesLocation = currentTestFolder + "/raw";
+				String bitmapFilesLocation = currentTestFolder + "/bitmap";
+				Files.createDirectories(Paths.get(rawFilesLocation));
+				Files.createDirectories(Paths.get(bitmapFilesLocation));
+				String rawFilename = rawFilesLocation + "/" + z + ".dat";
+				try (FileOutputStream rawFileOutputStream = new FileOutputStream(rawFilename)) {
+					rawFileOutputStream.write(imageData);
+				}
+				String bitmapFilename = bitmapFilesLocation + "/" + z + ".bmp";
+				ImageIO.write(img, "BMP", new File(bitmapFilename));
+				System.out.println("Wrote out to " + bitmapFilename);
 			}
-			ImageIO.write(img, "BMP", new File(fname + ".bmp"));
-			System.out.println("Wrote out " + fname);
-			*/
 		}
-		inputForffmpegProcess.close();
+		if(params.getMakeVideo()){
+			inputForffmpegProcess.close();
 
-		ShellProcessFinalResult f = r.getFinalResult();
-		System.out.print(new String(f.getOutput().getStdoutOutput(), "UTF-8"));
-		System.err.print(new String(f.getOutput().getStderrOutput(), "UTF-8"));
+			ShellProcessFinalResult f = r.getFinalResult();
+			System.out.print(new String(f.getOutput().getStdoutOutput(), "UTF-8"));
+			System.err.print(new String(f.getOutput().getStderrOutput(), "UTF-8"));
 
-		System.out.println("Process exited with return code " + f.getReturnValue());
+			System.out.println("Process exited with return code " + f.getReturnValue());
+		}
 	}
 
 	public static void runIntersectingChunkSetUnitTest() throws Exception {
