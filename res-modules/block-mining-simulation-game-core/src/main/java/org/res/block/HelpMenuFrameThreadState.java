@@ -94,7 +94,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		ColouredTextFragmentList topTitlePart = new ColouredTextFragmentList();
 		topTitlePart.add(new ColouredTextFragment("Block Mining Simulation Game Help Menu\n\n\nInput Keys", titleAnsiCodes));
 
-		List<LinePrintingInstruction> introInstructions = this.getLinePrintingInstructions(topTitlePart, 1L, 1L, false, false);
+		List<LinePrintingInstruction> introInstructions = this.getLinePrintingInstructions(topTitlePart, 1L, 1L, false, false, this.getInnerFrameWidth());
 		rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(introInstructions, currentLine, 1L));
 		currentLine += introInstructions.size() + 1;
 
@@ -126,7 +126,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		inputKeys.addAll(ki.getAllKeyboardActions().keySet());
 		for(String inputKey : inputKeys){
 			String keyPresentation = this.getKeyPresentation(inputKey);
-			List<LinePrintingInstruction> keyIns = this.getLinePrintingInstructions(keyPresentation, blockOffsetLeftPadding, rightPadding, true, false);
+			List<LinePrintingInstruction> keyIns = this.getLinePrintingInstructions(keyPresentation, blockOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
 			rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(keyIns, currentLine, 1L));
 
 
@@ -134,7 +134,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			ColouredTextFragmentList keyDescriptionPart = new ColouredTextFragmentList();
 			keyDescriptionPart.add(new ColouredTextFragment("KEY DESCRIPTION:", titleAnsiCodes));
 			keyDescriptionPart.add(new ColouredTextFragment(" " + keyDescription, new int[] {UserInterfaceFrameThreadState.RESET_BG_COLOR}));
-			List<LinePrintingInstruction> keyDescriptionInstructions = this.getLinePrintingInstructions(keyDescriptionPart, descriptionOffsetLeftPadding, rightPadding, true, false);
+			List<LinePrintingInstruction> keyDescriptionInstructions = this.getLinePrintingInstructions(keyDescriptionPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
 			rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(keyDescriptionInstructions, currentLine, 1L));
 			currentLine += keyDescriptionInstructions.size() + 1;
 		}
@@ -142,27 +142,27 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		ColouredTextFragmentList blockTypesTitlePart = new ColouredTextFragmentList();
 		blockTypesTitlePart.add(new ColouredTextFragment("Block Types", titleAnsiCodes));
 
-		List<LinePrintingInstruction> blockTypesTitleInstructions = this.getLinePrintingInstructions(blockTypesTitlePart, 1L, 1L, false, false);
+		List<LinePrintingInstruction> blockTypesTitleInstructions = this.getLinePrintingInstructions(blockTypesTitlePart, 1L, 1L, false, false, this.getInnerFrameWidth());
 		rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(blockTypesTitleInstructions, currentLine, 1L));
 		currentLine += blockTypesTitleInstructions.size() + 1;
 
-		List<LinePrintingInstruction> qB = this.getLinePrintingInstructions("'?'", blockOffsetLeftPadding, rightPadding, true, false);
+		List<LinePrintingInstruction> qB = this.getLinePrintingInstructions("'?'", blockOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
 		rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(qB, currentLine, 1L));
 
 		ColouredTextFragmentList qBPart = new ColouredTextFragmentList();
 		qBPart.add(new ColouredTextFragment("BLOCK DESCRIPTION:", titleAnsiCodes));
 		qBPart.add(new ColouredTextFragment(" Question marks represent areas on the map that are not currently loaded into the game client's memory.", new int[] {UserInterfaceFrameThreadState.RESET_BG_COLOR}));
-		List<LinePrintingInstruction> qBInstructions = this.getLinePrintingInstructions(qBPart, descriptionOffsetLeftPadding, rightPadding, true, false);
+		List<LinePrintingInstruction> qBInstructions = this.getLinePrintingInstructions(qBPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
 		rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(qBInstructions, currentLine, 1L));
 		currentLine += qBInstructions.size() + 1;
 
-		List<LinePrintingInstruction> uB = this.getLinePrintingInstructions("'U'", blockOffsetLeftPadding, rightPadding, true, false);
+		List<LinePrintingInstruction> uB = this.getLinePrintingInstructions("'U'", blockOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
 		rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(uB, currentLine, 1L));
 
 		ColouredTextFragmentList uBPart = new ColouredTextFragmentList();
 		uBPart.add(new ColouredTextFragment("BLOCK DESCRIPTION:", titleAnsiCodes));
 		uBPart.add(new ColouredTextFragment(" The 'U' character represents a block that has been loaded into the game's memory, but has not yet been initialized.  Uninitialized terrain occurs in areas of the map that have never been explored before.  Uninitialized blocks will automatically be replaced with generated terrain the first time it's loaded.", new int[] {UserInterfaceFrameThreadState.RESET_BG_COLOR}));
-		List<LinePrintingInstruction> uBInstructions = this.getLinePrintingInstructions(uBPart, descriptionOffsetLeftPadding, rightPadding, true, false);
+		List<LinePrintingInstruction> uBInstructions = this.getLinePrintingInstructions(uBPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
 		rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(uBInstructions, currentLine, 1L));
 		currentLine += uBInstructions.size() + 1;
 
@@ -172,21 +172,21 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			if(blockMatchDescription instanceof ByteComparisonBlockMatchDescription){
 				String blockPresentation = BlockSkins.getPresentation(blockClass, blockManagerThreadCollection.getIsRestrictedGraphics());
 
-				List<LinePrintingInstruction> blockPrint = this.getLinePrintingInstructions("'" + blockPresentation + "'", blockOffsetLeftPadding, rightPadding, true, false);
+				List<LinePrintingInstruction> blockPrint = this.getLinePrintingInstructions("'" + blockPresentation + "'", blockOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
 				rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(blockPrint, currentLine, 1L));
 
 				ColouredTextFragmentList descriptionPart = new ColouredTextFragmentList();
 				descriptionPart.add(new ColouredTextFragment("BLOCK DESCRIPTION:", titleAnsiCodes));
 				descriptionPart.add(new ColouredTextFragment(" " + BlockSkins.getBlockDescription(blockClass), new int[] {UserInterfaceFrameThreadState.RESET_BG_COLOR}));
 
-				List<LinePrintingInstruction> instructions = this.getLinePrintingInstructions(descriptionPart, descriptionOffsetLeftPadding, rightPadding, true, false);
+				List<LinePrintingInstruction> instructions = this.getLinePrintingInstructions(descriptionPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
 				rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(instructions, currentLine, 1L));
 				currentLine += instructions.size();
 
 				ColouredTextFragmentList classPart = new ColouredTextFragmentList();
 				classPart.add(new ColouredTextFragment("CLASS NAME:", titleAnsiCodes));
 				classPart.add(new ColouredTextFragment(" " + className, new int[] {UserInterfaceFrameThreadState.RESET_BG_COLOR}));
-				List<LinePrintingInstruction> classIns = this.getLinePrintingInstructions(classPart, descriptionOffsetLeftPadding, rightPadding, true, false);
+				List<LinePrintingInstruction> classIns = this.getLinePrintingInstructions(classPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
 				rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(classIns, currentLine, 1L));
 				currentLine += classIns.size();
 
@@ -194,7 +194,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 				ColouredTextFragmentList bytePatternPart = new ColouredTextFragmentList();
 				bytePatternPart.add(new ColouredTextFragment("BYTE PATTERN:", titleAnsiCodes));
 				bytePatternPart.add(new ColouredTextFragment(" '" + new String(bytePattern, "UTF-8") + "' (0x" + BlockModelContext.convertToHex(bytePattern) + ")", new int[] {UserInterfaceFrameThreadState.RESET_BG_COLOR}));
-				List<LinePrintingInstruction> bytePatternIns = this.getLinePrintingInstructions(bytePatternPart, descriptionOffsetLeftPadding, rightPadding, true, false);
+				List<LinePrintingInstruction> bytePatternIns = this.getLinePrintingInstructions(bytePatternPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
 				rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(bytePatternIns, currentLine, 1L));
 				currentLine += bytePatternIns.size();
 
@@ -203,7 +203,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 					ColouredTextFragmentList dedicationPart = new ColouredTextFragmentList();
 					dedicationPart.add(new ColouredTextFragment("DEDICATION:", titleAnsiCodes));
 					dedicationPart.add(new ColouredTextFragment(" '" + dedication + "'", new int[] {UserInterfaceFrameThreadState.RESET_BG_COLOR}));
-					List<LinePrintingInstruction> dedicationIns = this.getLinePrintingInstructions(dedicationPart, descriptionOffsetLeftPadding, rightPadding, true, false);
+					List<LinePrintingInstruction> dedicationIns = this.getLinePrintingInstructions(dedicationPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
 					rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(dedicationIns, currentLine, 1L));
 					currentLine += dedicationIns.size();
 				}

@@ -507,12 +507,11 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void onTerminalWindowChanged() throws Exception{
-		//  Use the width of an iron oxide character as a reference to guess whether we're using narror or wide characters.
-
 		Long terminalWidth = this.getTerminalWidth();
 		Long terminalHeight = this.getTerminalHeight();
 		
-		Long frameCharacterWidth = this.measureTextLengthOnTerminal("\u2550").getDeltaX();
+		String exampleFrameCharacter = blockManagerThreadCollection.getIsRestrictedGraphics() ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_HORIZONTAL;
+		Long frameCharacterWidth = this.measureTextLengthOnTerminal(exampleFrameCharacter).getDeltaX();
 		this.consoleWriterThreadState.putWorkItem(new TerminalDimensionsChangedWorkItem(this.consoleWriterThreadState, terminalWidth, terminalHeight, frameCharacterWidth), WorkItemPriority.PRIORITY_LOW);
 
 		if(this.playerInventory != null){

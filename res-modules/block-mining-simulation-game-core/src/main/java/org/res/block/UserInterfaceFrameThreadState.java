@@ -91,7 +91,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		return frameDimensions;
 	}
 
-	private List<MeasuredTextFragment> getMeasuredTextFragments(ColouredTextFragmentList fragmentList) throws Exception{
+	private List<MeasuredTextFragment> getMeasuredTextFragments(ColouredTextFragmentList fragmentList, Long maxLineWidth) throws Exception{
 		List<MeasuredTextFragment> textFragments = new ArrayList<MeasuredTextFragment>();
 		for(ColouredTextFragment cf : fragmentList.getColouredTextFragments()){
 			String newlineCharacter = "\n";
@@ -101,15 +101,27 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				String[] words = lines[i].split(spaceCharacter);
 				for(int j = 0; j < words.length; j++){
 					List<String> characters = ColouredTextFragment.splitStringIntoCharactersUnicodeAware(words[j]);
+					List<String> charactersSoFar = new ArrayList<String>();
 					Long wordLength = 0L;
 					Long wordHeight = 0L;
+					List<String> wordParts = new ArrayList<String>();
 					for(String c : characters){
 						TextWidthMeasurementWorkItemResult m = this.clientBlockModelContext.measureTextLengthOnTerminal(c);
 						wordLength += m.getDeltaX();
 						wordHeight += m.getDeltaY();
+						charactersSoFar.add(c);
+
+						if(wordLength >= maxLineWidth){
+							textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(String.join("", charactersSoFar), cf.getAnsiColourCodes()), new TextWidthMeasurementWorkItemResult(wordLength, wordHeight)));
+							charactersSoFar.clear();
+							wordLength = 0L;
+							wordHeight = 0L;
+						}
 					}
-					textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(words[j], cf.getAnsiColourCodes()), new TextWidthMeasurementWorkItemResult(wordLength, wordHeight)));
+					textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(String.join("", charactersSoFar), cf.getAnsiColourCodes()), new TextWidthMeasurementWorkItemResult(wordLength, wordHeight)));
 					if(j != words.length -1){
+						//  Add back space characters between words
+						//  as long as they're not at the end of lines.
 						textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(spaceCharacter, cf.getAnsiColourCodes()), this.clientBlockModelContext.measureTextLengthOnTerminal(spaceCharacter)));
 					}
 				}
@@ -122,14 +134,14 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		return textFragments;
 	}
 
-	protected List<LinePrintingInstruction> getLinePrintingInstructions(String text, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign) throws Exception{
+	protected List<LinePrintingInstruction> getLinePrintingInstructions(String text, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign, Long maxLineLength) throws Exception{
 		ColouredTextFragmentList tfl = new ColouredTextFragmentList(new ColouredTextFragment(text, new int[] {RESET_BG_COLOR}));
-		return getLinePrintingInstructions(tfl, paddingLeft, paddingRight, leftAlign, rightAlign);
+		return getLinePrintingInstructions(tfl, paddingLeft, paddingRight, leftAlign, rightAlign, maxLineLength);
 	}
 
-	protected List<LinePrintingInstruction> getLinePrintingInstructions(ColouredTextFragmentList tfl, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign) throws Exception{
+	protected List<LinePrintingInstruction> getLinePrintingInstructions(ColouredTextFragmentList tfl, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign, Long maxLineLength) throws Exception{
 		List<LinePrintingInstruction> instructions = new ArrayList<LinePrintingInstruction>();
-		List<MeasuredTextFragment> textFragments = this.getMeasuredTextFragments(tfl);
+		List<MeasuredTextFragment> textFragments = this.getMeasuredTextFragments(tfl, maxLineLength - paddingLeft - paddingRight);
 		List<ColouredTextFragment> currentLineFragments = new ArrayList<ColouredTextFragment>();
 		Long lineLengthSoFar = 0L;
 		boolean flushBuffer = false;
@@ -138,7 +150,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			MeasuredTextFragment textFragment = i < textFragments.size() ? textFragments.get(i) : null;
 
 			if(flushBuffer){
-				Long extraSpace = this.getFrameWidth() - lineLengthSoFar;
+				Long extraSpace = this.getInnerFrameWidth() - lineLengthSoFar;
 				Long textOffset = leftAlign ? paddingLeft : (extraSpace / 2L);
 				instructions.add(new LinePrintingInstruction(textOffset, new ColouredTextFragmentList(new ArrayList<ColouredTextFragment>(currentLineFragments))));
 				currentLineFragments = new ArrayList<ColouredTextFragment>();
@@ -147,7 +159,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			}else if(textFragment.getTextDisplacement().getDeltaY() > 0L){ // A newline
 				flushBuffer = true;
 				i++;
-			}else if((textFragment.getTextDisplacement().getDeltaX() + lineLengthSoFar + paddingLeft + paddingRight) >= this.getFrameWidth()){ // Line too long
+			}else if((textFragment.getTextDisplacement().getDeltaX() + lineLengthSoFar + paddingLeft + paddingRight) >= this.getInnerFrameWidth()){ // Line too long
 				if(currentLineFragments.size() == 0){ // Current line is empty, but we're already overflowing with one word?  Just add the word and let it overflow:
 					lineLengthSoFar += textFragment.getTextDisplacement().getDeltaX();
 					currentLineFragments.add(textFragment.getColouredTextFragment());
@@ -160,8 +172,12 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				flushBuffer = true;
 				i++;
 			}else{
+				boolean isSpace = textFragment.getColouredTextFragment().getText().equals(" ");
+				//  Do not add leading spaces to the start of a line:
+				if(!isSpace || lineLengthSoFar > 0L){
 				lineLengthSoFar += textFragment.getTextDisplacement().getDeltaX();
-				currentLineFragments.add(textFragment.getColouredTextFragment());
+					currentLineFragments.add(textFragment.getColouredTextFragment());
+				}
 				i++;
 			}
 		}
@@ -186,6 +202,11 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	protected Long getFrameWidth(){
 		return this.frameDimensions == null ? null : this.frameDimensions.getFrameWidth();
+	}
+
+	protected Long getInnerFrameWidth() throws Exception{
+		Long fchrw = this.getFrameCharacterWidth();
+		return getFrameWidth() - (hasLeftBorder() ? fchrw : 0L) - (hasRightBorder() ? fchrw: 0L);
 	}
 
 	protected Long getFrameHeight(){
@@ -217,7 +238,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	public Long getFrameCharacterWidth() throws Exception{
 		if(this.frameCharacterWidth == null){
-			this.frameCharacterWidth = this.clientBlockModelContext.measureTextLengthOnTerminal("\u2550").getDeltaX();
+
+			String exampleFrameCharacter = blockManagerThreadCollection.getIsRestrictedGraphics() ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_HORIZONTAL;
+			this.frameCharacterWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(exampleFrameCharacter).getDeltaX();
 		}
 		return this.frameCharacterWidth;
 	}
@@ -288,44 +311,45 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		boolean hasRightConnection = this.frameBordersDescription.getFramePoints().contains(right);
 		boolean hasLeftConnection = this.frameBordersDescription.getFramePoints().contains(left);
 		boolean hasBottomConnection = this.frameBordersDescription.getFramePoints().contains(bottom);
-		
+	
+		boolean rg = blockManagerThreadCollection.getIsRestrictedGraphics();
+
 		if(!hasTopConnection && !hasRightConnection && !hasLeftConnection && !hasBottomConnection){      // 0000
-			return "\u253C"; // ┼  This case should never happen.
+			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_LIGHT_VERTICAL_AND_HORIZONTAL; // ┼  This case should never happen.
 		}else if(!hasTopConnection && !hasRightConnection && !hasLeftConnection && hasBottomConnection){ // 0001
-			return "\u2565"; // ╥  This case should never happen.
+			return rg ? CharacterConstants.VERTICAL_LINE : CharacterConstants.BOX_DRAWINGS_DOWN_DOUBLE_AND_HORIZONTAL_SINGLE; // ╥  This case should never happen.
 		}else if(!hasTopConnection && !hasRightConnection && hasLeftConnection && !hasBottomConnection){ // 0010
-			return "\u2561"; // ╡  This case should never happen.
+			return rg ? CharacterConstants.EQUALS_SIGN : CharacterConstants.BOX_DRAWINGS_VERTICAL_SINGLE_AND_LEFT_DOUBLE; // ╡  This case should never happen.
 		}else if(!hasTopConnection && !hasRightConnection && hasLeftConnection && hasBottomConnection){  // 0011
-			return "\u2557"; // ╗
+			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_DOWN_AND_LEFT; // ╗
 		}else if(!hasTopConnection && hasRightConnection && !hasLeftConnection && !hasBottomConnection){ // 0100
-			return "\u255E"; // ╞  This case should never happen.
+			return rg ? CharacterConstants.EQUALS_SIGN : CharacterConstants.BOX_DRAWINGS_VERTICAL_SINGLE_AND_RIGHT_DOUBLE; // ╞  This case should never happen.
 		}else if(!hasTopConnection && hasRightConnection && !hasLeftConnection && hasBottomConnection){  // 0101
-			return "\u2554"; // ╔
+			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_DOWN_AND_RIGHT; // ╔
 		}else if(!hasTopConnection && hasRightConnection && hasLeftConnection && !hasBottomConnection){  // 0110
-			return "\u2550"; // ═
+			return rg ? CharacterConstants.EQUALS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_HORIZONTAL; // ═
 		}else if(!hasTopConnection && hasRightConnection && hasLeftConnection && hasBottomConnection){   // 0111
-			return "\u2566"; // ╦
+			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_DOWN_AND_HORIZONTAL; // ╦
 		}else if(hasTopConnection && !hasRightConnection && !hasLeftConnection && !hasBottomConnection){ // 1000
-			return "\u2568"; // ╨  This case should never happen.
+			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_UP_DOUBLE_AND_HORIZONTAL_SINGLE; // ╨  This case should never happen.
 		}else if(hasTopConnection && !hasRightConnection && !hasLeftConnection && hasBottomConnection){  // 1001
-			return "\u2551"; // ║
+			return rg ? CharacterConstants.VERTICAL_LINE : CharacterConstants.BOX_DRAWINGS_DOUBLE_VERTICAL; // ║
 		}else if(hasTopConnection && !hasRightConnection && hasLeftConnection && !hasBottomConnection){  // 1010
-			return "\u255D"; // ╝
+			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_UP_AND_LEFT; // ╝
 		}else if(hasTopConnection && !hasRightConnection && hasLeftConnection && hasBottomConnection){   // 1011
-			return "\u2563"; // ╣
+			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_VERTICAL_AND_LEFT; // ╣
 		}else if(hasTopConnection && hasRightConnection && !hasLeftConnection && !hasBottomConnection){  // 1100
-			return "\u255A"; // ╚
+			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_UP_AND_RIGHT; // ╚
 		}else if(hasTopConnection && hasRightConnection && !hasLeftConnection && hasBottomConnection){   // 1101
-			return "\u2560"; // ╠
+			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_VERTICAL_AND_RIGHT; // ╠
 		}else if(hasTopConnection && hasRightConnection && hasLeftConnection && !hasBottomConnection){   // 1110
-			return "\u2569"; // ╩
+			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_UP_AND_HORIZONTAL; // ╩
 		}else if(hasTopConnection && hasRightConnection && hasLeftConnection && hasBottomConnection){    // 1111
-			return "\u256C"; // ╬
+			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_VERTICAL_AND_HORIZONTAL; // ╬
 		}else{
 			throw new Exception("Impossible.");
 		}
 	}
-
 
 	public boolean isCoordinateRelatedToFocusedFrame(Coordinate c) throws Exception{
 		//  TODO:  This is not thread safe.
@@ -357,9 +381,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		boolean hasBottomBorder = this.hasBottomBorder();
 		boolean containsBottomLeftHandCorner = hasBottomBorder && hasLeftBorder;
 		boolean containsBottomRightHandCorner = hasBottomBorder && hasRightBorder;
-
-		String horizontalDoubleLine = "\u2550"; // ═
-		String verticalDoubleLine = "\u2551"; // ║
 
 		if(hasTopBorder){
 			ColouredTextFragmentList fragmentList = new ColouredTextFragmentList();

@@ -193,8 +193,9 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		Coordinate bottomleftHandCorner = new Coordinate(Arrays.asList(bottomLeftHandX + playerPosition.getX(), playerPosition.getY(), bottomLeftHandZ + playerPosition.getZ(), 0L));
 		Coordinate topRightHandCorner = new Coordinate(Arrays.asList(topRightHandX + playerPosition.getX(), playerPosition.getY(), topRightHandZ + playerPosition.getZ(), 0L));
 
-
 		CuboidAddress newMapArea = new CuboidAddress(bottomleftHandCorner, topRightHandCorner);
+
+		this.forceBlockChangesInMapArea(); //  Necessary to re-print when terminal size changes, but map area stays same.
 		this.onMapAreaChange(newMapArea);
 		this.render();
 	}
@@ -288,6 +289,18 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		for(int i = 0; i < this.mapAreaWidth.intValue(); i++){
 			for(int j = 0; j < this.mapAreaHeight.intValue(); j++){
 				this.mapAreaCells[i][j] = new MapAreaCell();
+			}
+		}
+	}
+
+	private void forceBlockChangesInMapArea() throws Exception{
+		//  In certain cases (such as when the terminal window is resized and the screen has been cleared)
+		//  we may way to force all of the blocks to be printed again if they haven't changed:
+		if(this.mapAreaCells != null){
+			for(int i = 0; i < this.mapAreaCells.length; i++){
+				for(int j = 0; j < this.mapAreaCells[i].length; j++){
+					this.mapAreaCells[i][j].addMapAreaCellFlag(MapAreaCellFlag.BLOCK_CHANGE);
+				}
 			}
 		}
 	}
