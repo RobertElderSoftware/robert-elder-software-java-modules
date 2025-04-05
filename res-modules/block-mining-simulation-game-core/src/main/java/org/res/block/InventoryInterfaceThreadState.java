@@ -118,7 +118,9 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 					int maxItemsInColumn = 4;
 					int xOffset = (i / maxItemsInColumn) * 30;
 					int yOffset = (i % maxItemsInColumn) * 2;
-					String blockPresentation = BlockSkins.getPresentation(blockFromStack.getClass(), blockManagerThreadCollection.getIsRestrictedGraphics());
+
+					GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
+					String blockPresentation = BlockSkins.getPresentation(blockFromStack.getClass(), mode.equals(GraphicsMode.ASCII));
 
 					Long printTextX = inventoryItemsXOffset + xOffset;
 					Long printTextY = (long)(2 + yOffset);

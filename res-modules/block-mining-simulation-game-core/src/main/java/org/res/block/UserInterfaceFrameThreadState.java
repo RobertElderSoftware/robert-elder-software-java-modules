@@ -231,15 +231,17 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	public Long getMapAreaCellWidth() throws Exception{
 		if(this.mapAreaCellWidth == null){
-			this.mapAreaCellWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(BlockSkins.getPresentation(IronOxide.class, blockManagerThreadCollection.getIsRestrictedGraphics())).getDeltaX();
+			GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
+			this.mapAreaCellWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(BlockSkins.getPresentation(IronOxide.class, mode.equals(GraphicsMode.ASCII))).getDeltaX();
 		}
 		return this.mapAreaCellWidth;
 	}
 
 	public Long getFrameCharacterWidth() throws Exception{
 		if(this.frameCharacterWidth == null){
+			GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
 
-			String exampleFrameCharacter = blockManagerThreadCollection.getIsRestrictedGraphics() ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_HORIZONTAL;
+			String exampleFrameCharacter = mode.equals(GraphicsMode.ASCII) ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_HORIZONTAL;
 			this.frameCharacterWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(exampleFrameCharacter).getDeltaX();
 		}
 		return this.frameCharacterWidth;
@@ -312,7 +314,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		boolean hasLeftConnection = this.frameBordersDescription.getFramePoints().contains(left);
 		boolean hasBottomConnection = this.frameBordersDescription.getFramePoints().contains(bottom);
 	
-		boolean rg = blockManagerThreadCollection.getIsRestrictedGraphics();
+		GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
+		boolean rg = mode.equals(GraphicsMode.ASCII);
 
 		if(!hasTopConnection && !hasRightConnection && !hasLeftConnection && !hasBottomConnection){      // 0000
 			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_LIGHT_VERTICAL_AND_HORIZONTAL; // ┼  This case should never happen.

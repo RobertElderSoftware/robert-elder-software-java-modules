@@ -83,8 +83,14 @@ public class BlockManagerThreadCollection {
 
 	private BlockSchema blockSchema = null;
 	private UserInteractionConfig userInteractionConfig = null;
+	private boolean assumeEmojisAreSupported = System.getenv("TERM").contains("xterm");
 
 	public BlockManagerThreadCollection(CommandLineArgumentCollection commandLineArgumentCollection) throws Exception {
+		//  This is not very portable, but I actually don't know how many terminals
+		//  support advanced emoji characters out there.  Possibly make this guess better in the future:
+		logger.info("Observed TERM variable with value '" + System.getenv("TERM") + "'.");
+		this.assumeEmojisAreSupported = System.getenv("TERM").contains("xterm");
+
 		this.commandLineArgumentCollection = commandLineArgumentCollection;
 		if(this.getIsJNIEnabled()){
 			this.linuxBlockJNIInterface = new LinuxBlockJNIInterface();
@@ -152,8 +158,33 @@ public class BlockManagerThreadCollection {
 		return this.commandLineArgumentCollection.hasUsedKey("--print-user-interaction-config");
 	}
 
-	public boolean getIsRestrictedGraphics() {
-		return this.commandLineArgumentCollection.hasUsedKey("--restricted-graphics");
+	public boolean getIsUseASCII() {
+		return this.commandLineArgumentCollection.hasUsedKey("--use-ascii");
+	}
+
+	public boolean getIsUseEmojis() {
+		return this.commandLineArgumentCollection.hasUsedKey("--use-emojis");
+	}
+
+	public GraphicsMode getGraphicsMode() throws Exception{
+		if(!this.getIsUseASCII() && !this.getIsUseEmojis()){
+			//  Default to whatever support is implied by TERM variable:
+			if(this.assumeEmojisAreSupported){
+				return GraphicsMode.EMOJI;
+			}else{
+				return GraphicsMode.ASCII;
+			}
+		}else if(this.getIsUseASCII() && !this.getIsUseEmojis()){
+			//  User requested to only show ASCII
+			return GraphicsMode.ASCII;
+		}else if(!this.getIsUseASCII() && this.getIsUseEmojis()){
+			//  User explicitly requested to show emojis
+			return GraphicsMode.EMOJI;
+		}else if(this.getIsUseASCII() && this.getIsUseEmojis()){
+			throw new Exception("User requested to show emojis and ASCII graphics at the same time.  This doesn't make sense.");
+		}else{
+			throw new Exception("Unexpected case with command line arguments.");
+		}
 	}
 
 	public String getUserInteractionConfigFile() throws Exception {

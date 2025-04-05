@@ -510,7 +510,8 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		Long terminalWidth = this.getTerminalWidth();
 		Long terminalHeight = this.getTerminalHeight();
 		
-		String exampleFrameCharacter = blockManagerThreadCollection.getIsRestrictedGraphics() ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_HORIZONTAL;
+		GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
+		String exampleFrameCharacter = mode.equals(GraphicsMode.ASCII) ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_HORIZONTAL;
 		Long frameCharacterWidth = this.measureTextLengthOnTerminal(exampleFrameCharacter).getDeltaX();
 		this.consoleWriterThreadState.putWorkItem(new TerminalDimensionsChangedWorkItem(this.consoleWriterThreadState, terminalWidth, terminalHeight, frameCharacterWidth), WorkItemPriority.PRIORITY_LOW);
 

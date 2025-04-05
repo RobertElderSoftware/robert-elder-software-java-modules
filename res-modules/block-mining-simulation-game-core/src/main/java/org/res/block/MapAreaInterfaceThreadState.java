@@ -499,8 +499,9 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	public void printMapAreaUpdates(CuboidAddress areaToUpdate) throws Exception {
 		if(this.mapAreaCuboidAddress != null){
 			logger.info("Doing printMapAreaUpdates with mapArea cuboid as " + this.mapAreaCuboidAddress + ".");
-		
-			boolean restrictedGraphics = blockManagerThreadCollection.getIsRestrictedGraphics();
+	
+			GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
+			boolean useASCII = mode.equals(GraphicsMode.ASCII);
 			Long areaToUpdateWidth = areaToUpdate.getWidthForIndex(0L);
 			Long areaToUpdateHeight = areaToUpdate.getWidthForIndex(2L);
 			Long mapAreaWidth = this.mapAreaCuboidAddress.getWidthForIndex(0L);
@@ -533,10 +534,10 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 					String stringToWrite = null;
 					if(currentMapAreaCell.hasBlockChangedFlags()){ /*  Updated cell */
-						stringToWrite = currentMapAreaCell.renderBlockCell(restrictedGraphics);
+						stringToWrite = currentMapAreaCell.renderBlockCell(useASCII);
 						//stringToWrite = "U";
 					}else if(currentMapAreaCell.hasPlayerMovementFlags()){ /*  Where player is or was */
-						stringToWrite = currentMapAreaCell.renderBlockCell(restrictedGraphics);
+						stringToWrite = currentMapAreaCell.renderBlockCell(useASCII);
 						//stringToWrite = "P";
 					}else if(currentMapAreaCell.hasPendingLoadFlags()){ /*  Loading cell */
 						stringToWrite = "?";

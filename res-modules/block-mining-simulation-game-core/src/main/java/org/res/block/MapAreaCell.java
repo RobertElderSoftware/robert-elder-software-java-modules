@@ -78,9 +78,9 @@ public class MapAreaCell {
 		return this.mapAreaCellFlags;
 	}
 
-	public String renderBlockCell(boolean isRestrictedGraphics) throws Exception {
+	public String renderBlockCell(boolean isUseASCII) throws Exception {
 		//  null = block does not exist yet.
-		String presentedText = this.currentBlock == null ? "" : BlockSkins.getPresentation(this.currentBlock.getClass(), isRestrictedGraphics);
+		String presentedText = this.currentBlock == null ? "" : BlockSkins.getPresentation(this.currentBlock.getClass(), isUseASCII);
 		return presentedText;
 	}
 

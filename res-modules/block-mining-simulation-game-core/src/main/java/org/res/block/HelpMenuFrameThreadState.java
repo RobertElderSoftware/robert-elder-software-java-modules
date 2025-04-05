@@ -170,7 +170,9 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			String className = blockMatchDescription.getBlockInstanceClassName();
 			Class<?> blockClass = Class.forName(className);
 			if(blockMatchDescription instanceof ByteComparisonBlockMatchDescription){
-				String blockPresentation = BlockSkins.getPresentation(blockClass, blockManagerThreadCollection.getIsRestrictedGraphics());
+
+				GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
+				String blockPresentation = BlockSkins.getPresentation(blockClass, mode.equals(GraphicsMode.ASCII));
 
 				List<LinePrintingInstruction> blockPrint = this.getLinePrintingInstructions("'" + blockPresentation + "'", blockOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
 				rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(blockPrint, currentLine, 1L));

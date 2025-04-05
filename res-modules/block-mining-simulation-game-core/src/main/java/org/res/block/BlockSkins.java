@@ -108,9 +108,9 @@ public class BlockSkins {
 		}
 	}
 
-	public static String getPresentation(Class<?> c, boolean restrictedGraphics) throws Exception{
+	public static String getPresentation(Class<?> c, boolean useASCII) throws Exception{
 		if(patterns.containsKey(c.getName())){
-			if(restrictedGraphics){
+			if(useASCII){
 				if(c.getName().equals(EmptyBlock.class.getName())){
 					return "";
 				}else{

@@ -63,7 +63,8 @@ Block Mining Simulation Game - Available Command-line Arguments:
 --debug-arguments                          - Echo back info about the value of command line argument values were parsed, and what the default values are.
 --log-file                        <arg>    - The name of the log file to use.  If not provided, there will be no logging.
 --disable-jni                              - Disable the use of JNI (may cause some events like to window size changes to be ignored).
---restricted-graphics                      - Use only the simplest ASCII characters to produce graphics.  Required when running on non-graphical display ttys.
+--use-ascii                                - Explicitly try to use only the simplest ASCII characters to produce graphics (for non-graphics ttys)
+--use-emojis                               - Explicitly try to use more advanced Unicode character graphics like emojis
 --allow-unrecognized-block-types           - Allow the game to run even when there are block types that aren't supported in the block schema.
 --block-world-file                <arg>    - The name of the sqlite database file (SQLITE only).
 --print-block-schema                       - Print current block schema and exit.
