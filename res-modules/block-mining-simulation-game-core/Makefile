@@ -1,5 +1,9 @@
 CC=g++
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+$(info "MVN_JAVA_HOME=${MVN_JAVA_HOME}")
+READLINK_MVN_JAVA_HOME=$(shell readlink -f "${MVN_JAVA_HOME}")
+$(info "READLINK_MVN_JAVA_HOME=${READLINK_MVN_JAVA_HOME}")
+
+JAVA_HOME=$(READLINK_MVN_JAVA_HOME)
 CFLAGS=-c -std=c++11 -Wall -fPIC -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux
 LDFLAGS=-fPIC -shared
 

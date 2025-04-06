@@ -70,7 +70,9 @@
 									<arg value="target/classes" />
 									<arg value="src/main/java/org/res/block/LinuxBlockJNIInterface.java" />
 								</exec>
-								<exec executable="make" ></exec>
+								<exec executable="make">
+									<arg value="MVN_JAVA_HOME=${env.JAVA_HOME}" />
+								</exec>
 							</target>
 						</configuration>
 						<goals>

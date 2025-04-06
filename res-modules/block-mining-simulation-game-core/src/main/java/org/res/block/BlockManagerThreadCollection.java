@@ -83,13 +83,14 @@ public class BlockManagerThreadCollection {
 
 	private BlockSchema blockSchema = null;
 	private UserInteractionConfig userInteractionConfig = null;
-	private boolean assumeEmojisAreSupported = System.getenv("TERM").contains("xterm");
+	private Boolean assumeEmojisAreSupported = null;
 
 	public BlockManagerThreadCollection(CommandLineArgumentCollection commandLineArgumentCollection) throws Exception {
 		//  This is not very portable, but I actually don't know how many terminals
 		//  support advanced emoji characters out there.  Possibly make this guess better in the future:
-		logger.info("Observed TERM variable with value '" + System.getenv("TERM") + "'.");
-		this.assumeEmojisAreSupported = System.getenv("TERM").contains("xterm");
+		logger.info("Observed TERM variable with value '" + String.valueOf(System.getenv("TERM")) + "'.");
+		String termVariableContents = System.getenv("TERM") == null ? "" : System.getenv("TERM");
+		this.assumeEmojisAreSupported = termVariableContents.contains("xterm");
 
 		this.commandLineArgumentCollection = commandLineArgumentCollection;
 		if(this.getIsJNIEnabled()){
