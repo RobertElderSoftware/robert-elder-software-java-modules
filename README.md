@@ -135,6 +135,30 @@ Next, you can compile the game from source by running this command:
 
 Once it finishes building, it should launch right into the game.
 
+#  Building In IntelliJ IDEA
+
+Select Menu option:  Run -> Edit Configurations -> Add New Configuration -> Maven
+
+Set 'Run' command line as
+
+```
+-e -pl res-modules/block-mining-simulation-game-single-player-client -amd clean compile package spring-boot:repackage spring-boot:run
+```
+
+Click 'Modify Options' and select 'Emulate Terminal'.
+
+Unselect 'Injerit from settings' under 'Java Options'.
+
+Add a line with 'VM Options:'
+
+```
+-Dspring-boot.run.arguments="--use-ascii --log-file=/tmp/single-player-block-client-intellij.log"
+```
+
+or modify the above command line arguments to whatever you like.
+
+Then, click 'run' icon to build and run single player client.
+
 #  Alternative Key Mappings (Dvorak)
 
 I received a couple requests to add support for reconfiguring the mapping of keyboard inputs, so I've added an option to specify a JSON config file where you can customize which input characters will trigger different actions in the game:
