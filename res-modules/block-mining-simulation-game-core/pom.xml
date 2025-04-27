@@ -61,7 +61,7 @@
 						<configuration>
 							<target name="jni" description="Generate headers and compile the native code">
 								<echo>-- In pom.xml, Generating JNI headers --</echo>
-								<exec executable="javac" >
+								<exec executable="${java.home}/bin/javac" >
 									<arg value="-d" />
 									<arg value="target/classes" />
 									<arg value="-h" />
