@@ -116,6 +116,17 @@ public class BlockManagerThreadCollection {
 		}
 		
 		this.userInteractionConfig = new UserInteractionConfig(userInteractionJsonString);
+		this.ensureStdinIsATTY();
+	}
+
+	public void ensureStdinIsATTY() throws Exception {
+		if(System.console() == null){
+			String message = "System.Console() == null, stdin is probably not a tty!";
+			logger.info(message);
+			throw new Exception(message);
+		}else{
+			logger.info("System.Console() != null, stdin is probably a tty.");
+		}
 	}
 
 	public String loadJarResourceIntoString(String filename) throws Exception{

@@ -147,7 +147,7 @@ Set 'Run' command line as
 
 Click 'Modify Options' and select 'Emulate Terminal'.
 
-Unselect 'Injerit from settings' under 'Java Options'.
+Unselect 'Inherit from settings' under 'Java Options'.
 
 Add a line with 'VM Options:'
 

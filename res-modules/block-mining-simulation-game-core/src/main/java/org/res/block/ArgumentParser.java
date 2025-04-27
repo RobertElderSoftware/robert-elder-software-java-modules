@@ -154,7 +154,7 @@ class ArgumentParser {
 				}
 			}
 			if(!foundArgMatch){
-				throw new Exception("Unrecognized argument: " + args[i]);
+				throw new Exception("Unrecognized argument: '" + args[i] + "'.");
 			}
 			i++;
 		}
