@@ -139,11 +139,21 @@ Once it finishes building, it should launch right into the game.
 
 Select Menu option:  Run -> Edit Configurations -> Add New Configuration -> Maven
 
-Set 'Run' command line as
+Set name of configuration to be 'Core' and 'Run' command line as
+
+```
+-e clean install
+```
+
+Now create a second Maven run configuration:
+
+Set name of configuration to be 'Single Player Client' and 'Run' command line as
 
 ```
 -e -pl res-modules/block-mining-simulation-game-single-player-client -amd clean compile package spring-boot:repackage spring-boot:run
 ```
+
+Click 'Modify Options' and add a before rule that runs the 'Core' run configuration automatically from this 'Single Player Client' configuration.
 
 Click 'Modify Options' and select 'Emulate Terminal'.
 
@@ -152,7 +162,7 @@ Unselect 'Inherit from settings' under 'Java Options'.
 Add a line with 'VM Options:'
 
 ```
--Dspring-boot.run.arguments="--use-ascii --log-file=/tmp/single-player-block-client-intellij.log"
+-Dspring-boot.run.arguments="--log-file=/tmp/single-player-block-client-intellij.log"
 ```
 
 or modify the above command line arguments to whatever you like.

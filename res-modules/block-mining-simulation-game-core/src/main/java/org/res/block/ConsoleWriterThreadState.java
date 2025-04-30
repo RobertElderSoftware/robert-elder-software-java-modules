@@ -228,9 +228,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 						this.colourCodes[xOffset + i][yOffset + j] = newColourCodes[i][j];
 						this.characters[xOffset + i][yOffset + j] = newCharacters[i][j];
 						this.changedFlags[xOffset + i][yOffset + j] = hasChanged;
-						if(newCharacterWidths[i][j] > 1){ //  If the character takes up more than one column, skip to the appropriate column:
-							i += newCharacterWidths[i][j] - 1;
-						}
 					}else{
 						//throw new Exception("Discarding character '" + newCharacters[i][j] + "' because if was out of bounds at x=" + (xOffset + i) + ", y=" + (yOffset + j));
 					}

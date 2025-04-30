@@ -499,9 +499,20 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 					characters[currentOffset][j] = updatedCellContents[i][j];
 					characterWidths[currentOffset][j] = chrWidth;
 					hasChange[currentOffset][j] = true;
-					currentOffset += chrWidth;
-					int paddedWidthSoFar = chrWidth;
+					currentOffset += (chrWidth > 0) ? 1 : 0;
+
+					//  For multi-column characters, reset any of the 'covered'
+					//  columns take up by the multi-column character:
+					for(int k = 1; k < chrWidth; k++){
+						colourCodes[currentOffset][j] = new int [] {};
+						characters[currentOffset][j] = null;
+						characterWidths[currentOffset][j] = 0;
+						hasChange[currentOffset][j] = true;
+						currentOffset++;
+					}
+
 					// The padding after the character:
+					int paddedWidthSoFar = chrWidth;
 					while(paddedWidthSoFar < this.getMapAreaCellWidth()){
 						String space = " ";
 						int spaceWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(space).getDeltaX().intValue();
@@ -571,9 +582,21 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			characters[xIndex][yIndex] = s;
 			characterWidths[xIndex][yIndex] = chrWidth;
 			hasChange[xIndex][yIndex] = true;
-			//  Always advance by 1 if printing in Y direction.
-			//  Also, always advance by at least one even if chr width is less than one.
-			currentOffset += xDirection ? (chrWidth < 1 ? 1 : chrWidth) : 1;
+			if(xDirection){
+				currentOffset++;
+				//  For multi-column characters in 'x' direction, reset any of the 'covered'
+				//  columns take up by the multi-column character:
+				for(int k = 1; k < chrWidth; k++){
+					colourCodes[currentOffset][yIndex] = new int [] {};
+					characters[currentOffset][yIndex] = null;
+					characterWidths[currentOffset][yIndex] = 0;
+					hasChange[currentOffset][yIndex] = true;
+					currentOffset++;
+				}
+			}else{
+				//  Always advance by 1 if printing in Y direction.
+				currentOffset += 1;
+			}
 		}
 
 		int xOffset = drawOffsetX.intValue() + this.getFrameOffsetX().intValue();
