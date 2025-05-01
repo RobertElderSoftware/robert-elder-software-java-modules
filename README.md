@@ -65,6 +65,7 @@ Block Mining Simulation Game - Available Command-line Arguments:
 --disable-jni                              - Disable the use of JNI (may cause some events like to window size changes to be ignored).
 --use-ascii                                - Explicitly try to use only the simplest ASCII characters to produce graphics (for non-graphics ttys)
 --use-emojis                               - Explicitly try to use more advanced Unicode character graphics like emojis
+--right-to-left-print                      - Print screen updates from right to left instead of left to right.  Avoids display bugs in some terminals.
 --allow-unrecognized-block-types           - Allow the game to run even when there are block types that aren't supported in the block schema.
 --block-world-file                <arg>    - The name of the sqlite database file (SQLITE only).
 --print-block-schema                       - Print current block schema and exit.
@@ -153,7 +154,7 @@ Set name of configuration to be 'Single Player Client' and 'Run' command line as
 -e -pl res-modules/block-mining-simulation-game-single-player-client -amd clean compile package spring-boot:repackage spring-boot:run
 ```
 
-Click 'Modify Options' and add a before rule that runs the 'Core' run configuration automatically from this 'Single Player Client' configuration.
+Click 'Modify Options' and click 'add before launch task' for a 'another run configuration' that runs the 'Core' run configuration automatically from this 'Single Player Client' configuration.
 
 Click 'Modify Options' and select 'Emulate Terminal'.
 

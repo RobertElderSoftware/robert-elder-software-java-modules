@@ -178,6 +178,10 @@ public class BlockManagerThreadCollection {
 		return this.commandLineArgumentCollection.hasUsedKey("--use-emojis");
 	}
 
+	public boolean getRightToLeftPrint() {
+		return this.commandLineArgumentCollection.hasUsedKey("--right-to-left-print");
+	}
+
 	public GraphicsMode getGraphicsMode() throws Exception{
 		if(!this.getIsUseASCII() && !this.getIsUseEmojis()){
 			//  Default to whatever support is implied by TERM variable:

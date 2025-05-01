@@ -51,6 +51,7 @@ class ArgumentParser {
 		new ArgumentDescription("--disable-jni", 0, "Disable the use of JNI (may cause some events like to window size changes to be ignored)."),
 		new ArgumentDescription("--use-ascii", 0, "Explicitly try to use only the simplest ASCII characters to produce graphics (for non-graphics ttys)"),
 		new ArgumentDescription("--use-emojis", 0, "Explicitly try to use more advanced Unicode character graphics like emojis"),
+		new ArgumentDescription("--right-to-left-print", 0, "Print screen updates from right to left instead of left to right.  Avoids display bugs in some terminals."),
 		new ArgumentDescription("--allow-unrecognized-block-types", 0, "Allow the game to run even when there are block types that aren't supported in the block schema."),
 		new ArgumentDescription("--block-world-file", 1, "The name of the sqlite database file (SQLITE only)."),
 		new ArgumentDescription("--print-block-schema", 0, "Print current block schema and exit."),

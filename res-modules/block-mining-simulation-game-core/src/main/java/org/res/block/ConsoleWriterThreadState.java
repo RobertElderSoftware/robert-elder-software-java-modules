@@ -237,10 +237,15 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public void printTerminalTextChanges(boolean resetCursorPosition) throws Exception{
+		boolean useRightToLeftPrint = this.blockManagerThreadCollection.getRightToLeftPrint();
+		int startColumn = useRightToLeftPrint ? this.terminalWidth.intValue() -1 : 0;
+		int endColumn = useRightToLeftPrint ? -1 : this.terminalWidth.intValue();
+		int loopUpdate = useRightToLeftPrint ? -1 : 1;
+		boolean resetState = useRightToLeftPrint ? true : false;
 		for(int j = 0; j < this.terminalHeight.intValue(); j++){
 			boolean mustSetCursorPosition = true;
 			boolean mustSetColourCodes = true;
-			for(int i = 0; i < this.terminalWidth.intValue(); i++){
+			for(int i = startColumn; i != endColumn; i += loopUpdate){
 				//  Try to intelligently issue as few ANSI escape sequences as possible:
 				if(!Arrays.equals(this.colourCodes[i][j], lastUsedColourCodes)){
 					mustSetColourCodes = true;
@@ -249,7 +254,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 					if(mustSetCursorPosition){
 						String currentPositionSequence = "\033[" + (j+1) + ";" + (i+1) + "H";
 						System.out.print(currentPositionSequence);
-						mustSetCursorPosition = false;
+						mustSetCursorPosition = resetState;
 					}
 					if(mustSetColourCodes){
 						List<String> codes = new ArrayList<String>();
@@ -258,16 +263,15 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 						}
 						String currentColorSequence = "\033[" + String.join(";", codes) + "m";
 						System.out.print(currentColorSequence);
-						mustSetColourCodes = false;
+						mustSetColourCodes = resetState;
 						lastUsedColourCodes = this.colourCodes[i][j];
 					}
-					System.out.print(this.characters[i][j]);
+					if(this.characters[i][j] != null){
+						System.out.print(this.characters[i][j]);
+					}
 					this.changedFlags[i][j] = false;
 				}else{
 					mustSetCursorPosition = true;
-				}
-				if(this.characterWidths[i][j] > 1){ //  If the character takes up more than one column, skip to the appropriate column:
-					i += this.characterWidths[i][j] - 1;
 				}
 			}
 		}
