@@ -1,0 +1,76 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Single Player Client" type="MavenRunConfiguration" factoryName="Maven">
+    <MavenSettings>
+      <option name="myGeneralSettings">
+        <MavenGeneralSettings>
+          <option name="alwaysUpdateSnapshots" value="false" />
+          <option name="checksumPolicy" value="NOT_SET" />
+          <option name="customMavenHome" />
+          <option name="emulateTerminal" value="true" />
+          <option name="failureBehavior" value="NOT_SET" />
+          <option name="localRepository" value="" />
+          <option name="mavenHome" value="Bundled (Maven 3)" />
+          <option name="mavenHomeTypeForPersistence" value="BUNDLED3" />
+          <option name="nonRecursive" value="false" />
+          <option name="outputLevel" value="INFO" />
+          <option name="printErrorStackTraces" value="false" />
+          <option name="showDialogWithAdvancedSettings" value="false" />
+          <option name="threads" />
+          <option name="useMavenConfig" value="true" />
+          <option name="userSettingsFile" value="" />
+          <option name="workOffline" value="false" />
+        </MavenGeneralSettings>
+      </option>
+      <option name="myRunnerSettings">
+        <MavenRunnerSettings>
+          <option name="delegateBuildToMaven" value="false" />
+          <option name="environmentProperties">
+            <map />
+          </option>
+          <option name="jreName" value="17" />
+          <option name="mavenProperties">
+            <map />
+          </option>
+          <option name="passParentEnv" value="true" />
+          <option name="runMavenInBackground" value="true" />
+          <option name="skipTests" value="false" />
+          <option name="vmOptions" value="-Dspring-boot.run.arguments=&quot;--log-file=/tmp/single-player-block-client-intellij.log --block-world-file=/tmp/intellij-block-world.dat&quot;" />
+        </MavenRunnerSettings>
+      </option>
+      <option name="myRunnerParameters">
+        <MavenRunnerParameters>
+          <option name="cmdOptions" />
+          <option name="profiles">
+            <set />
+          </option>
+          <option name="goals">
+            <list>
+              <option value="-e" />
+              <option value="-pl" />
+              <option value="res-modules/block-mining-simulation-game-single-player-client" />
+              <option value="-amd" />
+              <option value="clean" />
+              <option value="compile" />
+              <option value="package" />
+              <option value="spring-boot:repackage" />
+              <option value="spring-boot:run" />
+            </list>
+          </option>
+          <option name="multimoduleDir" />
+          <option name="pomFileName" />
+          <option name="profilesMap">
+            <map />
+          </option>
+          <option name="projectsCmdOptionValues">
+            <list />
+          </option>
+          <option name="resolveToWorkspace" value="false" />
+          <option name="workingDirPath" value="$PROJECT_DIR$" />
+        </MavenRunnerParameters>
+      </option>
+    </MavenSettings>
+    <method v="2">
+      <option name="RunConfigurationTask" enabled="true" run_configuration_name="Block Core" run_configuration_type="MavenRunConfiguration" />
+    </method>
+  </configuration>
+</component>
