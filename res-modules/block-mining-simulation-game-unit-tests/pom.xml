@@ -25,6 +25,10 @@
          <artifactId>block-mining-simulation-game-core</artifactId>
          <version>${project.version}</version>
      </dependency>
+     <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+     </dependency>
   </dependencies>
 
   <build>

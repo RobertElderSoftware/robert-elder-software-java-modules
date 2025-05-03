@@ -76,16 +76,34 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.security.MessageDigest;
+import org.junit.Test;
 
-class BlockManagerUnitTests {
+public class BlockManagerUnitTest {
 
 	private static String noiseTestOutputFolder = "/tmp";
 
+	public BlockManagerUnitTest() {
+
+	}
+
+
+	@Test
+	public void workItemQueueTest() throws Exception {
+		runWorkItemQueueTest();
+	}
+
+	@Test
+	public void intersectingChunkSetUnitTest() throws Exception {
+		runIntersectingChunkSetUnitTest();
+	}
+
+	@Test
+	public void cuboidAddressIntersectionUnitTest() throws Exception {
+		runCuboidAddressIntersectionUnitTest();
+	}
+
 	public static void main(String[] args) throws Exception {
 		//  Just uncomment whichever unit test you want to run:
-		runWorkItemQueueTest();
-		runIntersectingChunkSetUnitTest();
-		runCuboidAddressIntersectionUnitTest();
 		runMultiDimensionalNoiseGeneratorUnitTest(
 			new MultiDimensionalNoiseGeneratorUnitTestParameters(
 				"example-ore-islands",
@@ -278,7 +296,7 @@ class BlockManagerUnitTests {
 					"-qp",
 					"0",
 					"-an",
-					BlockManagerUnitTests.noiseTestOutputFolder + "/" + params.getTestName() + ".mp4"
+					BlockManagerUnitTest.noiseTestOutputFolder + "/" + params.getTestName() + ".mp4"
 				}
 			);
 
@@ -325,7 +343,7 @@ class BlockManagerUnitTests {
 				System.err.print(new String(pr.getStderrOutput(), "UTF-8"));
 			}else{
 				//  For inspection of individual noise frames:
-				String currentTestFolder = BlockManagerUnitTests.noiseTestOutputFolder + "/" + params.getTestName();
+				String currentTestFolder = BlockManagerUnitTest.noiseTestOutputFolder + "/" + params.getTestName();
 				String rawFilesLocation = currentTestFolder + "/raw";
 				String bitmapFilesLocation = currentTestFolder + "/bitmap";
 				Files.createDirectories(Paths.get(rawFilesLocation));
