@@ -30,58 +30,30 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.Map;
-import java.util.List;
-import java.util.Arrays;
-import java.util.ArrayList;
-
-import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import java.util.Set;
-import java.util.HashSet;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.Date;
-import java.io.BufferedWriter;
-import java.text.SimpleDateFormat;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Random;
-import java.lang.Thread;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.io.ByteArrayOutputStream;
-import java.util.Queue;
-import java.util.concurrent.LinkedBlockingQueue;
-
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.lang.invoke.MethodHandles;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ClientBlockModelContext extends BlockModelContext implements BlockModelInterface {
+	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private Random rand = new Random(1256);
-	private Map<String, TextWidthMeasurementWorkItemResult> measuredTextLengths = new ConcurrentHashMap<String, TextWidthMeasurementWorkItemResult>();
-	private InMemoryChunks inMemoryChunks;
-	private ChunkInitializerThreadState chunkInitializerThreadState;
-	private ConsoleWriterThreadState consoleWriterThreadState;
+	private final Map<String, TextWidthMeasurementWorkItemResult> measuredTextLengths = new ConcurrentHashMap<String, TextWidthMeasurementWorkItemResult>();
+	private final InMemoryChunks inMemoryChunks;
+	private final ChunkInitializerThreadState chunkInitializerThreadState;
+	private final ConsoleWriterThreadState consoleWriterThreadState;
 	private SIGWINCHListenerThreadState sigwinchListenerThreadState;
-	private MapAreaInterfaceThreadState mapAreaInterfaceThreadState = null;
-	private InventoryInterfaceThreadState inventoryInterfaceThreadState = null;
-	private Coordinate playerPositionBlockAddress = new Coordinate(Arrays.asList(99999999L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's position will be stored.
-	private Coordinate playerInventoryBlockAddress = new Coordinate(Arrays.asList(99999998L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's inventory will be stored.
+	private final List<MapAreaInterfaceThreadState> mapAreaInterfaceThreadStates = new ArrayList<MapAreaInterfaceThreadState>();
+	private final List<InventoryInterfaceThreadState> inventoryInterfaceThreadStates = new ArrayList<InventoryInterfaceThreadState>();
+	private final Coordinate playerPositionBlockAddress = new Coordinate(Arrays.asList(99999999L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's position will be stored.
+	private final Coordinate playerInventoryBlockAddress = new Coordinate(Arrays.asList(99999998L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's inventory will be stored.
 	private PlayerPositionXYZ playerPositionXYZ = null;
 	private PlayerInventory playerInventory = null;
-	private ClientServerInterface clientServerInterface;
+	private final ClientServerInterface clientServerInterface;
 
-	private Coordinate bottomleftHandCorner;
-	private Coordinate topRightHandCorner;
 	private CuboidAddress mapAreaCuboidAddress;
 
 	private WorkItemProcessorTask<UIWorkItem> helpMenuThread = null;
@@ -118,8 +90,14 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		}
 
 		this.clientServerInterface.Connect();
-		this.mapAreaInterfaceThreadState = new MapAreaInterfaceThreadState(this.blockManagerThreadCollection, this);
-		this.inventoryInterfaceThreadState = new InventoryInterfaceThreadState(this.blockManagerThreadCollection, this);
+		int numMapAreas = 1;
+		int numInventoryAreas = 1;
+		for(int i = 0; i < numMapAreas; i++){
+			this.mapAreaInterfaceThreadStates.add(new MapAreaInterfaceThreadState(this.blockManagerThreadCollection, this));
+		}
+		for(int i = 0; i < numInventoryAreas; i++){
+			this.inventoryInterfaceThreadStates.add(new InventoryInterfaceThreadState(this.blockManagerThreadCollection, this));
+		}
 
 		this.emptyFrameThreadState1 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this);
 		this.emptyFrameThreadState2 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this);
@@ -132,8 +110,12 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		boolean useMultiSplitDemo = false;
 		if(useMultiSplitDemo){
 			List<UserInterfaceSplit> splits1 = new ArrayList<UserInterfaceSplit>();
-			splits1.add(new UserInterfaceSplitLeafNode(this.mapAreaInterfaceThreadState));
-			splits1.add(new UserInterfaceSplitLeafNode(this.inventoryInterfaceThreadState));
+			for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
+				splits1.add(new UserInterfaceSplitLeafNode(mapAreaInterfaceThreadState));
+			}
+			for(InventoryInterfaceThreadState inventoryInterfaceThreadState : this.inventoryInterfaceThreadStates){
+				splits1.add(new UserInterfaceSplitLeafNode(inventoryInterfaceThreadState));
+			}
 			splits1.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState1));
 
 			List<UserInterfaceSplit> splits2 = new ArrayList<UserInterfaceSplit>();
@@ -161,16 +143,27 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState6, UIWorkItem.class));
 			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState7, UIWorkItem.class));
 		}else{
+			List<Double> framePercents = new ArrayList<Double>();
 			List<UserInterfaceSplit> splits = new ArrayList<UserInterfaceSplit>();
-			splits.add(new UserInterfaceSplitLeafNode(this.mapAreaInterfaceThreadState));
-			splits.add(new UserInterfaceSplitLeafNode(this.inventoryInterfaceThreadState));
+			for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
+				splits.add(new UserInterfaceSplitLeafNode(mapAreaInterfaceThreadState));
+				framePercents.add(0.75 / this.mapAreaInterfaceThreadStates.size());
+			}
+			for(InventoryInterfaceThreadState inventoryInterfaceThreadState : this.inventoryInterfaceThreadStates){
+				splits.add(new UserInterfaceSplitLeafNode(inventoryInterfaceThreadState));
+				framePercents.add(0.25 / this.inventoryInterfaceThreadStates.size());
+			}
 
-			this.consoleWriterThreadState.setRootSplit(new UserInterfaceSplitHorizontal(splits, Arrays.asList(0.75, 0.25)));
+			this.consoleWriterThreadState.setRootSplit(new UserInterfaceSplitHorizontal(splits, framePercents));
 		}
 
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(this, BlockModelContextWorkItem.class));
-		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.mapAreaInterfaceThreadState, UIWorkItem.class));
-		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.inventoryInterfaceThreadState, UIWorkItem.class));
+		for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
+			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(mapAreaInterfaceThreadState, UIWorkItem.class));
+		}
+		for(InventoryInterfaceThreadState inventoryInterfaceThreadState : this.inventoryInterfaceThreadStates){
+			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(inventoryInterfaceThreadState, UIWorkItem.class));
+		}
 
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(this.inMemoryChunks, InMemoryChunksWorkItem.class));
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ChunkInitializerWorkItem>(this.chunkInitializerThreadState, ChunkInitializerWorkItem.class));
@@ -534,7 +527,9 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			}else{
 				throw new Exception("Expected block to be of type PlayerPositionXYZ, but it was type " + blockWritten.getClass().getName());
 			}
-			this.mapAreaInterfaceThreadState.putWorkItem(new MapAreaNotifyPlayerPositionChangeWorkItem(this.mapAreaInterfaceThreadState, null, this.playerPositionXYZ.getPosition().copy()), WorkItemPriority.PRIORITY_LOW);
+			for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
+				mapAreaInterfaceThreadState.putWorkItem(new MapAreaNotifyPlayerPositionChangeWorkItem(mapAreaInterfaceThreadState, null, this.playerPositionXYZ.getPosition().copy()), WorkItemPriority.PRIORITY_LOW);
+			}
 			this.onTerminalWindowChanged();
 		}else if(this.playerInventory == null && currentCoordinate.equals(playerInventoryBlockAddress)){
 
@@ -638,11 +633,15 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void inMemoryChunksCallbackOnChunkWasWritten(CuboidAddress ca) throws Exception{
-		this.mapAreaInterfaceThreadState.putWorkItem(new UpdateMapAreaFlagsWorkItem(this.mapAreaInterfaceThreadState, ca.copy()), WorkItemPriority.PRIORITY_LOW);
+		for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
+			mapAreaInterfaceThreadState.putWorkItem(new UpdateMapAreaFlagsWorkItem(mapAreaInterfaceThreadState, ca.copy()), WorkItemPriority.PRIORITY_LOW);
+		}
 	}
 
 	public void inMemoryChunksCallbackOnChunkBecomesPending(CuboidAddress ca) throws Exception{
-		this.mapAreaInterfaceThreadState.putWorkItem(new UpdateMapAreaFlagsWorkItem(this.mapAreaInterfaceThreadState, ca.copy()), WorkItemPriority.PRIORITY_MEDIUM);
+		for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
+			mapAreaInterfaceThreadState.putWorkItem(new UpdateMapAreaFlagsWorkItem(mapAreaInterfaceThreadState, ca.copy()), WorkItemPriority.PRIORITY_MEDIUM);
+		}
 	}
 
 	public void postCuboidsWrite(Long numDimensions, List<CuboidAddress> cuboidAddresses) throws Exception{
@@ -687,7 +686,9 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 
 	public void onPlayerInventoryChange() throws Exception{
-		this.inventoryInterfaceThreadState.putWorkItem(new PlayerInventoryChangeWorkItem(this.inventoryInterfaceThreadState, new PlayerInventory(this.playerInventory.getBlockData())), WorkItemPriority.PRIORITY_LOW);
+		for(InventoryInterfaceThreadState inventoryInterfaceThreadState : this.inventoryInterfaceThreadStates){
+			inventoryInterfaceThreadState.putWorkItem(new PlayerInventoryChangeWorkItem(inventoryInterfaceThreadState, new PlayerInventory(this.playerInventory.getBlockData())), WorkItemPriority.PRIORITY_LOW);
+		}
 	}
 
 	public void enqueueChunkUnsubscriptionForServer(List<CuboidAddress> cuboidAddresses, WorkItemPriority priority) throws Exception{

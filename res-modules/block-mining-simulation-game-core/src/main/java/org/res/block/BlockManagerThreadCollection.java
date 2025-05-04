@@ -119,7 +119,7 @@ public class BlockManagerThreadCollection {
 		this.ensureStdinIsATTY();
 	}
 
-	public void ensureStdinIsATTY() throws Exception {
+	public final void ensureStdinIsATTY() throws Exception {
 		if(System.console() == null){
 			String message = "System.Console() == null, stdin is probably not a tty!";
 			logger.info(message);
@@ -129,7 +129,7 @@ public class BlockManagerThreadCollection {
 		}
 	}
 
-	public String loadJarResourceIntoString(String filename) throws Exception{
+	public final String loadJarResourceIntoString(String filename) throws Exception{
 		InputStream in = getClass().getResourceAsStream(filename);
 		ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
@@ -203,19 +203,19 @@ public class BlockManagerThreadCollection {
 		}
 	}
 
-	public String getUserInteractionConfigFile() throws Exception {
+	public final String getUserInteractionConfigFile() throws Exception {
 		return this.commandLineArgumentCollection.getUsedSingleValue("--user-interaction-config-file");
 	}
 
-	public String getBlockSchemaFile() throws Exception {
+	public final String getBlockSchemaFile() throws Exception {
 		return this.commandLineArgumentCollection.getUsedSingleValue("--block-schema-file");
 	}
 
-	public boolean getAllowUnrecognizedBlockTypes() {
+	public final boolean getAllowUnrecognizedBlockTypes() {
 		return this.commandLineArgumentCollection.hasUsedKey("--allow-unrecognized-block-types");
 	}
 
-	public boolean getIsJNIEnabled() {
+	public final boolean getIsJNIEnabled() {
 		return !this.commandLineArgumentCollection.hasUsedKey("--disable-jni");
 	}
 

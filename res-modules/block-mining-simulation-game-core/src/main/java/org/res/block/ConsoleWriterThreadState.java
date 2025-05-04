@@ -286,23 +286,17 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		//  Initialize screen to be all spaces:
 		this.characterWidths = new int [terminalWidth.intValue()][terminalHeight.intValue()];
 		for(int [] a : this.characterWidths){
-			Arrays.fill(a, 1);
+			Arrays.fill(a, 0);
 		}
-		this.colourCodes = new int [terminalWidth.intValue()][terminalHeight.intValue()][1];
-		for(int [][] a : this.colourCodes){
-			for(int [] b : a){
-				Arrays.fill(b, UserInterfaceFrameThreadState.RESET_BG_COLOR);
-			}
-		}
+		this.colourCodes = new int [terminalWidth.intValue()][terminalHeight.intValue()][0];
 		this.characters = new String [terminalWidth.intValue()][terminalHeight.intValue()];
 		for(String [] a : this.characters){
-			Arrays.fill(a, " ");
+			Arrays.fill(a, null);
 		}
 		this.changedFlags = new boolean [terminalWidth.intValue()][terminalHeight.intValue()];
 		for(boolean [] a : this.changedFlags){
 			Arrays.fill(a, true);
 		}
-		this.printTerminalTextChanges(true);
 	}
 
 	public void onTerminalDimensionsChanged(Long terminalWidth, Long terminalHeight, Long frameCharacterWidth) throws Exception{

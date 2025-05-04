@@ -12,9 +12,9 @@ CURRENT_REVISION=$(grep -Po '<revision>[^<]+<\/revision>' pom.xml | sed 's/<revi
 
 echo "Using MVN_REPO=${MVN_REPO}, CURRENT_REVISION=${CURRENT_REVISION}"
 
-mvn -e -Dmaven.repo.local=${MVN_REPO} clean install && #  Only required when dependency packages have been updated.
-mvn -e -Dmaven.repo.local=${MVN_REPO} -pl res-modules/block-mining-simulation-game-core -amd clean install &&
-mvn -e -Dmaven.repo.local=${MVN_REPO} -pl res-modules/block-mining-simulation-game-single-player-client -amd clean compile package spring-boot:repackage
+mvn -e -Dmaven.repo.local=${MVN_REPO} clean install -Dmaven.test.skip=true && #  Only required when dependency packages have been updated.
+mvn -e -Dmaven.repo.local=${MVN_REPO} -pl res-modules/block-mining-simulation-game-core -amd clean install  -Dmaven.test.skip=true &&
+mvn -e -Dmaven.repo.local=${MVN_REPO} -pl res-modules/block-mining-simulation-game-single-player-client -amd clean compile package spring-boot:repackage -Dmaven.test.skip=true 
 
 #  If build was successful
 if [ $? -eq 0 ]; then

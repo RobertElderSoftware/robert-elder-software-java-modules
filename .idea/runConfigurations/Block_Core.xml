@@ -27,8 +27,11 @@
           <option name="goals">
             <list>
               <option value="-e" />
+              <option value="-pl" />
+              <option value="res-modules/block-mining-simulation-game-core" />
               <option value="clean" />
               <option value="install" />
+              <option value="-Dmaven.test.skip=true" />
             </list>
           </option>
           <option name="multimoduleDir" />

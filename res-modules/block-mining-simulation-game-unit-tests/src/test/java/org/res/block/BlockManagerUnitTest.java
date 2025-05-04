@@ -86,6 +86,64 @@ public class BlockManagerUnitTest {
 
 	}
 
+	@Test
+	public void hiddenCharactersTest() throws Exception {
+		String [] chars = new String [] {"A", "\u2550"};
+		System.out.print("\033[2J"); // Clear screen
+		int maxSeparation = 4;
+		int maxWidth = 60;
+		int offsetFromTop = 0;
+		int titleSpace = 3;
+		for(int chrIndex = 0; chrIndex < chars.length; chrIndex++){
+			int yOffset = chrIndex * (maxSeparation * 2) + offsetFromTop + (chrIndex * titleSpace);
+			System.out.print("\033[" + (1 + yOffset) + ";0H-----Printing test for character '" + chars[chrIndex] + "'-----");
+			for(int lineIndex = 0; lineIndex < maxSeparation; lineIndex++){
+				int columnSkip = lineIndex + 1;
+				for(int i = 0; i < maxWidth; i += columnSkip){
+					System.out.print("\033[" + (titleSpace + yOffset + lineIndex * 2) + ";0H");
+					System.out.print("skip=" + lineIndex + " Print ->");
+					System.out.print("\033[" + (titleSpace + yOffset + lineIndex * 2) + ";" + (i + 20) + "H");
+					System.out.print(chars[chrIndex]);
+				}
+				for(int i = maxWidth-1; i >= 0 ; i -= columnSkip){
+					System.out.print("\033[" + (titleSpace + yOffset + lineIndex * 2 + 1) + ";0H");
+					System.out.print("skip=" + lineIndex + " Print <-");
+					System.out.print("\033[" + (titleSpace + yOffset + lineIndex * 2 + 1) + ";" + (i + 20) + "H");
+					System.out.print(chars[chrIndex]);
+				}
+			}
+		}
+		System.out.println("");
+		System.out.println("");
+		System.out.println("");
+	}
+
+	@Test
+	public void alignmentProblemTest() throws Exception {
+		String [] chars = new String [] {"A", "\u2550"};
+		System.out.print("\033[2J"); // Clear screen
+		int topOffset = 3;
+		int maxWidth = 6;
+		int titleSpace = 3;
+		int maxSkip = 2;
+		for(int chrIndex = 0; chrIndex < chars.length; chrIndex++){
+			for(int skipIndex = 0; skipIndex < maxSkip; skipIndex++){
+				int skip = skipIndex + 1;
+				int chrTestOffset = topOffset + ((maxWidth + titleSpace) * (chrIndex * maxSkip + skipIndex));
+				System.out.print("\033[" + (chrTestOffset + 1) + ";0H-----Printing test for character '" + chars[chrIndex] + "', skip=" + skip + "-----");
+				for(int lineIndex = 0; lineIndex < maxWidth; lineIndex++){
+					for(int i = 0; i < maxWidth; i += 1){
+						int xOffset = i * skip;
+						System.out.print("\033[" + (chrTestOffset + titleSpace + i) + ";" + (xOffset + 1) + "H");
+						String charToUse = ((i % 2) == 0) ? chars[chrIndex] : "=";
+						System.out.print(charToUse);
+					}
+				}
+			}
+		}
+		System.out.println("");
+		System.out.println("");
+	}
 
 	@Test
 	public void workItemQueueTest() throws Exception {
