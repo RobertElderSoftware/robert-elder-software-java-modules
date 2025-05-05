@@ -46,8 +46,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	private final ChunkInitializerThreadState chunkInitializerThreadState;
 	private final ConsoleWriterThreadState consoleWriterThreadState;
 	private SIGWINCHListenerThreadState sigwinchListenerThreadState;
-	private final List<MapAreaInterfaceThreadState> mapAreaInterfaceThreadStates = new ArrayList<MapAreaInterfaceThreadState>();
-	private final List<InventoryInterfaceThreadState> inventoryInterfaceThreadStates = new ArrayList<InventoryInterfaceThreadState>();
 	private final Coordinate playerPositionBlockAddress = new Coordinate(Arrays.asList(99999999L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's position will be stored.
 	private final Coordinate playerInventoryBlockAddress = new Coordinate(Arrays.asList(99999998L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's inventory will be stored.
 	private PlayerPositionXYZ playerPositionXYZ = null;
@@ -56,16 +54,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	private CuboidAddress mapAreaCuboidAddress;
 
-	private WorkItemProcessorTask<UIWorkItem> helpMenuThread = null;
-	private HelpMenuFrameThreadState helpMenuThreadState = null;
-
-	private EmptyFrameThreadState emptyFrameThreadState1 = null;
-	private EmptyFrameThreadState emptyFrameThreadState2 = null;
-	private EmptyFrameThreadState emptyFrameThreadState3 = null;
-	private EmptyFrameThreadState emptyFrameThreadState4 = null;
-	private EmptyFrameThreadState emptyFrameThreadState5 = null;
-	private EmptyFrameThreadState emptyFrameThreadState6 = null;
-	private EmptyFrameThreadState emptyFrameThreadState7 = null;
 
 	public ClientBlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ClientServerInterface clientServerInterface) throws Exception {
 		super(blockManagerThreadCollection, clientServerInterface);
@@ -90,80 +78,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		}
 
 		this.clientServerInterface.Connect();
-		int numMapAreas = 1;
-		int numInventoryAreas = 1;
-		for(int i = 0; i < numMapAreas; i++){
-			this.mapAreaInterfaceThreadStates.add(new MapAreaInterfaceThreadState(this.blockManagerThreadCollection, this));
-		}
-		for(int i = 0; i < numInventoryAreas; i++){
-			this.inventoryInterfaceThreadStates.add(new InventoryInterfaceThreadState(this.blockManagerThreadCollection, this));
-		}
 
-		this.emptyFrameThreadState1 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this);
-		this.emptyFrameThreadState2 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this);
-		this.emptyFrameThreadState3 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this);
-		this.emptyFrameThreadState4 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this);
-		this.emptyFrameThreadState5 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this);
-		this.emptyFrameThreadState6 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this);
-		this.emptyFrameThreadState7 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this);
-
-		boolean useMultiSplitDemo = false;
-		if(useMultiSplitDemo){
-			List<UserInterfaceSplit> splits1 = new ArrayList<UserInterfaceSplit>();
-			for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
-				splits1.add(new UserInterfaceSplitLeafNode(mapAreaInterfaceThreadState));
-			}
-			for(InventoryInterfaceThreadState inventoryInterfaceThreadState : this.inventoryInterfaceThreadStates){
-				splits1.add(new UserInterfaceSplitLeafNode(inventoryInterfaceThreadState));
-			}
-			splits1.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState1));
-
-			List<UserInterfaceSplit> splits2 = new ArrayList<UserInterfaceSplit>();
-			splits2.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState2));
-			splits2.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState3));
-			splits2.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState4));
-
-			List<UserInterfaceSplit> splits3 = new ArrayList<UserInterfaceSplit>();
-			splits3.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState5));
-			splits3.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState6));
-			splits3.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState7));
-
-			List<UserInterfaceSplit> topSplits = new ArrayList<UserInterfaceSplit>();
-			topSplits.add(new UserInterfaceSplitHorizontal(splits1));
-			topSplits.add(new UserInterfaceSplitHorizontal(splits2));
-			topSplits.add(new UserInterfaceSplitHorizontal(splits3));
-
-			this.consoleWriterThreadState.setRootSplit(new UserInterfaceSplitVertical(topSplits));
-
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState1, UIWorkItem.class));
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState2, UIWorkItem.class));
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState3, UIWorkItem.class));
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState4, UIWorkItem.class));
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState5, UIWorkItem.class));
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState6, UIWorkItem.class));
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState7, UIWorkItem.class));
-		}else{
-			List<Double> framePercents = new ArrayList<Double>();
-			List<UserInterfaceSplit> splits = new ArrayList<UserInterfaceSplit>();
-			for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
-				splits.add(new UserInterfaceSplitLeafNode(mapAreaInterfaceThreadState));
-				framePercents.add(0.75 / this.mapAreaInterfaceThreadStates.size());
-			}
-			for(InventoryInterfaceThreadState inventoryInterfaceThreadState : this.inventoryInterfaceThreadStates){
-				splits.add(new UserInterfaceSplitLeafNode(inventoryInterfaceThreadState));
-				framePercents.add(0.25 / this.inventoryInterfaceThreadStates.size());
-			}
-
-			this.consoleWriterThreadState.setRootSplit(new UserInterfaceSplitHorizontal(splits, framePercents));
-		}
-
-		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(this, BlockModelContextWorkItem.class));
-		for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(mapAreaInterfaceThreadState, UIWorkItem.class));
-		}
-		for(InventoryInterfaceThreadState inventoryInterfaceThreadState : this.inventoryInterfaceThreadStates){
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(inventoryInterfaceThreadState, UIWorkItem.class));
-		}
 
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(this.inMemoryChunks, InMemoryChunksWorkItem.class));
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ChunkInitializerWorkItem>(this.chunkInitializerThreadState, ChunkInitializerWorkItem.class));
@@ -174,31 +89,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.blockManagerThreadCollection.addThread(new StandardInputReaderTask(this, this.consoleWriterThreadState));
 	}
 
-	public void openHelpMenu() throws Exception{
-		if(this.helpMenuThreadState == null){
-			this.helpMenuThreadState = new HelpMenuFrameThreadState(this.blockManagerThreadCollection, this);
-			this.helpMenuThread = new WorkItemProcessorTask<UIWorkItem>(this.helpMenuThreadState, UIWorkItem.class);
-			this.blockManagerThreadCollection.addThread(this.helpMenuThread);
-
-			List<UserInterfaceSplit> newTopSplit = new ArrayList<UserInterfaceSplit>();
-			newTopSplit.add(this.consoleWriterThreadState.getRootSplit());
-			newTopSplit.add(new UserInterfaceSplitLeafNode(this.helpMenuThreadState));
-
-			this.consoleWriterThreadState.setRootSplit(new UserInterfaceSplitVertical(newTopSplit));
-			this.onTerminalWindowChanged();
-		}else{
-			UserInterfaceSplitVertical top = (UserInterfaceSplitVertical)this.consoleWriterThreadState.getRootSplit();
-
-			this.consoleWriterThreadState.setRootSplit(top.getSplitParts().get(0));
-
-			this.helpMenuThreadState = null;
-			this.helpMenuThread.setIsThreadFinished(true);
-			this.helpMenuThread.interrupt();
-			this.blockManagerThreadCollection.removeThread(this.helpMenuThread);
-			this.helpMenuThread = null;
-			this.onTerminalWindowChanged();
-		}
-	}
 
 	public ConsoleWriterThreadState getConsoleWriterThreadState(){
 		return consoleWriterThreadState;
@@ -527,9 +417,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			}else{
 				throw new Exception("Expected block to be of type PlayerPositionXYZ, but it was type " + blockWritten.getClass().getName());
 			}
-			for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
-				mapAreaInterfaceThreadState.putWorkItem(new MapAreaNotifyPlayerPositionChangeWorkItem(mapAreaInterfaceThreadState, null, this.playerPositionXYZ.getPosition().copy()), WorkItemPriority.PRIORITY_LOW);
-			}
+			consoleWriterThreadState.putWorkItem(new CNMapAreaNotifyPlayerPositionChangeWorkItem(consoleWriterThreadState, null, this.playerPositionXYZ.getPosition().copy()), WorkItemPriority.PRIORITY_LOW);
 			this.onTerminalWindowChanged();
 		}else if(this.playerInventory == null && currentCoordinate.equals(playerInventoryBlockAddress)){
 
@@ -633,15 +521,11 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void inMemoryChunksCallbackOnChunkWasWritten(CuboidAddress ca) throws Exception{
-		for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
-			mapAreaInterfaceThreadState.putWorkItem(new UpdateMapAreaFlagsWorkItem(mapAreaInterfaceThreadState, ca.copy()), WorkItemPriority.PRIORITY_LOW);
-		}
+		this.consoleWriterThreadState.putWorkItem(new CNUpdateMapAreaFlagsWorkItem(consoleWriterThreadState, ca.copy()), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void inMemoryChunksCallbackOnChunkBecomesPending(CuboidAddress ca) throws Exception{
-		for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
-			mapAreaInterfaceThreadState.putWorkItem(new UpdateMapAreaFlagsWorkItem(mapAreaInterfaceThreadState, ca.copy()), WorkItemPriority.PRIORITY_MEDIUM);
-		}
+		this.consoleWriterThreadState.putWorkItem(new CNUpdateMapAreaFlagsWorkItem(consoleWriterThreadState, ca.copy()), WorkItemPriority.PRIORITY_MEDIUM);
 	}
 
 	public void postCuboidsWrite(Long numDimensions, List<CuboidAddress> cuboidAddresses) throws Exception{
@@ -686,9 +570,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 
 	public void onPlayerInventoryChange() throws Exception{
-		for(InventoryInterfaceThreadState inventoryInterfaceThreadState : this.inventoryInterfaceThreadStates){
-			inventoryInterfaceThreadState.putWorkItem(new PlayerInventoryChangeWorkItem(inventoryInterfaceThreadState, new PlayerInventory(this.playerInventory.getBlockData())), WorkItemPriority.PRIORITY_LOW);
-		}
+		this.consoleWriterThreadState.putWorkItem(new CNPlayerInventoryChangeWorkItem(this.consoleWriterThreadState, new PlayerInventory(this.playerInventory.getBlockData())), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void enqueueChunkUnsubscriptionForServer(List<CuboidAddress> cuboidAddresses, WorkItemPriority priority) throws Exception{

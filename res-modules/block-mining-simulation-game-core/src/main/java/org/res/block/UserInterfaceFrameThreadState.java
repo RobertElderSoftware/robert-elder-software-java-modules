@@ -76,11 +76,25 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	public static int RESET_BG_COLOR = 0;
 	public static int BOLD_COLOR = 1;
 	public static int UNDERLINE_COLOR = 4;
+
+	public static int BLACK_FG_COLOR = 30;
 	public static int RED_FG_COLOR = 31;
 	public static int GREEN_FG_COLOR = 32;
+	public static int YELLOW_FG_COLOR = 33;
+	public static int BLUE_FG_COLOR = 34;
+	public static int MAGENTA_FG_COLOR = 35;
+	public static int CYAN_FG_COLOR = 36;
+	public static int WHITE_FG_COLOR = 37;
+
+	public static int BLACK_BG_COLOR = 40;
 	public static int RED_BG_COLOR = 41;
 	public static int GREEN_BG_COLOR = 42;
+	public static int YELLOW_BG_COLOR = 43;
 	public static int BLUE_BG_COLOR = 44;
+	public static int MAGENTA_BG_COLOR = 45;
+	public static int CYAN_BG_COLOR = 46;
+	public static int WHITE_BG_COLOR = 47;
+
 	public static int GRAY_BG_COLOR = 100;
 	public static int PLAYER_BG_COLOR = GREEN_BG_COLOR;
 
@@ -251,9 +265,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		return 1L;
 	}
 
-	private void sendConsolePrintMessage(int [][] characterWidths, int [][][] colourCodes, String [][] characters, boolean [][] hasChange, int xOffset, int yOffset, int xSize, int ySize) throws Exception{
+	private void sendConsolePrintMessage(int [][] characterWidths, int [][][] colourCodes, String [][] characters, boolean [][] hasChange, int xOffset, int yOffset, int xSize, int ySize, int bufferIndex) throws Exception{
 
-		this.clientBlockModelContext.getConsoleWriterThreadState().putWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, this.frameDimensions), WorkItemPriority.PRIORITY_LOW);
+		this.clientBlockModelContext.getConsoleWriterThreadState().putWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, this.frameDimensions, bufferIndex), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	protected boolean hasBottomBorder(){
@@ -535,9 +549,33 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int xSize = totalWidth;
 		int ySize = totalHeight;
 
-		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize);
+		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
 	}
 
+	public void overlayTest() throws Exception{
+		int totalWidth = 10;
+		int totalHeight = 20;
+		int [][] characterWidths = new int[totalWidth][totalHeight];
+		int [][][] colourCodes = new int[totalWidth][totalHeight][2];
+		String [][] characters = new String[totalWidth][totalHeight];
+		boolean [][] hasChange = new boolean [totalWidth][totalHeight];
+
+		for(int i = 0; i < totalWidth; i++){
+			for(int j = 0; j < totalHeight; j++){
+				characterWidths[i][j] = 1;
+				colourCodes[i][j] = new int [] {GREEN_BG_COLOR, BLACK_FG_COLOR};
+				characters[i][j] = "x";
+				hasChange[i][j] = true;
+			}
+		}
+
+		int xOffset = 20 + this.getFrameOffsetX().intValue();
+		int yOffset = 20 + this.getFrameOffsetY().intValue();
+		int xSize = totalWidth;
+		int ySize = totalHeight;
+
+		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
+	}
 
 	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, boolean xDirection) throws Exception{
 		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, xDirection);
@@ -604,7 +642,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int xSize = xDimSize;
 		int ySize = yDimSize;
 
-		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize);
+		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
 	}
 
 	public String whitespacePadMapAreaCell(String presentedText) throws Exception{

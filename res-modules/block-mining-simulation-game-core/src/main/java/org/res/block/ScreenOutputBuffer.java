@@ -30,78 +30,54 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
+import java.util.Arrays;
 
+import java.util.Set;
+import java.util.HashSet;
+import java.util.TreeMap;
+import java.io.ByteArrayOutputStream;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.Collections;
+import java.util.Comparator;
+
+import java.lang.Thread;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 
-public class ConsoleWriteWorkItem extends ConsoleWriterWorkItem {
+public class ScreenOutputBuffer {
 
-	private String text;
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private int [][] characterWidths;
-	private int [][][] colourCodes;
-	private String [][] characters;
-	private boolean [][] hasChange;
-	private int xOffset;
-	private int yOffset;
-	private int xSize;
-	private int ySize;
-	private FrameDimensions frameDimensions;
-	private int bufferIndex;
+	public int [][] characterWidths = null;
+	public int [][][] colourCodes = null;
+	public String [][] characters = null;
+	public boolean [][] changedFlags = null;
 
-	public ConsoleWriteWorkItem(ConsoleWriterThreadState consoleWriterThreadState, int [][] characterWidths, int [][][] colourCodes, String [][] characters, boolean [][] hasChange, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions frameDimensions, int bufferIndex){
-		super(consoleWriterThreadState, false);
-		this.characterWidths = characterWidths;
-		this.colourCodes = colourCodes;
-		this.characters = characters;
-		this.hasChange = hasChange;
-		this.xOffset = xOffset;
-		this.yOffset = yOffset;
-		this.xSize = xSize;
-		this.ySize = ySize;
-		this.frameDimensions = frameDimensions;
-		this.bufferIndex = bufferIndex;
+	public ScreenOutputBuffer(){
+
 	}
 
-	public int [][] getCharacterWidths(){
-		return characterWidths;
-	}
-
-	public int [][][] getColourCodes(){
-		return colourCodes;
-	}
-
-	public String [][] getCharacters(){
-		return characters;
-	}
-
-	public int getXOffset(){
-		return xOffset;
-	}
-
-	public int getYOffset(){
-		return yOffset;
-	}
-
-	public int getXSize(){
-		return xSize;
-	}
-
-	public int getYSize(){
-		return ySize;
-	}
-
-	public void prepareTerminalTextChange() throws Exception{
-		this.consoleWriterThreadState.prepareTerminalTextChange(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, frameDimensions, bufferIndex);
-	}
-
-	public void doWork() throws Exception{
-		this.consoleWriterThreadState.addPendingConsoleWrite(this);
+	public void initialize(Long terminalWidth, Long terminalHeight){
+		//  Initialize screen to be all spaces:
+		this.characterWidths = new int [terminalWidth.intValue()][terminalHeight.intValue()];
+		for(int [] a : this.characterWidths){
+			Arrays.fill(a, 0);
+		}
+		this.colourCodes = new int [terminalWidth.intValue()][terminalHeight.intValue()][0];
+		this.characters = new String [terminalWidth.intValue()][terminalHeight.intValue()];
+		for(String [] a : this.characters){
+			Arrays.fill(a, null);
+		}
+		this.changedFlags = new boolean [terminalWidth.intValue()][terminalHeight.intValue()];
+		for(boolean [] a : this.changedFlags){
+			Arrays.fill(a, false);
+		}
 	}
 }

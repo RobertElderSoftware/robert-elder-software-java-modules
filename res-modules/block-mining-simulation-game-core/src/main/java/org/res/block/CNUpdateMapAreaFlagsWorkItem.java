@@ -35,17 +35,16 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class TellClientOpenHelpMenuWorkItem extends BlockModelContextWorkItem {
+public class CNUpdateMapAreaFlagsWorkItem extends ConsoleWriterWorkItem {
 
-	public TellClientOpenHelpMenuWorkItem(BlockModelContext blockModelContext){
-		super(blockModelContext);
+	private CuboidAddress cuboidAddress;
+
+	public CNUpdateMapAreaFlagsWorkItem(ConsoleWriterThreadState consoleWriterThreadState, CuboidAddress cuboidAddress){
+		super(consoleWriterThreadState, false);
+		this.cuboidAddress = cuboidAddress;
 	}
 
 	public void doWork() throws Exception{
-		if(this.blockModelContext instanceof ClientBlockModelContext){
-			((ClientBlockModelContext)blockModelContext).openHelpMenu();
-		}else{
-			throw new Exception("Cannot send help menu open to server block model context.");
-		}
+		this.consoleWriterThreadState.updateMapAreaFlags(this.cuboidAddress);
 	}
 }

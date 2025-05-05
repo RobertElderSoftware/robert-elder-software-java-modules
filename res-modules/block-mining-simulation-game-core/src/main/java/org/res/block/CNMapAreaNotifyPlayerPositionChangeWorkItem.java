@@ -35,73 +35,18 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
+public class CNMapAreaNotifyPlayerPositionChangeWorkItem extends ConsoleWriterWorkItem {
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
+	private Coordinate previousPosition;
+	private Coordinate newPosition;
 
-public class ConsoleWriteWorkItem extends ConsoleWriterWorkItem {
-
-	private String text;
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private int [][] characterWidths;
-	private int [][][] colourCodes;
-	private String [][] characters;
-	private boolean [][] hasChange;
-	private int xOffset;
-	private int yOffset;
-	private int xSize;
-	private int ySize;
-	private FrameDimensions frameDimensions;
-	private int bufferIndex;
-
-	public ConsoleWriteWorkItem(ConsoleWriterThreadState consoleWriterThreadState, int [][] characterWidths, int [][][] colourCodes, String [][] characters, boolean [][] hasChange, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions frameDimensions, int bufferIndex){
+	public CNMapAreaNotifyPlayerPositionChangeWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Coordinate previousPosition, Coordinate newPosition){
 		super(consoleWriterThreadState, false);
-		this.characterWidths = characterWidths;
-		this.colourCodes = colourCodes;
-		this.characters = characters;
-		this.hasChange = hasChange;
-		this.xOffset = xOffset;
-		this.yOffset = yOffset;
-		this.xSize = xSize;
-		this.ySize = ySize;
-		this.frameDimensions = frameDimensions;
-		this.bufferIndex = bufferIndex;
-	}
-
-	public int [][] getCharacterWidths(){
-		return characterWidths;
-	}
-
-	public int [][][] getColourCodes(){
-		return colourCodes;
-	}
-
-	public String [][] getCharacters(){
-		return characters;
-	}
-
-	public int getXOffset(){
-		return xOffset;
-	}
-
-	public int getYOffset(){
-		return yOffset;
-	}
-
-	public int getXSize(){
-		return xSize;
-	}
-
-	public int getYSize(){
-		return ySize;
-	}
-
-	public void prepareTerminalTextChange() throws Exception{
-		this.consoleWriterThreadState.prepareTerminalTextChange(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, frameDimensions, bufferIndex);
+		this.previousPosition = previousPosition;
+		this.newPosition = newPosition;
 	}
 
 	public void doWork() throws Exception{
-		this.consoleWriterThreadState.addPendingConsoleWrite(this);
+		this.consoleWriterThreadState.onPlayerPositionChange(previousPosition, newPosition);
 	}
 }
