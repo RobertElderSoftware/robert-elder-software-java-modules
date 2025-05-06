@@ -198,6 +198,14 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		return instructions;
 	}
 
+	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, boolean xDirection) throws Exception{
+		this.clientBlockModelContext.getConsoleWriterThreadState().printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.frameDimensions, xDirection);
+	}
+
+	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, boolean xDirection) throws Exception{
+		this.clientBlockModelContext.getConsoleWriterThreadState().printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.frameDimensions, xDirection);
+	}
+
 	protected void executeLinePrintingInstructionsAtYOffset(List<LinePrintingInstruction> instructions, Long yOffset) throws Exception{
 		for(int i = 0; i < instructions.size(); i++){
 			LinePrintingInstruction instruction = instructions.get(i);
@@ -265,10 +273,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		return 1L;
 	}
 
-	private void sendConsolePrintMessage(int [][] characterWidths, int [][][] colourCodes, String [][] characters, boolean [][] hasChange, int xOffset, int yOffset, int xSize, int ySize, int bufferIndex) throws Exception{
-
-		this.clientBlockModelContext.getConsoleWriterThreadState().putWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, this.frameDimensions, bufferIndex), WorkItemPriority.PRIORITY_LOW);
-	}
 
 	protected boolean hasBottomBorder(){
 		return this.getTerminalHeight().equals(this.getFrameOffsetY() + this.getFrameHeight());
@@ -544,105 +548,12 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			}
 		}
 
-		int xOffset = drawOffsetX.intValue() + this.getFrameOffsetX().intValue();
-		int yOffset = drawOffsetY.intValue() + this.getFrameOffsetY().intValue();
+		int xOffset = drawOffsetX.intValue() + this.frameDimensions.getFrameOffsetX().intValue();
+		int yOffset = drawOffsetY.intValue() + this.frameDimensions.getFrameOffsetY().intValue();
 		int xSize = totalWidth;
 		int ySize = totalHeight;
 
-		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
-	}
-
-	public void overlayTest() throws Exception{
-		int totalWidth = 10;
-		int totalHeight = 20;
-		int [][] characterWidths = new int[totalWidth][totalHeight];
-		int [][][] colourCodes = new int[totalWidth][totalHeight][2];
-		String [][] characters = new String[totalWidth][totalHeight];
-		boolean [][] hasChange = new boolean [totalWidth][totalHeight];
-
-		for(int i = 0; i < totalWidth; i++){
-			for(int j = 0; j < totalHeight; j++){
-				characterWidths[i][j] = 1;
-				colourCodes[i][j] = new int [] {GREEN_BG_COLOR, BLACK_FG_COLOR};
-				characters[i][j] = "x";
-				hasChange[i][j] = true;
-			}
-		}
-
-		int xOffset = 20 + this.getFrameOffsetX().intValue();
-		int yOffset = 20 + this.getFrameOffsetY().intValue();
-		int xSize = totalWidth;
-		int ySize = totalHeight;
-
-		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
-	}
-
-	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, boolean xDirection) throws Exception{
-		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, xDirection);
-	}
-
-	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, boolean xDirection) throws Exception{
-		List<ColouredCharacter> colouredCharacters = colouredTextFragmentList.getColouredCharacters();
-		List<String> charactersToPrint = new ArrayList<String>();
-		int [][] newColourCodes = new int [colouredCharacters.size()][];
-		for(int i = 0; i < colouredCharacters.size(); i++){
-			ColouredCharacter c = colouredCharacters.get(i);
-			newColourCodes[i] = c.getAnsiColourCodes();
-			charactersToPrint.add(c.getCharacter());
-		}
-		//  Print a string in either the X or Y Direction.
-		logger.info("charactersToPrint=" + charactersToPrint);
-		if(charactersToPrint.size() != newColourCodes.length){
-			throw new Exception("Size missmatch in colour code array: " + charactersToPrint.size() + " verus " + newColourCodes.length);
-		}
-
-		int totalWidth = 0;
-		for(String s : charactersToPrint){
-			int chrWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(s).getDeltaX().intValue();
-			logger.info("chrWidth=" + chrWidth + " for '" + s + "' (" + BlockModelContext.convertToHex(s.getBytes("UTF-8")) + " in hex).");
-			totalWidth += (chrWidth < 1 ? 1 : chrWidth);
-		}
-
-		int xDimSize = xDirection ? totalWidth : 1;
-		int yDimSize = xDirection ? 1 : totalWidth;
-		int [][] characterWidths = new int[xDimSize][yDimSize];
-		int [][][] colourCodes = new int[xDimSize][yDimSize][1];
-		String [][] characters = new String[xDimSize][yDimSize];
-		boolean [][] hasChange = new boolean[xDimSize][yDimSize];
-
-		int currentOffset = 0;
-		for(int i = 0; i < charactersToPrint.size(); i++){
-			String s = charactersToPrint.get(i);
-			int chrWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(s).getDeltaX().intValue();
-			int xIndex = xDirection ? currentOffset : 0;
-			int yIndex = xDirection ? 0 : currentOffset;
-			colourCodes[xIndex][yIndex] = newColourCodes[i];
-			characters[xIndex][yIndex] = s;
-			characterWidths[xIndex][yIndex] = chrWidth;
-			hasChange[xIndex][yIndex] = true;
-			if(xDirection){
-				currentOffset++;
-				//  For multi-column characters in 'x' direction, reset any of the 'covered'
-				//  columns take up by the multi-column character:
-				for(int k = 1; k < chrWidth; k++){
-					colourCodes[currentOffset][yIndex] = new int [] {};
-					characters[currentOffset][yIndex] = null;
-					characterWidths[currentOffset][yIndex] = 0;
-					hasChange[currentOffset][yIndex] = true;
-					currentOffset++;
-				}
-			}else{
-				//  Always advance by 1 if printing in Y direction.
-				currentOffset += 1;
-			}
-		}
-
-		int xOffset = drawOffsetX.intValue() + this.getFrameOffsetX().intValue();
-		int yOffset = drawOffsetY.intValue() + this.getFrameOffsetY().intValue();
-		int xSize = xDimSize;
-		int ySize = yDimSize;
-
-		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
+		this.clientBlockModelContext.getConsoleWriterThreadState().sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, this.frameDimensions, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
 	}
 
 	public String whitespacePadMapAreaCell(String presentedText) throws Exception{

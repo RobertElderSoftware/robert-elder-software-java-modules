@@ -67,6 +67,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	private Long terminalWidth = null;
 	private Long terminalHeight = null;
+	private FrameDimensions currentTerminalFrameDimensions = null;
+	private boolean menuActive = false;
 	private int numScreenOutputBuffers = 2;
 	public static final int BUFFER_INDEX_DEFAULT = 0;
 	public static final int BUFFER_INDEX_MENU = 1;
@@ -193,10 +195,49 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public void notifyAllFramesOfFocusChange() throws Exception{
+		this.renderHelpMenu();
+
 		List<UserInterfaceFrameThreadState> allFrames = root.collectUserInterfaceFrames();
 		//  Notify all frames of the update so they can redraw border:
 		for(UserInterfaceFrameThreadState frame : allFrames){
 			frame.putWorkItem(new FrameFocusChangeWorkItem(frame, this.focusedFrame.getFrameDimensions()), WorkItemPriority.PRIORITY_LOW);
+		}
+	}
+
+	public void renderHelpMenu() throws Exception{
+		int terminalWidth = this.currentTerminalFrameDimensions.getTerminalWidth().intValue();
+		int terminalHeight = this.currentTerminalFrameDimensions.getTerminalHeight().intValue();
+		int menuWidth = 20;
+		int menuHeight = 10;
+		int [][] characterWidths = new int[menuWidth][menuHeight];
+		int [][][] colourCodes = new int[menuWidth][menuHeight][2];
+		String [][] characters = new String[menuWidth][menuHeight];
+		boolean [][] hasChange = new boolean [menuWidth][menuHeight];
+
+		for(int i = 0; i < menuWidth; i++){
+			for(int j = 0; j < menuHeight; j++){
+				String character = this.menuActive ? " " : null;
+				int [] colours = this.menuActive ? new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR, UserInterfaceFrameThreadState.BLACK_FG_COLOR} : new int [] {};
+				int characterWidth = this.menuActive ? 1 : 0;
+				characterWidths[i][j] = characterWidth;
+				colourCodes[i][j] = colours;
+				characters[i][j] = character;
+				hasChange[i][j] = true;
+			}
+		}
+
+		int xOffset = (terminalWidth / 2) - (menuWidth / 2);
+		int yOffset = (terminalHeight / 2) - (menuHeight / 2);
+		int xSize = menuWidth;
+		int ySize = menuHeight;
+
+		this.prepareTerminalTextChange(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, this.currentTerminalFrameDimensions, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
+
+		if(!this.menuActive){
+			//  De-activate everything in menu layer:
+			this.setScreenAreaChangeStates(0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_MENU, false);
+			//  Allow refresh of everything that was below the menu:
+			this.setScreenAreaChangeStates(xOffset, yOffset, xOffset + menuWidth, yOffset + menuHeight, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true);
 		}
 	}
 
@@ -307,6 +348,83 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
+	public void sendConsolePrintMessage(int [][] characterWidths, int [][][] colourCodes, String [][] characters, boolean [][] hasChange, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions fd, int bufferIndex) throws Exception{
+
+		this.putWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, fd, bufferIndex), WorkItemPriority.PRIORITY_LOW);
+	}
+
+	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, boolean xDirection) throws Exception{
+		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.currentTerminalFrameDimensions, xDirection);
+	}
+
+	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, boolean xDirection) throws Exception{
+		printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.currentTerminalFrameDimensions, xDirection);
+	}
+
+	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, FrameDimensions fd, boolean xDirection) throws Exception{
+		List<ColouredCharacter> colouredCharacters = colouredTextFragmentList.getColouredCharacters();
+		List<String> charactersToPrint = new ArrayList<String>();
+		int [][] newColourCodes = new int [colouredCharacters.size()][];
+		for(int i = 0; i < colouredCharacters.size(); i++){
+			ColouredCharacter c = colouredCharacters.get(i);
+			newColourCodes[i] = c.getAnsiColourCodes();
+			charactersToPrint.add(c.getCharacter());
+		}
+		//  Print a string in either the X or Y Direction.
+		logger.info("charactersToPrint=" + charactersToPrint);
+		if(charactersToPrint.size() != newColourCodes.length){
+			throw new Exception("Size missmatch in colour code array: " + charactersToPrint.size() + " verus " + newColourCodes.length);
+		}
+
+		int totalWidth = 0;
+		for(String s : charactersToPrint){
+			int chrWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(s).getDeltaX().intValue();
+			logger.info("chrWidth=" + chrWidth + " for '" + s + "' (" + BlockModelContext.convertToHex(s.getBytes("UTF-8")) + " in hex).");
+			totalWidth += (chrWidth < 1 ? 1 : chrWidth);
+		}
+
+		int xDimSize = xDirection ? totalWidth : 1;
+		int yDimSize = xDirection ? 1 : totalWidth;
+		int [][] characterWidths = new int[xDimSize][yDimSize];
+		int [][][] colourCodes = new int[xDimSize][yDimSize][1];
+		String [][] characters = new String[xDimSize][yDimSize];
+		boolean [][] hasChange = new boolean[xDimSize][yDimSize];
+
+		int currentOffset = 0;
+		for(int i = 0; i < charactersToPrint.size(); i++){
+			String s = charactersToPrint.get(i);
+			int chrWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(s).getDeltaX().intValue();
+			int xIndex = xDirection ? currentOffset : 0;
+			int yIndex = xDirection ? 0 : currentOffset;
+			colourCodes[xIndex][yIndex] = newColourCodes[i];
+			characters[xIndex][yIndex] = s;
+			characterWidths[xIndex][yIndex] = chrWidth;
+			hasChange[xIndex][yIndex] = true;
+			if(xDirection){
+				currentOffset++;
+				//  For multi-column characters in 'x' direction, reset any of the 'covered'
+				//  columns take up by the multi-column character:
+				for(int k = 1; k < chrWidth; k++){
+					colourCodes[currentOffset][yIndex] = new int [] {};
+					characters[currentOffset][yIndex] = null;
+					characterWidths[currentOffset][yIndex] = 0;
+					hasChange[currentOffset][yIndex] = true;
+					currentOffset++;
+				}
+			}else{
+				//  Always advance by 1 if printing in Y direction.
+				currentOffset += 1;
+			}
+		}
+
+		int xOffset = drawOffsetX.intValue() + fd.getFrameOffsetX().intValue();
+		int yOffset = drawOffsetY.intValue() + fd.getFrameOffsetY().intValue();
+		int xSize = xDimSize;
+		int ySize = yDimSize;
+
+		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, fd, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
+	}
+
 	public void prepareTerminalTextChange(int [][] newCharacterWidths, int [][][] newColourCodes, String [][] newCharacters, boolean [][] hasChange, int xOffset, int yOffset, int xChangeSize, int yChangeSize, FrameDimensions frameDimensions, int bufferIndex) throws Exception{
 		for(int j = 0; j < yChangeSize; j++){
 			for(int i = 0; i < xChangeSize; i++){
@@ -338,6 +456,12 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 						this.screenOutputBuffer[bufferIndex].colourCodes[xOffset + i][yOffset + j] = newColourCodes[i][j];
 						this.screenOutputBuffer[bufferIndex].characters[xOffset + i][yOffset + j] = newCharacters[i][j];
 						this.screenOutputBuffer[bufferIndex].changedFlags[xOffset + i][yOffset + j] = hasChanged;
+						//  If we're printing on a screen buffer that's in front, we will evetually need to update whatever was behind it:
+						if(hasChanged){
+							for(int k = bufferIndex; k >= 0 ; k--){
+								this.screenOutputBuffer[bufferIndex].changedFlags[xOffset + i][yOffset + j] = hasChanged;
+							}
+						}
 					}else{
 						//throw new Exception("Discarding character '" + newCharacters[i][j] + "' because if was out of bounds at x=" + (xOffset + i) + ", y=" + (yOffset + j));
 					}
@@ -408,12 +532,12 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.initializeConsole(terminalWidth, terminalHeight);
 
 		//  When the terminal size changes, send a notify to all of the user interface frames to let them know about it
-		FrameDimensions fd = new FrameDimensions(frameCharacterWidth, terminalWidth, terminalHeight, 0L, 0L, terminalWidth, terminalHeight);
-		FrameBordersDescription frameBordersDescription = this.root.collectAllConnectionPoints(fd);
+		this.currentTerminalFrameDimensions = new FrameDimensions(frameCharacterWidth, terminalWidth, terminalHeight, 0L, 0L, terminalWidth, terminalHeight);
+		FrameBordersDescription frameBordersDescription = this.root.collectAllConnectionPoints(this.currentTerminalFrameDimensions);
 		if(this.focusedFrame == null){
 			this.focusOnNextFrame();
 		}
-		this.root.setEquidistantFrameDimensions(fd, frameBordersDescription);
+		this.root.setEquidistantFrameDimensions(this.currentTerminalFrameDimensions, frameBordersDescription);
 		this.notifyAllFramesOfFocusChange();
 	}
 
@@ -467,6 +591,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 						break;
 					}case ACTION_HELP_MENU_TOGGLE:{
 						this.onHelpMenuOpen();
+						//this.menuActive = !this.menuActive;
+						//this.notifyAllFramesOfFocusChange();
 						break;
 					}case ACTION_TAB_NEXT_FRAME:{
 						this.focusOnNextFrame();
@@ -489,7 +615,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.workItemQueue.putWorkItem(workItem, priority);
 	}
 
-	private void invalidateScreenArea(int startX, int startY, int endX, int endY, int bufferIndex){
+	private void setScreenAreaChangeStates(int startX, int startY, int endX, int endY, int bufferIndex, boolean state){
 		//  Invalidate a sub-area of screen so that the characters are that location will 
 		//  be printed on the next print attempt.
 		int width = endX - startX;
@@ -497,7 +623,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		
 		for(int i = 0; i < width; i++){
 			for(int j = 0; j < height; j++){
-				this.screenOutputBuffer[bufferIndex].changedFlags[i + startX][j + startY] = true;
+				this.screenOutputBuffer[bufferIndex].changedFlags[i + startX][j + startY] = state;
 			}
 		}
 	}
@@ -520,7 +646,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				System.out.flush();
 				//  We just by-passed the screen printing buffer, so invalidate the area of the
 				//  screen where the test character was and re-print whatever was there:
-				this.invalidateScreenArea(0, 0, 16, 4, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
+				this.setScreenAreaChangeStates(0, 0, 16, 4, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true);
 				this.printTerminalTextChanges(false);
 				logger.info("Finished printing test text '" + text + "' and issued cursor re-positioning request to calculate width. Waiting for result on stdin...");
 			}

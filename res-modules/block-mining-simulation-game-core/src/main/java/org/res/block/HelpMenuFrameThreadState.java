@@ -91,8 +91,6 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		Long rightPadding = 3L;
 		Long currentLine = 3L;
 
-		//overlayTest();
-
 		ColouredTextFragmentList topTitlePart = new ColouredTextFragmentList();
 		topTitlePart.add(new ColouredTextFragment("Block Mining Simulation Game Help Menu\n\n\nInput Keys", titleAnsiCodes));
 
