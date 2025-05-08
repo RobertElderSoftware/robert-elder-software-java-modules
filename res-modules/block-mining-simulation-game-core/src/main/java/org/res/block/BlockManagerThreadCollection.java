@@ -85,7 +85,7 @@ public class BlockManagerThreadCollection {
 	private UserInteractionConfig userInteractionConfig = null;
 	private Boolean assumeEmojisAreSupported = null;
 
-	public BlockManagerThreadCollection(CommandLineArgumentCollection commandLineArgumentCollection) throws Exception {
+	public BlockManagerThreadCollection(CommandLineArgumentCollection commandLineArgumentCollection, boolean ensureStdinIsATTY) throws Exception {
 		//  This is not very portable, but I actually don't know how many terminals
 		//  support advanced emoji characters out there.  Possibly make this guess better in the future:
 		logger.info("Observed TERM variable with value '" + String.valueOf(System.getenv("TERM")) + "'.");
@@ -116,7 +116,9 @@ public class BlockManagerThreadCollection {
 		}
 		
 		this.userInteractionConfig = new UserInteractionConfig(userInteractionJsonString);
-		this.ensureStdinIsATTY();
+		if(ensureStdinIsATTY){
+			this.ensureStdinIsATTY();
+		}
 	}
 
 	public final void ensureStdinIsATTY() throws Exception {
@@ -263,6 +265,10 @@ public class BlockManagerThreadCollection {
 
 	public List<Exception> getOffendingExceptions(){
 		return this.offendingExceptions;
+	}
+
+	public BlockManagerThread getThreadById(Long id){
+		return this.allThreads.get(id);
 	}
 
 	public void sendShutdownNotifies() throws Exception{

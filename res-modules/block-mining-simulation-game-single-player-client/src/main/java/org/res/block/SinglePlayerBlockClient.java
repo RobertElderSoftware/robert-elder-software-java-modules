@@ -85,7 +85,7 @@ class SinglePlayerBlockClient {
 	public static void startSinglePlayerClient(CommandLineArgumentCollection commandLineArgumentCollection) throws Exception{
 		SinglePlayerBlockClient.setupLogging(commandLineArgumentCollection.getUsedSingleValue("--log-file"));
 
-		BlockManagerThreadCollection blockManagerThreadCollection = new BlockManagerThreadCollection(commandLineArgumentCollection);
+		BlockManagerThreadCollection blockManagerThreadCollection = new BlockManagerThreadCollection(commandLineArgumentCollection, true);
 
 		if(blockManagerThreadCollection.getPrintBlockSchema()){
 			blockManagerThreadCollection.printBlockSchema();

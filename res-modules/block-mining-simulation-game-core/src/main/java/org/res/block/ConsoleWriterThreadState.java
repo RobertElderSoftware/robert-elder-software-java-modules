@@ -68,15 +68,15 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private Long terminalWidth = null;
 	private Long terminalHeight = null;
 	private FrameDimensions currentTerminalFrameDimensions = null;
-	private boolean menuActive = false;
+	private HelpMenuFrameThreadState helpMenuFrameThreadState = null;
 	private int numScreenOutputBuffers = 2;
 	public static final int BUFFER_INDEX_DEFAULT = 0;
 	public static final int BUFFER_INDEX_MENU = 1;
 	private ScreenOutputBuffer [] screenOutputBuffer = new ScreenOutputBuffer [this.numScreenOutputBuffers];
 
 
-	private WorkItemProcessorTask<UIWorkItem> helpMenuThread = null;
-	private HelpMenuFrameThreadState helpMenuThreadState = null;
+	private WorkItemProcessorTask<UIWorkItem> helpDetailsThread = null;
+	private HelpDetailsFrameThreadState helpDetailsThreadState = null;
 
 	private EmptyFrameThreadState emptyFrameThreadState1 = null;
 	private EmptyFrameThreadState emptyFrameThreadState2 = null;
@@ -93,6 +93,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private int [] lastUsedColourCodes = new int [] {UserInterfaceFrameThreadState.RESET_BG_COLOR};
 
 	public ConsoleWriterThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception{
+		this.helpMenuFrameThreadState = new HelpMenuFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
 		for(int i = 0; i < this.numScreenOutputBuffers; i++){
 			this.screenOutputBuffer[i]  = new ScreenOutputBuffer();
 		}
@@ -214,11 +215,12 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		String [][] characters = new String[menuWidth][menuHeight];
 		boolean [][] hasChange = new boolean [menuWidth][menuHeight];
 
+		boolean menuActive = this.helpMenuFrameThreadState.getIsMenuActive();
 		for(int i = 0; i < menuWidth; i++){
 			for(int j = 0; j < menuHeight; j++){
-				String character = this.menuActive ? " " : null;
-				int [] colours = this.menuActive ? new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR, UserInterfaceFrameThreadState.BLACK_FG_COLOR} : new int [] {};
-				int characterWidth = this.menuActive ? 1 : 0;
+				String character = menuActive ? " " : null;
+				int [] colours = menuActive ? new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR, UserInterfaceFrameThreadState.BLACK_FG_COLOR} : new int [] {};
+				int characterWidth = menuActive ? 1 : 0;
 				characterWidths[i][j] = characterWidth;
 				colourCodes[i][j] = colours;
 				characters[i][j] = character;
@@ -233,7 +235,14 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 		this.prepareTerminalTextChange(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, this.currentTerminalFrameDimensions, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
 
-		if(!this.menuActive){
+		/*
+		int [] menuItemAnsiColours = new int[] {UserInterfaceFrameThreadState.GREEN_BG_COLOR, UserInterfaceFrameThreadState.BLACK_FG_COLOR};
+		ColouredTextFragmentList testTextList = new ColouredTextFragmentList();
+		testTextList.add(new ColouredTextFragment("Testing", menuItemAnsiColours));
+		this.printTextAtScreenXY(testTextList, Long.valueOf(xOffset), Long.valueOf(yOffset + 1), true);
+		*/
+
+		if(!menuActive){
 			//  De-activate everything in menu layer:
 			this.setScreenAreaChangeStates(0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_MENU, false);
 			//  Allow refresh of everything that was below the menu:
@@ -291,7 +300,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	public void setRootSplit(UserInterfaceSplit split) throws Exception{
 		this.root = split;
-		if(this.focusedFrame instanceof HelpMenuFrameThreadState){ // TODO: Remove this.  Required to prevent crashes when closing help menu.
+		if(this.focusedFrame instanceof HelpDetailsFrameThreadState){ // TODO: Remove this.  Required to prevent crashes when closing help menu.
 			List<UserInterfaceFrameThreadState> allFrames = root.collectUserInterfaceFrames();
 			if(allFrames.size() > 0){
 				this.focusedFrame = allFrames.get(0);
@@ -302,7 +311,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			//  Select the first frame that is a help menu:
 			List<UserInterfaceFrameThreadState> allFrames = root.collectUserInterfaceFrames();
 			for(UserInterfaceFrameThreadState frame : allFrames){
-				if(frame instanceof HelpMenuFrameThreadState){
+				if(frame instanceof HelpDetailsFrameThreadState){
 					this.focusedFrame = frame;
 				}
 			}
@@ -348,82 +357,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
-	public void sendConsolePrintMessage(int [][] characterWidths, int [][][] colourCodes, String [][] characters, boolean [][] hasChange, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions fd, int bufferIndex) throws Exception{
-
-		this.putWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, fd, bufferIndex), WorkItemPriority.PRIORITY_LOW);
-	}
-
-	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, boolean xDirection) throws Exception{
-		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.currentTerminalFrameDimensions, xDirection);
-	}
-
-	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, boolean xDirection) throws Exception{
-		printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.currentTerminalFrameDimensions, xDirection);
-	}
-
-	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, FrameDimensions fd, boolean xDirection) throws Exception{
-		List<ColouredCharacter> colouredCharacters = colouredTextFragmentList.getColouredCharacters();
-		List<String> charactersToPrint = new ArrayList<String>();
-		int [][] newColourCodes = new int [colouredCharacters.size()][];
-		for(int i = 0; i < colouredCharacters.size(); i++){
-			ColouredCharacter c = colouredCharacters.get(i);
-			newColourCodes[i] = c.getAnsiColourCodes();
-			charactersToPrint.add(c.getCharacter());
-		}
-		//  Print a string in either the X or Y Direction.
-		logger.info("charactersToPrint=" + charactersToPrint);
-		if(charactersToPrint.size() != newColourCodes.length){
-			throw new Exception("Size missmatch in colour code array: " + charactersToPrint.size() + " verus " + newColourCodes.length);
-		}
-
-		int totalWidth = 0;
-		for(String s : charactersToPrint){
-			int chrWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(s).getDeltaX().intValue();
-			logger.info("chrWidth=" + chrWidth + " for '" + s + "' (" + BlockModelContext.convertToHex(s.getBytes("UTF-8")) + " in hex).");
-			totalWidth += (chrWidth < 1 ? 1 : chrWidth);
-		}
-
-		int xDimSize = xDirection ? totalWidth : 1;
-		int yDimSize = xDirection ? 1 : totalWidth;
-		int [][] characterWidths = new int[xDimSize][yDimSize];
-		int [][][] colourCodes = new int[xDimSize][yDimSize][1];
-		String [][] characters = new String[xDimSize][yDimSize];
-		boolean [][] hasChange = new boolean[xDimSize][yDimSize];
-
-		int currentOffset = 0;
-		for(int i = 0; i < charactersToPrint.size(); i++){
-			String s = charactersToPrint.get(i);
-			int chrWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(s).getDeltaX().intValue();
-			int xIndex = xDirection ? currentOffset : 0;
-			int yIndex = xDirection ? 0 : currentOffset;
-			colourCodes[xIndex][yIndex] = newColourCodes[i];
-			characters[xIndex][yIndex] = s;
-			characterWidths[xIndex][yIndex] = chrWidth;
-			hasChange[xIndex][yIndex] = true;
-			if(xDirection){
-				currentOffset++;
-				//  For multi-column characters in 'x' direction, reset any of the 'covered'
-				//  columns take up by the multi-column character:
-				for(int k = 1; k < chrWidth; k++){
-					colourCodes[currentOffset][yIndex] = new int [] {};
-					characters[currentOffset][yIndex] = null;
-					characterWidths[currentOffset][yIndex] = 0;
-					hasChange[currentOffset][yIndex] = true;
-					currentOffset++;
-				}
-			}else{
-				//  Always advance by 1 if printing in Y direction.
-				currentOffset += 1;
-			}
-		}
-
-		int xOffset = drawOffsetX.intValue() + fd.getFrameOffsetX().intValue();
-		int yOffset = drawOffsetY.intValue() + fd.getFrameOffsetY().intValue();
-		int xSize = xDimSize;
-		int ySize = yDimSize;
-
-		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, fd, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
-	}
 
 	public void prepareTerminalTextChange(int [][] newCharacterWidths, int [][][] newColourCodes, String [][] newCharacters, boolean [][] hasChange, int xOffset, int yOffset, int xChangeSize, int yChangeSize, FrameDimensions frameDimensions, int bufferIndex) throws Exception{
 		for(int j = 0; j < yChangeSize; j++){
@@ -549,14 +482,14 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public void onHelpMenuOpen() throws Exception{
-		if(this.helpMenuThreadState == null){
-			this.helpMenuThreadState = new HelpMenuFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
-			this.helpMenuThread = new WorkItemProcessorTask<UIWorkItem>(this.helpMenuThreadState, UIWorkItem.class);
-			this.blockManagerThreadCollection.addThread(this.helpMenuThread);
+		if(this.helpDetailsThreadState == null){
+			this.helpDetailsThreadState = new HelpDetailsFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
+			this.helpDetailsThread = new WorkItemProcessorTask<UIWorkItem>(this.helpDetailsThreadState, UIWorkItem.class);
+			this.blockManagerThreadCollection.addThread(this.helpDetailsThread);
 
 			List<UserInterfaceSplit> newTopSplit = new ArrayList<UserInterfaceSplit>();
 			newTopSplit.add(this.getRootSplit());
-			newTopSplit.add(new UserInterfaceSplitLeafNode(this.helpMenuThreadState));
+			newTopSplit.add(new UserInterfaceSplitLeafNode(this.helpDetailsThreadState));
 
 			this.setRootSplit(new UserInterfaceSplitVertical(newTopSplit));
 			this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
@@ -565,11 +498,11 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 			this.setRootSplit(top.getSplitParts().get(0));
 
-			this.helpMenuThreadState = null;
-			this.helpMenuThread.setIsThreadFinished(true);
-			this.helpMenuThread.interrupt();
-			this.blockManagerThreadCollection.removeThread(this.helpMenuThread);
-			this.helpMenuThread = null;
+			this.helpDetailsThreadState = null;
+			this.helpDetailsThread.setIsThreadFinished(true);
+			this.helpDetailsThread.interrupt();
+			this.blockManagerThreadCollection.removeThread(this.helpDetailsThread);
+			this.helpDetailsThread = null;
 			this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
 		}
 	}
@@ -590,9 +523,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 						this.blockManagerThreadCollection.setIsProcessFinished(true, null); // Start shutting down the entire application.
 						break;
 					}case ACTION_HELP_MENU_TOGGLE:{
-						this.onHelpMenuOpen();
-						//this.menuActive = !this.menuActive;
-						//this.notifyAllFramesOfFocusChange();
+						//this.onHelpMenuOpen();
+						this.helpMenuFrameThreadState.setIsMenuActive(!this.helpMenuFrameThreadState.getIsMenuActive());
+						this.notifyAllFramesOfFocusChange();
 						break;
 					}case ACTION_TAB_NEXT_FRAME:{
 						this.focusOnNextFrame();
@@ -671,7 +604,17 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public WorkItemResult putBlockingWorkItem(ConsoleWriterWorkItem workItem, WorkItemPriority priority) throws Exception {
-		return this.workItemQueue.putBlockingWorkItem(workItem, priority);
+		BlockManagerThread t = this.blockManagerThreadCollection.getThreadById(Thread.currentThread().getId());
+		if(t instanceof WorkItemProcessorTask){
+			Class<?> ct = ((WorkItemProcessorTask<?>)t).getEntityClass();
+			if(ct == ConsoleWriterWorkItem.class){
+				throw new Exception("Current thread is instanceof WorkItemProcessorTask<ConsoleWriterWorkItem>.  Attempting to block here will cause a deadlock.");
+			}else{
+				return this.workItemQueue.putBlockingWorkItem(workItem, priority);
+			}
+		}else{
+			return this.workItemQueue.putBlockingWorkItem(workItem, priority);
+		}
 	}
 
 	public void addResultForThreadId(WorkItemResult workItemResult, Long threadId) throws Exception {

@@ -54,6 +54,10 @@ public class WorkItemProcessorTask<T extends WorkItem> extends BlockManagerThrea
 		this.isThreadFinished = isThreadFinished;
 	}
 
+	public Class<T> getEntityClass(){
+		return this.entityClass;
+	}
+
 	public boolean getIsThreadFinished(){
 		return this.isThreadFinished;
 	}
