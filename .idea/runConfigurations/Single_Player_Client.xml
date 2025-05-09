@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Single Player Client" type="MavenRunConfiguration" factoryName="Maven">
+  <configuration default="false" name="Single Player Client" type="MavenRunConfiguration" factoryName="Maven" activateToolWindowBeforeRun="false">
     <MavenSettings>
       <option name="myGeneralSettings">
         <MavenGeneralSettings>
@@ -54,6 +54,7 @@
               <option value="package" />
               <option value="spring-boot:repackage" />
               <option value="spring-boot:run" />
+              <option value="-Dspring-boot.run.fork=false" />
             </list>
           </option>
           <option name="multimoduleDir" />
