@@ -99,6 +99,45 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void render() throws Exception{
+		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+
+		int terminalWidth = this.frameDimensions.getTerminalWidth().intValue();
+		int terminalHeight = this.frameDimensions.getTerminalHeight().intValue();
+		int menuWidth = 20;
+		int menuHeight = 10;
+		int [][] characterWidths = new int[menuWidth][menuHeight];
+		int [][][] colourCodes = new int[menuWidth][menuHeight][2];
+		String [][] characters = new String[menuWidth][menuHeight];
+		boolean [][] hasChange = new boolean [menuWidth][menuHeight];
+
+		for(int i = 0; i < menuWidth; i++){
+			for(int j = 0; j < menuHeight; j++){
+				String character = menuActive ? " " : null;
+				int [] colours = menuActive ? new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR, UserInterfaceFrameThreadState.BLACK_FG_COLOR} : new int [] {};
+				int characterWidth = menuActive ? 1 : 0;
+				characterWidths[i][j] = characterWidth;
+				colourCodes[i][j] = colours;
+				characters[i][j] = character;
+				hasChange[i][j] = true;
+			}
+		}
+
+		int xOffset = (terminalWidth / 2) - (menuWidth / 2);
+		int yOffset = (terminalHeight / 2) - (menuHeight / 2);
+		int xSize = menuWidth;
+		int ySize = menuHeight;
+
+		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, this.frameDimensions, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
+
+		this.printTextAtScreenXY(new ColouredTextFragment("Test", new int[] {RESET_BG_COLOR}), Long.valueOf(xOffset + 1), Long.valueOf(yOffset + 1), true, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
+
+		if(!menuActive){
+			//  De-activate everything in menu layer:
+			cwts.putWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, 0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_MENU, false), WorkItemPriority.PRIORITY_LOW);
+			//  Allow refresh of everything that was below the menu:
+			//cwts.putWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, xOffset, yOffset, xOffset + menuWidth, yOffset + menuHeight, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true), WorkItemPriority.PRIORITY_LOW);
+			cwts.putWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, 0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true), WorkItemPriority.PRIORITY_LOW);
+		}
 	}
 
 	public void onFrameDimensionsChanged() throws Exception{

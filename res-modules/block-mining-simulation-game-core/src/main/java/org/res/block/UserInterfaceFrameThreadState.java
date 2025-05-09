@@ -198,15 +198,24 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		return instructions;
 	}
 
+
+	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, boolean xDirection, int bufferIndex) throws Exception{
+		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.frameDimensions, xDirection, bufferIndex);
+	}
+
 	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, boolean xDirection) throws Exception{
-		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.frameDimensions, xDirection);
+		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.frameDimensions, xDirection, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
+	}
+
+	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, boolean xDirection, int bufferIndex) throws Exception{
+		this.printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.frameDimensions, xDirection, bufferIndex);
 	}
 
 	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, boolean xDirection) throws Exception{
-		this.printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.frameDimensions, xDirection);
+		this.printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.frameDimensions, xDirection, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
 	}
 
-	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, FrameDimensions fd, boolean xDirection) throws Exception{
+	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, FrameDimensions fd, boolean xDirection, int bufferIndex) throws Exception{
 		List<ColouredCharacter> colouredCharacters = colouredTextFragmentList.getColouredCharacters();
 		List<String> charactersToPrint = new ArrayList<String>();
 		int [][] newColourCodes = new int [colouredCharacters.size()][];
@@ -267,7 +276,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int xSize = xDimSize;
 		int ySize = yDimSize;
 
-		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, fd, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
+		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, fd, bufferIndex);
 	}
 
 	public void sendConsolePrintMessage(int [][] characterWidths, int [][][] colourCodes, String [][] characters, boolean [][] hasChange, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions fd, int bufferIndex) throws Exception{

@@ -63,7 +63,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private final List<InventoryInterfaceThreadState> inventoryInterfaceThreadStates = new ArrayList<InventoryInterfaceThreadState>();
 
 	private BlockingQueue<TextWidthMeasurementWorkItem> pendingTextWidthRequests = new LinkedBlockingDeque<TextWidthMeasurementWorkItem>();
-	private BlockingQueue<ConsoleWriteWorkItem> pendingConsoleWrites = new LinkedBlockingDeque<ConsoleWriteWorkItem>();
+	private BlockingQueue<ConsoleQueueableWorkItem> pendingQueueableWorkItems = new LinkedBlockingDeque<ConsoleQueueableWorkItem>();
 
 	private Long terminalWidth = null;
 	private Long terminalHeight = null;
@@ -93,12 +93,15 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private int [] lastUsedColourCodes = new int [] {UserInterfaceFrameThreadState.RESET_BG_COLOR};
 
 	public ConsoleWriterThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception{
+		this.blockManagerThreadCollection = blockManagerThreadCollection;
+		this.clientBlockModelContext = clientBlockModelContext;
+
 		this.helpMenuFrameThreadState = new HelpMenuFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.helpMenuFrameThreadState, UIWorkItem.class));
+
 		for(int i = 0; i < this.numScreenOutputBuffers; i++){
 			this.screenOutputBuffer[i]  = new ScreenOutputBuffer();
 		}
-		this.blockManagerThreadCollection = blockManagerThreadCollection;
-		this.clientBlockModelContext = clientBlockModelContext;
 		this.initializeConsole(80L, 24L); // Early setup is necessary so we can do text width calculations before drawing frame
 
 		int numMapAreas = 1;
@@ -196,13 +199,14 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public void notifyAllFramesOfFocusChange() throws Exception{
-		this.renderHelpMenu();
 
 		List<UserInterfaceFrameThreadState> allFrames = root.collectUserInterfaceFrames();
 		//  Notify all frames of the update so they can redraw border:
 		for(UserInterfaceFrameThreadState frame : allFrames){
 			frame.putWorkItem(new FrameFocusChangeWorkItem(frame, this.focusedFrame.getFrameDimensions()), WorkItemPriority.PRIORITY_LOW);
 		}
+
+		this.helpMenuFrameThreadState.putWorkItem(new FrameFocusChangeWorkItem(this.helpMenuFrameThreadState, this.focusedFrame.getFrameDimensions()), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void renderHelpMenu() throws Exception{
@@ -234,13 +238,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		int ySize = menuHeight;
 
 		this.prepareTerminalTextChange(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, this.currentTerminalFrameDimensions, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
-
-		/*
-		int [] menuItemAnsiColours = new int[] {UserInterfaceFrameThreadState.GREEN_BG_COLOR, UserInterfaceFrameThreadState.BLACK_FG_COLOR};
-		ColouredTextFragmentList testTextList = new ColouredTextFragmentList();
-		testTextList.add(new ColouredTextFragment("Testing", menuItemAnsiColours));
-		this.printTextAtScreenXY(testTextList, Long.valueOf(xOffset), Long.valueOf(yOffset + 1), true);
-		*/
 
 		if(!menuActive){
 			//  De-activate everything in menu layer:
@@ -328,9 +325,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
-	public void addPendingConsoleWrite(ConsoleWriteWorkItem w){
+	public void addPendingQueueableWorkItem(ConsoleQueueableWorkItem w){
 		synchronized(lock){
-			this.pendingConsoleWrites.add(w);
+			this.pendingQueueableWorkItems.add(w);
 		}
 	}
 
@@ -471,6 +468,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			this.focusOnNextFrame();
 		}
 		this.root.setEquidistantFrameDimensions(this.currentTerminalFrameDimensions, frameBordersDescription);
+
+		this.helpMenuFrameThreadState.putWorkItem(new FrameDimensionsChangeWorkItem(this.helpMenuFrameThreadState, this.currentTerminalFrameDimensions, frameBordersDescription), WorkItemPriority.PRIORITY_LOW);
+
 		this.notifyAllFramesOfFocusChange();
 	}
 
@@ -523,9 +523,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 						this.blockManagerThreadCollection.setIsProcessFinished(true, null); // Start shutting down the entire application.
 						break;
 					}case ACTION_HELP_MENU_TOGGLE:{
-						//this.onHelpMenuOpen();
-						this.helpMenuFrameThreadState.setIsMenuActive(!this.helpMenuFrameThreadState.getIsMenuActive());
-						this.notifyAllFramesOfFocusChange();
+						this.onHelpMenuOpen();
+						//this.helpMenuFrameThreadState.setIsMenuActive(!this.helpMenuFrameThreadState.getIsMenuActive());
+						//this.notifyAllFramesOfFocusChange();
 						break;
 					}case ACTION_TAB_NEXT_FRAME:{
 						this.focusOnNextFrame();
@@ -548,7 +548,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.workItemQueue.putWorkItem(workItem, priority);
 	}
 
-	private void setScreenAreaChangeStates(int startX, int startY, int endX, int endY, int bufferIndex, boolean state){
+	public void setScreenAreaChangeStates(int startX, int startY, int endX, int endY, int bufferIndex, boolean state){
 		//  Invalidate a sub-area of screen so that the characters are that location will 
 		//  be printed on the next print attempt.
 		int width = endX - startX;
@@ -585,9 +585,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			}
 			if(this.currentTextWidthMeasurement == null){
 				if(this.terminalWidth != null && this.terminalHeight != null){
-					while(this.pendingConsoleWrites.size() > 0){
-						ConsoleWriteWorkItem w = this.pendingConsoleWrites.take();
-						w.prepareTerminalTextChange();
+					while(this.pendingQueueableWorkItems.size() > 0){
+						ConsoleQueueableWorkItem w = this.pendingQueueableWorkItems.take();
+						w.executeQueuedWork();
 					}
 					this.printTerminalTextChanges(true);
 				}
@@ -600,7 +600,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				}
 			}
 		}
-		return pendingConsoleWrites.size() > 0; // There is no additional work we can do until we get another work item.
+		return pendingQueueableWorkItems.size() > 0; // There is no additional work we can do until we get another work item.
 	}
 
 	public WorkItemResult putBlockingWorkItem(ConsoleWriterWorkItem workItem, WorkItemPriority priority) throws Exception {
