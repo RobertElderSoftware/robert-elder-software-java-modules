@@ -285,9 +285,13 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 	protected void executeLinePrintingInstructionsAtYOffset(List<LinePrintingInstruction> instructions, Long yOffset) throws Exception{
+		this.executeLinePrintingInstructionsAtYOffset(instructions, yOffset, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
+	}
+
+	protected void executeLinePrintingInstructionsAtYOffset(List<LinePrintingInstruction> instructions, Long yOffset, int bufferIndex) throws Exception{
 		for(int i = 0; i < instructions.size(); i++){
 			LinePrintingInstruction instruction = instructions.get(i);
-			this.printTextAtScreenXY(instruction.getColouredTextFragmentList(), instruction.getXOffsetInFrame(), yOffset + i, true);
+			this.printTextAtScreenXY(instruction.getColouredTextFragmentList(), instruction.getXOffsetInFrame(), yOffset + i, true, bufferIndex);
 		}
 	}
 

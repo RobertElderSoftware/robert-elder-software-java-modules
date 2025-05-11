@@ -70,6 +70,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	private boolean menuActive = false;
 	private int selectedMenuIndex = 0;
 	private List<String> menuOptions = new ArrayList<String>();
+	private int currentMenuIndex = 0;
 
 	private ClientBlockModelContext clientBlockModelContext;
 
@@ -83,11 +84,38 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{
-		logger.info("HelpMenuFrameThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
+		if(ansiEscapeSequence instanceof AnsiEscapeSequenceUpArrowKey){
+			this.currentMenuIndex = (this.currentMenuIndex <= 0) ? 0 : this.currentMenuIndex - 1;
+			this.render();
+		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceDownArrowKey){
+			int maxIndex = menuOptions.size() -1;
+			this.currentMenuIndex = (this.currentMenuIndex >= maxIndex) ? maxIndex : this.currentMenuIndex + 1;
+			this.render();
+		}else{
+			logger.info("HelpMenuFrameThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
+		}
 	}
 
 	public void onKeyboardInput(byte [] characters) throws Exception {
-		logger.info("Help Menu, discarding keyboard input: " + new String(characters, "UTF-8"));
+		UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
+		for(byte b : characters){
+			String actionString = new String(new byte [] {b}, "UTF-8");
+			UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
+
+			if(action == null){
+				logger.info("Ignoring " + b);
+			}else{
+				switch(action){
+					case ACTION_HELP_MENU_TOGGLE:{
+						this.menuActive = false;
+						this.render();
+						break;
+					}default:{
+						logger.info("Ignoring " + b);
+					}
+				}
+			}
+		}
 	}
 
 	public boolean getIsMenuActive(){
@@ -103,8 +131,8 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 
 		int terminalWidth = this.frameDimensions.getTerminalWidth().intValue();
 		int terminalHeight = this.frameDimensions.getTerminalHeight().intValue();
-		int menuWidth = 20;
-		int menuHeight = 10;
+		int menuWidth = 30;
+		int menuHeight = 15;
 		int [][] characterWidths = new int[menuWidth][menuHeight];
 		int [][][] colourCodes = new int[menuWidth][menuHeight][2];
 		String [][] characters = new String[menuWidth][menuHeight];
@@ -129,7 +157,28 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 
 		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, this.frameDimensions, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
 
-		this.printTextAtScreenXY(new ColouredTextFragment("Test", new int[] {RESET_BG_COLOR}), Long.valueOf(xOffset + 1), Long.valueOf(yOffset + 1), true, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
+
+		List<LinePrintingInstructionAtOffset> instructions = new ArrayList<LinePrintingInstructionAtOffset>();
+
+		Long leftPadding = Long.valueOf(xOffset) + 1L;
+		Long rightPadding = this.getInnerFrameWidth() - (xOffset + menuWidth) + 1L;
+		Long currentLine = 1L;
+
+		for(int i = 0; i < menuOptions.size(); i++){
+			String menuOption = menuOptions.get(i);
+			ColouredTextFragmentList menuItemTextFragmentList = new ColouredTextFragmentList();
+			int [] ansiColourCodes = (i == currentMenuIndex) ? new int[] {YELLOW_BG_COLOR, BLACK_FG_COLOR} : new int[] {RESET_BG_COLOR, GREEN_FG_COLOR};
+			menuItemTextFragmentList.add(new ColouredTextFragment(menuOption, ansiColourCodes));
+
+			List<LinePrintingInstruction> menuItemLineInstructions = this.getLinePrintingInstructions(menuItemTextFragmentList, leftPadding, rightPadding, false, false, Long.valueOf(menuWidth));
+			instructions.addAll(this.wrapLinePrintingInstructionsAtOffset(menuItemLineInstructions, currentLine, 1L));
+			currentLine += menuItemLineInstructions.size() + 1L;
+		}
+
+		for(LinePrintingInstructionAtOffset instruction : instructions){
+			Long lineYOffset = instruction.getOffsetY() + yOffset;
+			this.executeLinePrintingInstructionsAtYOffset(Arrays.asList(instruction.getLinePrintingInstruction()), lineYOffset, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
+		}
 
 		if(!menuActive){
 			//  De-activate everything in menu layer:

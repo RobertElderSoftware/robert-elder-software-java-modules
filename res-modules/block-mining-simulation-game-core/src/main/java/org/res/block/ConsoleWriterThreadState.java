@@ -348,8 +348,12 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			this.onCursorPositionReport(cpr);
 		}else{
 			logger.info("Got other type of ansi escape sequence, pass to the focused frame: " + ansiEscapeSequence.getClass().getName());
-			if(this.focusedFrame != null){
-				this.focusedFrame.putWorkItem(new ProcessFrameAnsiEscapeSequenceWorkItem(this.focusedFrame, ansiEscapeSequence), WorkItemPriority.PRIORITY_LOW);
+			if(this.helpMenuFrameThreadState.getIsMenuActive()){
+				this.helpMenuFrameThreadState.onAnsiEscapeSequence(ansiEscapeSequence);
+			}else{
+				if(this.focusedFrame != null){
+					this.focusedFrame.putWorkItem(new ProcessFrameAnsiEscapeSequenceWorkItem(this.focusedFrame, ansiEscapeSequence), WorkItemPriority.PRIORITY_LOW);
+				}
 			}
 		}
 	}
@@ -509,30 +513,34 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	public void onKeyboardInput(byte [] characters) throws Exception {
 		logger.info("Saw keyboard input: " + new String(characters, "UTF-8"));
-		UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
-		for(byte b : characters){
-			String actionString = new String(new byte [] {b}, "UTF-8");
-			UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
+		if(this.helpMenuFrameThreadState.getIsMenuActive()){
+			this.helpMenuFrameThreadState.onKeyboardInput(characters);
+		}else{
+			UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
+			for(byte b : characters){
+				String actionString = new String(new byte [] {b}, "UTF-8");
+				UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
 
-			if(action == null){
-				this.sendKeyboardInputToFocusedFrame(b);
-			}else{
-				switch(action){
-					case ACTION_QUIT:{
-						logger.info("The 'q' key was pressed.  Exiting...");
-						this.blockManagerThreadCollection.setIsProcessFinished(true, null); // Start shutting down the entire application.
-						break;
-					}case ACTION_HELP_MENU_TOGGLE:{
-						this.onHelpMenuOpen();
-						//this.helpMenuFrameThreadState.setIsMenuActive(!this.helpMenuFrameThreadState.getIsMenuActive());
-						//this.notifyAllFramesOfFocusChange();
-						break;
-					}case ACTION_TAB_NEXT_FRAME:{
-						this.focusOnNextFrame();
-						this.notifyAllFramesOfFocusChange();
-						break;
-					}default:{
-						this.sendKeyboardInputToFocusedFrame(b);
+				if(action == null){
+					this.sendKeyboardInputToFocusedFrame(b);
+				}else{
+					switch(action){
+						case ACTION_QUIT:{
+							logger.info("The 'q' key was pressed.  Exiting...");
+							this.blockManagerThreadCollection.setIsProcessFinished(true, null); // Start shutting down the entire application.
+							break;
+						}case ACTION_HELP_MENU_TOGGLE:{
+							//this.onHelpMenuOpen();
+							this.helpMenuFrameThreadState.setIsMenuActive(!this.helpMenuFrameThreadState.getIsMenuActive());
+							this.notifyAllFramesOfFocusChange();
+							break;
+						}case ACTION_TAB_NEXT_FRAME:{
+							this.focusOnNextFrame();
+							this.notifyAllFramesOfFocusChange();
+							break;
+						}default:{
+							this.sendKeyboardInputToFocusedFrame(b);
+						}
 					}
 				}
 			}
