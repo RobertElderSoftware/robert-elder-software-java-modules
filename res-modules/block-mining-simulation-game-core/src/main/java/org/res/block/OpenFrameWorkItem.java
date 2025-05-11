@@ -30,44 +30,27 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.Map;
-import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 
-public enum UserInterfaceActionType {
 
-        ACTION_HELP_MENU_TOGGLE ("ACTION_HELP_MENU_TOGGLE"),
-        ACTION_TAB_NEXT_FRAME ("ACTION_TAB_NEXT_FRAME"),
-        ACTION_Y_PLUS ("ACTION_Y_PLUS"),
-        ACTION_Y_MINUS ("ACTION_Y_MINUS"),
-        ACTION_X_PLUS ("ACTION_X_PLUS"),
-        ACTION_X_MINUS ("ACTION_X_MINUS"),
-        ACTION_Z_PLUS ("ACTION_Z_PLUS"),
-        ACTION_Z_MINUS ("ACTION_Z_MINUS"),
-        ACTION_MINING ("ACTION_MINING"),
-        ACTION_CRAFTING ("ACTION_CRAFTING"),
-        ACTION_QUIT ("ACTION_QUIT"),
-        ACTION_ENTER ("ACTION_ENTER"),
-        ACTION_PLACE_BLOCK ("ACTION_PLACE_BLOCK");
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
 
-        private final String name;
+public class OpenFrameWorkItem extends ConsoleWriterWorkItem {
 
-        private UserInterfaceActionType(String n) {
-                name = n;
-        }
+	private Class<?> frameStateClass;
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-        public String toString() {
-                return this.name;
-        }
-
-	private static final Map<String, UserInterfaceActionType> userInterfaceActionTypesByValue = new HashMap<String, UserInterfaceActionType>();
-
-	static {
-		for(UserInterfaceActionType type : UserInterfaceActionType.values()) {
-			userInterfaceActionTypesByValue.put(type.toString(), type);
-		}
+	public OpenFrameWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Class<?> frameStateClass){
+		super(consoleWriterThreadState, false);
+		this.frameStateClass = frameStateClass;
 	}
 
-	public static UserInterfaceActionType forValue(String value) {
-		return userInterfaceActionTypesByValue.get(value);
+	public void doWork() throws Exception{
+		this.consoleWriterThreadState.onOpenFrame(this.frameStateClass);
 	}
 }

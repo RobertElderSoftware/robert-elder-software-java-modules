@@ -180,6 +180,27 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
+	public void onOpenFrame(Class<?> frameStateClass) throws Exception{
+		if(frameStateClass == HelpDetailsFrameThreadState.class){
+			if(this.helpDetailsThreadState == null){
+				this.helpDetailsThreadState = new HelpDetailsFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
+				this.helpDetailsThread = new WorkItemProcessorTask<UIWorkItem>(this.helpDetailsThreadState, UIWorkItem.class);
+				this.blockManagerThreadCollection.addThread(this.helpDetailsThread);
+
+				List<UserInterfaceSplit> newTopSplit = new ArrayList<UserInterfaceSplit>();
+				newTopSplit.add(this.getRootSplit());
+				newTopSplit.add(new UserInterfaceSplitLeafNode(this.helpDetailsThreadState));
+
+				this.setRootSplit(new UserInterfaceSplitVertical(newTopSplit));
+				this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+			}else{
+				throw new Exception("not expected.");
+			}
+		}else{
+			throw new Exception("Unknown frame type " + frameStateClass.getName());
+		}
+	}
+
 	public void onPlayerInventoryChange(PlayerInventory playerInventory) throws Exception{
 		for(InventoryInterfaceThreadState inventoryInterfaceThreadState : this.inventoryInterfaceThreadStates){
 			inventoryInterfaceThreadState.putWorkItem(new PlayerInventoryChangeWorkItem(inventoryInterfaceThreadState, new PlayerInventory(playerInventory.getBlockData())), WorkItemPriority.PRIORITY_LOW);
@@ -207,44 +228,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 
 		this.helpMenuFrameThreadState.putWorkItem(new FrameFocusChangeWorkItem(this.helpMenuFrameThreadState, this.focusedFrame.getFrameDimensions()), WorkItemPriority.PRIORITY_LOW);
-	}
-
-	public void renderHelpMenu() throws Exception{
-		int terminalWidth = this.currentTerminalFrameDimensions.getTerminalWidth().intValue();
-		int terminalHeight = this.currentTerminalFrameDimensions.getTerminalHeight().intValue();
-		int menuWidth = 20;
-		int menuHeight = 10;
-		int [][] characterWidths = new int[menuWidth][menuHeight];
-		int [][][] colourCodes = new int[menuWidth][menuHeight][2];
-		String [][] characters = new String[menuWidth][menuHeight];
-		boolean [][] hasChange = new boolean [menuWidth][menuHeight];
-
-		boolean menuActive = this.helpMenuFrameThreadState.getIsMenuActive();
-		for(int i = 0; i < menuWidth; i++){
-			for(int j = 0; j < menuHeight; j++){
-				String character = menuActive ? " " : null;
-				int [] colours = menuActive ? new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR, UserInterfaceFrameThreadState.BLACK_FG_COLOR} : new int [] {};
-				int characterWidth = menuActive ? 1 : 0;
-				characterWidths[i][j] = characterWidth;
-				colourCodes[i][j] = colours;
-				characters[i][j] = character;
-				hasChange[i][j] = true;
-			}
-		}
-
-		int xOffset = (terminalWidth / 2) - (menuWidth / 2);
-		int yOffset = (terminalHeight / 2) - (menuHeight / 2);
-		int xSize = menuWidth;
-		int ySize = menuHeight;
-
-		this.prepareTerminalTextChange(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, this.currentTerminalFrameDimensions, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
-
-		if(!menuActive){
-			//  De-activate everything in menu layer:
-			this.setScreenAreaChangeStates(0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_MENU, false);
-			//  Allow refresh of everything that was below the menu:
-			this.setScreenAreaChangeStates(xOffset, yOffset, xOffset + menuWidth, yOffset + menuHeight, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true);
-		}
 	}
 
 	public void focusOnNextFrame() throws Exception{

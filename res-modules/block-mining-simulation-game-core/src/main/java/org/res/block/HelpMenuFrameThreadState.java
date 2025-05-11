@@ -96,6 +96,27 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		}
 	}
 
+	public void onEnterKeyPressed() throws Exception {
+		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		switch(this.currentMenuIndex){
+			case 0:{
+				logger.info("TODO item 0");
+				break;
+			} case 1:{
+				ConsoleWriterWorkItem w = new OpenFrameWorkItem(cwts, HelpDetailsFrameThreadState.class);
+				cwts.putWorkItem(w, WorkItemPriority.PRIORITY_LOW);
+				break;
+			} case 2:{
+				logger.info("Menu option to quit was selected.  Exiting...");
+				this.blockManagerThreadCollection.setIsProcessFinished(true, null); // Start shutting down the entire application.
+				break;
+			}
+		}
+		this.currentMenuIndex = 0;
+		this.menuActive = false;
+		this.render();
+	}
+
 	public void onKeyboardInput(byte [] characters) throws Exception {
 		UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
 		for(byte b : characters){
@@ -106,7 +127,10 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 				logger.info("Ignoring " + b);
 			}else{
 				switch(action){
-					case ACTION_HELP_MENU_TOGGLE:{
+					case ACTION_ENTER:{
+						this.onEnterKeyPressed();
+						break;
+					}case ACTION_HELP_MENU_TOGGLE:{
 						this.menuActive = false;
 						this.render();
 						break;
