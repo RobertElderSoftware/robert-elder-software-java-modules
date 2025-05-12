@@ -81,8 +81,9 @@ public class ConsoleScreenAreaChangeStatesWorkItem extends ConsoleQueueableWorkI
 		return state;
 	}
 
-	public void executeQueuedWork() throws Exception{
+	public WorkItemResult executeQueuedWork() throws Exception{
 		this.consoleWriterThreadState.setScreenAreaChangeStates(xOffset, yOffset, xSize, ySize, bufferIndex, state);
+		return null;
 	}
 
 	public void doWork() throws Exception{

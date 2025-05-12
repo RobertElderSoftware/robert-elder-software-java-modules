@@ -30,10 +30,20 @@
 //  SOFTWARE.
 package org.res.block;
 
-public abstract class ConsoleQueueableWorkItem extends ConsoleWriterWorkItem {
-	public abstract WorkItemResult executeQueuedWork() throws Exception;
+import java.util.List;
+import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 
-	public ConsoleQueueableWorkItem(ConsoleWriterThreadState consoleWriterThreadState, boolean isBlocking){
-		super(consoleWriterThreadState, isBlocking);
+public class OpenFrameWorkItemResult extends WorkItemResult {
+
+	private Long frameId;
+
+	public OpenFrameWorkItemResult(Long frameId){
+		this.frameId = frameId;
+	}
+
+	public Long getFrameId(){
+		return this.frameId;
 	}
 }

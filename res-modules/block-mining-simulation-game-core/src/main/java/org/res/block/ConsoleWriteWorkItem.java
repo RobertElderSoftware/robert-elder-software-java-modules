@@ -97,8 +97,9 @@ public class ConsoleWriteWorkItem extends ConsoleQueueableWorkItem {
 		return ySize;
 	}
 
-	public void executeQueuedWork() throws Exception{
+	public WorkItemResult executeQueuedWork() throws Exception{
 		this.consoleWriterThreadState.prepareTerminalTextChange(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, frameDimensions, bufferIndex);
+		return null;
 	}
 
 	public void doWork() throws Exception{

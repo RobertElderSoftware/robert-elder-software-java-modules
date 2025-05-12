@@ -78,6 +78,8 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 			return "ESC";
 		}else if(s.equals("	")){
 			return "TAB";
+		}else if(s.equals("\r")){
+			return "ENTER";
 		}else{
 			return "'" + s + "'";
 		}
@@ -104,6 +106,7 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 		keyDescriptions.put("'→'", "Navigate right (increase x coordinate by 1) when map area is selected.");
 		keyDescriptions.put("'↓'", "Scroll down in this help menu.  Also, used to navigate down (decrease z coordinate by 1) when map area is selected.");
 		keyDescriptions.put("TAB", "Switch focus to next frame.  Keyboard input is only sent to the currently active frame.  Therefore, you must use the tab key to make sure the correct frame is currently active.");
+		keyDescriptions.put("ENTER", "Enter key to select an option in menu.");
 		keyDescriptions.put("ESC", "Open or closes this help menu.");
 		keyDescriptions.put("'w'", "Used to navigate up (increase z coordinate by 1) when map area is selected.");
 		keyDescriptions.put("'a'", "Used to navigate left (decrease x coordinate by 1) when map area is selected.");

@@ -40,17 +40,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class OpenFrameWorkItem extends ConsoleWriterWorkItem {
+public class OpenFrameWorkItem extends ConsoleQueueableWorkItem {
 
 	private Class<?> frameStateClass;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
 	public OpenFrameWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Class<?> frameStateClass){
-		super(consoleWriterThreadState, false);
+		super(consoleWriterThreadState, true);
 		this.frameStateClass = frameStateClass;
 	}
 
+	public WorkItemResult executeQueuedWork() throws Exception{
+		return new OpenFrameWorkItemResult(this.consoleWriterThreadState.onOpenFrame(this.frameStateClass));
+	}
+
 	public void doWork() throws Exception{
-		this.consoleWriterThreadState.onOpenFrame(this.frameStateClass);
+		this.consoleWriterThreadState.addPendingQueueableWorkItem(this);
 	}
 }

@@ -30,10 +30,25 @@
 //  SOFTWARE.
 package org.res.block;
 
-public abstract class ConsoleQueueableWorkItem extends ConsoleWriterWorkItem {
-	public abstract WorkItemResult executeQueuedWork() throws Exception;
+import java.util.List;
+import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 
-	public ConsoleQueueableWorkItem(ConsoleWriterThreadState consoleWriterThreadState, boolean isBlocking){
-		super(consoleWriterThreadState, isBlocking);
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
+
+public class CloseFrameWorkItem extends ConsoleWriterWorkItem {
+
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
+	public CloseFrameWorkItem(ConsoleWriterThreadState consoleWriterThreadState){
+		super(consoleWriterThreadState, false);
+	}
+
+	public void doWork() throws Exception{
+		this.consoleWriterThreadState.onCloseFrame();
 	}
 }

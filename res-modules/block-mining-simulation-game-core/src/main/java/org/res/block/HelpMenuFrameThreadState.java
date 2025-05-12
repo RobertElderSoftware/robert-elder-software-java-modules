@@ -100,11 +100,14 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
 		switch(this.currentMenuIndex){
 			case 0:{
-				logger.info("TODO item 0");
+				ConsoleWriterWorkItem w = new CloseFrameWorkItem(cwts);
+				cwts.putWorkItem(w, WorkItemPriority.PRIORITY_LOW);
 				break;
 			} case 1:{
-				ConsoleWriterWorkItem w = new OpenFrameWorkItem(cwts, HelpDetailsFrameThreadState.class);
-				cwts.putWorkItem(w, WorkItemPriority.PRIORITY_LOW);
+				OpenFrameWorkItem w = new OpenFrameWorkItem(cwts, HelpDetailsFrameThreadState.class);
+				WorkItemResult result = cwts.putBlockingWorkItem(w, WorkItemPriority.PRIORITY_LOW);
+				Long newlyOpenedFrameId = ((OpenFrameWorkItemResult)result).getFrameId();
+				logger.info("newlyOpenedFrameId=" + newlyOpenedFrameId);
 				break;
 			} case 2:{
 				logger.info("Menu option to quit was selected.  Exiting...");

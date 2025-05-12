@@ -30,6 +30,7 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.lang.reflect.Constructor;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -93,6 +94,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private int [] lastUsedColourCodes = new int [] {UserInterfaceFrameThreadState.RESET_BG_COLOR};
 
 	public ConsoleWriterThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception{
+
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 
@@ -180,12 +182,31 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
-	public void onOpenFrame(Class<?> frameStateClass) throws Exception{
+	public void onCloseFrame() throws Exception{
+		if(this.helpDetailsThreadState == null){
+			logger.info("Not closing anything.  Help menu not open.");
+		}else{
+			UserInterfaceSplitVertical top = (UserInterfaceSplitVertical)this.getRootSplit();
+
+			this.setRootSplit(top.getSplitParts().get(0));
+			this.helpDetailsThreadState = null;
+			this.helpDetailsThread.setIsThreadFinished(true);
+			this.helpDetailsThread.interrupt();
+			this.blockManagerThreadCollection.removeThread(this.helpDetailsThread);
+			this.helpDetailsThread = null;
+			this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+		}
+	}
+
+	public Long onOpenFrame(Class<?> frameStateClass) throws Exception{
 		if(frameStateClass == HelpDetailsFrameThreadState.class){
 			if(this.helpDetailsThreadState == null){
-				this.helpDetailsThreadState = new HelpDetailsFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
-				this.helpDetailsThread = new WorkItemProcessorTask<UIWorkItem>(this.helpDetailsThreadState, UIWorkItem.class);
+				Constructor<?> constructor = frameStateClass.getDeclaredConstructor(BlockManagerThreadCollection.class, ClientBlockModelContext.class);
+				Object instance = constructor.newInstance(this.blockManagerThreadCollection, this.clientBlockModelContext);
+				this.helpDetailsThreadState = (HelpDetailsFrameThreadState)instance;
+				this.helpDetailsThread = new WorkItemProcessorTask<UIWorkItem>((HelpDetailsFrameThreadState)instance, UIWorkItem.class);
 				this.blockManagerThreadCollection.addThread(this.helpDetailsThread);
+
 
 				List<UserInterfaceSplit> newTopSplit = new ArrayList<UserInterfaceSplit>();
 				newTopSplit.add(this.getRootSplit());
@@ -193,8 +214,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 				this.setRootSplit(new UserInterfaceSplitVertical(newTopSplit));
 				this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+				return this.helpDetailsThreadState.getFrameId();
 			}else{
-				throw new Exception("not expected.");
+				logger.info("Not doing anything.  Help menu already open.");
+				return 0L; //  TODO: remove this.
 			}
 		}else{
 			throw new Exception("Unknown frame type " + frameStateClass.getName());
@@ -324,6 +347,12 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
+	public void sendAnsiEscapeSequenceToFrame(AnsiEscapeSequence ansiEscapeSequence, UserInterfaceFrameThreadState destinationFrame) throws Exception {
+		if(destinationFrame != null){
+			destinationFrame.putWorkItem(new ProcessFrameAnsiEscapeSequenceWorkItem(destinationFrame, ansiEscapeSequence), WorkItemPriority.PRIORITY_LOW);
+		}
+	}
+
 	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{
 		if(ansiEscapeSequence instanceof CursorPositionReport){
 			CursorPositionReport cpr = (CursorPositionReport)ansiEscapeSequence;
@@ -332,15 +361,12 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}else{
 			logger.info("Got other type of ansi escape sequence, pass to the focused frame: " + ansiEscapeSequence.getClass().getName());
 			if(this.helpMenuFrameThreadState.getIsMenuActive()){
-				this.helpMenuFrameThreadState.onAnsiEscapeSequence(ansiEscapeSequence);
+				this.sendAnsiEscapeSequenceToFrame(ansiEscapeSequence, this.helpMenuFrameThreadState);
 			}else{
-				if(this.focusedFrame != null){
-					this.focusedFrame.putWorkItem(new ProcessFrameAnsiEscapeSequenceWorkItem(this.focusedFrame, ansiEscapeSequence), WorkItemPriority.PRIORITY_LOW);
-				}
+				this.sendAnsiEscapeSequenceToFrame(ansiEscapeSequence, this.focusedFrame);
 			}
 		}
 	}
-
 
 	public void prepareTerminalTextChange(int [][] newCharacterWidths, int [][][] newColourCodes, String [][] newCharacters, boolean [][] hasChange, int xOffset, int yOffset, int xChangeSize, int yChangeSize, FrameDimensions frameDimensions, int bufferIndex) throws Exception{
 		for(int j = 0; j < yChangeSize; j++){
@@ -461,43 +487,16 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.notifyAllFramesOfFocusChange();
 	}
 
-	public void sendKeyboardInputToFocusedFrame(byte b) throws Exception {
-		byte [] bytesToSend = new byte [] {b};
-		if(this.focusedFrame != null){
-			this.focusedFrame.putWorkItem(new ProcessFrameInputBytesWorkItem(this.focusedFrame, bytesToSend), WorkItemPriority.PRIORITY_LOW);
-		}
-	}
-
-	public void onHelpMenuOpen() throws Exception{
-		if(this.helpDetailsThreadState == null){
-			this.helpDetailsThreadState = new HelpDetailsFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
-			this.helpDetailsThread = new WorkItemProcessorTask<UIWorkItem>(this.helpDetailsThreadState, UIWorkItem.class);
-			this.blockManagerThreadCollection.addThread(this.helpDetailsThread);
-
-			List<UserInterfaceSplit> newTopSplit = new ArrayList<UserInterfaceSplit>();
-			newTopSplit.add(this.getRootSplit());
-			newTopSplit.add(new UserInterfaceSplitLeafNode(this.helpDetailsThreadState));
-
-			this.setRootSplit(new UserInterfaceSplitVertical(newTopSplit));
-			this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
-		}else{
-			UserInterfaceSplitVertical top = (UserInterfaceSplitVertical)this.getRootSplit();
-
-			this.setRootSplit(top.getSplitParts().get(0));
-
-			this.helpDetailsThreadState = null;
-			this.helpDetailsThread.setIsThreadFinished(true);
-			this.helpDetailsThread.interrupt();
-			this.blockManagerThreadCollection.removeThread(this.helpDetailsThread);
-			this.helpDetailsThread = null;
-			this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+	public void sendKeyboardInputToFrame(byte [] bytesToSend, UserInterfaceFrameThreadState destinationFrame) throws Exception {
+		if(destinationFrame != null){
+			destinationFrame.putWorkItem(new ProcessFrameInputBytesWorkItem(destinationFrame, bytesToSend), WorkItemPriority.PRIORITY_LOW);
 		}
 	}
 
 	public void onKeyboardInput(byte [] characters) throws Exception {
 		logger.info("Saw keyboard input: " + new String(characters, "UTF-8"));
 		if(this.helpMenuFrameThreadState.getIsMenuActive()){
-			this.helpMenuFrameThreadState.onKeyboardInput(characters);
+			this.sendKeyboardInputToFrame(characters, this.helpMenuFrameThreadState);
 		}else{
 			UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
 			for(byte b : characters){
@@ -505,7 +504,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
 
 				if(action == null){
-					this.sendKeyboardInputToFocusedFrame(b);
+					this.sendKeyboardInputToFrame(new byte [] {b}, this.focusedFrame);
 				}else{
 					switch(action){
 						case ACTION_QUIT:{
@@ -513,7 +512,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 							this.blockManagerThreadCollection.setIsProcessFinished(true, null); // Start shutting down the entire application.
 							break;
 						}case ACTION_HELP_MENU_TOGGLE:{
-							//this.onHelpMenuOpen();
 							this.helpMenuFrameThreadState.setIsMenuActive(!this.helpMenuFrameThreadState.getIsMenuActive());
 							this.notifyAllFramesOfFocusChange();
 							break;
@@ -522,7 +520,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 							this.notifyAllFramesOfFocusChange();
 							break;
 						}default:{
-							this.sendKeyboardInputToFocusedFrame(b);
+							this.sendKeyboardInputToFrame(new byte [] {b}, this.focusedFrame);
 						}
 					}
 				}
@@ -578,7 +576,11 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				if(this.terminalWidth != null && this.terminalHeight != null){
 					while(this.pendingQueueableWorkItems.size() > 0){
 						ConsoleQueueableWorkItem w = this.pendingQueueableWorkItems.take();
-						w.executeQueuedWork();
+						WorkItemResult result = w.executeQueuedWork();
+						//  If the thread expects a response, unblock it:
+						if(result != null){
+							this.addResultForThreadId(result, w.getThreadId());
+						}
 					}
 					this.printTerminalTextChanges(true);
 				}
@@ -598,7 +600,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		BlockManagerThread t = this.blockManagerThreadCollection.getThreadById(Thread.currentThread().getId());
 		if(t instanceof WorkItemProcessorTask){
 			Class<?> ct = ((WorkItemProcessorTask<?>)t).getEntityClass();
-			if(ct == ConsoleWriterWorkItem.class){
+			if(ct == ConsoleWriterWorkItem.class && workItem.getIsBlocking()){
 				throw new Exception("Current thread is instanceof WorkItemProcessorTask<ConsoleWriterWorkItem>.  Attempting to block here will cause a deadlock.");
 			}else{
 				return this.workItemQueue.putBlockingWorkItem(workItem, priority);
