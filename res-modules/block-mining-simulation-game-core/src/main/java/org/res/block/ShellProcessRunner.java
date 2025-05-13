@@ -102,7 +102,7 @@ public class ShellProcessRunner {
 		this.commonSetup();
 	}
 
-	public void commonSetup() throws Exception {
+	public final void commonSetup() throws Exception {
 		ProcessBuilder processBuilder = new ProcessBuilder(this.commandParts);
 		if(this.expectsStdin){
 			processBuilder.redirectInput(Redirect.PIPE);

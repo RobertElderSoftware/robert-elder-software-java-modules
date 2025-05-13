@@ -145,11 +145,21 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			splits3.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState7));
 
 			List<UserInterfaceSplit> topSplits = new ArrayList<UserInterfaceSplit>();
-			topSplits.add(new UserInterfaceSplitHorizontal(splits1));
-			topSplits.add(new UserInterfaceSplitHorizontal(splits2));
-			topSplits.add(new UserInterfaceSplitHorizontal(splits3));
+			UserInterfaceSplitHorizontal h1 = new UserInterfaceSplitHorizontal();
+			h1.addParts(splits1);
+			topSplits.add(h1);
 
-			this.setRootSplit(new UserInterfaceSplitVertical(topSplits));
+			UserInterfaceSplitHorizontal h2 = new UserInterfaceSplitHorizontal();
+			h2.addParts(splits2);
+			topSplits.add(h2);
+
+			UserInterfaceSplitHorizontal h3 = new UserInterfaceSplitHorizontal();
+			h3.addParts(splits3);
+			topSplits.add(h3);
+
+			UserInterfaceSplitVertical root = new UserInterfaceSplitVertical();
+			root.addParts(topSplits);
+			this.setRootSplit(root);
 
 			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState1, UIWorkItem.class));
 			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState2, UIWorkItem.class));
@@ -170,7 +180,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				framePercents.add(0.25 / this.inventoryInterfaceThreadStates.size());
 			}
 
-			this.setRootSplit(new UserInterfaceSplitHorizontal(splits, framePercents));
+			UserInterfaceSplitHorizontal r = new UserInterfaceSplitHorizontal();
+			r.addParts(splits);
+			r.setSplitPercentages(framePercents);
+			this.setRootSplit(r);
 		}
 
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(this.clientBlockModelContext, BlockModelContextWorkItem.class));
@@ -212,7 +225,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				newTopSplit.add(this.getRootSplit());
 				newTopSplit.add(new UserInterfaceSplitLeafNode(this.helpDetailsThreadState));
 
-				this.setRootSplit(new UserInterfaceSplitVertical(newTopSplit));
+				UserInterfaceSplitVertical root = new UserInterfaceSplitVertical();
+				root.addParts(newTopSplit);
+				this.setRootSplit(root);
+
 				this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
 				return this.helpDetailsThreadState.getFrameId();
 			}else{

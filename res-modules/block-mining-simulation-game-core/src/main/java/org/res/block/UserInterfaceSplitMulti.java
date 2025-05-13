@@ -57,41 +57,50 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class UserInterfaceSplitHorizontal extends UserInterfaceSplitMulti {
+public abstract class UserInterfaceSplitMulti extends UserInterfaceSplit {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+	protected List<Double> splitPercentages = null;
 
-	public UserInterfaceSplitHorizontal() throws Exception {
+	public UserInterfaceSplitMulti() throws Exception {
 	}
 
-	public List<FrameDimensions> getOrderedSubframeDimensions(FrameDimensions frameDimensions) throws Exception{
-		List<FrameDimensions> sumFrameDimensions = new ArrayList<FrameDimensions>();
-		if(this.splitParts.size() > 0){
-			Long numSplits = (long)this.splitParts.size();
-			Long yOffsetSoFar = frameDimensions.getFrameOffsetY();
-			Long fcw = frameDimensions.getFrameCharacterWidth();
-			//  In wide character mode, must be two column aligned:
-			Long allowableFrameWidth = fcw.equals(1L) ? frameDimensions.getFrameWidth() : (frameDimensions.getFrameWidth() / fcw) * fcw;
-			for(int i = 0; i < this.splitParts.size(); i++){
-				Long currentFrameHeight = null;
-				if(this.splitPercentages == null){
-					currentFrameHeight = i == (this.splitParts.size() -1) ? (frameDimensions.getFrameHeight() - yOffsetSoFar) : (frameDimensions.getFrameHeight() / numSplits);
-				}else{
-					currentFrameHeight = i == (this.splitParts.size() -1) ? (frameDimensions.getFrameHeight() - yOffsetSoFar) : (long)(frameDimensions.getFrameHeight() * this.splitPercentages.get(i));
-				}
-				FrameDimensions subFrameDimensions = new FrameDimensions(
-					frameDimensions.getFrameCharacterWidth(),
-					allowableFrameWidth,
-					currentFrameHeight,
-					frameDimensions.getFrameOffsetX(),
-					yOffsetSoFar,
-					frameDimensions.getTerminalWidth(),
-					frameDimensions.getTerminalHeight()
-				);
-				sumFrameDimensions.add(subFrameDimensions);
-				yOffsetSoFar += currentFrameHeight;
+	public void addPart(UserInterfaceSplit part) throws Exception {
+		this.splitParts.add(part);
+	}
+
+	public void addParts(List<UserInterfaceSplit> parts) throws Exception {
+		this.splitParts.addAll(parts);
+	}
+
+	public void setSplitPercentages(List<Double> splitPercentages) throws Exception {
+		this.splitPercentages = splitPercentages;
+	}
+
+	public List<UserInterfaceFrameThreadState> collectUserInterfaceFrames() throws Exception{
+		List<UserInterfaceFrameThreadState> rtn = new ArrayList<UserInterfaceFrameThreadState>();
+		for(UserInterfaceSplit split : this.splitParts){
+			rtn.addAll(split.collectUserInterfaceFrames());
+		}
+		return rtn;
+	}
+
+	public void setEquidistantFrameDimensions(FrameDimensions frameDimensions, FrameBordersDescription frameBordersDescription) throws Exception{
+		List<FrameDimensions> subFrameDimensions = this.getOrderedSubframeDimensions(frameDimensions);
+		for(int i = 0; i < this.splitParts.size(); i++){
+			this.splitParts.get(i).setEquidistantFrameDimensions(subFrameDimensions.get(i), frameBordersDescription);
+		}
+	}
+
+	public FrameBordersDescription collectAllConnectionPoints(FrameDimensions frameDimensions) throws Exception{
+		Set<Coordinate> framePoints = new TreeSet<Coordinate>();
+		List<FrameDimensions> sumFrameDimensions = this.getOrderedSubframeDimensions(frameDimensions);
+		for(int i = 0; i < this.splitParts.size(); i++){
+			FrameBordersDescription frameBordersDescription = this.splitParts.get(i).collectAllConnectionPoints(sumFrameDimensions.get(i));
+			for(Coordinate c : frameBordersDescription.getFramePoints()){
+				framePoints.add(c);
 			}
 		}
-		return sumFrameDimensions;
+		return new FrameBordersDescription(framePoints);
 	}
 }

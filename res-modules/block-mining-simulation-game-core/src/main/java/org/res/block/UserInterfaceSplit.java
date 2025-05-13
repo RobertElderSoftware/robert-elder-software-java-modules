@@ -53,23 +53,29 @@ import java.io.FileOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
+import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class UserInterfaceSplit {
 
+	private static final AtomicLong seq = new AtomicLong(0);
+	public final long splitId;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	public abstract void setEquidistantFrameDimensions(FrameDimensions frameDimensions, FrameBordersDescription frameBordersDescription) throws Exception;
 	public abstract List<FrameDimensions> getOrderedSubframeDimensions(FrameDimensions frameDimensions) throws Exception;
 	public abstract FrameBordersDescription collectAllConnectionPoints(FrameDimensions frameDimensions) throws Exception;
 	public abstract List<UserInterfaceFrameThreadState> collectUserInterfaceFrames() throws Exception;
 
-	protected List<UserInterfaceSplit> splitParts;
+	protected List<UserInterfaceSplit> splitParts = new ArrayList<UserInterfaceSplit>();;
 
 	public List<UserInterfaceSplit> getSplitParts() throws Exception{
 		return this.splitParts;
 	}
 
 	public UserInterfaceSplit() throws Exception {
-
+		this.splitId = seq.getAndIncrement();
 	}
 
+	public long getSplitId(){
+		return this.splitId;
+	}
 }

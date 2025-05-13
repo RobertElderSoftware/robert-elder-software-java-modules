@@ -42,7 +42,7 @@ public class Vector implements Comparable<Vector>{
 
 	private final int hashCode;
 
-	public int getHashCode(){
+	public final int getHashCode(){
 		/*  Initialize hash code once so it doesn't have to be calculated again: */
 		int total  = this.getNumDimensions().intValue() + 1;
 		for(long i = 0L; i < this.getNumDimensions(); i++){
@@ -72,7 +72,7 @@ public class Vector implements Comparable<Vector>{
 	}
 
 	@Override
-	public int hashCode(){
+	public final int hashCode(){
 		return this.hashCode;
 	}
 
@@ -126,11 +126,11 @@ public class Vector implements Comparable<Vector>{
 		}
 	}
 
-	public Long getNumDimensions(){
+	public final Long getNumDimensions(){
 		return this.numDimensions;
 	}
 
-	public Long getValueAtIndex(Long i){
+	public final Long getValueAtIndex(Long i){
 		if(i < this.coordinateValues.size()){
 			return this.coordinateValues.get(i.intValue());
 		}else{

@@ -54,7 +54,7 @@ public class CuboidAddress implements Comparable<CuboidAddress>{
 
 	private final int hashCode;
 
-	public int getHashCode(){
+	public final int getHashCode(){
 		return this.getCanonicalLowerCoordinate().hashCode() * this.getCanonicalUpperCoordinate().hashCode();
 	}
 
@@ -162,11 +162,11 @@ public class CuboidAddress implements Comparable<CuboidAddress>{
 	}
 
 
-	public Coordinate getCanonicalLowerCoordinate() {
+	public final Coordinate getCanonicalLowerCoordinate() {
 		return this.lower;
 	}
 
-	public Coordinate getCanonicalUpperCoordinate() {
+	public final Coordinate getCanonicalUpperCoordinate() {
 		return this.upper;
 	}
 

@@ -64,7 +64,7 @@ public class ServerBlockModelContext extends BlockModelContext {
 	private AbstractApplicationContext context = null;
 	private BlockDAO blockDAO = null;
 	private ExecutorService executorService = null;
-	private ServerBlockModelInterface blockModelInterface = new ServerBlockModelInterface(this);
+	private ServerBlockModelInterface blockModelInterface = new ServerBlockModelInterface();
 	private DatabaseConnectionParameters databaseConnectionParameters;
 
 	public BlockModelInterface getBlockModelInterface(){
@@ -77,7 +77,7 @@ public class ServerBlockModelContext extends BlockModelContext {
 	}
 
 	public void init() throws Exception{
-		this.clientServerInterface = clientServerInterface;
+		this.blockModelInterface.setServerBlockModelInterface(this);
 		AnnotationConfigApplicationContext annotationConfigApplicationContext = new AnnotationConfigApplicationContext();
 		annotationConfigApplicationContext.register(BlockManagerServerApplicationContext.class);
 		this.context = annotationConfigApplicationContext;
@@ -90,7 +90,7 @@ public class ServerBlockModelContext extends BlockModelContext {
 
 		this.logMessage("Ran constructor of ServerBlockModelContext.");
 
-        this.blockDAO.ensureBlockTableExists();
+        	this.blockDAO.ensureBlockTableExists();
 		this.blockDAO.turnOffAutoCommit();
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(this, BlockModelContextWorkItem.class));
 	}

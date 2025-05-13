@@ -35,9 +35,12 @@ import org.res.block.Cuboid;
 
 public class ServerBlockModelInterface implements BlockModelInterface {
 
-	private ServerBlockModelContext serverBlockModelContext;
+	private ServerBlockModelContext serverBlockModelContext = null;
 
-	public ServerBlockModelInterface(ServerBlockModelContext serverBlockModelContext){
+	public ServerBlockModelInterface(){
+	}
+
+	public void setServerBlockModelInterface(ServerBlockModelContext serverBlockModelContext){
 		this.serverBlockModelContext = serverBlockModelContext;
 	}
 

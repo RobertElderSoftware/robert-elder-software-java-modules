@@ -63,7 +63,7 @@ public class PlayerInventory extends IndividualBlock {
 		this.initializeFromJson(json);
 	}
 
-	public void initializeFromJson(String json) {
+	public final void initializeFromJson(String json) {
 		JsonElement inventoryItemListElement = new Gson().fromJson(json, JsonElement.class);
 		JsonArray inventoryItemListArray = (JsonArray)inventoryItemListElement;
 

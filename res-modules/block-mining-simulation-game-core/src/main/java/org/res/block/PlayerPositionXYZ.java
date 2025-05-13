@@ -66,7 +66,7 @@ public class PlayerPositionXYZ extends IndividualBlock {
 		return this.playerUUID;
 	}
 
-	public void initializeFromJson(String json) {
+	public final void initializeFromJson(String json) {
 		JsonElement playerPositionElement = new Gson().fromJson(json, JsonElement.class);
 		JsonObject playerPositionObject = (JsonObject)playerPositionElement;
 

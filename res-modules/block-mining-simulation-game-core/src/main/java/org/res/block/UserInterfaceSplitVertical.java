@@ -57,20 +57,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class UserInterfaceSplitVertical extends UserInterfaceSplit {
+public class UserInterfaceSplitVertical extends UserInterfaceSplitMulti {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	public UserInterfaceSplitVertical(List<UserInterfaceSplit> splitParts) throws Exception {
-		this.splitParts = splitParts;
-	}
+	public UserInterfaceSplitVertical() throws Exception {
 
-	public List<UserInterfaceFrameThreadState> collectUserInterfaceFrames() throws Exception{
-		List<UserInterfaceFrameThreadState> rtn = new ArrayList<UserInterfaceFrameThreadState>();
-		for(UserInterfaceSplit split : this.splitParts){
-			rtn.addAll(split.collectUserInterfaceFrames());
-		}
-		return rtn;
 	}
 
 	public List<FrameDimensions> getOrderedSubframeDimensions(FrameDimensions frameDimensions) throws Exception{
@@ -97,24 +89,5 @@ public class UserInterfaceSplitVertical extends UserInterfaceSplit {
 			}
 		}
 		return sumFrameDimensions;
-	}
-
-	public void setEquidistantFrameDimensions(FrameDimensions frameDimensions, FrameBordersDescription frameBordersDescription) throws Exception{
-		List<FrameDimensions> subFrameDimensions = this.getOrderedSubframeDimensions(frameDimensions);
-		for(int i = 0; i < this.splitParts.size(); i++){
-			this.splitParts.get(i).setEquidistantFrameDimensions(subFrameDimensions.get(i), frameBordersDescription);
-		}
-	}
-
-	public FrameBordersDescription collectAllConnectionPoints(FrameDimensions frameDimensions) throws Exception{
-		Set<Coordinate> framePoints = new TreeSet<Coordinate>();
-		List<FrameDimensions> sumFrameDimensions = this.getOrderedSubframeDimensions(frameDimensions);
-		for(int i = 0; i < this.splitParts.size(); i++){
-			FrameBordersDescription frameBordersDescription = this.splitParts.get(i).collectAllConnectionPoints(sumFrameDimensions.get(i));
-			for(Coordinate c : frameBordersDescription.getFramePoints()){
-				framePoints.add(c);
-			}
-		}
-		return new FrameBordersDescription(framePoints);
 	}
 }
