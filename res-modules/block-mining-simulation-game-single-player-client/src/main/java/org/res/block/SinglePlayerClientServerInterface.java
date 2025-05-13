@@ -50,10 +50,6 @@ public class SinglePlayerClientServerInterface extends ClientServerInterface{
 		this.serverBlockModelContext = serverBlockModelContext;
 	}
 
-	public void setClientBlockModelContext(ClientBlockModelContext clientBlockModelContext){
-		this.clientBlockModelContext = clientBlockModelContext;
-	}
-
 	public void setClientToServerSession(LocalBlockSession clientBlockSession){
 		synchronized(lock){
 			this.clientBlockSession = clientBlockSession;

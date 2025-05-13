@@ -301,7 +301,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		return this.root;
 	}
 
-	public void setRootSplit(UserInterfaceSplit split) throws Exception{
+	public final void setRootSplit(UserInterfaceSplit split) throws Exception{
 		this.root = split;
 		if(this.focusedFrame instanceof HelpDetailsFrameThreadState){ // TODO: Remove this.  Required to prevent crashes when closing help menu.
 			List<UserInterfaceFrameThreadState> allFrames = root.collectUserInterfaceFrames();
@@ -463,7 +463,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
-	public void initializeConsole(Long terminalWidth, Long terminalHeight) throws Exception{
+	public final void initializeConsole(Long terminalWidth, Long terminalHeight) throws Exception{
 		this.terminalWidth = terminalWidth;
 		this.terminalHeight = terminalHeight;
 		for(int i = 0; i < this.numScreenOutputBuffers; i++){

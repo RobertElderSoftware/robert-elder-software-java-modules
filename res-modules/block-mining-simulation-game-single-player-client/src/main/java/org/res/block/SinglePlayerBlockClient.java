@@ -110,7 +110,9 @@ class SinglePlayerBlockClient {
 		);
 
 		ServerBlockModelContext serverBlockModelContext = new ServerBlockModelContext(blockManagerThreadCollection, clientServerInterface, dbParams);
+		serverBlockModelContext.init();
 		ClientBlockModelContext clientBlockModelContext = new ClientBlockModelContext(blockManagerThreadCollection, clientServerInterface);
+		clientBlockModelContext.init();
 
 		clientServerInterface.setServerBlockModelContext(serverBlockModelContext);
 		clientServerInterface.setClientBlockModelContext(clientBlockModelContext);

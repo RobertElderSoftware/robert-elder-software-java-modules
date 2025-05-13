@@ -47,7 +47,7 @@ public abstract class ClientServerInterface{
 	public abstract void onBlockSessionOpen(BlockSession blockSession)throws Exception;
 	public abstract void onBlockSessionClose(BlockSession blockSession, String closeReason, boolean doClose) throws Exception;
 
-	public void setClientBlockModelContext(ClientBlockModelContext clientBlockModelContext){
+	public final void setClientBlockModelContext(ClientBlockModelContext clientBlockModelContext){
 		this.clientBlockModelContext = clientBlockModelContext;
 	}
 }

@@ -42,22 +42,23 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private final Map<String, TextWidthMeasurementWorkItemResult> measuredTextLengths = new ConcurrentHashMap<String, TextWidthMeasurementWorkItemResult>();
-	private final InMemoryChunks inMemoryChunks;
-	private final ChunkInitializerThreadState chunkInitializerThreadState;
-	private final ConsoleWriterThreadState consoleWriterThreadState;
+	private InMemoryChunks inMemoryChunks;
+	private ChunkInitializerThreadState chunkInitializerThreadState;
+	private ConsoleWriterThreadState consoleWriterThreadState;
 	private SIGWINCHListenerThreadState sigwinchListenerThreadState;
 	private final Coordinate playerPositionBlockAddress = new Coordinate(Arrays.asList(99999999L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's position will be stored.
 	private final Coordinate playerInventoryBlockAddress = new Coordinate(Arrays.asList(99999998L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's inventory will be stored.
 	private PlayerPositionXYZ playerPositionXYZ = null;
 	private PlayerInventory playerInventory = null;
-	private final ClientServerInterface clientServerInterface;
 
 	private CuboidAddress mapAreaCuboidAddress;
 
 
 	public ClientBlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ClientServerInterface clientServerInterface) throws Exception {
 		super(blockManagerThreadCollection, clientServerInterface);
-		this.clientServerInterface = clientServerInterface;
+	}
+
+	public void init() throws Exception{
 		this.clientServerInterface.setClientBlockModelContext(this);
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 		Date date = new Date();
