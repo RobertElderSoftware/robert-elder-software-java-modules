@@ -65,6 +65,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	private BlockingQueue<TextWidthMeasurementWorkItem> pendingTextWidthRequests = new LinkedBlockingDeque<TextWidthMeasurementWorkItem>();
 	private BlockingQueue<ConsoleQueueableWorkItem> pendingQueueableWorkItems = new LinkedBlockingDeque<ConsoleQueueableWorkItem>();
+	private Map<Long, UserInterfaceFrameThreadState> activeFrameStates = new HashMap<Long, UserInterfaceFrameThreadState>();
+	private Map<Long, WorkItemProcessorTask<UIWorkItem>> activeFrameThreads = new HashMap<Long, WorkItemProcessorTask<UIWorkItem>>();
 
 	private Long terminalWidth = null;
 	private Long terminalHeight = null;
@@ -76,16 +78,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private ScreenOutputBuffer [] screenOutputBuffer = new ScreenOutputBuffer [this.numScreenOutputBuffers];
 
 
-	private WorkItemProcessorTask<UIWorkItem> helpDetailsThread = null;
-	private HelpDetailsFrameThreadState helpDetailsThreadState = null;
-
-	private EmptyFrameThreadState emptyFrameThreadState1 = null;
-	private EmptyFrameThreadState emptyFrameThreadState2 = null;
-	private EmptyFrameThreadState emptyFrameThreadState3 = null;
-	private EmptyFrameThreadState emptyFrameThreadState4 = null;
-	private EmptyFrameThreadState emptyFrameThreadState5 = null;
-	private EmptyFrameThreadState emptyFrameThreadState6 = null;
-	private EmptyFrameThreadState emptyFrameThreadState7 = null;
+	private Long helpDetailsFrameId = null;
 
 	public UserInterfaceFrameThreadState focusedFrame = null;
 
@@ -115,15 +108,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			this.inventoryInterfaceThreadStates.add(new InventoryInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext));
 		}
 
-		this.emptyFrameThreadState1 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
-		this.emptyFrameThreadState2 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
-		this.emptyFrameThreadState3 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
-		this.emptyFrameThreadState4 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
-		this.emptyFrameThreadState5 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
-		this.emptyFrameThreadState6 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
-		this.emptyFrameThreadState7 = new EmptyFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
-
-		boolean useMultiSplitDemo = false;
+		boolean useMultiSplitDemo = true;
 		if(useMultiSplitDemo){
 			List<UserInterfaceSplit> splits1 = new ArrayList<UserInterfaceSplit>();
 			for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
@@ -132,17 +117,17 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			for(InventoryInterfaceThreadState inventoryInterfaceThreadState : this.inventoryInterfaceThreadStates){
 				splits1.add(new UserInterfaceSplitLeafNode(inventoryInterfaceThreadState));
 			}
-			splits1.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState1));
+			splits1.add(new UserInterfaceSplitLeafNode(this.getFrameStateById(createFrameAndThread(EmptyFrameThreadState.class))));
 
 			List<UserInterfaceSplit> splits2 = new ArrayList<UserInterfaceSplit>();
-			splits2.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState2));
-			splits2.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState3));
-			splits2.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState4));
+			splits2.add(new UserInterfaceSplitLeafNode(this.getFrameStateById(createFrameAndThread(EmptyFrameThreadState.class))));
+			splits2.add(new UserInterfaceSplitLeafNode(this.getFrameStateById(createFrameAndThread(EmptyFrameThreadState.class))));
+			splits2.add(new UserInterfaceSplitLeafNode(this.getFrameStateById(createFrameAndThread(EmptyFrameThreadState.class))));
 
 			List<UserInterfaceSplit> splits3 = new ArrayList<UserInterfaceSplit>();
-			splits3.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState5));
-			splits3.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState6));
-			splits3.add(new UserInterfaceSplitLeafNode(this.emptyFrameThreadState7));
+			splits3.add(new UserInterfaceSplitLeafNode(this.getFrameStateById(createFrameAndThread(EmptyFrameThreadState.class))));
+			splits3.add(new UserInterfaceSplitLeafNode(this.getFrameStateById(createFrameAndThread(EmptyFrameThreadState.class))));
+			splits3.add(new UserInterfaceSplitLeafNode(this.getFrameStateById(createFrameAndThread(EmptyFrameThreadState.class))));
 
 			List<UserInterfaceSplit> topSplits = new ArrayList<UserInterfaceSplit>();
 			UserInterfaceSplitHorizontal h1 = new UserInterfaceSplitHorizontal();
@@ -157,17 +142,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			h3.addParts(splits3);
 			topSplits.add(h3);
 
-			UserInterfaceSplitVertical root = new UserInterfaceSplitVertical();
-			root.addParts(topSplits);
-			this.setRootSplit(root);
-
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState1, UIWorkItem.class));
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState2, UIWorkItem.class));
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState3, UIWorkItem.class));
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState4, UIWorkItem.class));
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState5, UIWorkItem.class));
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState6, UIWorkItem.class));
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.emptyFrameThreadState7, UIWorkItem.class));
+			UserInterfaceSplitVertical top = new UserInterfaceSplitVertical();
+			top.addParts(topSplits);
+			this.setRootSplit(top);
 		}else{
 			List<Double> framePercents = new ArrayList<Double>();
 			List<UserInterfaceSplit> splits = new ArrayList<UserInterfaceSplit>();
@@ -179,7 +156,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				splits.add(new UserInterfaceSplitLeafNode(inventoryInterfaceThreadState));
 				framePercents.add(0.25 / this.inventoryInterfaceThreadStates.size());
 			}
-
 			UserInterfaceSplitHorizontal r = new UserInterfaceSplitHorizontal();
 			r.addParts(splits);
 			r.setSplitPercentages(framePercents);
@@ -195,42 +171,129 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
+	public Long createFrameThread(Long frameId, Class<?> frameStateClass) throws Exception{
+		if(
+			frameStateClass == HelpDetailsFrameThreadState.class ||
+			frameStateClass == EmptyFrameThreadState.class
+		){
+			UserInterfaceFrameThreadState frame = this.getFrameStateById(frameId);
+
+			WorkItemProcessorTask<UIWorkItem> thread = new WorkItemProcessorTask<UIWorkItem>(frame, UIWorkItem.class);
+			this.blockManagerThreadCollection.addThread(thread);
+
+			if(activeFrameThreads.containsKey(frameId)){
+				throw new Exception("Error, duplicate frame id for thread: " + frameId);
+			}else{
+				activeFrameThreads.put(frameId, thread);
+			}
+
+			return frameId;
+		}else{
+			throw new Exception("Unknown frame state type " + frameStateClass.getName());
+		}
+	}
+
+	public void destroyFrameThreadById(Long frameId) throws Exception{
+		if(activeFrameThreads.containsKey(frameId)){
+			this.getFrameThreadById(frameId).setIsThreadFinished(true);
+			this.getFrameThreadById(frameId).interrupt();
+			this.blockManagerThreadCollection.removeThread(this.getFrameThreadById(frameId));
+			activeFrameThreads.remove(frameId);
+		}else{
+			throw new Exception("destroyFrameThreadById: Frame id for thread: " + frameId);
+		}
+	}
+
+	public WorkItemProcessorTask<UIWorkItem> getFrameThreadById(Long frameId) throws Exception{
+		if(activeFrameThreads.containsKey(frameId)){
+			return activeFrameThreads.get(frameId);
+		}else{
+			throw new Exception("Unknown frame thread id: " + frameId);
+		}
+	}
+
+	public Long createFrameState(Class<?> frameStateClass) throws Exception{
+		if(frameStateClass == HelpDetailsFrameThreadState.class){
+			HelpDetailsFrameThreadState helpDetailsFrameThreadState = new HelpDetailsFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
+			Long frameId = helpDetailsFrameThreadState.getFrameId();
+
+			if(activeFrameStates.containsKey(frameId)){
+				throw new Exception("Error, duplicate frame id for state: " + frameId);
+			}else{
+				activeFrameStates.put(frameId, helpDetailsFrameThreadState);
+			}
+
+			return frameId;
+		}else if(frameStateClass == EmptyFrameThreadState.class){
+			EmptyFrameThreadState emptyFrameThreadState = new EmptyFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
+			Long frameId = emptyFrameThreadState.getFrameId();
+
+			if(activeFrameStates.containsKey(frameId)){
+				throw new Exception("Error, duplicate frame id for state: " + frameId);
+			}else{
+				activeFrameStates.put(frameId, emptyFrameThreadState);
+			}
+
+			return frameId;
+		}else{
+			throw new Exception("Unknown frame state type " + frameStateClass.getName());
+		}
+	}
+
+	public void destroyFrameStateById(Long frameId) throws Exception{
+		if(activeFrameStates.containsKey(frameId)){
+			activeFrameStates.remove(frameId);
+		}else{
+			throw new Exception("destroyFrameStateById: Frame id for thread: " + frameId);
+		}
+	}
+
+	public void destroyFrameStateAndThreadById(Long frameId) throws Exception{
+		this.destroyFrameThreadById(this.helpDetailsFrameId);
+		this.destroyFrameStateById(this.helpDetailsFrameId);
+	}
+
+	public UserInterfaceFrameThreadState getFrameStateById(Long frameId) throws Exception{
+		if(activeFrameStates.containsKey(frameId)){
+			return activeFrameStates.get(frameId);
+		}else{
+			throw new Exception("Unknown frame state id: " + frameId);
+		}
+	}
+
+	public Long createFrameAndThread(Class<?> frameStateClass) throws Exception{
+		Long frameId = createFrameState(frameStateClass);
+		UserInterfaceFrameThreadState frame = this.getFrameStateById(frameId);
+		return this.createFrameThread(frameId, frameStateClass);
+	}
+
 	public void onCloseFrame() throws Exception{
-		if(this.helpDetailsThreadState == null){
+		if(this.helpDetailsFrameId == null){
 			logger.info("Not closing anything.  Help menu not open.");
 		}else{
 			UserInterfaceSplitVertical top = (UserInterfaceSplitVertical)this.getRootSplit();
-
 			this.setRootSplit(top.getSplitParts().get(0));
-			this.helpDetailsThreadState = null;
-			this.helpDetailsThread.setIsThreadFinished(true);
-			this.helpDetailsThread.interrupt();
-			this.blockManagerThreadCollection.removeThread(this.helpDetailsThread);
-			this.helpDetailsThread = null;
+
+			this.destroyFrameStateAndThreadById(this.helpDetailsFrameId);
+			this.helpDetailsFrameId = null;
 			this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
 		}
 	}
 
 	public Long onOpenFrame(Class<?> frameStateClass) throws Exception{
 		if(frameStateClass == HelpDetailsFrameThreadState.class){
-			if(this.helpDetailsThreadState == null){
-				Constructor<?> constructor = frameStateClass.getDeclaredConstructor(BlockManagerThreadCollection.class, ClientBlockModelContext.class);
-				Object instance = constructor.newInstance(this.blockManagerThreadCollection, this.clientBlockModelContext);
-				this.helpDetailsThreadState = (HelpDetailsFrameThreadState)instance;
-				this.helpDetailsThread = new WorkItemProcessorTask<UIWorkItem>((HelpDetailsFrameThreadState)instance, UIWorkItem.class);
-				this.blockManagerThreadCollection.addThread(this.helpDetailsThread);
-
+			if(this.helpDetailsFrameId == null){
+				this.helpDetailsFrameId = createFrameAndThread(frameStateClass);
 
 				List<UserInterfaceSplit> newTopSplit = new ArrayList<UserInterfaceSplit>();
 				newTopSplit.add(this.getRootSplit());
-				newTopSplit.add(new UserInterfaceSplitLeafNode(this.helpDetailsThreadState));
+				newTopSplit.add(new UserInterfaceSplitLeafNode(this.getFrameStateById(this.helpDetailsFrameId)));
 
 				UserInterfaceSplitVertical root = new UserInterfaceSplitVertical();
 				root.addParts(newTopSplit);
 				this.setRootSplit(root);
-
 				this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
-				return this.helpDetailsThreadState.getFrameId();
+				return this.helpDetailsFrameId;
 			}else{
 				logger.info("Not doing anything.  Help menu already open.");
 				return 0L; //  TODO: remove this.
