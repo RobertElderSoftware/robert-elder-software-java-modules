@@ -80,7 +80,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 		this.clientServerInterface.Connect();
 
-
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(this.inMemoryChunks, InMemoryChunksWorkItem.class));
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ChunkInitializerWorkItem>(this.chunkInitializerThreadState, ChunkInitializerWorkItem.class));
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ConsoleWriterWorkItem>(this.consoleWriterThreadState, ConsoleWriterWorkItem.class));
@@ -88,6 +87,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<SIGWINCHListenerWorkItem>(this.sigwinchListenerThreadState, SIGWINCHListenerWorkItem.class));
 		}
 		this.blockManagerThreadCollection.addThread(new StandardInputReaderTask(this, this.consoleWriterThreadState));
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(this, BlockModelContextWorkItem.class));
 	}
 
 

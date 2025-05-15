@@ -60,8 +60,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private ClientBlockModelContext clientBlockModelContext;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private TextWidthMeasurementWorkItem currentTextWidthMeasurement = null;
-	private final List<MapAreaInterfaceThreadState> mapAreaInterfaceThreadStates = new ArrayList<MapAreaInterfaceThreadState>();
-	private final List<InventoryInterfaceThreadState> inventoryInterfaceThreadStates = new ArrayList<InventoryInterfaceThreadState>();
+	private final List<Long> mapAreaInterfaceFrameIds = new ArrayList<Long>();
+	private final List<Long> inventoryInterfaceFrameIds = new ArrayList<Long>();
 
 	private BlockingQueue<TextWidthMeasurementWorkItem> pendingTextWidthRequests = new LinkedBlockingDeque<TextWidthMeasurementWorkItem>();
 	private BlockingQueue<ConsoleQueueableWorkItem> pendingQueueableWorkItems = new LinkedBlockingDeque<ConsoleQueueableWorkItem>();
@@ -102,20 +102,20 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		int numMapAreas = 1;
 		int numInventoryAreas = 1;
 		for(int i = 0; i < numMapAreas; i++){
-			this.mapAreaInterfaceThreadStates.add(new MapAreaInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext));
+			this.mapAreaInterfaceFrameIds.add(this.createFrameAndThread(MapAreaInterfaceThreadState.class));
 		}
 		for(int i = 0; i < numInventoryAreas; i++){
-			this.inventoryInterfaceThreadStates.add(new InventoryInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext));
+			this.inventoryInterfaceFrameIds.add(this.createFrameAndThread(InventoryInterfaceThreadState.class));
 		}
 
-		boolean useMultiSplitDemo = true;
+		boolean useMultiSplitDemo = false;
 		if(useMultiSplitDemo){
 			List<UserInterfaceSplit> splits1 = new ArrayList<UserInterfaceSplit>();
-			for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
-				splits1.add(new UserInterfaceSplitLeafNode(mapAreaInterfaceThreadState));
+			for(Long mapAreaInterfaceFrameId : this.mapAreaInterfaceFrameIds){
+				splits1.add(new UserInterfaceSplitLeafNode(this.getFrameStateById(mapAreaInterfaceFrameId)));
 			}
-			for(InventoryInterfaceThreadState inventoryInterfaceThreadState : this.inventoryInterfaceThreadStates){
-				splits1.add(new UserInterfaceSplitLeafNode(inventoryInterfaceThreadState));
+			for(Long inventoryInterfaceFrameId : this.inventoryInterfaceFrameIds){
+				splits1.add(new UserInterfaceSplitLeafNode(this.getFrameStateById(inventoryInterfaceFrameId)));
 			}
 			splits1.add(new UserInterfaceSplitLeafNode(this.getFrameStateById(createFrameAndThread(EmptyFrameThreadState.class))));
 
@@ -148,33 +148,27 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}else{
 			List<Double> framePercents = new ArrayList<Double>();
 			List<UserInterfaceSplit> splits = new ArrayList<UserInterfaceSplit>();
-			for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
-				splits.add(new UserInterfaceSplitLeafNode(mapAreaInterfaceThreadState));
-				framePercents.add(0.75 / this.mapAreaInterfaceThreadStates.size());
+			for(Long mapAreaInterfaceFrameId : this.mapAreaInterfaceFrameIds){
+				splits.add(new UserInterfaceSplitLeafNode(this.getFrameStateById(mapAreaInterfaceFrameId)));
+				framePercents.add(0.75 / this.mapAreaInterfaceFrameIds.size());
 			}
-			for(InventoryInterfaceThreadState inventoryInterfaceThreadState : this.inventoryInterfaceThreadStates){
-				splits.add(new UserInterfaceSplitLeafNode(inventoryInterfaceThreadState));
-				framePercents.add(0.25 / this.inventoryInterfaceThreadStates.size());
+			for(Long inventoryInterfaceFrameId : this.inventoryInterfaceFrameIds){
+				splits.add(new UserInterfaceSplitLeafNode(this.getFrameStateById(inventoryInterfaceFrameId)));
+				framePercents.add(0.25 / this.inventoryInterfaceFrameIds.size());
 			}
 			UserInterfaceSplitHorizontal r = new UserInterfaceSplitHorizontal();
 			r.addParts(splits);
 			r.setSplitPercentages(framePercents);
 			this.setRootSplit(r);
 		}
-
-		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(this.clientBlockModelContext, BlockModelContextWorkItem.class));
-		for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(mapAreaInterfaceThreadState, UIWorkItem.class));
-		}
-		for(InventoryInterfaceThreadState inventoryInterfaceThreadState : this.inventoryInterfaceThreadStates){
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(inventoryInterfaceThreadState, UIWorkItem.class));
-		}
 	}
 
 	public Long createFrameThread(Long frameId, Class<?> frameStateClass) throws Exception{
 		if(
 			frameStateClass == HelpDetailsFrameThreadState.class ||
-			frameStateClass == EmptyFrameThreadState.class
+			frameStateClass == EmptyFrameThreadState.class ||
+			frameStateClass == MapAreaInterfaceThreadState.class ||
+			frameStateClass == InventoryInterfaceThreadState.class
 		){
 			UserInterfaceFrameThreadState frame = this.getFrameStateById(frameId);
 
@@ -212,29 +206,33 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
+	public Long addFrameState(UserInterfaceFrameThreadState state) throws Exception{
+		Long frameId = state.getFrameId();
+		if(activeFrameStates.containsKey(frameId)){
+			throw new Exception("Error, duplicate frame id for state: " + frameId);
+		}else{
+			activeFrameStates.put(frameId, state);
+		}
+		return frameId;
+	}
+
 	public Long createFrameState(Class<?> frameStateClass) throws Exception{
 		if(frameStateClass == HelpDetailsFrameThreadState.class){
-			HelpDetailsFrameThreadState helpDetailsFrameThreadState = new HelpDetailsFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
-			Long frameId = helpDetailsFrameThreadState.getFrameId();
-
-			if(activeFrameStates.containsKey(frameId)){
-				throw new Exception("Error, duplicate frame id for state: " + frameId);
-			}else{
-				activeFrameStates.put(frameId, helpDetailsFrameThreadState);
-			}
-
-			return frameId;
+			return addFrameState(
+				new HelpDetailsFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
+			);
 		}else if(frameStateClass == EmptyFrameThreadState.class){
-			EmptyFrameThreadState emptyFrameThreadState = new EmptyFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
-			Long frameId = emptyFrameThreadState.getFrameId();
-
-			if(activeFrameStates.containsKey(frameId)){
-				throw new Exception("Error, duplicate frame id for state: " + frameId);
-			}else{
-				activeFrameStates.put(frameId, emptyFrameThreadState);
-			}
-
-			return frameId;
+			return addFrameState(
+				new EmptyFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
+			);
+		}else if(frameStateClass == MapAreaInterfaceThreadState.class){
+			return addFrameState(
+				new MapAreaInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
+			);
+		}else if(frameStateClass == InventoryInterfaceThreadState.class){
+			return addFrameState(
+				new InventoryInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
+			);
 		}else{
 			throw new Exception("Unknown frame state type " + frameStateClass.getName());
 		}
@@ -304,20 +302,23 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public void onPlayerInventoryChange(PlayerInventory playerInventory) throws Exception{
-		for(InventoryInterfaceThreadState inventoryInterfaceThreadState : this.inventoryInterfaceThreadStates){
-			inventoryInterfaceThreadState.putWorkItem(new PlayerInventoryChangeWorkItem(inventoryInterfaceThreadState, new PlayerInventory(playerInventory.getBlockData())), WorkItemPriority.PRIORITY_LOW);
+		for(Long inventoryInterfaceFrameId : this.inventoryInterfaceFrameIds){
+			InventoryInterfaceThreadState inv = (InventoryInterfaceThreadState)this.getFrameStateById(inventoryInterfaceFrameId);
+			inv.putWorkItem(new PlayerInventoryChangeWorkItem(inv, new PlayerInventory(playerInventory.getBlockData())), WorkItemPriority.PRIORITY_LOW);
 		}
 	}
 
 	public void updateMapAreaFlags(CuboidAddress areaToUpdate) throws Exception {
-		for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
-			mapAreaInterfaceThreadState.putWorkItem(new UpdateMapAreaFlagsWorkItem(mapAreaInterfaceThreadState, areaToUpdate.copy()), WorkItemPriority.PRIORITY_LOW);
+		for(Long mapAreaInterfaceFrameId : this.mapAreaInterfaceFrameIds){
+			MapAreaInterfaceThreadState m = (MapAreaInterfaceThreadState)this.getFrameStateById(mapAreaInterfaceFrameId);
+			m.putWorkItem(new UpdateMapAreaFlagsWorkItem(m, areaToUpdate.copy()), WorkItemPriority.PRIORITY_LOW);
 		}
 	}
 
 	public void onPlayerPositionChange(Coordinate previousPosition, Coordinate newPosition) throws Exception{
-		for(MapAreaInterfaceThreadState mapAreaInterfaceThreadState : this.mapAreaInterfaceThreadStates){
-			mapAreaInterfaceThreadState.putWorkItem(new MapAreaNotifyPlayerPositionChangeWorkItem(mapAreaInterfaceThreadState, previousPosition, newPosition), WorkItemPriority.PRIORITY_LOW);
+		for(Long mapAreaInterfaceFrameId : this.mapAreaInterfaceFrameIds){
+			MapAreaInterfaceThreadState m = (MapAreaInterfaceThreadState)this.getFrameStateById(mapAreaInterfaceFrameId);
+			m.putWorkItem(new MapAreaNotifyPlayerPositionChangeWorkItem(m, previousPosition, newPosition), WorkItemPriority.PRIORITY_LOW);
 		}
 	}
 

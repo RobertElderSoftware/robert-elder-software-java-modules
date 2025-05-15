@@ -48,6 +48,7 @@ public class WorkItemProcessorTask<T extends WorkItem> extends BlockManagerThrea
 	public WorkItemProcessorTask(WorkItemQueueOwner<T> workItemQueueOwner, Class<T> entityClass){
 		this.workItemQueueOwner = workItemQueueOwner;
 		this.entityClass = entityClass;
+
 	}
 
 	public void setIsThreadFinished(boolean isThreadFinished){
@@ -70,6 +71,7 @@ public class WorkItemProcessorTask<T extends WorkItem> extends BlockManagerThrea
 	@Override
 	public void run() {
 		logger.info("Begin running WorkItemProcessorTask (id=" + Thread.currentThread().getId() + ") for " + this.workItemQueueOwner.getClass().getName());
+		currentThread().setName(this.entityClass.asSubclass(this.entityClass).getSimpleName() + " for " + this.getClass().getSimpleName());
 		while (
 			!this.workItemQueueOwner.getBlockManagerThreadCollection().getIsProcessFinished() &&
 			!this.getIsThreadFinished() &&
