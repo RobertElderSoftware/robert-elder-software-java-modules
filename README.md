@@ -120,7 +120,7 @@ Primary key fingerprint: ECBD 481D BCA5 C488 04FB  D087 20B9 852C F055 8BAA
 
 #  Building The Game
 
-To build the game, you will need to set up a development environment that can support Java 17 and a version of maven that can support Java 17.
+To build the game, you will need to set up a development environment that can support Java 21 and a version of maven that can support Java 21.
 
 To build the JNI library, you will also need a c++ compiler and make
 

@@ -42,7 +42,7 @@ public abstract class WorkItem {
 
 	public WorkItem(boolean isBlocking){
 		this.isBlocking = isBlocking;
-		this.threadId = Thread.currentThread().getId();
+		this.threadId = Thread.currentThread().threadId();
 		logger.info("In constructor for WorkItem: isBlocking=" + isBlocking + " " + this.getClass().getName() + " and thread_id=" + this.threadId);
 	}
 

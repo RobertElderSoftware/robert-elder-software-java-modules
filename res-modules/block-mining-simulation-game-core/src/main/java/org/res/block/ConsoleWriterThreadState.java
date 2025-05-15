@@ -87,10 +87,11 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private int [] lastUsedColourCodes = new int [] {UserInterfaceFrameThreadState.RESET_BG_COLOR};
 
 	public ConsoleWriterThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception{
-
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
+	}
 
+	public void init() throws Exception {
 		this.helpMenuFrameThreadState = new HelpMenuFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<UIWorkItem>(this.helpMenuFrameThreadState, UIWorkItem.class));
 
@@ -677,7 +678,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public WorkItemResult putBlockingWorkItem(ConsoleWriterWorkItem workItem, WorkItemPriority priority) throws Exception {
-		BlockManagerThread t = this.blockManagerThreadCollection.getThreadById(Thread.currentThread().getId());
+		BlockManagerThread t = this.blockManagerThreadCollection.getThreadById(Thread.currentThread().threadId());
 		if(t instanceof WorkItemProcessorTask){
 			Class<?> ct = ((WorkItemProcessorTask<?>)t).getEntityClass();
 			if(ct == ConsoleWriterWorkItem.class && workItem.getIsBlocking()){

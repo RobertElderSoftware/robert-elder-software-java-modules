@@ -71,6 +71,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.notifyLoadedRegionsChanged();
 		this.chunkInitializerThreadState = new ChunkInitializerThreadState(blockManagerThreadCollection, this, this.inMemoryChunks);
 		this.consoleWriterThreadState = new ConsoleWriterThreadState(blockManagerThreadCollection, this);
+		this.consoleWriterThreadState.init();
 
 		
 

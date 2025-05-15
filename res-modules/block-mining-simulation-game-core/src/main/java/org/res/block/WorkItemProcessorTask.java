@@ -65,12 +65,12 @@ public class WorkItemProcessorTask<T extends WorkItem> extends BlockManagerThrea
 
 	@Override
 	public String getBetterClassName() throws Exception{
-		return this.getClass().getName() + "<" + this.entityClass.getName() + ">, thread.getId()=" + getId();
+		return this.getClass().getName() + "<" + this.entityClass.getName() + ">, thread.threadId()=" + threadId();
 	}
 
 	@Override
 	public void run() {
-		logger.info("Begin running WorkItemProcessorTask (id=" + Thread.currentThread().getId() + ") for " + this.workItemQueueOwner.getClass().getName());
+		logger.info("Begin running WorkItemProcessorTask (id=" + Thread.currentThread().threadId() + ") for " + this.workItemQueueOwner.getClass().getName());
 		currentThread().setName(this.entityClass.asSubclass(this.entityClass).getSimpleName() + " for " + this.getClass().getSimpleName());
 		while (
 			!this.workItemQueueOwner.getBlockManagerThreadCollection().getIsProcessFinished() &&
@@ -106,6 +106,6 @@ public class WorkItemProcessorTask<T extends WorkItem> extends BlockManagerThrea
 				this.workItemQueueOwner.getBlockManagerThreadCollection().setIsProcessFinished(true, e);
 			}
 		}
-		logger.info("Exiting WorkItemProcessorTask (id=" + Thread.currentThread().getId() + "), exiting thread getName()=" + this.workItemQueueOwner.getClass().getName() + ", getIsProcessFinished()=" + this.workItemQueueOwner.getBlockManagerThreadCollection().getIsProcessFinished() + ", isInterrupted()=" + Thread.currentThread().isInterrupted() + ", this.getIsThreadFinished()=" + this.getIsThreadFinished());
+		logger.info("Exiting WorkItemProcessorTask (id=" + Thread.currentThread().threadId() + "), exiting thread getName()=" + this.workItemQueueOwner.getClass().getName() + ", getIsProcessFinished()=" + this.workItemQueueOwner.getBlockManagerThreadCollection().getIsProcessFinished() + ", isInterrupted()=" + Thread.currentThread().isInterrupted() + ", this.getIsThreadFinished()=" + this.getIsThreadFinished());
 	}
 }

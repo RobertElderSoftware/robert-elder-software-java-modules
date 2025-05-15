@@ -228,7 +228,7 @@ public class BlockManagerThreadCollection {
 	public void addThread(BlockManagerThread t) throws Exception{
 		t.start();
 		synchronized(lock){
-			Long threadId = t.getId();
+			Long threadId = t.threadId();
 			if(this.allThreads.containsKey(threadId)){
 				throw new Exception("threadId=" + threadId + " already exists.");
 			}else{
@@ -240,7 +240,7 @@ public class BlockManagerThreadCollection {
 
 	public void removeThread(BlockManagerThread t) throws Exception{
 		synchronized(lock){
-			Long threadId = t.getId();
+			Long threadId = t.threadId();
 			if(this.allThreads.containsKey(threadId)){
 				this.allThreads.remove(threadId);
 				int offset = this.activeThreadIds.indexOf(threadId);
@@ -277,7 +277,7 @@ public class BlockManagerThreadCollection {
 		for(int i = 0; i < this.activeThreadIds.size(); i++){
 			Long threadId = this.activeThreadIds.get(i);
 			BlockManagerThread t = this.allThreads.get(threadId);
-			logger.info(Thread.currentThread().getClass().getName() + " " + Thread.currentThread() + " " + Thread.currentThread().getId() + " " + t.getBetterClassName() + " " + t + " " + t.getId() + " == " + Thread.currentThread().equals(t));
+			logger.info(Thread.currentThread().getClass().getName() + " " + Thread.currentThread() + " " + Thread.currentThread().threadId() + " " + t.getBetterClassName() + " " + t + " " + t.threadId() + " == " + Thread.currentThread().equals(t));
 			if(t instanceof StandardInputReaderTask){
 				try{
 					//  Close stdin to trigger exit of 'read' call for keyboard input task:
@@ -339,8 +339,8 @@ public class BlockManagerThreadCollection {
 					//logger.info("blockUntilAllTasksHaveTerminated, Before removing threadId=" + threadId + ": this.activeThreadIds=" + this.activeThreadIds);
 					this.allThreads.remove(threadId);
 					//logger.info("blockUntilAllTasksHaveTerminated, After removing threadId=" + threadId + ": this.activeThreadIds=" + this.activeThreadIds);
-					if(!(t.getId() == threadId)){
-						throw new Exception("t.getId()=" + t.getId() + " != threadId=" + threadId);
+					if(!(t.threadId() == threadId)){
+						throw new Exception("t.threadId()=" + t.threadId() + " != threadId=" + threadId);
 					}
 					logger.info("After thread join, removed threadId=" + threadId);
 					numActiveThreads = this.activeThreadIds.size();
