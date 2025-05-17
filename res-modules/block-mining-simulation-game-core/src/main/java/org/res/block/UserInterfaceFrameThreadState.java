@@ -454,9 +454,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 	}
 
-	public boolean isCoordinateRelatedToFocusedFrame(Coordinate c) throws Exception{
+	public boolean isCoordinateRelatedToFocusedFrame(Coordinate c, FrameDimensions ffd) throws Exception{
 		//  TODO:  This is not thread safe.
-		FrameDimensions ffd = this.clientBlockModelContext.getConsoleWriterThreadState().focusedFrame.getFrameDimensions();
 		if(ffd != null){
 			if(
 				c.getX() >= ffd.getFrameOffsetX() &&
@@ -485,13 +484,15 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		boolean containsBottomLeftHandCorner = hasBottomBorder && hasLeftBorder;
 		boolean containsBottomRightHandCorner = hasBottomBorder && hasRightBorder;
 
+		FrameDimensions ffd = this.clientBlockModelContext.getConsoleWriterThreadState().getFrameStateById(this.clientBlockModelContext.getConsoleWriterThreadState().focusedFrameId).getFrameDimensions();
+
 		if(hasTopBorder){
 			ColouredTextFragmentList fragmentList = new ColouredTextFragmentList();
 			long borderLength = this.getFrameWidth() / fchrw;
 			for(long i = 0; i < borderLength; i++){
 				Coordinate c = new Coordinate(Arrays.asList(this.getFrameOffsetX() + i * fchrw, this.getFrameOffsetY()));
 				String borderCharacter = this.getFrameConnectionCharacterForCoordinate(c);
-				if(this.isCoordinateRelatedToFocusedFrame(c)){
+				if(this.isCoordinateRelatedToFocusedFrame(c, ffd)){
 					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {RESET_BG_COLOR, RED_FG_COLOR}));
 				}else{
 					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {RESET_BG_COLOR}));
@@ -508,7 +509,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			for(long i = borderStart; i < borderEnd; i++){
 				Coordinate c = new Coordinate(Arrays.asList(this.getFrameOffsetX(), i));
 				String borderCharacter = this.getFrameConnectionCharacterForCoordinate(c);
-				if(this.isCoordinateRelatedToFocusedFrame(c)){
+				if(this.isCoordinateRelatedToFocusedFrame(c, ffd)){
 					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {RESET_BG_COLOR, RED_FG_COLOR}));
 				}else{
 					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {RESET_BG_COLOR}));
@@ -525,7 +526,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			for(long i = borderStart; i < borderEnd; i++){
 				Coordinate c = new Coordinate(Arrays.asList(this.getFrameOffsetX() + this.getFrameWidth() -fchrw, i));
 				String borderCharacter = this.getFrameConnectionCharacterForCoordinate(c);
-				if(this.isCoordinateRelatedToFocusedFrame(c)){
+				if(this.isCoordinateRelatedToFocusedFrame(c, ffd)){
 					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {RESET_BG_COLOR, RED_FG_COLOR}));
 				}else{
 					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {RESET_BG_COLOR}));
@@ -539,7 +540,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			for(long i = 0; i < borderLength; i++){
 				Coordinate c = new Coordinate(Arrays.asList(this.getFrameOffsetX() + i * fchrw, this.getFrameOffsetY() + this.getFrameHeight() -1));
 				String borderCharacter = this.getFrameConnectionCharacterForCoordinate(c);
-				if(this.isCoordinateRelatedToFocusedFrame(c)){
+				if(this.isCoordinateRelatedToFocusedFrame(c, ffd)){
 					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {RESET_BG_COLOR, RED_FG_COLOR}));
 				}else{
 					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {RESET_BG_COLOR}));

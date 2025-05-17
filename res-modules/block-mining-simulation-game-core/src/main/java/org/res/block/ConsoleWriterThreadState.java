@@ -77,10 +77,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public static final int BUFFER_INDEX_MENU = 1;
 	private ScreenOutputBuffer [] screenOutputBuffer = new ScreenOutputBuffer [this.numScreenOutputBuffers];
 
-
-	private Long helpDetailsFrameId = null;
-
-	public UserInterfaceFrameThreadState focusedFrame = null;
+	public Long focusedFrameId = null;
 
 	private Map<Long, UserInterfaceSplit> userInterfaceSplits = new HashMap<Long, UserInterfaceSplit>();
 	private Long rootSplitId;
@@ -319,16 +316,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		return this.createFrameThread(frameId, frameStateClass);
 	}
 
-	public void onCloseFrame() throws Exception{
-		if(this.helpDetailsFrameId == null){
-			logger.info("Not closing anything.  Help menu not open.");
-		}else{
-			UserInterfaceSplitVertical top = (UserInterfaceSplitVertical)this.getUserInterfaceSplitById(this.getRootSplit());
-			this.setRootSplit(top.getSplitParts().get(0).getSplitId());
-
-			this.destroyFrameStateAndThreadById(this.helpDetailsFrameId);
-			this.helpDetailsFrameId = null;
-		}
+	public void onCloseFrame(Long frameId) throws Exception{
+		this.destroyFrameStateAndThreadById(frameId);
 	}
 
 	public Long onSetRootSplitId(Long newRootSplitId) throws Exception{
@@ -359,18 +348,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public Long onOpenFrame(Class<?> frameStateClass) throws Exception{
-		if(frameStateClass == HelpDetailsFrameThreadState.class){
-			if(this.helpDetailsFrameId == null){
-				this.helpDetailsFrameId = createFrameAndThread(frameStateClass);
-
-				return this.helpDetailsFrameId;
-			}else{
-				logger.info("Not doing anything.  Help menu already open.");
-				return 0L; //  TODO: remove this.
-			}
-		}else{
-			throw new Exception("Unknown frame type " + frameStateClass.getName());
-		}
+		return createFrameAndThread(frameStateClass);
 	}
 
 	public void onPlayerInventoryChange(PlayerInventory playerInventory) throws Exception{
@@ -398,16 +376,17 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 		List<UserInterfaceFrameThreadState> allFrames = this.getUserInterfaceSplitById(rootSplitId).collectUserInterfaceFrames();
 		//  Notify all frames of the update so they can redraw border:
+		UserInterfaceFrameThreadState focusedFrame = this.focusedFrameId == null ? null : this.getFrameStateById(this.focusedFrameId);
 		for(UserInterfaceFrameThreadState frame : allFrames){
-			frame.putWorkItem(new FrameFocusChangeWorkItem(frame, this.focusedFrame.getFrameDimensions()), WorkItemPriority.PRIORITY_LOW);
+			frame.putWorkItem(new FrameFocusChangeWorkItem(frame, focusedFrame.getFrameDimensions()), WorkItemPriority.PRIORITY_LOW);
 		}
 
-		this.helpMenuFrameThreadState.putWorkItem(new FrameFocusChangeWorkItem(this.helpMenuFrameThreadState, this.focusedFrame.getFrameDimensions()), WorkItemPriority.PRIORITY_LOW);
+		this.helpMenuFrameThreadState.putWorkItem(new FrameFocusChangeWorkItem(this.helpMenuFrameThreadState, focusedFrame.getFrameDimensions()), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void focusOnNextFrame() throws Exception{
-		UserInterfaceFrameThreadState previousFrame = this.focusedFrame;
-		String oldFrameInfo = this.focusedFrame == null ? "null" : "frameId=" + this.focusedFrame.getFrameId();
+		Long previousFrameId = this.focusedFrameId;
+		String oldFrameInfo = this.focusedFrameId == null ? "null" : "frameId=" + this.focusedFrameId;
 		List<UserInterfaceFrameThreadState> allFrames = this.getUserInterfaceSplitById(rootSplitId).collectUserInterfaceFrames();
 		Collections.sort(allFrames, new Comparator<UserInterfaceFrameThreadState>() {
 			@Override
@@ -416,17 +395,17 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			}
 		});
 
-		UserInterfaceFrameThreadState newFocusedFrame;
-		if(this.focusedFrame == null){
+		Long newFocusedFrameId;
+		if(this.focusedFrameId == null){
 			if(allFrames.size() > 0){
-				newFocusedFrame = allFrames.get(0);
+				newFocusedFrameId = allFrames.get(0).getFrameId();
 			}else{
 				throw new Exception("No frames to focus on!");
 			}
 		}else{
 			int currentFrameIndex = -1;
 			for(int i = 0; i < allFrames.size(); i++){
-				if(allFrames.get(i).getFrameId() == this.focusedFrame.getFrameId()){
+				if(allFrames.get(i).getFrameId() == this.focusedFrameId){
 					if(currentFrameIndex != -1){
 						throw new Exception("Two frames have same id?");
 					}else{
@@ -438,15 +417,14 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				throw new Exception("Could not find frame index of currently focused frame?");
 			}else{
 				int newFrameIndex = (currentFrameIndex + 1) % allFrames.size();
-				newFocusedFrame = allFrames.get(newFrameIndex);
-				logger.info("Focused on frame at index " + newFrameIndex + " with frameId=" + newFocusedFrame.getFrameId());
+				newFocusedFrameId = allFrames.get(newFrameIndex).getFrameId();
+				logger.info("Focused on frame at index " + newFrameIndex + " with frameId=" + newFocusedFrameId);
 			}
 		}
 
-		String newFrameInfo = newFocusedFrame == null ? "null" : "frameId=" + newFocusedFrame.getFrameId();
+		String newFrameInfo = newFocusedFrameId == null ? "null" : "frameId=" + newFocusedFrameId;
 		logger.info("Switched from " + oldFrameInfo + " to " + newFrameInfo);
-		this.focusedFrame = newFocusedFrame;
-
+		this.focusedFrameId = newFocusedFrameId;
 	}
 
 	public Long getRootSplit(){
@@ -455,24 +433,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	public final Long setRootSplit(Long newRootId) throws Exception{
 		this.rootSplitId = newRootId;
-		UserInterfaceSplit rootSplit = this.getUserInterfaceSplitById(newRootId);
-		if(this.focusedFrame instanceof HelpDetailsFrameThreadState){ // TODO: Remove this.  Required to prevent crashes when closing help menu.
-			List<UserInterfaceFrameThreadState> allFrames = rootSplit.collectUserInterfaceFrames();
-			if(allFrames.size() > 0){
-				this.focusedFrame = allFrames.get(0);
-			}else{
-				throw new Exception("Not expected.");
-			}
-		}else{ //  A hack to select help menu after opening it:
-			//  Select the first frame that is a help menu:
-			List<UserInterfaceFrameThreadState> allFrames = rootSplit.collectUserInterfaceFrames();
-			for(UserInterfaceFrameThreadState frame : allFrames){
-				if(frame instanceof HelpDetailsFrameThreadState){
-					this.focusedFrame = frame;
-				}
-			}
-		}
-		return newRootId;
+		return this.rootSplitId;
 	}
 
 	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
@@ -517,7 +478,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			if(this.helpMenuFrameThreadState.getIsMenuActive()){
 				this.sendAnsiEscapeSequenceToFrame(ansiEscapeSequence, this.helpMenuFrameThreadState);
 			}else{
-				this.sendAnsiEscapeSequenceToFrame(ansiEscapeSequence, this.focusedFrame);
+				this.sendAnsiEscapeSequenceToFrame(ansiEscapeSequence, this.getFrameStateById(this.focusedFrameId));
 			}
 		}
 	}
@@ -628,12 +589,12 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public void onTerminalDimensionsChanged(Long terminalWidth, Long terminalHeight, Long frameCharacterWidth) throws Exception{
 		this.initializeConsole(terminalWidth, terminalHeight);
 
+		if(this.focusedFrameId == null){
+			this.focusOnNextFrame();
+		}
 		//  When the terminal size changes, send a notify to all of the user interface frames to let them know about it
 		this.currentTerminalFrameDimensions = new FrameDimensions(frameCharacterWidth, terminalWidth, terminalHeight, 0L, 0L, terminalWidth, terminalHeight);
 		FrameBordersDescription frameBordersDescription = this.getUserInterfaceSplitById(this.rootSplitId).collectAllConnectionPoints(this.currentTerminalFrameDimensions);
-		if(this.focusedFrame == null){
-			this.focusOnNextFrame();
-		}
 		this.getUserInterfaceSplitById(this.rootSplitId).setEquidistantFrameDimensions(this.currentTerminalFrameDimensions, frameBordersDescription);
 
 		this.helpMenuFrameThreadState.putWorkItem(new FrameDimensionsChangeWorkItem(this.helpMenuFrameThreadState, this.currentTerminalFrameDimensions, frameBordersDescription), WorkItemPriority.PRIORITY_LOW);
@@ -658,7 +619,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
 
 				if(action == null){
-					this.sendKeyboardInputToFrame(new byte [] {b}, this.focusedFrame);
+					this.sendKeyboardInputToFrame(new byte [] {b}, this.getFrameStateById(this.focusedFrameId));
 				}else{
 					switch(action){
 						case ACTION_QUIT:{
@@ -674,7 +635,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 							this.notifyAllFramesOfFocusChange();
 							break;
 						}default:{
-							this.sendKeyboardInputToFrame(new byte [] {b}, this.focusedFrame);
+							this.sendKeyboardInputToFrame(new byte [] {b}, this.getFrameStateById(this.focusedFrameId));
 						}
 					}
 				}

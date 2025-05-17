@@ -44,11 +44,14 @@ public class CloseFrameWorkItem extends ConsoleWriterWorkItem {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	public CloseFrameWorkItem(ConsoleWriterThreadState consoleWriterThreadState){
+	private Long frameId;
+
+	public CloseFrameWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Long frameId){
 		super(consoleWriterThreadState, false);
+		this.frameId = frameId;
 	}
 
 	public void doWork() throws Exception{
-		this.consoleWriterThreadState.onCloseFrame();
+		this.consoleWriterThreadState.onCloseFrame(this.frameId);
 	}
 }
