@@ -83,7 +83,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public UserInterfaceFrameThreadState focusedFrame = null;
 
 	private Map<Long, UserInterfaceSplit> userInterfaceSplits = new HashMap<Long, UserInterfaceSplit>();
-	private UserInterfaceSplit root;
+	private Long rootSplitId;
 
 	private int [] lastUsedColourCodes = new int [] {UserInterfaceFrameThreadState.RESET_BG_COLOR};
 
@@ -112,56 +112,70 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 		boolean useMultiSplitDemo = false;
 		if(useMultiSplitDemo){
-			List<UserInterfaceSplit> splits1 = new ArrayList<UserInterfaceSplit>();
+			List<Long> splits1 = new ArrayList<Long>();
 			for(Long mapAreaInterfaceFrameId : this.mapAreaInterfaceFrameIds){
-				splits1.add(getUserInterfaceSplitById(makeLeafNodeSplit(mapAreaInterfaceFrameId)));
+				splits1.add(makeLeafNodeSplit(mapAreaInterfaceFrameId));
 			}
 			for(Long inventoryInterfaceFrameId : this.inventoryInterfaceFrameIds){
-				splits1.add(getUserInterfaceSplitById(makeLeafNodeSplit(inventoryInterfaceFrameId)));
+				splits1.add(makeLeafNodeSplit(inventoryInterfaceFrameId));
 			}
-			splits1.add(getUserInterfaceSplitById(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class))));
+			splits1.add(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class)));
 
-			List<UserInterfaceSplit> splits2 = new ArrayList<UserInterfaceSplit>();
-			splits2.add(getUserInterfaceSplitById(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class))));
-			splits2.add(getUserInterfaceSplitById(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class))));
-			splits2.add(getUserInterfaceSplitById(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class))));
+			List<Long> splits2 = new ArrayList<Long>();
+			splits2.add(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class)));
+			splits2.add(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class)));
+			splits2.add(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class)));
 
-			List<UserInterfaceSplit> splits3 = new ArrayList<UserInterfaceSplit>();
-			splits3.add(getUserInterfaceSplitById(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class))));
-			splits3.add(getUserInterfaceSplitById(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class))));
-			splits3.add(getUserInterfaceSplitById(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class))));
+			List<Long> splits3 = new ArrayList<Long>();
+			splits3.add(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class)));
+			splits3.add(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class)));
+			splits3.add(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class)));
 
-			List<UserInterfaceSplit> topSplits = new ArrayList<UserInterfaceSplit>();
-			UserInterfaceSplitHorizontal h1 = (UserInterfaceSplitHorizontal)getUserInterfaceSplitById(makeHorizontalSplit());
-			h1.addParts(splits1);
+			List<Long> topSplits = new ArrayList<Long>();
+			Long h1 = makeHorizontalSplit();
+			this.addSplitPartsByIds(h1, splits1);
 			topSplits.add(h1);
 
-			UserInterfaceSplitHorizontal h2 = (UserInterfaceSplitHorizontal)getUserInterfaceSplitById(makeHorizontalSplit());
-			h2.addParts(splits2);
+			Long h2 = makeHorizontalSplit();
+			this.addSplitPartsByIds(h2, splits2);
 			topSplits.add(h2);
 
-			UserInterfaceSplitHorizontal h3 = (UserInterfaceSplitHorizontal)getUserInterfaceSplitById(makeHorizontalSplit());
-			h3.addParts(splits3);
+			Long h3 = makeHorizontalSplit();
+			this.addSplitPartsByIds(h3, splits3);
 			topSplits.add(h3);
 
-			UserInterfaceSplitVertical top = (UserInterfaceSplitVertical)getUserInterfaceSplitById(makeVerticalSplit());
-			top.addParts(topSplits);
+			Long top = makeVerticalSplit();
+			this.addSplitPartsByIds(top, topSplits);
 			this.setRootSplit(top);
 		}else{
 			List<Double> framePercents = new ArrayList<Double>();
-			List<UserInterfaceSplit> splits = new ArrayList<UserInterfaceSplit>();
+			List<Long> splits = new ArrayList<Long>();
 			for(Long mapAreaInterfaceFrameId : this.mapAreaInterfaceFrameIds){
-				splits.add(getUserInterfaceSplitById(makeLeafNodeSplit(mapAreaInterfaceFrameId)));
+				splits.add(makeLeafNodeSplit(mapAreaInterfaceFrameId));
 				framePercents.add(0.75 / this.mapAreaInterfaceFrameIds.size());
 			}
 			for(Long inventoryInterfaceFrameId : this.inventoryInterfaceFrameIds){
-				splits.add(getUserInterfaceSplitById(makeLeafNodeSplit(inventoryInterfaceFrameId)));
+				splits.add(makeLeafNodeSplit(inventoryInterfaceFrameId));
 				framePercents.add(0.25 / this.inventoryInterfaceFrameIds.size());
 			}
-			UserInterfaceSplitHorizontal r = (UserInterfaceSplitHorizontal)getUserInterfaceSplitById(makeHorizontalSplit());
-			r.addParts(splits);
-			r.setSplitPercentages(framePercents);
+			Long r = makeHorizontalSplit();
+			this.addSplitPartsByIds(r, splits);
+			((UserInterfaceSplitHorizontal)this.getUserInterfaceSplitById(r)).setSplitPercentages(framePercents);
 			this.setRootSplit(r);
+		}
+	}
+
+	public void addSplitPartsByIds(Long parentSplitId, List<Long> childrenToAdd) throws Exception{
+		UserInterfaceSplit split = getUserInterfaceSplitById(parentSplitId);
+		if(split instanceof UserInterfaceSplitMulti){
+			UserInterfaceSplitMulti multi = (UserInterfaceSplitMulti)split;
+			for(Long id : childrenToAdd){
+				multi.addPart(getUserInterfaceSplitById(id));
+			}
+		}else if(split instanceof UserInterfaceSplitLeafNode){
+			throw new Exception("Cannot add user interface splits to a split leaf node.");
+		}else{
+			throw new Exception("Unknown split type.");
 		}
 	}
 
@@ -287,8 +301,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public void destroyFrameStateAndThreadById(Long frameId) throws Exception{
-		this.destroyFrameThreadById(this.helpDetailsFrameId);
-		this.destroyFrameStateById(this.helpDetailsFrameId);
+		this.destroyFrameThreadById(frameId);
+		this.destroyFrameStateById(frameId);
 	}
 
 	public UserInterfaceFrameThreadState getFrameStateById(Long frameId) throws Exception{
@@ -309,12 +323,38 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		if(this.helpDetailsFrameId == null){
 			logger.info("Not closing anything.  Help menu not open.");
 		}else{
-			UserInterfaceSplitVertical top = (UserInterfaceSplitVertical)this.getRootSplit();
-			this.setRootSplit(top.getSplitParts().get(0));
+			UserInterfaceSplitVertical top = (UserInterfaceSplitVertical)this.getUserInterfaceSplitById(this.getRootSplit());
+			this.setRootSplit(top.getSplitParts().get(0).getSplitId());
 
 			this.destroyFrameStateAndThreadById(this.helpDetailsFrameId);
 			this.helpDetailsFrameId = null;
-			this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+		}
+	}
+
+	public Long onSetRootSplitId(Long newRootSplitId) throws Exception{
+		return this.setRootSplit(newRootSplitId);
+	}
+
+	public Long onGetRootSplitId() throws Exception{
+		return this.getRootSplit();
+	}
+
+	public Long onCreateLeafNodeSplit(Long frameId) throws Exception{
+		return this.makeLeafNodeSplit(frameId);
+	}
+
+	public Long onAddSplitPartsByIds(Long parentSplitId, List<Long> childSplitIds) throws Exception{
+		this.addSplitPartsByIds(parentSplitId, childSplitIds);
+		return parentSplitId;
+	}
+
+	public Long onCreateMultiSplit(Class<?> splitType) throws Exception{
+		if(splitType == UserInterfaceSplitVertical.class){
+			return this.makeVerticalSplit();
+		}else if(splitType == UserInterfaceSplitHorizontal.class){
+			return this.makeHorizontalSplit();
+		}else{
+			throw new Exception("Unknown split type " + splitType.getName());
 		}
 	}
 
@@ -323,14 +363,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			if(this.helpDetailsFrameId == null){
 				this.helpDetailsFrameId = createFrameAndThread(frameStateClass);
 
-				List<UserInterfaceSplit> newTopSplit = new ArrayList<UserInterfaceSplit>();
-				newTopSplit.add(this.getRootSplit());
-				newTopSplit.add(getUserInterfaceSplitById(makeLeafNodeSplit(this.helpDetailsFrameId)));
-
-				UserInterfaceSplitVertical root = (UserInterfaceSplitVertical)getUserInterfaceSplitById(makeVerticalSplit());
-				root.addParts(newTopSplit);
-				this.setRootSplit(root);
-				this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
 				return this.helpDetailsFrameId;
 			}else{
 				logger.info("Not doing anything.  Help menu already open.");
@@ -364,7 +396,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	public void notifyAllFramesOfFocusChange() throws Exception{
 
-		List<UserInterfaceFrameThreadState> allFrames = root.collectUserInterfaceFrames();
+		List<UserInterfaceFrameThreadState> allFrames = this.getUserInterfaceSplitById(rootSplitId).collectUserInterfaceFrames();
 		//  Notify all frames of the update so they can redraw border:
 		for(UserInterfaceFrameThreadState frame : allFrames){
 			frame.putWorkItem(new FrameFocusChangeWorkItem(frame, this.focusedFrame.getFrameDimensions()), WorkItemPriority.PRIORITY_LOW);
@@ -376,7 +408,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public void focusOnNextFrame() throws Exception{
 		UserInterfaceFrameThreadState previousFrame = this.focusedFrame;
 		String oldFrameInfo = this.focusedFrame == null ? "null" : "frameId=" + this.focusedFrame.getFrameId();
-		List<UserInterfaceFrameThreadState> allFrames = root.collectUserInterfaceFrames();
+		List<UserInterfaceFrameThreadState> allFrames = this.getUserInterfaceSplitById(rootSplitId).collectUserInterfaceFrames();
 		Collections.sort(allFrames, new Comparator<UserInterfaceFrameThreadState>() {
 			@Override
 			public int compare(UserInterfaceFrameThreadState a, UserInterfaceFrameThreadState b) {
@@ -417,14 +449,15 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	}
 
-	public UserInterfaceSplit getRootSplit(){
-		return this.root;
+	public Long getRootSplit(){
+		return this.rootSplitId;
 	}
 
-	public final void setRootSplit(UserInterfaceSplit split) throws Exception{
-		this.root = split;
+	public final Long setRootSplit(Long newRootId) throws Exception{
+		this.rootSplitId = newRootId;
+		UserInterfaceSplit rootSplit = this.getUserInterfaceSplitById(newRootId);
 		if(this.focusedFrame instanceof HelpDetailsFrameThreadState){ // TODO: Remove this.  Required to prevent crashes when closing help menu.
-			List<UserInterfaceFrameThreadState> allFrames = root.collectUserInterfaceFrames();
+			List<UserInterfaceFrameThreadState> allFrames = rootSplit.collectUserInterfaceFrames();
 			if(allFrames.size() > 0){
 				this.focusedFrame = allFrames.get(0);
 			}else{
@@ -432,13 +465,14 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			}
 		}else{ //  A hack to select help menu after opening it:
 			//  Select the first frame that is a help menu:
-			List<UserInterfaceFrameThreadState> allFrames = root.collectUserInterfaceFrames();
+			List<UserInterfaceFrameThreadState> allFrames = rootSplit.collectUserInterfaceFrames();
 			for(UserInterfaceFrameThreadState frame : allFrames){
 				if(frame instanceof HelpDetailsFrameThreadState){
 					this.focusedFrame = frame;
 				}
 			}
 		}
+		return newRootId;
 	}
 
 	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
@@ -596,11 +630,11 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 		//  When the terminal size changes, send a notify to all of the user interface frames to let them know about it
 		this.currentTerminalFrameDimensions = new FrameDimensions(frameCharacterWidth, terminalWidth, terminalHeight, 0L, 0L, terminalWidth, terminalHeight);
-		FrameBordersDescription frameBordersDescription = this.root.collectAllConnectionPoints(this.currentTerminalFrameDimensions);
+		FrameBordersDescription frameBordersDescription = this.getUserInterfaceSplitById(this.rootSplitId).collectAllConnectionPoints(this.currentTerminalFrameDimensions);
 		if(this.focusedFrame == null){
 			this.focusOnNextFrame();
 		}
-		this.root.setEquidistantFrameDimensions(this.currentTerminalFrameDimensions, frameBordersDescription);
+		this.getUserInterfaceSplitById(this.rootSplitId).setEquidistantFrameDimensions(this.currentTerminalFrameDimensions, frameBordersDescription);
 
 		this.helpMenuFrameThreadState.putWorkItem(new FrameDimensionsChangeWorkItem(this.helpMenuFrameThreadState, this.currentTerminalFrameDimensions, frameBordersDescription), WorkItemPriority.PRIORITY_LOW);
 
