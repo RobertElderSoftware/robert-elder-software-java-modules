@@ -318,6 +318,11 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	public void onCloseFrame(Long frameId) throws Exception{
 		this.destroyFrameStateAndThreadById(frameId);
+		//  If we're closing this frame, focus on another valid frame:
+		if(frameId.equals(this.focusedFrameId)){
+			this.focusedFrameId = null;
+			focusOnNextFrame();
+		}
 	}
 
 	public Long onSetRootSplitId(Long newRootSplitId) throws Exception{
@@ -349,6 +354,16 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	public Long onOpenFrame(Class<?> frameStateClass) throws Exception{
 		return createFrameAndThread(frameStateClass);
+	}
+
+	public Long onSetFocusedFrame(Long frameIdToFocusOn) throws Exception{
+		Long previouslyFocusedFrameId = this.focusedFrameId;
+		if(activeFrameStates.containsKey(frameIdToFocusOn)){
+			this.focusedFrameId = frameIdToFocusOn;
+		}else{
+			throw new Exception("Trying to set focused frame to a frame that does not exist: " + frameIdToFocusOn);
+		}
+		return previouslyFocusedFrameId;
 	}
 
 	public void onPlayerInventoryChange(PlayerInventory playerInventory) throws Exception{
