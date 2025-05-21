@@ -140,16 +140,20 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		WorkItemResult getFocusedFrameWorkItemResult = cwts.putBlockingWorkItem(getFocusedFrameWorkItem, WorkItemPriority.PRIORITY_LOW);
 		Long focusedFrameId = ((GetFocusedFrameWorkItemResult)getFocusedFrameWorkItemResult).getFocusedFrameId();
 
-		//  Figure out the id of the root split
-		GetSplitInfoWorkItem getRootSplitInfoWorkItem = new GetSplitInfoWorkItem(cwts, null, true);
-		WorkItemResult getRootSplitInfoWorkItemResult = cwts.putBlockingWorkItem(getRootSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
-		Long rootSplitId  = ((SplitInfoWorkItemResult)getRootSplitInfoWorkItemResult).getSplitId();
-		//  Remove this split
-		this.removeSplitWithFrameId(null, rootSplitId, focusedFrameId);
+		if(focusedFrameId == null){
+			logger.info("Not removing frame, focusedFrameId was null");
+		}else{
+			//  Figure out the id of the root split
+			GetSplitInfoWorkItem getRootSplitInfoWorkItem = new GetSplitInfoWorkItem(cwts, null, true);
+			WorkItemResult getRootSplitInfoWorkItemResult = cwts.putBlockingWorkItem(getRootSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
+			Long rootSplitId  = ((SplitInfoWorkItemResult)getRootSplitInfoWorkItemResult).getSplitId();
+			//  Remove this split
+			this.removeSplitWithFrameId(null, rootSplitId, focusedFrameId);
 
-		//  Close the focused frame
-		ConsoleWriterWorkItem w = new CloseFrameWorkItem(cwts, focusedFrameId);
-		cwts.putBlockingWorkItem(w, WorkItemPriority.PRIORITY_LOW);
+			//  Close the focused frame
+			ConsoleWriterWorkItem w = new CloseFrameWorkItem(cwts, focusedFrameId);
+			cwts.putBlockingWorkItem(w, WorkItemPriority.PRIORITY_LOW);
+		}
 
 		//  Update screen
 		this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);

@@ -437,6 +437,13 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 
 		this.helpMenuFrameThreadState.putWorkItem(new FrameFocusChangeWorkItem(this.helpMenuFrameThreadState), WorkItemPriority.PRIORITY_LOW);
+	
+		if(allFrames.size() == 0){
+			//  If there are no active frames, there is no UI frame to clear what was there before:
+			String msg = "All frames have been closed!  Press 'ESC' to open one.";
+			this.screenOutputBuffer[0].initialize(this.terminalWidth, this.terminalHeight, 1, " ", true, msg);
+			this.printTerminalTextChanges(false);
+		}
 	}
 
 	public void focusOnNextFrame() throws Exception{
