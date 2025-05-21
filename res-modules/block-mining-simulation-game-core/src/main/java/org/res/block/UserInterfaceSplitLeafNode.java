@@ -67,6 +67,10 @@ public class UserInterfaceSplitLeafNode extends UserInterfaceSplit {
 		this.userInterfaceFrameThreadState = userInterfaceFrameThreadState;
 	}
 
+	public UserInterfaceFrameThreadState getUserInterfaceFrameThreadState(){
+		return this.userInterfaceFrameThreadState;
+	}
+
 	public List<UserInterfaceFrameThreadState> collectUserInterfaceFrames() throws Exception{
 		List<UserInterfaceFrameThreadState> rtn = new ArrayList<UserInterfaceFrameThreadState>();
 		rtn.add(this.userInterfaceFrameThreadState);

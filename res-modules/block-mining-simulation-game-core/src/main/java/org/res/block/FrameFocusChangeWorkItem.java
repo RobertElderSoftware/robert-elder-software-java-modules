@@ -39,14 +39,11 @@ import java.nio.LongBuffer;
 
 public class FrameFocusChangeWorkItem extends UIWorkItem {
 
-	private FrameDimensions focusedFrameDimensions;
-
-	public FrameFocusChangeWorkItem(UserInterfaceFrameThreadState userInterfaceFrameThreadState, FrameDimensions focusedFrameDimensions){
+	public FrameFocusChangeWorkItem(UserInterfaceFrameThreadState userInterfaceFrameThreadState){
 		super(userInterfaceFrameThreadState, false);
-		this.focusedFrameDimensions = focusedFrameDimensions;
 	}
 
 	public void doWork() throws Exception{
-		this.userInterfaceFrameThreadState.onFrameFocusChange(this.focusedFrameDimensions);
+		this.userInterfaceFrameThreadState.onFrameFocusChange();
 	}
 }

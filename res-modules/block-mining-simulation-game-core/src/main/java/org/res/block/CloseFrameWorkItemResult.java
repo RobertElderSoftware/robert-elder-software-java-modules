@@ -35,24 +35,15 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
+public class CloseFrameWorkItemResult extends WorkItemResult {
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
+	private Long closedFrameId;
 
-public class GetRootSplitIdWorkItem extends ConsoleQueueableWorkItem {
-
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
-	public GetRootSplitIdWorkItem(ConsoleWriterThreadState consoleWriterThreadState){
-		super(consoleWriterThreadState, true);
+	public CloseFrameWorkItemResult(Long closedFrameId){
+		this.closedFrameId = closedFrameId;
 	}
 
-	public WorkItemResult executeQueuedWork() throws Exception{
-		return new GetRootSplitIdWorkItemResult(this.consoleWriterThreadState.onGetRootSplitId());
-	}
-
-	public void doWork() throws Exception{
-		this.consoleWriterThreadState.addPendingQueueableWorkItem(this);
+	public Long getClosedFrameId(){
+		return this.closedFrameId;
 	}
 }

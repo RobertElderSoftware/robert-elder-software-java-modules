@@ -40,19 +40,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class CloseFrameWorkItem extends ConsoleQueueableWorkItem {
+public class GetFocusedFrameWorkItem extends ConsoleQueueableWorkItem {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	private Long frameId;
-
-	public CloseFrameWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Long frameId){
+	public GetFocusedFrameWorkItem(ConsoleWriterThreadState consoleWriterThreadState){
 		super(consoleWriterThreadState, true);
-		this.frameId = frameId;
 	}
 
 	public WorkItemResult executeQueuedWork() throws Exception{
-		return new CloseFrameWorkItemResult(this.consoleWriterThreadState.onCloseFrame(this.frameId));
+		return new GetFocusedFrameWorkItemResult(this.consoleWriterThreadState.onSetFocusedFrame());
 	}
 
 	public void doWork() throws Exception{

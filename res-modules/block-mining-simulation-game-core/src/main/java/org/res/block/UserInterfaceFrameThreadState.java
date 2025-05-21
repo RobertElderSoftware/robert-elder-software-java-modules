@@ -98,7 +98,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	public static int GRAY_BG_COLOR = 100;
 	public static int PLAYER_BG_COLOR = GREEN_BG_COLOR;
 
-	protected FrameDimensions focusedFrameDimensions;  // The dimensions of whatever frame currently has focus.
 	protected FrameDimensions frameDimensions;
 
 	public FrameDimensions getFrameDimensions(){
@@ -484,6 +483,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		boolean containsBottomLeftHandCorner = hasBottomBorder && hasLeftBorder;
 		boolean containsBottomRightHandCorner = hasBottomBorder && hasRightBorder;
 
+		//  TODO: Use a blocking messge to get this info
 		FrameDimensions ffd = this.clientBlockModelContext.getConsoleWriterThreadState().getFrameStateById(this.clientBlockModelContext.getConsoleWriterThreadState().focusedFrameId).getFrameDimensions();
 
 		if(hasTopBorder){
@@ -563,8 +563,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		this.onFrameDimensionsChanged();
 	}
 
-	public void onFrameFocusChange(FrameDimensions focusedFrameDimensions) throws Exception{
-		this.focusedFrameDimensions = focusedFrameDimensions;
+	public void onFrameFocusChange() throws Exception{
 		this.onFrameFocusChanged();
 	}
 

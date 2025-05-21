@@ -71,6 +71,10 @@ public abstract class UserInterfaceSplit {
 		return this.splitParts;
 	}
 
+	public void removeSplitAtIndex(int i){
+		this.splitParts.remove(i);
+	}
+
 	public UserInterfaceSplit() throws Exception {
 		this.splitId = seq.getAndIncrement();
 	}

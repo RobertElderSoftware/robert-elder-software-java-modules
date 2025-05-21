@@ -38,7 +38,8 @@ public enum HelpMenuOptionType {
         OPEN_HELP_MENU (2L),
         QUIT_GAME (3L),
         BACK_UP_LEVEL (4L),
-        DO_SUBMENU_OPEN_CUSTOM_FRAME (5L);
+        DO_SUBMENU_OPEN_CUSTOM_FRAME (5L),
+        CLOSE_CURRENT_FRAME (6L);
 
         private final long id;
 

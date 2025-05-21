@@ -316,21 +316,59 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		return this.createFrameThread(frameId, frameStateClass);
 	}
 
-	public void onCloseFrame(Long frameId) throws Exception{
+	public Long onCloseFrame(Long frameId) throws Exception{
 		this.destroyFrameStateAndThreadById(frameId);
-		//  If we're closing this frame, focus on another valid frame:
-		if(frameId.equals(this.focusedFrameId)){
-			this.focusedFrameId = null;
-			focusOnNextFrame();
-		}
+		this.focusedFrameId = null;
+		this.inventoryInterfaceFrameIds.remove(frameId);
+		this.mapAreaInterfaceFrameIds.remove(frameId);
+		return frameId;
 	}
 
 	public Long onSetRootSplitId(Long newRootSplitId) throws Exception{
 		return this.setRootSplit(newRootSplitId);
 	}
 
-	public Long onGetRootSplitId() throws Exception{
-		return this.getRootSplit();
+	public Long onRemoveChildSplit(Long parentSplitId, Long childSplitId) throws Exception{
+		UserInterfaceSplit u = getUserInterfaceSplitById(parentSplitId);
+		for(int i = 0; i < u.getSplitParts().size(); i++){
+			this.onRemoveChildSplit(u.getSplitParts().get(i).getSplitId(), childSplitId);
+		}
+
+		for(int i = 0; i < u.getSplitParts().size(); i++){
+			if(childSplitId.equals(u.getSplitParts().get(i).getSplitId())){
+				u.removeSplitAtIndex(i);
+				break;
+			}
+		}
+
+		return childSplitId;
+	}
+
+	public SplitInfoWorkItemResult makeOneSplitInfo(Long splitId) throws Exception{
+		UserInterfaceSplit split = getUserInterfaceSplitById(splitId);
+		if(split instanceof UserInterfaceSplitLeafNode){
+			Long frameId = ((UserInterfaceSplitLeafNode)split).getUserInterfaceFrameThreadState().getFrameId();
+			return new SplitInfoWorkItemResult(splitId, split.getClass(), frameId);
+		}else{
+			return new SplitInfoWorkItemResult(splitId, split.getClass(), null);
+		}
+	}
+
+	public SplitInfoWorkItemResult onGetSplitInfo(Long splitId, boolean returnRoot) throws Exception{
+		if(returnRoot){
+			return makeOneSplitInfo(this.getRootSplitId());
+		}else{
+			return makeOneSplitInfo(splitId);
+		}
+	}
+
+	public GetSplitChildrenInfoWorkItemResult onGetSplitChildrenInfo(Long parentSplitId) throws Exception{
+		List<SplitInfoWorkItemResult> rtn = new ArrayList<SplitInfoWorkItemResult>();
+		UserInterfaceSplit u = getUserInterfaceSplitById(parentSplitId);
+		for(UserInterfaceSplit part : u.getSplitParts()){
+			rtn.add(makeOneSplitInfo(part.getSplitId()));
+		}
+		return new GetSplitChildrenInfoWorkItemResult(rtn);
 	}
 
 	public Long onCreateLeafNodeSplit(Long frameId) throws Exception{
@@ -354,6 +392,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	public Long onOpenFrame(Class<?> frameStateClass) throws Exception{
 		return createFrameAndThread(frameStateClass);
+	}
+
+	public Long onSetFocusedFrame() throws Exception{
+		return this.focusedFrameId;
 	}
 
 	public Long onSetFocusedFrame(Long frameIdToFocusOn) throws Exception{
@@ -390,13 +432,11 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public void notifyAllFramesOfFocusChange() throws Exception{
 
 		List<UserInterfaceFrameThreadState> allFrames = this.getUserInterfaceSplitById(rootSplitId).collectUserInterfaceFrames();
-		//  Notify all frames of the update so they can redraw border:
-		UserInterfaceFrameThreadState focusedFrame = this.focusedFrameId == null ? null : this.getFrameStateById(this.focusedFrameId);
 		for(UserInterfaceFrameThreadState frame : allFrames){
-			frame.putWorkItem(new FrameFocusChangeWorkItem(frame, focusedFrame.getFrameDimensions()), WorkItemPriority.PRIORITY_LOW);
+			frame.putWorkItem(new FrameFocusChangeWorkItem(frame), WorkItemPriority.PRIORITY_LOW);
 		}
 
-		this.helpMenuFrameThreadState.putWorkItem(new FrameFocusChangeWorkItem(this.helpMenuFrameThreadState, focusedFrame.getFrameDimensions()), WorkItemPriority.PRIORITY_LOW);
+		this.helpMenuFrameThreadState.putWorkItem(new FrameFocusChangeWorkItem(this.helpMenuFrameThreadState), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void focusOnNextFrame() throws Exception{
@@ -415,7 +455,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			if(allFrames.size() > 0){
 				newFocusedFrameId = allFrames.get(0).getFrameId();
 			}else{
-				throw new Exception("No frames to focus on!");
+				newFocusedFrameId = null;
 			}
 		}else{
 			int currentFrameIndex = -1;
@@ -442,7 +482,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.focusedFrameId = newFocusedFrameId;
 	}
 
-	public Long getRootSplit(){
+	public Long getRootSplitId(){
 		return this.rootSplitId;
 	}
 
@@ -493,7 +533,11 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			if(this.helpMenuFrameThreadState.getIsMenuActive()){
 				this.sendAnsiEscapeSequenceToFrame(ansiEscapeSequence, this.helpMenuFrameThreadState);
 			}else{
-				this.sendAnsiEscapeSequenceToFrame(ansiEscapeSequence, this.getFrameStateById(this.focusedFrameId));
+				if(this.focusedFrameId == null){
+					logger.info("Discarding because no focused frame: " + ansiEscapeSequence.getClass().getName());
+				}else{
+					this.sendAnsiEscapeSequenceToFrame(ansiEscapeSequence, this.getFrameStateById(this.focusedFrameId));
+				}
 			}
 		}
 	}
@@ -623,6 +667,14 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
+	public void doDefaultKeyboardInput(byte [] characters) throws Exception {
+		if(this.focusedFrameId == null){
+			logger.info("Discarding because no focused frame: " + new String(characters, "UTF-8"));
+		}else{
+			this.sendKeyboardInputToFrame(characters, this.getFrameStateById(this.focusedFrameId));
+		}
+	}
+
 	public void onKeyboardInput(byte [] characters) throws Exception {
 		logger.info("Saw keyboard input: " + new String(characters, "UTF-8"));
 		if(this.helpMenuFrameThreadState.getIsMenuActive()){
@@ -634,7 +686,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
 
 				if(action == null){
-					this.sendKeyboardInputToFrame(new byte [] {b}, this.getFrameStateById(this.focusedFrameId));
+					this.doDefaultKeyboardInput(new byte [] {b});
 				}else{
 					switch(action){
 						case ACTION_QUIT:{
@@ -650,7 +702,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 							this.notifyAllFramesOfFocusChange();
 							break;
 						}default:{
-							this.sendKeyboardInputToFrame(new byte [] {b}, this.getFrameStateById(this.focusedFrameId));
+							this.doDefaultKeyboardInput(new byte [] {b});
 						}
 					}
 				}

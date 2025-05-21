@@ -40,19 +40,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class CloseFrameWorkItem extends ConsoleQueueableWorkItem {
+public class GetSplitInfoWorkItem extends ConsoleQueueableWorkItem {
 
+	private Long splitId;
+	private boolean returnRoot;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	private Long frameId;
-
-	public CloseFrameWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Long frameId){
+	public GetSplitInfoWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Long splitId, boolean returnRoot) throws Exception{
 		super(consoleWriterThreadState, true);
-		this.frameId = frameId;
+		this.splitId = splitId;
+		this.returnRoot = returnRoot;
+		if(splitId != null && returnRoot){
+			throw new Exception("splitId should be null");
+		}
 	}
 
 	public WorkItemResult executeQueuedWork() throws Exception{
-		return new CloseFrameWorkItemResult(this.consoleWriterThreadState.onCloseFrame(this.frameId));
+		return this.consoleWriterThreadState.onGetSplitInfo(this.splitId, this.returnRoot);
 	}
 
 	public void doWork() throws Exception{

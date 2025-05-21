@@ -40,19 +40,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class CloseFrameWorkItem extends ConsoleQueueableWorkItem {
+public class RemoveChildSplitWorkItem extends ConsoleQueueableWorkItem {
 
+	private Long parentSplitId;
+	private Long childSplitIdToRemove;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	private Long frameId;
-
-	public CloseFrameWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Long frameId){
+	public RemoveChildSplitWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Long parentSplitId, Long childSplitIdToRemove){
 		super(consoleWriterThreadState, true);
-		this.frameId = frameId;
+		this.parentSplitId = parentSplitId;
+		this.childSplitIdToRemove = childSplitIdToRemove;
 	}
 
 	public WorkItemResult executeQueuedWork() throws Exception{
-		return new CloseFrameWorkItemResult(this.consoleWriterThreadState.onCloseFrame(this.frameId));
+		return new RemoveChildSplitWorkItemResult(this.consoleWriterThreadState.onRemoveChildSplit(this.parentSplitId, this.childSplitIdToRemove));
 	}
 
 	public void doWork() throws Exception{
