@@ -328,10 +328,19 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		return this.setRootSplit(newRootSplitId);
 	}
 
-	public Long onRemoveChildSplit(Long parentSplitId, Long childSplitId) throws Exception{
+	public boolean onRemoveChildSplit_h(Long parentSplitId, Long childSplitId) throws Exception{
 		UserInterfaceSplit u = getUserInterfaceSplitById(parentSplitId);
-		for(int i = 0; i < u.getSplitParts().size(); i++){
-			this.onRemoveChildSplit(u.getSplitParts().get(i).getSplitId(), childSplitId);
+		List<Integer> splitsToRemove = new ArrayList<Integer>();
+		boolean done = false;
+		while(!done){
+			for(int i = 0; i < u.getSplitParts().size(); i++){
+				if(this.onRemoveChildSplit_h(u.getSplitParts().get(i).getSplitId(), childSplitId)){
+					//  If removing the child split made the child split empty:
+					u.removeSplitAtIndex(i);
+					break;
+				}
+			}
+			done = true;
 		}
 
 		for(int i = 0; i < u.getSplitParts().size(); i++){
@@ -341,16 +350,42 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			}
 		}
 
+		//  Is the current split an empty v or h split?
+		if((!(u instanceof UserInterfaceSplitLeafNode)) && u.getSplitParts().size() == 0){
+			return true;
+		}else{
+			return false;
+		}
+	}
+
+	public Long onRemoveChildSplit(Long childSplitId) throws Exception{
+		this.onRemoveChildSplit_h(this.rootSplitId, childSplitId);
+
+		if(childSplitId.equals(this.rootSplitId)){
+			this.rootSplitId = null;
+		}
+
+		if(this.rootSplitId != null){
+			// When all children have been removed, remove the root split:
+			UserInterfaceSplit u = getUserInterfaceSplitById(this.rootSplitId);
+			if(u.getSplitParts().size() == 0){
+				this.rootSplitId = null;
+			}
+		}
 		return childSplitId;
 	}
 
 	public SplitInfoWorkItemResult makeOneSplitInfo(Long splitId) throws Exception{
-		UserInterfaceSplit split = getUserInterfaceSplitById(splitId);
-		if(split instanceof UserInterfaceSplitLeafNode){
-			Long frameId = ((UserInterfaceSplitLeafNode)split).getUserInterfaceFrameThreadState().getFrameId();
-			return new SplitInfoWorkItemResult(splitId, split.getClass(), frameId);
+		if(splitId == null){
+			return new SplitInfoWorkItemResult(null, null, null);
 		}else{
-			return new SplitInfoWorkItemResult(splitId, split.getClass(), null);
+			UserInterfaceSplit split = getUserInterfaceSplitById(splitId);
+			if(split instanceof UserInterfaceSplitLeafNode){
+				Long frameId = ((UserInterfaceSplitLeafNode)split).getUserInterfaceFrameThreadState().getFrameId();
+				return new SplitInfoWorkItemResult(splitId, split.getClass(), frameId);
+			}else{
+				return new SplitInfoWorkItemResult(splitId, split.getClass(), null);
+			}
 		}
 	}
 
@@ -429,16 +464,23 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
+	public List<UserInterfaceFrameThreadState> collectAllUserInterfaceFrames() throws Exception{
+		if(this.rootSplitId == null){
+		 	return new ArrayList<UserInterfaceFrameThreadState>();
+		}else{
+			return this.getUserInterfaceSplitById(rootSplitId).collectUserInterfaceFrames();
+		}
+	}
+
 	public void notifyAllFramesOfFocusChange() throws Exception{
 
-		List<UserInterfaceFrameThreadState> allFrames = this.getUserInterfaceSplitById(rootSplitId).collectUserInterfaceFrames();
-		for(UserInterfaceFrameThreadState frame : allFrames){
+		for(UserInterfaceFrameThreadState frame : this.collectAllUserInterfaceFrames()){
 			frame.putWorkItem(new FrameFocusChangeWorkItem(frame), WorkItemPriority.PRIORITY_LOW);
 		}
 
 		this.helpMenuFrameThreadState.putWorkItem(new FrameFocusChangeWorkItem(this.helpMenuFrameThreadState), WorkItemPriority.PRIORITY_LOW);
 	
-		if(allFrames.size() == 0){
+		if(this.collectAllUserInterfaceFrames().size() == 0){
 			//  If there are no active frames, there is no UI frame to clear what was there before:
 			String msg = "All frames have been closed!  Press 'ESC' to open one.";
 			this.screenOutputBuffer[0].initialize(this.terminalWidth, this.terminalHeight, 1, " ", true, msg);
@@ -449,7 +491,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public void focusOnNextFrame() throws Exception{
 		Long previousFrameId = this.focusedFrameId;
 		String oldFrameInfo = this.focusedFrameId == null ? "null" : "frameId=" + this.focusedFrameId;
-		List<UserInterfaceFrameThreadState> allFrames = this.getUserInterfaceSplitById(rootSplitId).collectUserInterfaceFrames();
+		List<UserInterfaceFrameThreadState> allFrames = this.collectAllUserInterfaceFrames();
 		Collections.sort(allFrames, new Comparator<UserInterfaceFrameThreadState>() {
 			@Override
 			public int compare(UserInterfaceFrameThreadState a, UserInterfaceFrameThreadState b) {
@@ -660,8 +702,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 		//  When the terminal size changes, send a notify to all of the user interface frames to let them know about it
 		this.currentTerminalFrameDimensions = new FrameDimensions(frameCharacterWidth, terminalWidth, terminalHeight, 0L, 0L, terminalWidth, terminalHeight);
-		FrameBordersDescription frameBordersDescription = this.getUserInterfaceSplitById(this.rootSplitId).collectAllConnectionPoints(this.currentTerminalFrameDimensions);
-		this.getUserInterfaceSplitById(this.rootSplitId).setEquidistantFrameDimensions(this.currentTerminalFrameDimensions, frameBordersDescription);
+		FrameBordersDescription frameBordersDescription = (this.rootSplitId == null) ? new FrameBordersDescription(new HashSet<Coordinate>()) : this.getUserInterfaceSplitById(this.rootSplitId).collectAllConnectionPoints(this.currentTerminalFrameDimensions);
+		if(this.rootSplitId != null){
+			this.getUserInterfaceSplitById(this.rootSplitId).setEquidistantFrameDimensions(this.currentTerminalFrameDimensions, frameBordersDescription);
+		}
 
 		this.helpMenuFrameThreadState.putWorkItem(new FrameDimensionsChangeWorkItem(this.helpMenuFrameThreadState, this.currentTerminalFrameDimensions, frameBordersDescription), WorkItemPriority.PRIORITY_LOW);
 

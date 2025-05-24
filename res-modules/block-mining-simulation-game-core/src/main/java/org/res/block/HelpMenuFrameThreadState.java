@@ -85,14 +85,12 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 						HelpMenuOptionType.DO_SUBMENU_OPEN_CUSTOM_FRAME, 
 						new HelpMenuLevel(
 							Arrays.asList(
-								new HelpMenuOption("Open Help Menu", HelpMenuOptionType.OPEN_HELP_MENU),
+								new HelpMenuOption("Open Help Menu", HelpMenuOptionType.OPEN_HELP_DETAILS),
 								new HelpMenuOption("Back", HelpMenuOptionType.BACK_UP_LEVEL)
 							)
 						)
 					),
 					new HelpMenuOption("Close Current Frame", HelpMenuOptionType.CLOSE_CURRENT_FRAME),
-					new HelpMenuOption("Close Help Menu Frame", HelpMenuOptionType.CLOSE_HELP_MENU),
-					new HelpMenuOption("Open Help Menu", HelpMenuOptionType.OPEN_HELP_MENU),
 					new HelpMenuOption("Quit Game", HelpMenuOptionType.QUIT_GAME)
 				)
 			)
@@ -112,14 +110,14 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 
-	public void removeSplitWithFrameId(Long parentSplitId, Long splitId, Long frameId) throws Exception {
+	public void removeSplitWithFrameId(Long splitId, Long frameId) throws Exception {
 		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
 
 		GetSplitInfoWorkItem getSplitInfoWorkItem = new GetSplitInfoWorkItem(cwts, splitId,false);
 		WorkItemResult getSplitInfoWorkItemResult = cwts.putBlockingWorkItem(getSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
 		SplitInfoWorkItemResult parentInfo = ((SplitInfoWorkItemResult)getSplitInfoWorkItemResult);
 		if(frameId.equals(parentInfo.getFrameId())){
-			RemoveChildSplitWorkItem r = new RemoveChildSplitWorkItem(cwts, parentSplitId, splitId);
+			RemoveChildSplitWorkItem r = new RemoveChildSplitWorkItem(cwts, splitId);
 			cwts.putBlockingWorkItem(r, WorkItemPriority.PRIORITY_LOW);
 		}
 
@@ -128,7 +126,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		WorkItemResult getSplitChildrenInfoWorkItemResult = cwts.putBlockingWorkItem(getSplitChildrenInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
 		GetSplitChildrenInfoWorkItemResult childInfos = ((GetSplitChildrenInfoWorkItemResult)getSplitChildrenInfoWorkItemResult);
 		for(SplitInfoWorkItemResult info : childInfos.getSplitInfos()){
-			removeSplitWithFrameId(splitId, info.getSplitId(), frameId);
+			removeSplitWithFrameId(info.getSplitId(), frameId);
 		}
 	}
 
@@ -148,11 +146,15 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			WorkItemResult getRootSplitInfoWorkItemResult = cwts.putBlockingWorkItem(getRootSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
 			Long rootSplitId  = ((SplitInfoWorkItemResult)getRootSplitInfoWorkItemResult).getSplitId();
 			//  Remove this split
-			this.removeSplitWithFrameId(null, rootSplitId, focusedFrameId);
+			this.removeSplitWithFrameId(rootSplitId, focusedFrameId);
 
 			//  Close the focused frame
 			ConsoleWriterWorkItem w = new CloseFrameWorkItem(cwts, focusedFrameId);
 			cwts.putBlockingWorkItem(w, WorkItemPriority.PRIORITY_LOW);
+
+			if(focusedFrameId == this.helpDetailsFrameId){
+				this.helpDetailsFrameId = null;
+			}
 		}
 
 		//  Update screen
@@ -173,6 +175,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			Long unused2 = ((SetRootSplitIdWorkItemResult)setRootSplitIdWorkItemResult).getSplitId();
 
 			this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+			this.helpDetailsFrameId = null;
 		}
 	}
 
@@ -194,26 +197,32 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			WorkItemResult getRootSplitInfoWorkItemResult = cwts.putBlockingWorkItem(getRootSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
 			this.previousRootSplitId = ((SplitInfoWorkItemResult)getRootSplitInfoWorkItemResult).getSplitId();
 
-			//  Add the new leaf node with the help menu and old root to a list
-			List<Long> newTopSplitPartIds = new ArrayList<Long>();
-			newTopSplitPartIds.add(this.previousRootSplitId);
-			newTopSplitPartIds.add(newlyCreatedLeafNodeSplitId);
+			if(this.previousRootSplitId == null){
+				//  Root split was null, make new root the leaf node with help menu:
+				SetRootSplitIdWorkItem setRootSplitIdWorkItem = new SetRootSplitIdWorkItem(cwts, newlyCreatedLeafNodeSplitId);
+				WorkItemResult setRootSplitIdWorkItemResult = cwts.putBlockingWorkItem(setRootSplitIdWorkItem, WorkItemPriority.PRIORITY_LOW);
+				Long unused2 = ((SetRootSplitIdWorkItemResult)setRootSplitIdWorkItemResult).getSplitId();
+			}else{
+				//  Add the new leaf node with the help menu and old root to a list
+				List<Long> newTopSplitPartIds = new ArrayList<Long>();
+				newTopSplitPartIds.add(this.previousRootSplitId);
+				newTopSplitPartIds.add(newlyCreatedLeafNodeSplitId);
 
-			//  Create a new multi split that will become the new root
-			CreateMultiSplitWorkItem createMultiSplitWorkItem = new CreateMultiSplitWorkItem(cwts, UserInterfaceSplitVertical.class);
-			WorkItemResult createMultiSplitWorkItemResult = cwts.putBlockingWorkItem(createMultiSplitWorkItem, WorkItemPriority.PRIORITY_LOW);
-			Long newRootSplitId = ((CreateMultiSplitWorkItemResult)createMultiSplitWorkItemResult).getSplitId();
+				//  Create a new multi split that will become the new root
+				CreateMultiSplitWorkItem createMultiSplitWorkItem = new CreateMultiSplitWorkItem(cwts, UserInterfaceSplitVertical.class);
+				WorkItemResult createMultiSplitWorkItemResult = cwts.putBlockingWorkItem(createMultiSplitWorkItem, WorkItemPriority.PRIORITY_LOW);
+				Long newRootSplitId = ((CreateMultiSplitWorkItemResult)createMultiSplitWorkItemResult).getSplitId();
 
-			//  Add the children to the new root
-			AddSplitPartsByIdsWorkItem addSplitPartsByIdsWorkItem = new AddSplitPartsByIdsWorkItem(cwts, newRootSplitId, newTopSplitPartIds);
-			WorkItemResult addSplitPartsByIdsWorkItemResult = cwts.putBlockingWorkItem(addSplitPartsByIdsWorkItem, WorkItemPriority.PRIORITY_LOW);
-			Long unused1 = ((AddSplitPartsByIdsWorkItemResult)addSplitPartsByIdsWorkItemResult).getSplitId();
+				//  Add the children to the new root
+				AddSplitPartsByIdsWorkItem addSplitPartsByIdsWorkItem = new AddSplitPartsByIdsWorkItem(cwts, newRootSplitId, newTopSplitPartIds);
+				WorkItemResult addSplitPartsByIdsWorkItemResult = cwts.putBlockingWorkItem(addSplitPartsByIdsWorkItem, WorkItemPriority.PRIORITY_LOW);
+				Long unused1 = ((AddSplitPartsByIdsWorkItemResult)addSplitPartsByIdsWorkItemResult).getSplitId();
 
-			//  Set the new root split id
-			SetRootSplitIdWorkItem setRootSplitIdWorkItem = new SetRootSplitIdWorkItem(cwts, newRootSplitId);
-			WorkItemResult setRootSplitIdWorkItemResult = cwts.putBlockingWorkItem(setRootSplitIdWorkItem, WorkItemPriority.PRIORITY_LOW);
-			Long unused2 = ((SetRootSplitIdWorkItemResult)setRootSplitIdWorkItemResult).getSplitId();
-
+				//  Set the new root split id
+				SetRootSplitIdWorkItem setRootSplitIdWorkItem = new SetRootSplitIdWorkItem(cwts, newRootSplitId);
+				WorkItemResult setRootSplitIdWorkItemResult = cwts.putBlockingWorkItem(setRootSplitIdWorkItem, WorkItemPriority.PRIORITY_LOW);
+				Long unused2 = ((SetRootSplitIdWorkItemResult)setRootSplitIdWorkItemResult).getSplitId();
+			}
 
 			//  Focus on the newly opened help menu:
 			SetFocusedFrameWorkItem setFocusedFrameWorkItem = new SetFocusedFrameWorkItem(cwts, this.helpDetailsFrameId);
@@ -233,12 +242,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 				this.helpMenu.resetMenuState();
 				this.menuActive = false;
 				break;
-			} case HelpMenuOptionType.CLOSE_HELP_MENU:{
-				this.onCloseHelpDetails();
-				this.helpMenu.resetMenuState();
-				this.menuActive = false;
-				break;
-			} case HelpMenuOptionType.OPEN_HELP_MENU:{
+			} case HelpMenuOptionType.OPEN_HELP_DETAILS:{
 				this.onOpenHelpDetails();
 				this.helpMenu.resetMenuState();
 				this.menuActive = false;

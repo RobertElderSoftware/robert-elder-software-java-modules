@@ -484,7 +484,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		boolean containsBottomRightHandCorner = hasBottomBorder && hasRightBorder;
 
 		//  TODO: Use a blocking messge to get this info
-		FrameDimensions ffd = this.clientBlockModelContext.getConsoleWriterThreadState().getFrameStateById(this.clientBlockModelContext.getConsoleWriterThreadState().focusedFrameId).getFrameDimensions();
+		Long focusedFrameId = this.clientBlockModelContext.getConsoleWriterThreadState().focusedFrameId;
+		FrameDimensions ffd = focusedFrameId == null ? null : this.clientBlockModelContext.getConsoleWriterThreadState().getFrameStateById(focusedFrameId).getFrameDimensions();
 
 		if(hasTopBorder){
 			ColouredTextFragmentList fragmentList = new ColouredTextFragmentList();

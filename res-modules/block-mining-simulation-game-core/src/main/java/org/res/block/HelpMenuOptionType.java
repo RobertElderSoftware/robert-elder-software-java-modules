@@ -34,12 +34,11 @@ import java.util.Map;
 import java.util.HashMap;
 
 public enum HelpMenuOptionType {
-        CLOSE_HELP_MENU (1L),
-        OPEN_HELP_MENU (2L),
-        QUIT_GAME (3L),
-        BACK_UP_LEVEL (4L),
-        DO_SUBMENU_OPEN_CUSTOM_FRAME (5L),
-        CLOSE_CURRENT_FRAME (6L);
+        OPEN_HELP_DETAILS (1L),
+        QUIT_GAME (2L),
+        BACK_UP_LEVEL (3L),
+        DO_SUBMENU_OPEN_CUSTOM_FRAME (4L),
+        CLOSE_CURRENT_FRAME (5L);
 
         private final long id;
 

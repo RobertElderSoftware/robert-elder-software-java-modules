@@ -42,18 +42,16 @@ import java.lang.invoke.MethodHandles;
 
 public class RemoveChildSplitWorkItem extends ConsoleQueueableWorkItem {
 
-	private Long parentSplitId;
 	private Long childSplitIdToRemove;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	public RemoveChildSplitWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Long parentSplitId, Long childSplitIdToRemove){
+	public RemoveChildSplitWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Long childSplitIdToRemove){
 		super(consoleWriterThreadState, true);
-		this.parentSplitId = parentSplitId;
 		this.childSplitIdToRemove = childSplitIdToRemove;
 	}
 
 	public WorkItemResult executeQueuedWork() throws Exception{
-		return new RemoveChildSplitWorkItemResult(this.consoleWriterThreadState.onRemoveChildSplit(this.parentSplitId, this.childSplitIdToRemove));
+		return new RemoveChildSplitWorkItemResult(this.consoleWriterThreadState.onRemoveChildSplit(this.childSplitIdToRemove));
 	}
 
 	public void doWork() throws Exception{
