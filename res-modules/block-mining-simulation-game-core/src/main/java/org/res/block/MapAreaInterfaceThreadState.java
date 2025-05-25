@@ -492,7 +492,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			this.drawBorders(false);
 			//  Player coordinate:
 			String playerCoordinateString = "X=" + this.getPlayerPosition().getX() + ", Y=" + this.getPlayerPosition().getY() + ", Z=" + this.getPlayerPosition().getZ();
-			this.printTextAtScreenXY(new ColouredTextFragment(playerCoordinateString, new int [] {RESET_BG_COLOR}), 10L, 0L, true);
+			this.printTextAtScreenXY(new ColouredTextFragment(playerCoordinateString, new int [] {DEFAULT_TEXT_BACKGROUND_COLOR}), 10L, 0L, true);
 		}
 	}
 
@@ -529,7 +529,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 					//logger.info("printMapAreaUpdates() for " + currentMapAreaCoordinate + " xCellOffset=" + xCellOffset + " yCellOffset=" + yCellOffset);
 
 					boolean overSolidBlock = false;
-					int defaultBackgroundColour = overSolidBlock ? GRAY_BG_COLOR : RESET_BG_COLOR;
+					int defaultBackgroundColour = overSolidBlock ? GRAY_BG_COLOR : MAP_CELL_BACKGROUND_COLOR2;
 					int backgroundColour = isPlayerPosition ? PLAYER_BG_COLOR : defaultBackgroundColour;
 
 					String stringToWrite = null;

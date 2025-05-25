@@ -316,7 +316,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		for(int i = 0; i < this.helpMenu.getDisplayedHelpMenuOptions().size(); i++){
 			HelpMenuOption menuOption = this.helpMenu.getDisplayedHelpMenuOptions().get(i);
 			ColouredTextFragmentList menuItemTextFragmentList = new ColouredTextFragmentList();
-			int [] ansiColourCodes = (i == this.helpMenu.getCurrentMenuYIndex()) ? new int[] {YELLOW_BG_COLOR, BLACK_FG_COLOR} : new int[] {RESET_BG_COLOR, GREEN_FG_COLOR};
+			int [] ansiColourCodes = (i == this.helpMenu.getCurrentMenuYIndex()) ? new int[] {YELLOW_BG_COLOR, BLACK_FG_COLOR} : new int[] {DEFAULT_TEXT_BACKGROUND_COLOR, GREEN_FG_COLOR};
 			menuItemTextFragmentList.add(new ColouredTextFragment(menuOption.getTitle(), ansiColourCodes));
 
 			List<LinePrintingInstruction> menuItemLineInstructions = this.getLinePrintingInstructions(menuItemTextFragmentList, leftPadding, rightPadding, false, false, Long.valueOf(menuWidth));
