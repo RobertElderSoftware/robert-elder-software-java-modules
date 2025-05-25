@@ -68,7 +68,6 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	private boolean menuActive = false;
 
 	private ClientBlockModelContext clientBlockModelContext;
-	private Long helpDetailsFrameId = null;
 	private Long previousRootSplitId = null;
 	private HelpMenu helpMenu = null;
 
@@ -80,18 +79,22 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		this.helpMenu = new HelpMenu(
 			new HelpMenuLevel(
 				Arrays.asList(
-					new HelpMenuOption(
+					new SubMenuHelpMenuOption(
 						"Open Custom Frame",
 						HelpMenuOptionType.DO_SUBMENU_OPEN_CUSTOM_FRAME, 
 						new HelpMenuLevel(
 							Arrays.asList(
-								new HelpMenuOption("Open Help Menu", HelpMenuOptionType.OPEN_HELP_DETAILS),
-								new HelpMenuOption("Back", HelpMenuOptionType.BACK_UP_LEVEL)
+								new OpenFrameClassHelpMenuOption("Open Help Menu", HelpMenuOptionType.OPEN_NEW_FRAME, HelpDetailsFrameThreadState.class),
+								new OpenFrameClassHelpMenuOption("Open Map Area", HelpMenuOptionType.OPEN_NEW_FRAME, MapAreaInterfaceThreadState.class),
+								new OpenFrameClassHelpMenuOption("Open Inventory", HelpMenuOptionType.OPEN_NEW_FRAME, InventoryInterfaceThreadState.class),
+								new OpenFrameClassHelpMenuOption("Empty Frame", HelpMenuOptionType.OPEN_NEW_FRAME, EmptyFrameThreadState.class),
+
+								new SimpleHelpMenuOption("Back", HelpMenuOptionType.BACK_UP_LEVEL)
 							)
 						)
 					),
-					new HelpMenuOption("Close Current Frame", HelpMenuOptionType.CLOSE_CURRENT_FRAME),
-					new HelpMenuOption("Quit Game", HelpMenuOptionType.QUIT_GAME)
+					new SimpleHelpMenuOption("Close Current Frame", HelpMenuOptionType.CLOSE_CURRENT_FRAME),
+					new SimpleHelpMenuOption("Quit Game", HelpMenuOptionType.QUIT_GAME)
 				)
 			)
 		);
@@ -151,87 +154,61 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			//  Close the focused frame
 			ConsoleWriterWorkItem w = new CloseFrameWorkItem(cwts, focusedFrameId);
 			cwts.putBlockingWorkItem(w, WorkItemPriority.PRIORITY_LOW);
-
-			if(focusedFrameId == this.helpDetailsFrameId){
-				this.helpDetailsFrameId = null;
-			}
 		}
 
 		//  Update screen
 		this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
 	}
 
-	public void onCloseHelpDetails() throws Exception {
+	public void onOpenHelpDetails(Class<?> frameStateClass) throws Exception {
 		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
-		if(this.helpDetailsFrameId == null){
-			logger.info("Help menu not opened.");
-		}else{
-			ConsoleWriterWorkItem w = new CloseFrameWorkItem(cwts, this.helpDetailsFrameId);
-			cwts.putBlockingWorkItem(w, WorkItemPriority.PRIORITY_LOW);
+		//  Open the required frame:
+		OpenFrameWorkItem openFrameWorkItem = new OpenFrameWorkItem(cwts, frameStateClass);
+		WorkItemResult openFrameWorkItemResult = cwts.putBlockingWorkItem(openFrameWorkItem, WorkItemPriority.PRIORITY_LOW);
+		Long newFrameId = ((OpenFrameWorkItemResult)openFrameWorkItemResult).getFrameId();
 
-			//  Restore the original root split id:
-			SetRootSplitIdWorkItem setRootSplitIdWorkItem = new SetRootSplitIdWorkItem(cwts, this.previousRootSplitId);
+		//  Add it to a leaf node
+		CreateLeafNodeSplitWorkItem createLeafNodeSplitWorkItem = new CreateLeafNodeSplitWorkItem(cwts, newFrameId);
+		WorkItemResult createLeafNodeSplitWorkItemResult = cwts.putBlockingWorkItem(createLeafNodeSplitWorkItem, WorkItemPriority.PRIORITY_LOW);
+		Long newlyCreatedLeafNodeSplitId = ((CreateLeafNodeSplitWorkItemResult)createLeafNodeSplitWorkItemResult).getSplitId();
+
+		//  Figure out the current root split id
+		GetSplitInfoWorkItem getRootSplitInfoWorkItem = new GetSplitInfoWorkItem(cwts, null, true);
+		WorkItemResult getRootSplitInfoWorkItemResult = cwts.putBlockingWorkItem(getRootSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
+		this.previousRootSplitId = ((SplitInfoWorkItemResult)getRootSplitInfoWorkItemResult).getSplitId();
+
+		if(this.previousRootSplitId == null){
+			//  Root split was null, make new root the leaf node with newly opened frame:
+			SetRootSplitIdWorkItem setRootSplitIdWorkItem = new SetRootSplitIdWorkItem(cwts, newlyCreatedLeafNodeSplitId);
 			WorkItemResult setRootSplitIdWorkItemResult = cwts.putBlockingWorkItem(setRootSplitIdWorkItem, WorkItemPriority.PRIORITY_LOW);
 			Long unused2 = ((SetRootSplitIdWorkItemResult)setRootSplitIdWorkItemResult).getSplitId();
-
-			this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
-			this.helpDetailsFrameId = null;
-		}
-	}
-
-	public void onOpenHelpDetails() throws Exception {
-		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
-		if(this.helpDetailsFrameId == null){
-			//  Open a help menu frame
-			OpenFrameWorkItem openFrameWorkItem = new OpenFrameWorkItem(cwts, HelpDetailsFrameThreadState.class);
-			WorkItemResult openFrameWorkItemResult = cwts.putBlockingWorkItem(openFrameWorkItem, WorkItemPriority.PRIORITY_LOW);
-			this.helpDetailsFrameId = ((OpenFrameWorkItemResult)openFrameWorkItemResult).getFrameId();
-
-			//  Add it to a leaf node
-			CreateLeafNodeSplitWorkItem createLeafNodeSplitWorkItem = new CreateLeafNodeSplitWorkItem(cwts, this.helpDetailsFrameId);
-			WorkItemResult createLeafNodeSplitWorkItemResult = cwts.putBlockingWorkItem(createLeafNodeSplitWorkItem, WorkItemPriority.PRIORITY_LOW);
-			Long newlyCreatedLeafNodeSplitId = ((CreateLeafNodeSplitWorkItemResult)createLeafNodeSplitWorkItemResult).getSplitId();
-
-			//  Figure out the current root split id
-			GetSplitInfoWorkItem getRootSplitInfoWorkItem = new GetSplitInfoWorkItem(cwts, null, true);
-			WorkItemResult getRootSplitInfoWorkItemResult = cwts.putBlockingWorkItem(getRootSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
-			this.previousRootSplitId = ((SplitInfoWorkItemResult)getRootSplitInfoWorkItemResult).getSplitId();
-
-			if(this.previousRootSplitId == null){
-				//  Root split was null, make new root the leaf node with help menu:
-				SetRootSplitIdWorkItem setRootSplitIdWorkItem = new SetRootSplitIdWorkItem(cwts, newlyCreatedLeafNodeSplitId);
-				WorkItemResult setRootSplitIdWorkItemResult = cwts.putBlockingWorkItem(setRootSplitIdWorkItem, WorkItemPriority.PRIORITY_LOW);
-				Long unused2 = ((SetRootSplitIdWorkItemResult)setRootSplitIdWorkItemResult).getSplitId();
-			}else{
-				//  Add the new leaf node with the help menu and old root to a list
-				List<Long> newTopSplitPartIds = new ArrayList<Long>();
-				newTopSplitPartIds.add(this.previousRootSplitId);
-				newTopSplitPartIds.add(newlyCreatedLeafNodeSplitId);
-
-				//  Create a new multi split that will become the new root
-				CreateMultiSplitWorkItem createMultiSplitWorkItem = new CreateMultiSplitWorkItem(cwts, UserInterfaceSplitVertical.class);
-				WorkItemResult createMultiSplitWorkItemResult = cwts.putBlockingWorkItem(createMultiSplitWorkItem, WorkItemPriority.PRIORITY_LOW);
-				Long newRootSplitId = ((CreateMultiSplitWorkItemResult)createMultiSplitWorkItemResult).getSplitId();
-
-				//  Add the children to the new root
-				AddSplitPartsByIdsWorkItem addSplitPartsByIdsWorkItem = new AddSplitPartsByIdsWorkItem(cwts, newRootSplitId, newTopSplitPartIds);
-				WorkItemResult addSplitPartsByIdsWorkItemResult = cwts.putBlockingWorkItem(addSplitPartsByIdsWorkItem, WorkItemPriority.PRIORITY_LOW);
-				Long unused1 = ((AddSplitPartsByIdsWorkItemResult)addSplitPartsByIdsWorkItemResult).getSplitId();
-
-				//  Set the new root split id
-				SetRootSplitIdWorkItem setRootSplitIdWorkItem = new SetRootSplitIdWorkItem(cwts, newRootSplitId);
-				WorkItemResult setRootSplitIdWorkItemResult = cwts.putBlockingWorkItem(setRootSplitIdWorkItem, WorkItemPriority.PRIORITY_LOW);
-				Long unused2 = ((SetRootSplitIdWorkItemResult)setRootSplitIdWorkItemResult).getSplitId();
-			}
-
-			//  Focus on the newly opened help menu:
-			SetFocusedFrameWorkItem setFocusedFrameWorkItem = new SetFocusedFrameWorkItem(cwts, this.helpDetailsFrameId);
-			WorkItemResult setFocusedFrameWorkItemResult = cwts.putBlockingWorkItem(setFocusedFrameWorkItem, WorkItemPriority.PRIORITY_LOW);
-
-			this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
 		}else{
-			logger.info("Help menu already opened.");
+			//  Add the new leaf node with the new frame and old root to a list
+			List<Long> newTopSplitPartIds = new ArrayList<Long>();
+			newTopSplitPartIds.add(this.previousRootSplitId);
+			newTopSplitPartIds.add(newlyCreatedLeafNodeSplitId);
+
+			//  Create a new multi split that will become the new root
+			CreateMultiSplitWorkItem createMultiSplitWorkItem = new CreateMultiSplitWorkItem(cwts, UserInterfaceSplitVertical.class);
+			WorkItemResult createMultiSplitWorkItemResult = cwts.putBlockingWorkItem(createMultiSplitWorkItem, WorkItemPriority.PRIORITY_LOW);
+			Long newRootSplitId = ((CreateMultiSplitWorkItemResult)createMultiSplitWorkItemResult).getSplitId();
+
+			//  Add the children to the new root
+			AddSplitPartsByIdsWorkItem addSplitPartsByIdsWorkItem = new AddSplitPartsByIdsWorkItem(cwts, newRootSplitId, newTopSplitPartIds);
+			WorkItemResult addSplitPartsByIdsWorkItemResult = cwts.putBlockingWorkItem(addSplitPartsByIdsWorkItem, WorkItemPriority.PRIORITY_LOW);
+			Long unused1 = ((AddSplitPartsByIdsWorkItemResult)addSplitPartsByIdsWorkItemResult).getSplitId();
+
+			//  Set the new root split id
+			SetRootSplitIdWorkItem setRootSplitIdWorkItem = new SetRootSplitIdWorkItem(cwts, newRootSplitId);
+			WorkItemResult setRootSplitIdWorkItemResult = cwts.putBlockingWorkItem(setRootSplitIdWorkItem, WorkItemPriority.PRIORITY_LOW);
+			Long unused2 = ((SetRootSplitIdWorkItemResult)setRootSplitIdWorkItemResult).getSplitId();
 		}
+
+		//  Focus on the newly opened frame:
+		SetFocusedFrameWorkItem setFocusedFrameWorkItem = new SetFocusedFrameWorkItem(cwts, newFrameId);
+		WorkItemResult setFocusedFrameWorkItemResult = cwts.putBlockingWorkItem(setFocusedFrameWorkItem, WorkItemPriority.PRIORITY_LOW);
+
+		this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void onEnterKeyPressed() throws Exception {
@@ -242,8 +219,9 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 				this.helpMenu.resetMenuState();
 				this.menuActive = false;
 				break;
-			} case HelpMenuOptionType.OPEN_HELP_DETAILS:{
-				this.onOpenHelpDetails();
+			} case HelpMenuOptionType.OPEN_NEW_FRAME:{
+				OpenFrameClassHelpMenuOption co = (OpenFrameClassHelpMenuOption)option;
+				this.onOpenHelpDetails(co.getFrameStateClass());
 				this.helpMenu.resetMenuState();
 				this.menuActive = false;
 				break;
@@ -339,7 +317,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			HelpMenuOption menuOption = this.helpMenu.getDisplayedHelpMenuOptions().get(i);
 			ColouredTextFragmentList menuItemTextFragmentList = new ColouredTextFragmentList();
 			int [] ansiColourCodes = (i == this.helpMenu.getCurrentMenuYIndex()) ? new int[] {YELLOW_BG_COLOR, BLACK_FG_COLOR} : new int[] {RESET_BG_COLOR, GREEN_FG_COLOR};
-			menuItemTextFragmentList.add(new ColouredTextFragment(menuOption.getText(), ansiColourCodes));
+			menuItemTextFragmentList.add(new ColouredTextFragment(menuOption.getTitle(), ansiColourCodes));
 
 			List<LinePrintingInstruction> menuItemLineInstructions = this.getLinePrintingInstructions(menuItemTextFragmentList, leftPadding, rightPadding, false, false, Long.valueOf(menuWidth));
 			instructions.addAll(this.wrapLinePrintingInstructionsAtOffset(menuItemLineInstructions, currentLine, 1L));

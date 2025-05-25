@@ -68,6 +68,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private Map<Long, UserInterfaceFrameThreadState> activeFrameStates = new HashMap<Long, UserInterfaceFrameThreadState>();
 	private Map<Long, WorkItemProcessorTask<UIWorkItem>> activeFrameThreads = new HashMap<Long, WorkItemProcessorTask<UIWorkItem>>();
 
+
+	private Coordinate previousPosition;     //  For openning new map areas
+	private Coordinate newPosition;          //  For openning new map areas
+	private PlayerInventory playerInventory; //  For openning new inventories
 	private Long terminalWidth = null;
 	private Long terminalHeight = null;
 	private FrameDimensions currentTerminalFrameDimensions = null;
@@ -101,10 +105,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		int numMapAreas = 1;
 		int numInventoryAreas = 1;
 		for(int i = 0; i < numMapAreas; i++){
-			this.mapAreaInterfaceFrameIds.add(this.createFrameAndThread(MapAreaInterfaceThreadState.class));
+			this.createFrameAndThread(MapAreaInterfaceThreadState.class);
 		}
 		for(int i = 0; i < numInventoryAreas; i++){
-			this.inventoryInterfaceFrameIds.add(this.createFrameAndThread(InventoryInterfaceThreadState.class));
+			this.createFrameAndThread(InventoryInterfaceThreadState.class);
 		}
 
 		boolean useMultiSplitDemo = false;
@@ -277,13 +281,23 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				new EmptyFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
 			);
 		}else if(frameStateClass == MapAreaInterfaceThreadState.class){
-			return addFrameState(
+			Long mapId = addFrameState(
 				new MapAreaInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
 			);
+			this.mapAreaInterfaceFrameIds.add(mapId);
+			if(this.newPosition != null){
+				this.onPlayerPositionChange(this.previousPosition, this.newPosition);
+			}
+			return mapId;
 		}else if(frameStateClass == InventoryInterfaceThreadState.class){
-			return addFrameState(
+			Long inventoryId = addFrameState(
 				new InventoryInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
 			);
+			if(this.playerInventory != null){
+				this.onPlayerInventoryChange(this.playerInventory);
+			}
+			this.inventoryInterfaceFrameIds.add(inventoryId);
+			return inventoryId;
 		}else{
 			throw new Exception("Unknown frame state type " + frameStateClass.getName());
 		}
@@ -444,6 +458,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public void onPlayerInventoryChange(PlayerInventory playerInventory) throws Exception{
+		this.playerInventory = playerInventory;
 		for(Long inventoryInterfaceFrameId : this.inventoryInterfaceFrameIds){
 			InventoryInterfaceThreadState inv = (InventoryInterfaceThreadState)this.getFrameStateById(inventoryInterfaceFrameId);
 			inv.putWorkItem(new PlayerInventoryChangeWorkItem(inv, new PlayerInventory(playerInventory.getBlockData())), WorkItemPriority.PRIORITY_LOW);
@@ -458,6 +473,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public void onPlayerPositionChange(Coordinate previousPosition, Coordinate newPosition) throws Exception{
+		this.previousPosition = previousPosition;
+		this.newPosition = newPosition;
 		for(Long mapAreaInterfaceFrameId : this.mapAreaInterfaceFrameIds){
 			MapAreaInterfaceThreadState m = (MapAreaInterfaceThreadState)this.getFrameStateById(mapAreaInterfaceFrameId);
 			m.putWorkItem(new MapAreaNotifyPlayerPositionChangeWorkItem(m, previousPosition, newPosition), WorkItemPriority.PRIORITY_LOW);

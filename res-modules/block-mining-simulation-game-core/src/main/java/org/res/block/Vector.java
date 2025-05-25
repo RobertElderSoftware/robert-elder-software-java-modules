@@ -79,7 +79,7 @@ public class Vector implements Comparable<Vector>{
 	@Override
 	public boolean equals(Object o){
 		Vector c = (Vector)o;
-		if(this.getNumDimensions().equals(c.getNumDimensions())){
+		if(c != null && this.getNumDimensions().equals(c.getNumDimensions())){
 			for(long i = 0L; i < c.getNumDimensions(); i++){
 				if(!this.getValueAtIndex(i).equals(c.getValueAtIndex(i))){
 					return false;

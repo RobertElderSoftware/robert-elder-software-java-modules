@@ -34,7 +34,7 @@ import java.util.Map;
 import java.util.HashMap;
 
 public enum HelpMenuOptionType {
-        OPEN_HELP_DETAILS (1L),
+        OPEN_NEW_FRAME (1L),
         QUIT_GAME (2L),
         BACK_UP_LEVEL (3L),
         DO_SUBMENU_OPEN_CUSTOM_FRAME (4L),

@@ -54,23 +54,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public abstract class HelpMenuOption {
+public class SubMenuHelpMenuOption extends HelpMenuOption {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private HelpMenuOptionType helpMenuOptionType;
-	private String title;
-	public abstract HelpMenuLevel getHelpMenuLevel() throws Exception;
 
-	public HelpMenuOption(HelpMenuOptionType helpMenuOptionType, String title) throws Exception {
-		this.helpMenuOptionType = helpMenuOptionType;
-		this.title = title;
+	private HelpMenuLevel helpMenuLevel;
+
+	public SubMenuHelpMenuOption(String title, HelpMenuOptionType helpMenuOptionType, HelpMenuLevel helpMenuLevel) throws Exception {
+		super(helpMenuOptionType, title);
+		this.helpMenuLevel = helpMenuLevel;
 	}
 
-	public String getTitle(){
-		return this.title;
-	}
-
-	public HelpMenuOptionType getHelpMenuOptionType(){
-		return this.helpMenuOptionType;
+	public HelpMenuLevel getHelpMenuLevel() throws Exception {
+		return this.helpMenuLevel;
 	}
 }
