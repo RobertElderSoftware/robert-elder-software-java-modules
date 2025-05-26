@@ -103,14 +103,14 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	public void reprintFrame() throws Exception {
 		this.drawBorders(true);
 
-		this.printTextAtScreenXY(new ColouredTextFragment("- Inventory -", new int[] {DEFAULT_TEXT_BACKGROUND_COLOR}), 10L, 0L, true);
+		this.printTextAtScreenXY(new ColouredTextFragment("- Inventory -", new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}), 10L, 0L, true);
 		PlayerInventory inventory = this.getPlayerInventory();
 		if(inventory != null){
 			List<PlayerInventoryItemStack> itemStacks = inventory.getInventoryItemStackList();
 			logger.info("Here is the inventory: " + inventory.asJsonString() + ".");
 			Long inventoryItemsXOffset = 2L;
 			if(itemStacks.size() == 0){
-				this.printTextAtScreenXY(new ColouredTextFragment("Empty.", new int[] {DEFAULT_TEXT_BACKGROUND_COLOR}), inventoryItemsXOffset, 2L, true);
+				this.printTextAtScreenXY(new ColouredTextFragment("Empty.", new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}), inventoryItemsXOffset, 2L, true);
 			}else{
 				for(int i = 0; i < itemStacks.size(); i++){
 					PlayerInventoryItemStack stack = itemStacks.get(i);
@@ -125,7 +125,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 					Long printTextX = inventoryItemsXOffset + xOffset;
 					Long printTextY = (long)(2 + yOffset);
 					String inventoryItemText = this.whitespacePadMapAreaCell(blockPresentation) + "  (" + stack.getQuantity().toString() + ") " + blockFromStack.getClass().getSimpleName() + " ";
-					this.printTextAtScreenXY(new ColouredTextFragment(inventoryItemText, new int[] {DEFAULT_TEXT_BACKGROUND_COLOR}), printTextX, printTextY, true);
+					this.printTextAtScreenXY(new ColouredTextFragment(inventoryItemText, new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}), printTextX, printTextY, true);
 				}
 			}
 		}

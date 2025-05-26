@@ -98,11 +98,14 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	public static int GRAY_BG_COLOR = 100;
 	public static int PLAYER_BG_COLOR = GREEN_BG_COLOR;
 
-	public static int FRAME_BACKGROUND_COLOR = BLACK_BG_COLOR;
-	public static int MAP_CELL_BACKGROUND_COLOR1 = BLACK_BG_COLOR;
-	public static int MAP_CELL_BACKGROUND_COLOR2 = BLACK_BG_COLOR;
-	public static int FRAME_CLEAR_BACKGROUND_COLOR = BLACK_BG_COLOR;
-	public static int DEFAULT_TEXT_BACKGROUND_COLOR = BLACK_BG_COLOR;
+	public static int DEFAULT_BG_COLOR = BLACK_BG_COLOR;
+	public static int FRAME_BG_COLOR = DEFAULT_BG_COLOR;
+	public static int MAP_CELL_BG_COLOR1 = DEFAULT_BG_COLOR;
+	public static int MAP_CELL_BG_COLOR2 = DEFAULT_BG_COLOR;
+	public static int FRAME_CLEAR_BG_COLOR = DEFAULT_BG_COLOR;
+	public static int DEFAULT_TEXT_BG_COLOR = DEFAULT_BG_COLOR;
+
+	public static int DEFAULT_TEXT_FG_COLOR = WHITE_FG_COLOR;
 
 	protected FrameDimensions frameDimensions;
 
@@ -154,7 +157,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 	protected List<LinePrintingInstruction> getLinePrintingInstructions(String text, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign, Long maxLineLength) throws Exception{
-		ColouredTextFragmentList tfl = new ColouredTextFragmentList(new ColouredTextFragment(text, new int[] {DEFAULT_TEXT_BACKGROUND_COLOR}));
+		ColouredTextFragmentList tfl = new ColouredTextFragmentList(new ColouredTextFragment(text, new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}));
 		return getLinePrintingInstructions(tfl, paddingLeft, paddingRight, leftAlign, rightAlign, maxLineLength);
 	}
 
@@ -405,7 +408,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	public void clearFrame() throws Exception{
 		for(long l = 0L; l < this.getFrameHeight(); l++){
-			this.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(this.getFrameWidth().intValue()), new int[] {FRAME_CLEAR_BACKGROUND_COLOR}), 0L, l, true);
+			this.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(this.getFrameWidth().intValue()), new int[] {FRAME_CLEAR_BG_COLOR}), 0L, l, true);
 		}
 	}
 
@@ -500,9 +503,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				Coordinate c = new Coordinate(Arrays.asList(this.getFrameOffsetX() + i * fchrw, this.getFrameOffsetY()));
 				String borderCharacter = this.getFrameConnectionCharacterForCoordinate(c);
 				if(this.isCoordinateRelatedToFocusedFrame(c, ffd)){
-					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BACKGROUND_COLOR, RED_FG_COLOR}));
+					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BG_COLOR, RED_FG_COLOR}));
 				}else{
-					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BACKGROUND_COLOR}));
+					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BG_COLOR, DEFAULT_TEXT_FG_COLOR}));
 				}
 			}
 			this.printTextAtScreenXY(fragmentList, 0L, 0L, true);
@@ -517,9 +520,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				Coordinate c = new Coordinate(Arrays.asList(this.getFrameOffsetX(), i));
 				String borderCharacter = this.getFrameConnectionCharacterForCoordinate(c);
 				if(this.isCoordinateRelatedToFocusedFrame(c, ffd)){
-					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BACKGROUND_COLOR, RED_FG_COLOR}));
+					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BG_COLOR, RED_FG_COLOR}));
 				}else{
-					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BACKGROUND_COLOR}));
+					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BG_COLOR, DEFAULT_TEXT_FG_COLOR}));
 				}
 			}
 			this.printTextAtScreenXY(fragmentList, 0L, 1L, false);
@@ -534,9 +537,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				Coordinate c = new Coordinate(Arrays.asList(this.getFrameOffsetX() + this.getFrameWidth() -fchrw, i));
 				String borderCharacter = this.getFrameConnectionCharacterForCoordinate(c);
 				if(this.isCoordinateRelatedToFocusedFrame(c, ffd)){
-					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BACKGROUND_COLOR, RED_FG_COLOR}));
+					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BG_COLOR, RED_FG_COLOR}));
 				}else{
-					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BACKGROUND_COLOR}));
+					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BG_COLOR, DEFAULT_TEXT_FG_COLOR}));
 				}
 			}
 			this.printTextAtScreenXY(fragmentList, this.getFrameWidth() -fchrw, 1L, false);
@@ -548,9 +551,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				Coordinate c = new Coordinate(Arrays.asList(this.getFrameOffsetX() + i * fchrw, this.getFrameOffsetY() + this.getFrameHeight() -1));
 				String borderCharacter = this.getFrameConnectionCharacterForCoordinate(c);
 				if(this.isCoordinateRelatedToFocusedFrame(c, ffd)){
-					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BACKGROUND_COLOR, RED_FG_COLOR}));
+					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BG_COLOR, RED_FG_COLOR}));
 				}else{
-					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BACKGROUND_COLOR}));
+					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BG_COLOR, DEFAULT_TEXT_FG_COLOR}));
 				}
 			}
 			this.printTextAtScreenXY(fragmentList, 0L, this.getFrameHeight() -1, true);
@@ -592,7 +595,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				if(updatedCellContents[i][j] == null){
 					int paddedWidthSoFar = 0;
 					while(paddedWidthSoFar < this.getMapAreaCellWidth()){
-						colourCodes[currentOffset][j] = new int [] {MAP_CELL_BACKGROUND_COLOR1};
+						colourCodes[currentOffset][j] = new int [] {MAP_CELL_BG_COLOR1};
 						characters[currentOffset][j] = null;
 						characterWidths[currentOffset][j] = 0;
 						hasChange[currentOffset][j] = false;

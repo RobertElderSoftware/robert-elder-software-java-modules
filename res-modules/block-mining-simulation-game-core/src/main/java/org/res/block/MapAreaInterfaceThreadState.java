@@ -492,7 +492,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			this.drawBorders(false);
 			//  Player coordinate:
 			String playerCoordinateString = "X=" + this.getPlayerPosition().getX() + ", Y=" + this.getPlayerPosition().getY() + ", Z=" + this.getPlayerPosition().getZ();
-			this.printTextAtScreenXY(new ColouredTextFragment(playerCoordinateString, new int [] {DEFAULT_TEXT_BACKGROUND_COLOR}), 10L, 0L, true);
+			this.printTextAtScreenXY(new ColouredTextFragment(playerCoordinateString, new int [] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}), 10L, 0L, true);
 		}
 	}
 
@@ -507,7 +507,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			Long mapAreaWidth = this.mapAreaCuboidAddress.getWidthForIndex(0L);
 			Long mapAreaHeight = this.mapAreaCuboidAddress.getWidthForIndex(2L);
 			String [][] updatedCellContents = new String [areaToUpdateWidth.intValue()][areaToUpdateHeight.intValue()];
-			int [][][] updatedBackgroundColours = new int [areaToUpdateWidth.intValue()][areaToUpdateHeight.intValue()][1];
+			int [][][] updatedBackgroundColours = new int [areaToUpdateWidth.intValue()][areaToUpdateHeight.intValue()][2];
 
 			RegionIteration regionIteration = new RegionIteration(areaToUpdate.getCanonicalLowerCoordinate(), areaToUpdate);
 			do{
@@ -529,7 +529,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 					//logger.info("printMapAreaUpdates() for " + currentMapAreaCoordinate + " xCellOffset=" + xCellOffset + " yCellOffset=" + yCellOffset);
 
 					boolean overSolidBlock = false;
-					int defaultBackgroundColour = overSolidBlock ? GRAY_BG_COLOR : MAP_CELL_BACKGROUND_COLOR2;
+					int defaultBackgroundColour = overSolidBlock ? GRAY_BG_COLOR : MAP_CELL_BG_COLOR2;
 					int backgroundColour = isPlayerPosition ? PLAYER_BG_COLOR : defaultBackgroundColour;
 
 					String stringToWrite = null;
@@ -550,6 +550,8 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 					Long yCellOffsetInUpdateArea = (areaToUpdateHeight -1L) -(currentMapAreaCoordinate.getZ() - areaToUpdate.getCanonicalLowerCoordinate().getZ());
 					updatedCellContents[xCellOffsetInUpdateArea.intValue()][yCellOffsetInUpdateArea.intValue()] = stringToWrite;
 					updatedBackgroundColours[xCellOffsetInUpdateArea.intValue()][yCellOffsetInUpdateArea.intValue()][0] = backgroundColour;
+					updatedBackgroundColours[xCellOffsetInUpdateArea.intValue()][yCellOffsetInUpdateArea.intValue()][1] = DEFAULT_TEXT_FG_COLOR;
+
 
 					currentMapAreaCell.clearNonLoadingFlags();
 				}
