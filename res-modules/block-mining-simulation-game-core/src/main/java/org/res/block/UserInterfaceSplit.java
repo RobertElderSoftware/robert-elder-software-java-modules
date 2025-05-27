@@ -64,6 +64,7 @@ public abstract class UserInterfaceSplit {
 	public abstract List<FrameDimensions> getOrderedSubframeDimensions(FrameDimensions frameDimensions) throws Exception;
 	public abstract FrameBordersDescription collectAllConnectionPoints(FrameDimensions frameDimensions) throws Exception;
 	public abstract List<UserInterfaceFrameThreadState> collectUserInterfaceFrames() throws Exception;
+	public abstract void removeSplitAtIndex(int i)throws Exception;
 
 	protected List<UserInterfaceSplit> splitParts = new ArrayList<UserInterfaceSplit>();;
 
@@ -71,9 +72,6 @@ public abstract class UserInterfaceSplit {
 		return this.splitParts;
 	}
 
-	public void removeSplitAtIndex(int i){
-		this.splitParts.remove(i);
-	}
 
 	public UserInterfaceSplit() throws Exception {
 		this.splitId = seq.getAndIncrement();

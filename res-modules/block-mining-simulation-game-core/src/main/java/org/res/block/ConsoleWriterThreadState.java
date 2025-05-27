@@ -159,9 +159,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				splits.add(makeLeafNodeSplit(inventoryInterfaceFrameId));
 				framePercents.add(0.25 / this.inventoryInterfaceFrameIds.size());
 			}
-			Long r = makeHorizontalSplit();
+			Long r = makeVerticalSplit();
 			this.addSplitPartsByIds(r, splits);
-			((UserInterfaceSplitHorizontal)this.getUserInterfaceSplitById(r)).setSplitPercentages(framePercents);
+			((UserInterfaceSplitMulti)this.getUserInterfaceSplitById(r)).setSplitPercentages(framePercents);
 			this.setRootSplit(r);
 		}
 	}

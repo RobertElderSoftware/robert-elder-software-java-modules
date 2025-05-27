@@ -67,6 +67,10 @@ public class UserInterfaceSplitLeafNode extends UserInterfaceSplit {
 		this.userInterfaceFrameThreadState = userInterfaceFrameThreadState;
 	}
 
+	public void removeSplitAtIndex(int i)throws Exception{
+		this.splitParts.remove(i);
+	}
+
 	public UserInterfaceFrameThreadState getUserInterfaceFrameThreadState(){
 		return this.userInterfaceFrameThreadState;
 	}

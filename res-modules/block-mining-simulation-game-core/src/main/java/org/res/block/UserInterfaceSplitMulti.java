@@ -60,21 +60,53 @@ import java.lang.invoke.MethodHandles;
 public abstract class UserInterfaceSplitMulti extends UserInterfaceSplit {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	protected List<Double> splitPercentages = null;
+	protected List<Double> splitPercentages = new ArrayList<Double>();
 
 	public UserInterfaceSplitMulti() throws Exception {
 	}
 
 	public void addPart(UserInterfaceSplit part) throws Exception {
+		Double sizeBefore = Double.valueOf(this.splitPercentages.size());
+		Double sizeAfter = sizeBefore + 1.0;
+		Double total = 0.0;
+		for(int i = 0; i < this.splitPercentages.size(); i++){
+			Double scaledDownPercent = this.splitPercentages.get(i) * (sizeBefore / sizeAfter);
+			total += scaledDownPercent;
+			this.splitPercentages.set(i, scaledDownPercent);
+		}
+		Double newPercent = 1.0 - total;
+		if(newPercent < 0.0){
+			throw new Exception("Impossible?");
+		}
+		this.splitPercentages.add(newPercent);
 		this.splitParts.add(part);
 	}
 
+	public void removeSplitAtIndex(int i)throws Exception{
+		this.splitParts.remove(i);
+		Double extra = this.splitPercentages.get(i);
+		this.splitPercentages.remove(i);
+		//  Distribute removed percentage to other splits:
+		if(this.splitPercentages.size() > 0){
+			Double toDistribute = extra / this.splitPercentages.size();
+			for(int j = 0; j < this.splitPercentages.size(); j++){
+				this.splitPercentages.set(j, this.splitPercentages.get(j) + toDistribute);
+			}
+		}
+	}
+
 	public void addParts(List<UserInterfaceSplit> parts) throws Exception {
-		this.splitParts.addAll(parts);
+		for(UserInterfaceSplit part : parts){
+			this.splitParts.add(part);
+		}
 	}
 
 	public void setSplitPercentages(List<Double> splitPercentages) throws Exception {
-		this.splitPercentages = splitPercentages;
+		if(splitPercentages.size() == this.splitParts.size()){
+			this.splitPercentages = splitPercentages;
+		}else{
+			throw new Exception("splitPercentages.size() != this.splitParts.size()");
+		}
 	}
 
 	public List<UserInterfaceFrameThreadState> collectUserInterfaceFrames() throws Exception{
