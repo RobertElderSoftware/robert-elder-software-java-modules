@@ -75,13 +75,44 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		super(blockManagerThreadCollection, clientBlockModelContext);
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
+	}
+
+	public List<HelpMenuOption> enumerateMoveFromOptions(String prefix, Long splitId) throws Exception{
+		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		List<HelpMenuOption> rtn = new ArrayList<HelpMenuOption>();
+		GetSplitChildrenInfoWorkItem getSplitChildrenInfoWorkItem = new GetSplitChildrenInfoWorkItem(cwts, splitId);
+		WorkItemResult getSplitChildrenInfoWorkItemResult = cwts.putBlockingWorkItem(getSplitChildrenInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
+		GetSplitChildrenInfoWorkItemResult childInfos = ((GetSplitChildrenInfoWorkItemResult)getSplitChildrenInfoWorkItemResult);
+		for(SplitInfoWorkItemResult info : childInfos.getSplitInfos()){
+			String menuTitle = prefix + info.getSplitClassType().getSimpleName();
+			rtn.add(new SimpleHelpMenuOption(menuTitle, HelpMenuOptionType.CLOSE_CURRENT_FRAME));
+			rtn.addAll(this.enumerateMoveFromOptions(menuTitle, info.getSplitId()));
+		}
+		return rtn;
+	}
+
+	public List<HelpMenuOption> getSplitMoveToOptionsList() throws Exception{
+		//  Get root split:
+		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		GetSplitInfoWorkItem getRootSplitInfoWorkItem = new GetSplitInfoWorkItem(cwts, null, true);
+		WorkItemResult getRootSplitInfoWorkItemResult = cwts.putBlockingWorkItem(getRootSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
+		Long rootSplitId = ((SplitInfoWorkItemResult)getRootSplitInfoWorkItemResult).getSplitId();
+
+		//  Find all child splits:
+		List<HelpMenuOption> rtn = this.enumerateMoveFromOptions("Root->", rootSplitId);
+		rtn.add(new SimpleHelpMenuOption("Back", HelpMenuOptionType.BACK_UP_LEVEL));
+		return rtn;
+	}
+
+	public void rebuildHelpMenu() throws Exception{
+		List<HelpMenuOption> moveToOptionsList = this.getSplitMoveToOptionsList();
 
 		this.helpMenu = new HelpMenu(
 			new HelpMenuLevel(
 				Arrays.asList(
 					new SubMenuHelpMenuOption(
 						"Open Custom Frame",
-						HelpMenuOptionType.DO_SUBMENU_OPEN_CUSTOM_FRAME, 
+						HelpMenuOptionType.DO_SUBMENU, 
 						new HelpMenuLevel(
 							Arrays.asList(
 								new OpenFrameClassHelpMenuOption("Open Help Menu", HelpMenuOptionType.OPEN_NEW_FRAME, HelpDetailsFrameThreadState.class),
@@ -92,6 +123,11 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 								new SimpleHelpMenuOption("Back", HelpMenuOptionType.BACK_UP_LEVEL)
 							)
 						)
+					),
+					new SubMenuHelpMenuOption(
+						"Move Split",
+						HelpMenuOptionType.DO_SUBMENU, 
+						new HelpMenuLevel(moveToOptionsList)
 					),
 					new SimpleHelpMenuOption("Close Current Frame", HelpMenuOptionType.CLOSE_CURRENT_FRAME),
 					new SimpleHelpMenuOption("Quit Game", HelpMenuOptionType.QUIT_GAME)
@@ -225,7 +261,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 				this.helpMenu.resetMenuState();
 				this.menuActive = false;
 				break;
-			} case HelpMenuOptionType.DO_SUBMENU_OPEN_CUSTOM_FRAME:{
+			} case HelpMenuOptionType.DO_SUBMENU:{
 				this.helpMenu.descendIntoSubmenu();
 				break;
 			} case HelpMenuOptionType.BACK_UP_LEVEL:{
@@ -280,8 +316,27 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 
 		int terminalWidth = this.frameDimensions.getTerminalWidth().intValue();
 		int terminalHeight = this.frameDimensions.getTerminalHeight().intValue();
+
+		List<LinePrintingInstructionAtOffset> instructions = new ArrayList<LinePrintingInstructionAtOffset>();
+
 		int menuWidth = 30;
-		int menuHeight = 15;
+		int xOffset = (terminalWidth / 2) - (menuWidth / 2);
+		Long leftPadding = Long.valueOf(xOffset) + 1L;
+		Long rightPadding = Long.valueOf(terminalWidth) - (xOffset + menuWidth) + 1L;
+		Long currentLine = 1L;
+
+		for(int i = 0; i < this.helpMenu.getDisplayedHelpMenuOptions().size(); i++){
+			HelpMenuOption menuOption = this.helpMenu.getDisplayedHelpMenuOptions().get(i);
+			ColouredTextFragmentList menuItemTextFragmentList = new ColouredTextFragmentList();
+			int [] ansiColourCodes = (i == this.helpMenu.getCurrentMenuYIndex()) ? new int[] {YELLOW_BG_COLOR, BLACK_FG_COLOR} : new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR};
+			menuItemTextFragmentList.add(new ColouredTextFragment(menuOption.getTitle(), ansiColourCodes));
+
+			List<LinePrintingInstruction> menuItemLineInstructions = this.getLinePrintingInstructions(menuItemTextFragmentList, leftPadding, rightPadding, false, false, Long.valueOf(terminalWidth));
+			instructions.addAll(this.wrapLinePrintingInstructionsAtOffset(menuItemLineInstructions, currentLine, 1L));
+			currentLine += menuItemLineInstructions.size() + 1L;
+		}
+
+		int menuHeight = instructions.size() + this.helpMenu.getDisplayedHelpMenuOptions().size() + 1;
 		int [][] characterWidths = new int[menuWidth][menuHeight];
 		int [][][] colourCodes = new int[menuWidth][menuHeight][2];
 		String [][] characters = new String[menuWidth][menuHeight];
@@ -299,30 +354,9 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			}
 		}
 
-		int xOffset = (terminalWidth / 2) - (menuWidth / 2);
 		int yOffset = (terminalHeight / 2) - (menuHeight / 2);
-		int xSize = menuWidth;
-		int ySize = menuHeight;
 
-		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, this.frameDimensions, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
-
-
-		List<LinePrintingInstructionAtOffset> instructions = new ArrayList<LinePrintingInstructionAtOffset>();
-
-		Long leftPadding = Long.valueOf(xOffset) + 1L;
-		Long rightPadding = this.getInnerFrameWidth() - (xOffset + menuWidth) + 1L;
-		Long currentLine = 1L;
-
-		for(int i = 0; i < this.helpMenu.getDisplayedHelpMenuOptions().size(); i++){
-			HelpMenuOption menuOption = this.helpMenu.getDisplayedHelpMenuOptions().get(i);
-			ColouredTextFragmentList menuItemTextFragmentList = new ColouredTextFragmentList();
-			int [] ansiColourCodes = (i == this.helpMenu.getCurrentMenuYIndex()) ? new int[] {YELLOW_BG_COLOR, BLACK_FG_COLOR} : new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR};
-			menuItemTextFragmentList.add(new ColouredTextFragment(menuOption.getTitle(), ansiColourCodes));
-
-			List<LinePrintingInstruction> menuItemLineInstructions = this.getLinePrintingInstructions(menuItemTextFragmentList, leftPadding, rightPadding, false, false, Long.valueOf(menuWidth));
-			instructions.addAll(this.wrapLinePrintingInstructionsAtOffset(menuItemLineInstructions, currentLine, 1L));
-			currentLine += menuItemLineInstructions.size() + 1L;
-		}
+		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, menuWidth, menuHeight, this.frameDimensions, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
 
 		for(LinePrintingInstructionAtOffset instruction : instructions){
 			Long lineYOffset = instruction.getOffsetY() + yOffset;
@@ -339,10 +373,12 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void onFrameDimensionsChanged() throws Exception{
+		this.rebuildHelpMenu();
 		this.render();
 	}
 
 	public void onFrameFocusChanged() throws Exception{
+		this.rebuildHelpMenu();
 		this.render();
 	}
 

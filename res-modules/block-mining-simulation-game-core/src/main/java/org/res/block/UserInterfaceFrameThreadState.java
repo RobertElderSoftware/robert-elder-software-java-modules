@@ -140,7 +140,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 							wordHeight = 0L;
 						}
 					}
-					textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(String.join("", charactersSoFar), cf.getAnsiColourCodes()), new TextWidthMeasurementWorkItemResult(wordLength, wordHeight)));
+					if(charactersSoFar.size() > 0){
+						textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(String.join("", charactersSoFar), cf.getAnsiColourCodes()), new TextWidthMeasurementWorkItemResult(wordLength, wordHeight)));
+					}
 					if(j != words.length -1){
 						//  Add back space characters between words
 						//  as long as they're not at the end of lines.
@@ -172,8 +174,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			MeasuredTextFragment textFragment = i < textFragments.size() ? textFragments.get(i) : null;
 
 			if(flushBuffer){
-				Long extraSpace = this.getInnerFrameWidth() - lineLengthSoFar;
-				Long textOffset = leftAlign ? paddingLeft : (extraSpace / 2L);
+				Long centeredInExtraSpaceOffset = (this.getFrameWidth() / 2L) - (lineLengthSoFar / 2L);
+				Long textOffset = leftAlign ? paddingLeft : centeredInExtraSpaceOffset;
 				instructions.add(new LinePrintingInstruction(textOffset, new ColouredTextFragmentList(new ArrayList<ColouredTextFragment>(currentLineFragments))));
 				currentLineFragments = new ArrayList<ColouredTextFragment>();
 				lineLengthSoFar = 0L;

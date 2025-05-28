@@ -58,8 +58,10 @@ import java.lang.invoke.MethodHandles;
 public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private Long mapAreaWidth;
-	private Long mapAreaHeight;
+	private Long mapAreaWidthInCells;
+	//  Padding columns on right edge of map area where only part of a cell could fit:
+	private Long mapAreaPaddingColumnsRight;
+	private Long mapAreaHeightInCells;
 	private Coordinate playerPosition;
 	private CuboidAddress mapAreaCuboidAddress;
 	private Set<Coordinate> stalePlayerPositions = new HashSet<Coordinate>();
@@ -178,16 +180,18 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	public void onFrameDimensionsChanged() throws Exception{
 		Long totalXBorderSize = this.getTotalXBorderSize();
 		Long totalYBorderSize = this.getTotalYBorderSize();
-		this.mapAreaWidth = ((this.getFrameWidth() - totalXBorderSize) / this.getMapAreaCellWidth());
-		this.mapAreaHeight = this.getFrameHeight() - totalYBorderSize;
+		Long printableInnerWidth = this.getFrameWidth() - totalXBorderSize;
+		this.mapAreaWidthInCells = printableInnerWidth / this.getMapAreaCellWidth();
+		this.mapAreaHeightInCells = this.getFrameHeight() - totalYBorderSize;
 		//  Don't allow the map area to negative when the window is resized very small:
-		this.mapAreaWidth = mapAreaWidth < 1L ? 1L : mapAreaWidth;
-		this.mapAreaHeight = mapAreaHeight < 1L ? 1L : mapAreaHeight;
-		logger.info("onFrameChange calculated: mapAreaWidth=" + mapAreaWidth + ", mapAreaHeight=" + mapAreaHeight);
-		Long topRightHandX = mapAreaWidth / 2L;
-		Long topRightHandZ = mapAreaHeight / 2L;
-		Long bottomLeftHandX = topRightHandX - (mapAreaWidth - 1L);
-		Long bottomLeftHandZ = topRightHandZ - (mapAreaHeight - 1L);
+		this.mapAreaWidthInCells = mapAreaWidthInCells < 1L ? 1L : mapAreaWidthInCells;
+		this.mapAreaHeightInCells = mapAreaHeightInCells < 1L ? 1L : mapAreaHeightInCells;
+		this.mapAreaPaddingColumnsRight = printableInnerWidth - (this.mapAreaWidthInCells * this.getMapAreaCellWidth());
+		logger.info("onFrameChange calculated: mapAreaWidthInCells=" + mapAreaWidthInCells + ", mapAreaHeightInCells=" + mapAreaHeightInCells);
+		Long topRightHandX = mapAreaWidthInCells / 2L;
+		Long topRightHandZ = mapAreaHeightInCells / 2L;
+		Long bottomLeftHandX = topRightHandX - (mapAreaWidthInCells - 1L);
+		Long bottomLeftHandZ = topRightHandZ - (mapAreaHeightInCells - 1L);
 		logger.info("onFrameChange calculated: topRightHandX=" + topRightHandX + ", topRightHandZ=" + topRightHandZ + ", bottomLeftHandX=" + bottomLeftHandX + ", bottomLeftHandZ=" + bottomLeftHandZ);
 
 		Coordinate bottomleftHandCorner = new Coordinate(Arrays.asList(bottomLeftHandX + playerPosition.getX(), playerPosition.getY(), bottomLeftHandZ + playerPosition.getZ(), 0L));
@@ -285,9 +289,9 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	private void resizeMapAreaCells() throws Exception{
-		this.mapAreaCells = new MapAreaCell[this.mapAreaWidth.intValue()][this.mapAreaHeight.intValue()];
-		for(int i = 0; i < this.mapAreaWidth.intValue(); i++){
-			for(int j = 0; j < this.mapAreaHeight.intValue(); j++){
+		this.mapAreaCells = new MapAreaCell[this.mapAreaWidthInCells.intValue()][this.mapAreaHeightInCells.intValue()];
+		for(int i = 0; i < this.mapAreaWidthInCells.intValue(); i++){
+			for(int j = 0; j < this.mapAreaHeightInCells.intValue(); j++){
 				this.mapAreaCells[i][j] = new MapAreaCell();
 			}
 		}
@@ -332,8 +336,8 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 				/* MapArea flags can be changed by just shifting the array around: */
 				if(diffX >= 0){
 					//  Move all cells to the left by diffX
-					for(int i = 0; i < (this.mapAreaWidth.intValue() - diffX.intValue()); i++){
-						for(int j = 0; j < this.mapAreaHeight.intValue(); j++){
+					for(int i = 0; i < (this.mapAreaWidthInCells.intValue() - diffX.intValue()); i++){
+						for(int j = 0; j < this.mapAreaHeightInCells.intValue(); j++){
 							boolean has_change = !this.mapAreaCells[i][j].equals(this.mapAreaCells[i + diffX.intValue()][j]);
 							this.mapAreaCells[i][j] = this.mapAreaCells[i + diffX.intValue()][j];
 							if(this.mapAreaCells[i][j].getCurrentBlock() == null){
@@ -344,8 +348,8 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 						}
 					}
 					//  Initialize new cells in the empty space
-					for(int i = (this.mapAreaWidth.intValue() - diffX.intValue()); i < this.mapAreaWidth.intValue(); i++){
-						for(int j = 0; j < this.mapAreaHeight.intValue(); j++){
+					for(int i = (this.mapAreaWidthInCells.intValue() - diffX.intValue()); i < this.mapAreaWidthInCells.intValue(); i++){
+						for(int j = 0; j < this.mapAreaHeightInCells.intValue(); j++){
 							this.mapAreaCells[i][j] = new MapAreaCell();
 							Coordinate theCoordinate = afterLower.changeByDeltaXYZ(Long.valueOf(i), 0L, (this.mapAreaCuboidAddress.getWidthForIndex(2L) - 1L) - Long.valueOf(j));
 							this.updateMapAreaFlags(new CuboidAddress(theCoordinate, theCoordinate));
@@ -355,8 +359,8 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 					this.printMapAreaUpdates(this.mapAreaCuboidAddress);
 				}else if(diffX < 0){
 					//  Move all cells to the right by diffX
-					for(int i = this.mapAreaWidth.intValue() -1; i >= (-diffX.intValue()); i--){
-						for(int j = 0; j < this.mapAreaHeight.intValue(); j++){
+					for(int i = this.mapAreaWidthInCells.intValue() -1; i >= (-diffX.intValue()); i--){
+						for(int j = 0; j < this.mapAreaHeightInCells.intValue(); j++){
 							boolean has_change = !this.mapAreaCells[i][j].equals(this.mapAreaCells[i + diffX.intValue()][j]);
 							this.mapAreaCells[i][j] = this.mapAreaCells[i + diffX.intValue()][j];
 							if(this.mapAreaCells[i][j].getCurrentBlock() == null){
@@ -368,7 +372,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 					}
 					//  Initialize new cells in the empty space
 					for(int i = (-diffX.intValue()) -1; i >= 0; i--){
-						for(int j = 0; j < this.mapAreaHeight.intValue(); j++){
+						for(int j = 0; j < this.mapAreaHeightInCells.intValue(); j++){
 							this.mapAreaCells[i][j] = new MapAreaCell();
 							Coordinate theCoordinate = afterLower.changeByDeltaXYZ(Long.valueOf(i), 0L, (this.mapAreaCuboidAddress.getWidthForIndex(2L) - 1L) - Long.valueOf(j));
 							this.updateMapAreaFlags(new CuboidAddress(theCoordinate, theCoordinate));
@@ -384,8 +388,8 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 				if(diffZ >= 0){
 					//  Move all cells down by diffZ (up in mapArea cell array)
-					for(int i = 0; i < this.mapAreaWidth.intValue(); i++){
-						for(int j = this.mapAreaHeight.intValue() -1; j >= diffZ.intValue(); j--){
+					for(int i = 0; i < this.mapAreaWidthInCells.intValue(); i++){
+						for(int j = this.mapAreaHeightInCells.intValue() -1; j >= diffZ.intValue(); j--){
 							boolean has_change = !this.mapAreaCells[i][j].equals(this.mapAreaCells[i][j - diffZ.intValue()]);
 							this.mapAreaCells[i][j] = this.mapAreaCells[i][j - diffZ.intValue()];
 							if(this.mapAreaCells[i][j].getCurrentBlock() == null){
@@ -396,7 +400,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 						}
 					}
 					//  Initialize new cells in the empty space
-					for(int i = 0; i < this.mapAreaWidth.intValue(); i++){
+					for(int i = 0; i < this.mapAreaWidthInCells.intValue(); i++){
 						for(int j = 0; j < diffZ.intValue(); j++){
 							this.mapAreaCells[i][j] = new MapAreaCell();
 							Coordinate theCoordinate = afterLower.changeByDeltaXYZ(Long.valueOf(i), 0L, (this.mapAreaCuboidAddress.getWidthForIndex(2L) - 1L) - Long.valueOf(j));
@@ -406,8 +410,8 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 					this.printMapAreaUpdates(this.mapAreaCuboidAddress);
 				}else if(diffZ < 0){
 					//  Move all cells up by diffZ (down in mapArea cell array)
-					for(int i = 0; i < this.mapAreaWidth.intValue(); i++){
-						for(int j = 0; j < this.mapAreaHeight.intValue() + diffZ.intValue(); j++){
+					for(int i = 0; i < this.mapAreaWidthInCells.intValue(); i++){
+						for(int j = 0; j < this.mapAreaHeightInCells.intValue() + diffZ.intValue(); j++){
 							boolean has_change = !this.mapAreaCells[i][j].equals(this.mapAreaCells[i][j - diffZ.intValue()]);
 							this.mapAreaCells[i][j] = this.mapAreaCells[i][j - diffZ.intValue()];
 							if(this.mapAreaCells[i][j].getCurrentBlock() == null){
@@ -418,8 +422,8 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 						}
 					}
 					//  Initialize new cells in the empty space
-					for(int i = 0; i < this.mapAreaWidth.intValue(); i++){
-						for(int j = this.mapAreaHeight.intValue() + diffZ.intValue(); j < this.mapAreaHeight.intValue(); j++){
+					for(int i = 0; i < this.mapAreaWidthInCells.intValue(); i++){
+						for(int j = this.mapAreaHeightInCells.intValue() + diffZ.intValue(); j < this.mapAreaHeightInCells.intValue(); j++){
 							this.mapAreaCells[i][j] = new MapAreaCell();
 							Coordinate theCoordinate = afterLower.changeByDeltaXYZ(Long.valueOf(i), 0L, (this.mapAreaCuboidAddress.getWidthForIndex(2L) - 1L) - Long.valueOf(j));
 							this.updateMapAreaFlags(new CuboidAddress(theCoordinate, theCoordinate));
@@ -440,7 +444,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		IndividualBlock b = clientBlockModelContext.readBlockAtCoordinate(currentMapAreaCoordinate);
 		Long xCellOffset = currentMapAreaCoordinate.getX() - this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getX();
 		Long yCellOffset = (this.mapAreaCuboidAddress.getWidthForIndex(2L) - 1L) - (currentMapAreaCoordinate.getZ() - this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getZ());
-		if(xCellOffset < this.mapAreaWidth && yCellOffset < this.mapAreaHeight){
+		if(xCellOffset < this.mapAreaWidthInCells && yCellOffset < this.mapAreaHeightInCells){
 			MapAreaCell currentMapAreaCell = this.mapAreaCells[xCellOffset.intValue()][yCellOffset.intValue()];
 
 			if(b == null){ /* Chunk not even loaded. */
@@ -462,7 +466,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			}
 			return currentMapAreaCell;
 		}else{
-			logger.info("Saw xCellOffset=" + xCellOffset + " < this.mapAreaWidth=" + this.mapAreaWidth + " || yCellOffset=" + yCellOffset + " < this.mapAreaHeight=" + this.mapAreaHeight + ".  TODO: Fix this error case with a more robust design.");
+			logger.info("Saw xCellOffset=" + xCellOffset + " < this.mapAreaWidthInCells=" + this.mapAreaWidthInCells + " || yCellOffset=" + yCellOffset + " < this.mapAreaHeightInCells=" + this.mapAreaHeightInCells + ".  TODO: Fix this error case with a more robust design.");
 			return null;
 		}
 	}
@@ -504,8 +508,8 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			boolean useASCII = mode.equals(GraphicsMode.ASCII);
 			Long areaToUpdateWidth = areaToUpdate.getWidthForIndex(0L);
 			Long areaToUpdateHeight = areaToUpdate.getWidthForIndex(2L);
-			Long mapAreaWidth = this.mapAreaCuboidAddress.getWidthForIndex(0L);
-			Long mapAreaHeight = this.mapAreaCuboidAddress.getWidthForIndex(2L);
+			Long mapAreaWidthInCells = this.mapAreaCuboidAddress.getWidthForIndex(0L);
+			Long mapAreaHeightInCells = this.mapAreaCuboidAddress.getWidthForIndex(2L);
 			String [][] updatedCellContents = new String [areaToUpdateWidth.intValue()][areaToUpdateHeight.intValue()];
 			int [][][] updatedBackgroundColours = new int [areaToUpdateWidth.intValue()][areaToUpdateHeight.intValue()][2];
 
@@ -558,12 +562,33 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
 
 			Long xCellOffsetDraw = areaToUpdate.getCanonicalLowerCoordinate().getX() - this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getX();
-			Long yCellOffsetDraw = ((mapAreaHeight -1L) + this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getZ()) - ((areaToUpdateHeight -1L) + areaToUpdate.getCanonicalLowerCoordinate().getZ());
+			Long yCellOffsetDraw = ((mapAreaHeightInCells -1L) + this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getZ()) - ((areaToUpdateHeight -1L) + areaToUpdate.getCanonicalLowerCoordinate().getZ());
 
 			Long screenDrawX = (xCellOffsetDraw * this.getMapAreaCellWidth()) + this.getFrameCharacterWidth();
 			Long screenDrawY = yCellOffsetDraw + this.getFrameCharacterHeight();
 		
 			this.sendCellUpdatesInScreenArea(areaToUpdate, updatedCellContents, updatedBackgroundColours, screenDrawX, screenDrawY);
+
+
+			//  Explicitly write spaces to any unused padded area on right edge of map:
+			int paddingAreaWidth = mapAreaPaddingColumnsRight.intValue();
+			int paddingAreaHeight = mapAreaHeightInCells.intValue();
+			int [][] paddingWidths = new int[paddingAreaWidth][paddingAreaHeight];
+			int [][][] paddingColourCodes = new int[paddingAreaWidth][paddingAreaHeight][1];
+			String [][] paddingCharacters = new String[paddingAreaWidth][paddingAreaHeight];
+			boolean [][] paddingHasChange = new boolean [paddingAreaWidth][paddingAreaHeight];
+			int paddingXOffset = (int)(this.mapAreaWidthInCells * this.getMapAreaCellWidth() + this.frameDimensions.getFrameOffsetX() + this.getFrameCharacterWidth());
+			int paddingYOffset = (int)(this.frameDimensions.getFrameOffsetY() + this.getFrameCharacterHeight());
+			for(int i = 0; i < paddingAreaWidth; i++){
+				for(int j = 0; j < paddingAreaHeight; j++){
+					paddingWidths[i][j] = 1;
+					paddingColourCodes[i][j] = new int [] {MAP_CELL_BG_COLOR2};
+					paddingCharacters[i][j] = " ";
+					paddingHasChange[i][j] = true;
+				}
+			}
+
+			this.sendConsolePrintMessage(paddingWidths, paddingColourCodes, paddingCharacters, paddingHasChange, paddingXOffset, paddingYOffset, paddingAreaWidth, paddingAreaHeight, this.frameDimensions, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
 		}else{
 		}
 	}
