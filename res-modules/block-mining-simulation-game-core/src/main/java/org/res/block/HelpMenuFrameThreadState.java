@@ -84,8 +84,15 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		WorkItemResult getSplitChildrenInfoWorkItemResult = cwts.putBlockingWorkItem(getSplitChildrenInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
 		GetSplitChildrenInfoWorkItemResult childInfos = ((GetSplitChildrenInfoWorkItemResult)getSplitChildrenInfoWorkItemResult);
 		for(SplitInfoWorkItemResult info : childInfos.getSplitInfos()){
-			String menuTitle = prefix + info.getSplitClassType().getSimpleName();
-			rtn.add(new SimpleHelpMenuOption(menuTitle, HelpMenuOptionType.CLOSE_CURRENT_FRAME));
+			String menuTitle = prefix + info.getSplitClassType().getSimpleName() + "(" + info.getSplitId() + ")-> ";
+			if(info.getFrameId() == null){
+				rtn.add(new SimpleHelpMenuOption(menuTitle, HelpMenuOptionType.CLOSE_CURRENT_FRAME));
+			}else{
+				GetFrameInfoWorkItem getFrameInfoWorkItem = new GetFrameInfoWorkItem(cwts, info.getFrameId());
+				FrameInfoWorkItemResult frameInfo = (FrameInfoWorkItemResult)cwts.putBlockingWorkItem(getFrameInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
+				String frameDesc = frameInfo.getFrameStateClassType().getSimpleName() + "(" + frameInfo.getFrameId() + ")";
+				rtn.add(new SimpleHelpMenuOption(menuTitle + frameDesc, HelpMenuOptionType.CLOSE_CURRENT_FRAME));
+			}
 			rtn.addAll(this.enumerateMoveFromOptions(menuTitle, info.getSplitId()));
 		}
 		return rtn;
@@ -95,11 +102,15 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		//  Get root split:
 		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
 		GetSplitInfoWorkItem getRootSplitInfoWorkItem = new GetSplitInfoWorkItem(cwts, null, true);
-		WorkItemResult getRootSplitInfoWorkItemResult = cwts.putBlockingWorkItem(getRootSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
-		Long rootSplitId = ((SplitInfoWorkItemResult)getRootSplitInfoWorkItemResult).getSplitId();
+		SplitInfoWorkItemResult getRootSplitInfoWorkItemResult = (SplitInfoWorkItemResult)cwts.putBlockingWorkItem(getRootSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
+		Long rootSplitId = getRootSplitInfoWorkItemResult.getSplitId();
 
-		//  Find all child splits:
-		List<HelpMenuOption> rtn = this.enumerateMoveFromOptions("Root->", rootSplitId);
+		List<HelpMenuOption> rtn = new ArrayList<HelpMenuOption>();
+		if(rootSplitId != null){
+			//  Find all child splits:
+			String rootSplitTitle = getRootSplitInfoWorkItemResult.getSplitClassType().getSimpleName() + "(" + rootSplitId + ", root)-> ";
+			rtn.addAll(this.enumerateMoveFromOptions(rootSplitTitle, rootSplitId));
+		}
 		rtn.add(new SimpleHelpMenuOption("Back", HelpMenuOptionType.BACK_UP_LEVEL));
 		return rtn;
 	}
@@ -319,7 +330,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 
 		List<LinePrintingInstructionAtOffset> instructions = new ArrayList<LinePrintingInstructionAtOffset>();
 
-		int menuWidth = 30;
+		int menuWidth = 45;
 		int xOffset = (terminalWidth / 2) - (menuWidth / 2);
 		Long leftPadding = Long.valueOf(xOffset) + 1L;
 		Long rightPadding = Long.valueOf(terminalWidth) - (xOffset + menuWidth) + 1L;
@@ -337,16 +348,18 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		}
 
 		int menuHeight = instructions.size() + this.helpMenu.getDisplayedHelpMenuOptions().size() + 1;
-		int [][] characterWidths = new int[menuWidth][menuHeight];
-		int [][][] colourCodes = new int[menuWidth][menuHeight][2];
-		String [][] characters = new String[menuWidth][menuHeight];
-		boolean [][] hasChange = new boolean [menuWidth][menuHeight];
+		int [][] characterWidths = new int[terminalWidth][terminalHeight];
+		int [][][] colourCodes = new int[terminalWidth][terminalHeight][2];
+		String [][] characters = new String[terminalWidth][terminalHeight];
+		boolean [][] hasChange = new boolean [terminalWidth][terminalHeight];
 
-		for(int i = 0; i < menuWidth; i++){
-			for(int j = 0; j < menuHeight; j++){
-				String character = menuActive ? " " : null;
-				int [] colours = menuActive ? new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR} : new int [] {};
-				int characterWidth = menuActive ? 1 : 0;
+		int yOffset = (terminalHeight / 2) - (menuHeight / 2);
+		for(int i = 0; i < terminalWidth; i++){
+			for(int j = 0; j < terminalHeight; j++){
+				boolean isInMenuBox = (i >= xOffset && i < (xOffset + menuWidth)) && (j >= yOffset && j < (yOffset + menuHeight));
+				String character = (menuActive && isInMenuBox) ? " " : null;
+				int [] colours = (menuActive && isInMenuBox) ? new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR} : new int [] {};
+				int characterWidth = (menuActive && isInMenuBox) ? 1 : 0;
 				characterWidths[i][j] = characterWidth;
 				colourCodes[i][j] = colours;
 				characters[i][j] = character;
@@ -354,22 +367,17 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			}
 		}
 
-		int yOffset = (terminalHeight / 2) - (menuHeight / 2);
-
-		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, menuWidth, menuHeight, this.frameDimensions, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
+		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, 0, 0, terminalWidth, terminalHeight, this.frameDimensions, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
 
 		for(LinePrintingInstructionAtOffset instruction : instructions){
 			Long lineYOffset = instruction.getOffsetY() + yOffset;
 			this.executeLinePrintingInstructionsAtYOffset(Arrays.asList(instruction.getLinePrintingInstruction()), lineYOffset, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
 		}
 
-		if(!menuActive){
-			//  De-activate everything in menu layer:
-			cwts.putWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, 0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_MENU, false), WorkItemPriority.PRIORITY_LOW);
-			//  Allow refresh of everything that was below the menu:
-			//cwts.putWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, xOffset, yOffset, xOffset + menuWidth, yOffset + menuHeight, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true), WorkItemPriority.PRIORITY_LOW);
-			cwts.putWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, 0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true), WorkItemPriority.PRIORITY_LOW);
-		}
+		//  De-activate/activate everything in menu layer:
+		cwts.putWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, 0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_MENU, menuActive), WorkItemPriority.PRIORITY_LOW);
+		//  Allow refresh of everything that was below the menu:
+		cwts.putWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, 0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void onFrameDimensionsChanged() throws Exception{

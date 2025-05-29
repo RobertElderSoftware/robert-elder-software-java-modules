@@ -403,6 +403,19 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
+	public FrameInfoWorkItemResult makeOneFrameInfo(Long frameId) throws Exception{
+		if(frameId == null){
+			return new FrameInfoWorkItemResult(null, null);
+		}else{
+			UserInterfaceFrameThreadState state = getFrameStateById(frameId);
+			return new FrameInfoWorkItemResult(frameId, state.getClass());
+		}
+	}
+
+	public FrameInfoWorkItemResult onGetFrameInfo(Long frameId) throws Exception{
+		return makeOneFrameInfo(frameId);
+	}
+
 	public SplitInfoWorkItemResult onGetSplitInfo(Long splitId, boolean returnRoot) throws Exception{
 		if(returnRoot){
 			return makeOneSplitInfo(this.getRootSplitId());
@@ -639,7 +652,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 						this.screenOutputBuffer[bufferIndex].colourCodes[xOffset + i][yOffset + j] = newColourCodes[i][j];
 						this.screenOutputBuffer[bufferIndex].characters[xOffset + i][yOffset + j] = newCharacters[i][j];
 						this.screenOutputBuffer[bufferIndex].changedFlags[xOffset + i][yOffset + j] = hasChanged;
-						//  If we're printing on a screen buffer that's in front, we will evetually need to update whatever was behind it:
+						//  If we're printing on a screen buffer that's in front, we will eventually need to update whatever was behind it:
 						if(hasChanged){
 							for(int k = bufferIndex; k >= 0 ; k--){
 								this.screenOutputBuffer[bufferIndex].changedFlags[xOffset + i][yOffset + j] = hasChanged;
@@ -664,14 +677,23 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			boolean mustSetColourCodes = true;
 			for(int i = startColumn; i != endColumn; i += loopUpdate){
 				int bufferIndex = numScreenOutputBuffers -1;
-				while(!this.screenOutputBuffer[bufferIndex].changedFlags[i][j] && bufferIndex > 0){
+				while(
+					bufferIndex > 0 &&
+					(
+						!this.screenOutputBuffer[bufferIndex].changedFlags[i][j] ||
+						this.screenOutputBuffer[bufferIndex].characters[i][j] == null
+					)
+				){
 					bufferIndex--;
 				}
 				//  Try to intelligently issue as few ANSI escape sequences as possible:
 				if(!Arrays.equals(this.screenOutputBuffer[bufferIndex].colourCodes[i][j], lastUsedColourCodes)){
 					mustSetColourCodes = true;
 				}
-				if(this.screenOutputBuffer[bufferIndex].changedFlags[i][j]){
+				if(
+					this.screenOutputBuffer[bufferIndex].changedFlags[i][j] &&
+					this.screenOutputBuffer[bufferIndex].characters[i][j] != null
+				){
 					if(mustSetCursorPosition){
 						String currentPositionSequence = "\033[" + (j+1) + ";" + (i+1) + "H";
 						System.out.print(currentPositionSequence);
@@ -687,12 +709,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 						mustSetColourCodes = resetState;
 						lastUsedColourCodes = this.screenOutputBuffer[bufferIndex].colourCodes[i][j];
 					}
-					if(this.screenOutputBuffer[bufferIndex].characters[i][j] != null){
-						System.out.print(this.screenOutputBuffer[bufferIndex].characters[i][j]);
-					}
-					if(bufferIndex == 0){ //  Always keep overlay layers printed on top
-						this.screenOutputBuffer[bufferIndex].changedFlags[i][j] = false;
-					}
+					System.out.print(this.screenOutputBuffer[bufferIndex].characters[i][j]);
 				}else{
 					mustSetCursorPosition = true;
 				}
