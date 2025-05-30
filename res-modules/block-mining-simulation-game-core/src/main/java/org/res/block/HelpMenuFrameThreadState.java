@@ -65,7 +65,6 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
-	private boolean menuActive = false;
 
 	private ClientBlockModelContext clientBlockModelContext;
 	private Long previousRootSplitId = null;
@@ -75,25 +74,46 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		super(blockManagerThreadCollection, clientBlockModelContext);
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
+		this.helpMenu = new HelpMenu(false, new HelpMenuLevel(Arrays.asList()));
 	}
 
-	public List<HelpMenuOption> enumerateMoveFromOptions(String prefix, Long splitId) throws Exception{
+	public SubMenuHelpMenuOption makeMoveToSubmenu(String menuTitle, SplitInfoWorkItemResult parentSplitInfo, SplitInfoWorkItemResult info, int numSiblings) throws Exception{
+		List<HelpMenuOption> options = new ArrayList<HelpMenuOption>();
+		if(numSiblings > 0L){
+			String backDirection = parentSplitInfo.getSplitClassType() == UserInterfaceSplitVertical.class ? "Left" : "Up";
+			String forwardDirection = parentSplitInfo.getSplitClassType() == UserInterfaceSplitVertical.class ? "Right" : "Down";
+			options.add(new RotateSplitHelpMenuOption("Rotate Split " + backDirection, HelpMenuOptionType.ROTATE_SPLIT, parentSplitInfo.getSplitId(), info.getSplitId(), false));
+			options.add(new RotateSplitHelpMenuOption("Rotate Split " + forwardDirection, HelpMenuOptionType.ROTATE_SPLIT, parentSplitInfo.getSplitId(), info.getSplitId(), true));
+		}
+		options.add(new SimpleHelpMenuOption("Back", HelpMenuOptionType.BACK_UP_LEVEL));
+
+		SubMenuHelpMenuOption rtnOption = new SubMenuHelpMenuOption(
+			menuTitle,
+			HelpMenuOptionType.DO_SUBMENU, 
+			new HelpMenuLevel(options)
+		);
+		return rtnOption;
+	}
+
+	public List<HelpMenuOption> enumerateMoveFromOptions(String prefix, SplitInfoWorkItemResult currentSplitInfo, int numSiblings) throws Exception{
 		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
 		List<HelpMenuOption> rtn = new ArrayList<HelpMenuOption>();
-		GetSplitChildrenInfoWorkItem getSplitChildrenInfoWorkItem = new GetSplitChildrenInfoWorkItem(cwts, splitId);
+		GetSplitChildrenInfoWorkItem getSplitChildrenInfoWorkItem = new GetSplitChildrenInfoWorkItem(cwts, currentSplitInfo.getSplitId());
 		WorkItemResult getSplitChildrenInfoWorkItemResult = cwts.putBlockingWorkItem(getSplitChildrenInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
 		GetSplitChildrenInfoWorkItemResult childInfos = ((GetSplitChildrenInfoWorkItemResult)getSplitChildrenInfoWorkItemResult);
 		for(SplitInfoWorkItemResult info : childInfos.getSplitInfos()){
 			String menuTitle = prefix + info.getSplitClassType().getSimpleName() + "(" + info.getSplitId() + ")-> ";
+			SubMenuHelpMenuOption option = null;
 			if(info.getFrameId() == null){
-				rtn.add(new SimpleHelpMenuOption(menuTitle, HelpMenuOptionType.CLOSE_CURRENT_FRAME));
+				option = this.makeMoveToSubmenu(menuTitle, currentSplitInfo, info, numSiblings);
 			}else{
 				GetFrameInfoWorkItem getFrameInfoWorkItem = new GetFrameInfoWorkItem(cwts, info.getFrameId());
 				FrameInfoWorkItemResult frameInfo = (FrameInfoWorkItemResult)cwts.putBlockingWorkItem(getFrameInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
 				String frameDesc = frameInfo.getFrameStateClassType().getSimpleName() + "(" + frameInfo.getFrameId() + ")";
-				rtn.add(new SimpleHelpMenuOption(menuTitle + frameDesc, HelpMenuOptionType.CLOSE_CURRENT_FRAME));
+				option = this.makeMoveToSubmenu(menuTitle + frameDesc, currentSplitInfo, info, numSiblings);
 			}
-			rtn.addAll(this.enumerateMoveFromOptions(menuTitle, info.getSplitId()));
+			rtn.add(option);
+			rtn.addAll(this.enumerateMoveFromOptions(menuTitle, info, childInfos.getSplitInfos().size()));
 		}
 		return rtn;
 	}
@@ -109,16 +129,17 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		if(rootSplitId != null){
 			//  Find all child splits:
 			String rootSplitTitle = getRootSplitInfoWorkItemResult.getSplitClassType().getSimpleName() + "(" + rootSplitId + ", root)-> ";
-			rtn.addAll(this.enumerateMoveFromOptions(rootSplitTitle, rootSplitId));
+			rtn.addAll(this.enumerateMoveFromOptions(rootSplitTitle, getRootSplitInfoWorkItemResult, 1));
 		}
 		rtn.add(new SimpleHelpMenuOption("Back", HelpMenuOptionType.BACK_UP_LEVEL));
 		return rtn;
 	}
 
-	public void rebuildHelpMenu() throws Exception{
+	public void rebuildHelpMenu(boolean activeState) throws Exception{
 		List<HelpMenuOption> moveToOptionsList = this.getSplitMoveToOptionsList();
 
 		this.helpMenu = new HelpMenu(
+			activeState,
 			new HelpMenuLevel(
 				Arrays.asList(
 					new SubMenuHelpMenuOption(
@@ -159,11 +180,21 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		}
 	}
 
+	public void onRotateSplit(RotateSplitHelpMenuOption o) throws Exception {
+		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		logger.info("onRotateSplit Rotated o.getIsForward()=" + o.getIsForward());
+		RotateSplitWorkItem rotateSplitWorkItem = new RotateSplitWorkItem(cwts, o.getParentSplitId(), o.getChildSplitIdToRotate(), o.getIsForward());
+		
+		cwts.putBlockingWorkItem(rotateSplitWorkItem, WorkItemPriority.PRIORITY_LOW);
+
+		//  Update screen
+		this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+	}
 
 	public void removeSplitWithFrameId(Long splitId, Long frameId) throws Exception {
 		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
 
-		GetSplitInfoWorkItem getSplitInfoWorkItem = new GetSplitInfoWorkItem(cwts, splitId,false);
+		GetSplitInfoWorkItem getSplitInfoWorkItem = new GetSplitInfoWorkItem(cwts, splitId, false);
 		WorkItemResult getSplitInfoWorkItemResult = cwts.putBlockingWorkItem(getSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
 		SplitInfoWorkItemResult parentInfo = ((SplitInfoWorkItemResult)getSplitInfoWorkItemResult);
 		if(frameId.equals(parentInfo.getFrameId())){
@@ -264,19 +295,23 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			case HelpMenuOptionType.CLOSE_CURRENT_FRAME:{
 				this.onCloseCurrentFrame();
 				this.helpMenu.resetMenuState();
-				this.menuActive = false;
+				this.helpMenu.setActiveState(false);
 				break;
 			} case HelpMenuOptionType.OPEN_NEW_FRAME:{
 				OpenFrameClassHelpMenuOption co = (OpenFrameClassHelpMenuOption)option;
 				this.onOpenHelpDetails(co.getFrameStateClass());
 				this.helpMenu.resetMenuState();
-				this.menuActive = false;
+				this.helpMenu.setActiveState(false);
 				break;
 			} case HelpMenuOptionType.DO_SUBMENU:{
 				this.helpMenu.descendIntoSubmenu();
 				break;
 			} case HelpMenuOptionType.BACK_UP_LEVEL:{
 				this.helpMenu.ascendFromSubmenu();
+				break;
+			} case HelpMenuOptionType.ROTATE_SPLIT:{
+				this.onRotateSplit((RotateSplitHelpMenuOption)option);
+				this.helpMenu.setActiveState(false);
 				break;
 			} case HelpMenuOptionType.QUIT_GAME:{
 				logger.info("Menu option to quit was selected.  Exiting...");
@@ -303,7 +338,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 						this.onEnterKeyPressed();
 						break;
 					}case ACTION_HELP_MENU_TOGGLE:{
-						this.menuActive = false;
+						this.helpMenu.setActiveState(false);
 						this.render();
 						break;
 					}default:{
@@ -315,11 +350,11 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public boolean getIsMenuActive(){
-		return this.menuActive;
+		return this.helpMenu.getActiveState();
 	}
 
 	public void setIsMenuActive(boolean b){
-		this.menuActive = b;
+		this.helpMenu.setActiveState(b);
 	}
 
 	public void render() throws Exception{
@@ -357,9 +392,9 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		for(int i = 0; i < terminalWidth; i++){
 			for(int j = 0; j < terminalHeight; j++){
 				boolean isInMenuBox = (i >= xOffset && i < (xOffset + menuWidth)) && (j >= yOffset && j < (yOffset + menuHeight));
-				String character = (menuActive && isInMenuBox) ? " " : null;
-				int [] colours = (menuActive && isInMenuBox) ? new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR} : new int [] {};
-				int characterWidth = (menuActive && isInMenuBox) ? 1 : 0;
+				String character = (this.helpMenu.getActiveState() && isInMenuBox) ? " " : null;
+				int [] colours = (this.helpMenu.getActiveState() && isInMenuBox) ? new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR} : new int [] {};
+				int characterWidth = (this.helpMenu.getActiveState() && isInMenuBox) ? 1 : 0;
 				characterWidths[i][j] = characterWidth;
 				colourCodes[i][j] = colours;
 				characters[i][j] = character;
@@ -374,19 +409,22 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			this.executeLinePrintingInstructionsAtYOffset(Arrays.asList(instruction.getLinePrintingInstruction()), lineYOffset, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
 		}
 
-		//  De-activate/activate everything in menu layer:
-		cwts.putWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, 0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_MENU, menuActive), WorkItemPriority.PRIORITY_LOW);
-		//  Allow refresh of everything that was below the menu:
-		cwts.putWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, 0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true), WorkItemPriority.PRIORITY_LOW);
+		if(this.helpMenu.getRequiresRedraw()){
+			//  De-activate/activate everything in menu layer:
+			cwts.putWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, 0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_MENU, this.helpMenu.getActiveState()), WorkItemPriority.PRIORITY_LOW);
+			//  Allow refresh of everything that was below the menu:
+			cwts.putWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, 0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true), WorkItemPriority.PRIORITY_LOW);
+			this.helpMenu.setRequiresRedraw(false);
+		}
 	}
 
 	public void onFrameDimensionsChanged() throws Exception{
-		this.rebuildHelpMenu();
+		this.rebuildHelpMenu(this.helpMenu.getActiveState());
 		this.render();
 	}
 
 	public void onFrameFocusChanged() throws Exception{
-		this.rebuildHelpMenu();
+		this.rebuildHelpMenu(this.helpMenu.getActiveState());
 		this.render();
 	}
 

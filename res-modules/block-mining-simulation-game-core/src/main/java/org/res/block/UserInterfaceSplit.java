@@ -72,6 +72,14 @@ public abstract class UserInterfaceSplit {
 		return this.splitParts;
 	}
 
+	public int getIndexForChildSplitWithId(Long childId) {
+		for(int i = 0; i < this.splitParts.size(); i++){
+			if(childId.equals(this.splitParts.get(i).getSplitId())){
+				return i;
+			}
+		}
+		return -1;
+	}
 
 	public UserInterfaceSplit() throws Exception {
 		this.splitId = seq.getAndIncrement();

@@ -30,40 +30,13 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.Map;
-import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 
-public enum HelpMenuOptionType {
-        OPEN_NEW_FRAME (1L),
-        QUIT_GAME (2L),
-        BACK_UP_LEVEL (3L),
-        DO_SUBMENU(4L),
-        CLOSE_CURRENT_FRAME (5L),
-        ROTATE_SPLIT (6L);
+public class RotateSplitWorkItemResult extends WorkItemResult {
 
-        private final long id;
-
-        private HelpMenuOptionType(long i) {
-                id = i;
-        }
-
-        public boolean equalsId(long i) {
-                return id == i;
-        }
-
-        public long toLong() {
-                return this.id;
-        }
-
-	private static final Map<Long, HelpMenuOptionType> helpMenuOptionTypesByValue = new HashMap<Long, HelpMenuOptionType>();
-
-	static {
-		for(HelpMenuOptionType type : HelpMenuOptionType.values()) {
-			helpMenuOptionTypesByValue.put(type.toLong(), type);
-		}
-	}
-
-	public static HelpMenuOptionType forValue(long value) {
-		return helpMenuOptionTypesByValue.get(value);
+	public RotateSplitWorkItemResult(Long i){
 	}
 }

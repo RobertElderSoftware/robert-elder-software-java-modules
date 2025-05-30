@@ -330,6 +330,13 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		return this.createFrameThread(frameId, frameStateClass);
 	}
 
+	public Long onRotateSplit(Long parentSplitId, Long childSplitIdToRotate, boolean isForward) throws Exception{
+		UserInterfaceSplitMulti m = (UserInterfaceSplitMulti)getUserInterfaceSplitById(parentSplitId);
+		m.rotateChildWithId(childSplitIdToRotate, isForward);
+		logger.info("onRotateSplit Rotated isForward=" + isForward);
+		return 0L;
+	}
+
 	public Long onCloseFrame(Long frameId) throws Exception{
 		this.destroyFrameStateAndThreadById(frameId);
 		this.focusedFrameId = null;
@@ -710,6 +717,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 						lastUsedColourCodes = this.screenOutputBuffer[bufferIndex].colourCodes[i][j];
 					}
 					System.out.print(this.screenOutputBuffer[bufferIndex].characters[i][j]);
+					if(bufferIndex == 0){ //TODO:  Replace this with a better layer masking bitblt method
+						this.screenOutputBuffer[bufferIndex].changedFlags[i][j] = false;
+					}
 				}else{
 					mustSetCursorPosition = true;
 				}
@@ -812,7 +822,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		
 		for(int i = 0; i < width; i++){
 			for(int j = 0; j < height; j++){
-				this.screenOutputBuffer[bufferIndex].changedFlags[i + startX][j + startY] = state;
+				if(((i + startX) < this.terminalWidth) && ((j + startY) < this.terminalHeight)){ // TODO:  Remove this check once the synchronize 'render' is finished.
+					this.screenOutputBuffer[bufferIndex].changedFlags[i + startX][j + startY] = state;
+				}
 			}
 		}
 	}

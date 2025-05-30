@@ -30,40 +30,54 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.LinkedHashSet;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
-public enum HelpMenuOptionType {
-        OPEN_NEW_FRAME (1L),
-        QUIT_GAME (2L),
-        BACK_UP_LEVEL (3L),
-        DO_SUBMENU(4L),
-        CLOSE_CURRENT_FRAME (5L),
-        ROTATE_SPLIT (6L);
+import java.util.HashSet;
+import java.io.BufferedWriter;
+import java.text.SimpleDateFormat;
+import java.io.File;
+import java.io.FileOutputStream;
 
-        private final long id;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
 
-        private HelpMenuOptionType(long i) {
-                id = i;
-        }
+public class RotateSplitHelpMenuOption extends SimpleHelpMenuOption {
 
-        public boolean equalsId(long i) {
-                return id == i;
-        }
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+	private Long parentSplitId;
+	private Long childSplitIdToRotate;
+	private boolean isForward;
 
-        public long toLong() {
-                return this.id;
-        }
-
-	private static final Map<Long, HelpMenuOptionType> helpMenuOptionTypesByValue = new HashMap<Long, HelpMenuOptionType>();
-
-	static {
-		for(HelpMenuOptionType type : HelpMenuOptionType.values()) {
-			helpMenuOptionTypesByValue.put(type.toLong(), type);
-		}
+	public RotateSplitHelpMenuOption(String title, HelpMenuOptionType helpMenuOptionType, Long parentSplitId, Long childSplitIdToRotate, boolean isForward) throws Exception {
+		super(title, helpMenuOptionType);
+		this.parentSplitId = parentSplitId;
+		this.childSplitIdToRotate = childSplitIdToRotate;
+		this.isForward = isForward;
+		logger.info("RotateSplitHelpMenuOption Rotated isForward=" + isForward);
 	}
 
-	public static HelpMenuOptionType forValue(long value) {
-		return helpMenuOptionTypesByValue.get(value);
+	public Long getParentSplitId(){
+		return this.parentSplitId;
+	}
+
+	public Long getChildSplitIdToRotate(){
+		return this.childSplitIdToRotate;
+	}
+
+	public boolean getIsForward(){
+		return this.isForward;
 	}
 }

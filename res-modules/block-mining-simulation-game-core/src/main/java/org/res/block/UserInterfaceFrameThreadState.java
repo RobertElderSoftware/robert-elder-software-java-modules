@@ -410,7 +410,11 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	public void clearFrame() throws Exception{
 		for(long l = 0L; l < this.getFrameHeight(); l++){
-			this.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(this.getFrameWidth().intValue()), new int[] {FRAME_CLEAR_BG_COLOR}), 0L, l, true);
+			int repeatNumber = this.getFrameWidth().intValue();
+			if(repeatNumber < 0){
+				throw new Exception("repeatNumber is negative: " + repeatNumber);
+			}
+			this.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(repeatNumber), new int[] {FRAME_CLEAR_BG_COLOR}), 0L, l, true);
 		}
 	}
 

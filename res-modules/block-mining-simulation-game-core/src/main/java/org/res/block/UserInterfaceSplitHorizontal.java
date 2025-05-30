@@ -68,18 +68,23 @@ public class UserInterfaceSplitHorizontal extends UserInterfaceSplitMulti {
 		List<FrameDimensions> sumFrameDimensions = new ArrayList<FrameDimensions>();
 		if(this.splitParts.size() > 0){
 			Long numSplits = (long)this.splitParts.size();
-			Long yOffsetSoFar = frameDimensions.getFrameOffsetY();
+			Long yOffsetSoFar = 0L;
 			Long fcw = frameDimensions.getFrameCharacterWidth();
 			//  In wide character mode, must be two column aligned:
 			Long allowableFrameWidth = fcw.equals(1L) ? frameDimensions.getFrameWidth() : (frameDimensions.getFrameWidth() / fcw) * fcw;
 			for(int i = 0; i < this.splitParts.size(); i++){
 				Long currentFrameHeight = (i == (this.splitParts.size() -1)) ? (frameDimensions.getFrameHeight() - yOffsetSoFar) : (long)(frameDimensions.getFrameHeight() * this.splitPercentages.get(i));
+
+				if(currentFrameHeight < 0){
+					throw new Exception("currentFrameHeight is negative: " + currentFrameHeight);
+
+				}
 				FrameDimensions subFrameDimensions = new FrameDimensions(
 					frameDimensions.getFrameCharacterWidth(),
 					allowableFrameWidth,
 					currentFrameHeight,
 					frameDimensions.getFrameOffsetX(),
-					yOffsetSoFar,
+					yOffsetSoFar + frameDimensions.getFrameOffsetY(),
 					frameDimensions.getTerminalWidth(),
 					frameDimensions.getTerminalHeight()
 				);

@@ -82,6 +82,22 @@ public abstract class UserInterfaceSplitMulti extends UserInterfaceSplit {
 		this.splitParts.add(part);
 	}
 
+
+	public void rotateChildWithId(Long childSplitIdToRotate, boolean isForward) throws Exception{
+		int indexOfChild = this.getIndexForChildSplitWithId(childSplitIdToRotate);
+		if(indexOfChild == -1){
+			throw new Exception("Did not find child: " + childSplitIdToRotate + " in split id=" + this.splitId);
+		}else{
+			int change = isForward ? 1 : -1;
+			int newIndex = (indexOfChild + change + this.splitParts.size()) % this.splitParts.size();
+			UserInterfaceSplit s = this.splitParts.remove(indexOfChild);
+			Double d = this.splitPercentages.remove(indexOfChild);
+			this.splitParts.add(newIndex, s);
+			this.splitPercentages.add(newIndex, d);
+			logger.info("Rotated child splitId=" + childSplitIdToRotate + " " + (isForward ? "forward" : "backward") + " from " + indexOfChild + " to " + newIndex + " size was " + this.splitParts.size());
+		}
+	}
+
 	public void removeSplitAtIndex(int i)throws Exception{
 		this.splitParts.remove(i);
 		Double extra = this.splitPercentages.get(i);

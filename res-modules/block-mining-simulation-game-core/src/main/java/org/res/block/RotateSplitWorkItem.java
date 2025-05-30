@@ -30,40 +30,37 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.Map;
-import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 
-public enum HelpMenuOptionType {
-        OPEN_NEW_FRAME (1L),
-        QUIT_GAME (2L),
-        BACK_UP_LEVEL (3L),
-        DO_SUBMENU(4L),
-        CLOSE_CURRENT_FRAME (5L),
-        ROTATE_SPLIT (6L);
 
-        private final long id;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
 
-        private HelpMenuOptionType(long i) {
-                id = i;
-        }
+public class RotateSplitWorkItem extends ConsoleQueueableWorkItem {
 
-        public boolean equalsId(long i) {
-                return id == i;
-        }
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-        public long toLong() {
-                return this.id;
-        }
+	private Long parentSplitId;
+	private Long childSplitIdToRotate;
+	private boolean isForward;
 
-	private static final Map<Long, HelpMenuOptionType> helpMenuOptionTypesByValue = new HashMap<Long, HelpMenuOptionType>();
-
-	static {
-		for(HelpMenuOptionType type : HelpMenuOptionType.values()) {
-			helpMenuOptionTypesByValue.put(type.toLong(), type);
-		}
+	public RotateSplitWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Long parentSplitId, Long childSplitIdToRotate, boolean isForward){
+		super(consoleWriterThreadState, true);
+		this.parentSplitId = parentSplitId;
+		this.childSplitIdToRotate = childSplitIdToRotate;
+		this.isForward = isForward;
+		logger.info("RotateSplitWorkItem Rotated isForward=" + isForward);
 	}
 
-	public static HelpMenuOptionType forValue(long value) {
-		return helpMenuOptionTypesByValue.get(value);
+	public WorkItemResult executeQueuedWork() throws Exception{
+		return new RotateSplitWorkItemResult(this.consoleWriterThreadState.onRotateSplit(this.parentSplitId, this.childSplitIdToRotate, this.isForward));
+	}
+
+	public void doWork() throws Exception{
+		this.consoleWriterThreadState.addPendingQueueableWorkItem(this);
 	}
 }
