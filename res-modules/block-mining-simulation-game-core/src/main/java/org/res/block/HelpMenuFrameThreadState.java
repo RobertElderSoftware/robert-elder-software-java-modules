@@ -316,7 +316,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			} case HelpMenuOptionType.QUIT_GAME:{
 				logger.info("Menu option to quit was selected.  Exiting...");
 				this.blockManagerThreadCollection.setIsProcessFinished(true, null); // Start shutting down the entire application.
-				break;
+				return;
 			} default:{
 				throw new Exception("Unknown help menu option: " + option.getHelpMenuOptionType().toString());
 			} 
@@ -411,9 +411,9 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 
 		if(this.helpMenu.getRequiresRedraw()){
 			//  De-activate/activate everything in menu layer:
-			cwts.putWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, 0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_MENU, this.helpMenu.getActiveState()), WorkItemPriority.PRIORITY_LOW);
+			cwts.putBlockingWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, 0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_MENU, this.helpMenu.getActiveState()), WorkItemPriority.PRIORITY_LOW);
 			//  Allow refresh of everything that was below the menu:
-			cwts.putWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, 0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true), WorkItemPriority.PRIORITY_LOW);
+			cwts.putBlockingWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, 0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true), WorkItemPriority.PRIORITY_LOW);
 			this.helpMenu.setRequiresRedraw(false);
 		}
 	}

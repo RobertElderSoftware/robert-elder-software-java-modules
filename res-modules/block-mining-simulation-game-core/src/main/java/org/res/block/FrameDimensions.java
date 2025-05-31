@@ -75,6 +75,16 @@ public class FrameDimensions {
 		this.terminalHeight = terminalHeight;
 	}
 
+	public FrameDimensions(FrameDimensions f) throws Exception {
+		this.frameCharacterWidth = f.getFrameCharacterWidth();
+		this.frameWidth = f.getFrameWidth();
+		this.frameHeight = f.getFrameHeight();
+		this.frameOffsetX = f.getFrameOffsetX();
+		this.frameOffsetY = f.getFrameOffsetY();
+		this.terminalWidth = f.getTerminalWidth();
+		this.terminalHeight = f.getTerminalHeight();
+	}
+
 	public Long getFrameCharacterWidth(){
 		return this.frameCharacterWidth;
 	}

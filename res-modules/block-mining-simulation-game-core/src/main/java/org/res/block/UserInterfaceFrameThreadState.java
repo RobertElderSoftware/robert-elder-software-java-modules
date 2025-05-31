@@ -291,7 +291,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	public void sendConsolePrintMessage(int [][] characterWidths, int [][][] colourCodes, String [][] characters, boolean [][] hasChange, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions fd, int bufferIndex) throws Exception{
 
-		this.clientBlockModelContext.getConsoleWriterThreadState().putWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, fd, bufferIndex), WorkItemPriority.PRIORITY_LOW);
+		this.clientBlockModelContext.getConsoleWriterThreadState().putBlockingWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, fd, bufferIndex), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	protected void executeLinePrintingInstructionsAtYOffset(List<LinePrintingInstruction> instructions, Long yOffset) throws Exception{
@@ -469,7 +469,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 	public boolean isCoordinateRelatedToFocusedFrame(Coordinate c, FrameDimensions ffd) throws Exception{
-		//  TODO:  This is not thread safe.
 		if(ffd != null){
 			if(
 				c.getX() >= ffd.getFrameOffsetX() &&
@@ -498,9 +497,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		boolean containsBottomLeftHandCorner = hasBottomBorder && hasLeftBorder;
 		boolean containsBottomRightHandCorner = hasBottomBorder && hasRightBorder;
 
-		//  TODO: Use a blocking messge to get this info
-		Long focusedFrameId = this.clientBlockModelContext.getConsoleWriterThreadState().focusedFrameId;
-		FrameDimensions ffd = focusedFrameId == null ? null : this.clientBlockModelContext.getConsoleWriterThreadState().getFrameStateById(focusedFrameId).getFrameDimensions();
+		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		GetFocusedFrameDimensionsWorkItem getFocusedFrameDimensionsWorkItem = new GetFocusedFrameDimensionsWorkItem(cwts);
+		GetFocusedFrameDimensionsWorkItemResult getFocusedFrameDimensionsResult = (GetFocusedFrameDimensionsWorkItemResult)cwts.putBlockingWorkItem(getFocusedFrameDimensionsWorkItem, WorkItemPriority.PRIORITY_LOW);
+		FrameDimensions ffd = getFocusedFrameDimensionsResult.getFocusedFrameDimensions();
 
 		if(hasTopBorder){
 			ColouredTextFragmentList fragmentList = new ColouredTextFragmentList();

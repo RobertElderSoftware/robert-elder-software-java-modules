@@ -419,6 +419,15 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
+	public GetFocusedFrameDimensionsWorkItemResult onGetFocusedFrameDimensions() throws Exception{
+		if(this.focusedFrameId == null){
+			return new GetFocusedFrameDimensionsWorkItemResult(null);
+		}else{
+			UserInterfaceFrameThreadState state = getFrameStateById(this.focusedFrameId);
+			return new GetFocusedFrameDimensionsWorkItemResult(new FrameDimensions(state.getFrameDimensions()));
+		}
+	}
+
 	public FrameInfoWorkItemResult onGetFrameInfo(Long frameId) throws Exception{
 		return makeOneFrameInfo(frameId);
 	}
@@ -628,7 +637,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
-	public void prepareTerminalTextChange(int [][] newCharacterWidths, int [][][] newColourCodes, String [][] newCharacters, boolean [][] hasChange, int xOffset, int yOffset, int xChangeSize, int yChangeSize, FrameDimensions frameDimensions, int bufferIndex) throws Exception{
+	public EmptyWorkItemResult prepareTerminalTextChange(int [][] newCharacterWidths, int [][][] newColourCodes, String [][] newCharacters, boolean [][] hasChange, int xOffset, int yOffset, int xChangeSize, int yChangeSize, FrameDimensions frameDimensions, int bufferIndex) throws Exception{
 		for(int j = 0; j < yChangeSize; j++){
 			for(int i = 0; i < xChangeSize; i++){
 				if(hasChange[i][j]){
@@ -671,6 +680,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				}
 			}
 		}
+		return new EmptyWorkItemResult();
 	}
 
 	public void printTerminalTextChanges(boolean resetCursorPosition) throws Exception{
@@ -814,7 +824,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.workItemQueue.putWorkItem(workItem, priority);
 	}
 
-	public void setScreenAreaChangeStates(int startX, int startY, int endX, int endY, int bufferIndex, boolean state){
+	public EmptyWorkItemResult setScreenAreaChangeStates(int startX, int startY, int endX, int endY, int bufferIndex, boolean state){
 		//  Invalidate a sub-area of screen so that the characters are that location will 
 		//  be printed on the next print attempt.
 		int width = endX - startX;
@@ -827,6 +837,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				}
 			}
 		}
+		return new EmptyWorkItemResult();
 	}
 
 	public boolean doBackgroundProcessing() throws Exception{
@@ -857,9 +868,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 						ConsoleQueueableWorkItem w = this.pendingQueueableWorkItems.take();
 						WorkItemResult result = w.executeQueuedWork();
 						//  If the thread expects a response, unblock it:
-						if(result != null){
-							this.addResultForThreadId(result, w.getThreadId());
-						}
+						this.addResultForThreadId(result, w.getThreadId());
 					}
 					this.printTerminalTextChanges(true);
 				}

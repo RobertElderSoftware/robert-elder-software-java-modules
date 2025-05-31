@@ -35,57 +35,15 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
+public class GetFocusedFrameDimensionsWorkItemResult extends WorkItemResult {
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
+	private FrameDimensions focusedFrameDimensions;
 
-public class ConsoleScreenAreaChangeStatesWorkItem extends ConsoleQueueableWorkItem {
-
-	private String text;
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private int xOffset;
-	private int yOffset;
-	private int xSize;
-	private int ySize;
-	private int bufferIndex;
-	private boolean state;
-
-	public ConsoleScreenAreaChangeStatesWorkItem(ConsoleWriterThreadState consoleWriterThreadState, int xOffset, int yOffset, int xSize, int ySize, int bufferIndex, boolean state){
-		super(consoleWriterThreadState, true);
-		this.xOffset = xOffset;
-		this.yOffset = yOffset;
-		this.xSize = xSize;
-		this.ySize = ySize;
-		this.bufferIndex = bufferIndex;
-		this.state = state;
+	public GetFocusedFrameDimensionsWorkItemResult(FrameDimensions focusedFrameDimensions){
+		this.focusedFrameDimensions = focusedFrameDimensions;
 	}
 
-	public int getXOffset(){
-		return xOffset;
-	}
-
-	public int getYOffset(){
-		return yOffset;
-	}
-
-	public int getXSize(){
-		return xSize;
-	}
-
-	public int getYSize(){
-		return ySize;
-	}
-
-	public boolean getState(){
-		return state;
-	}
-
-	public WorkItemResult executeQueuedWork() throws Exception{
-		return this.consoleWriterThreadState.setScreenAreaChangeStates(xOffset, yOffset, xSize, ySize, bufferIndex, state);
-	}
-
-	public void doWork() throws Exception{
-		this.consoleWriterThreadState.addPendingQueueableWorkItem(this);
+	public FrameDimensions getFocusedFrameDimensions(){
+		return this.focusedFrameDimensions;
 	}
 }
