@@ -81,8 +81,8 @@ public class UserInterfaceSplitLeafNode extends UserInterfaceSplit {
 		return rtn;
 	}
 
-	public void setEquidistantFrameDimensions(FrameDimensions frameDimensions, FrameBordersDescription frameBordersDescription) throws Exception{
-		this.userInterfaceFrameThreadState.putWorkItem(new FrameDimensionsChangeWorkItem(this.userInterfaceFrameThreadState, frameDimensions, frameBordersDescription), WorkItemPriority.PRIORITY_LOW);
+	public void setEquidistantFrameDimensions() throws Exception{
+		this.userInterfaceFrameThreadState.putWorkItem(new FrameChangeWorkItem(this.userInterfaceFrameThreadState), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public Map<Long, FrameDimensions> collectFrameDimensions(FrameDimensions frameDimensions) throws Exception{

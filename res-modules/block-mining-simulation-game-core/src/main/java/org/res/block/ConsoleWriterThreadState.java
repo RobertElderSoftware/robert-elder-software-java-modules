@@ -169,9 +169,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	public BeginRenderTransactionWorkItemResult onBeginRenderTransaction(Long frameId) throws Exception{
 		UserInterfaceFrameThreadState focusedFrame = (this.focusedFrameId == null) ? null : this.getFrameStateById(this.focusedFrameId);
-		FrameDimensions focusedFrameDimensions = (focusedFrame.getFrameDimensions() == null) ? null : new FrameDimensions(focusedFrame.getFrameDimensions());
+		FrameDimensions focusedFrameDimensions = (focusedFrame == null || focusedFrame.getFrameDimensions() == null) ? null : new FrameDimensions(focusedFrame.getFrameDimensions());
 		FrameDimensions currentFrameDimensions = this.currentFrameDimensionsCollection.get(frameId);
-		UserInterfaceSplit rootSplit = this.getUserInterfaceSplitById(this.rootSplitId);
+		UserInterfaceSplit rootSplit = this.rootSplitId == null ? null : this.getUserInterfaceSplitById(this.rootSplitId);
 		return new BeginRenderTransactionWorkItemResult(
 			focusedFrameDimensions,
 			currentFrameDimensions,
@@ -432,15 +432,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
-	public GetFocusedFrameDimensionsWorkItemResult onGetFocusedFrameDimensions() throws Exception{
-		if(this.focusedFrameId == null){
-			return new GetFocusedFrameDimensionsWorkItemResult(null);
-		}else{
-			UserInterfaceFrameThreadState state = getFrameStateById(this.focusedFrameId);
-			return new GetFocusedFrameDimensionsWorkItemResult(new FrameDimensions(state.getFrameDimensions()));
-		}
-	}
-
 	public FrameInfoWorkItemResult onGetFrameInfo(Long frameId) throws Exception{
 		return makeOneFrameInfo(frameId);
 	}
@@ -534,10 +525,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public void notifyAllFramesOfFocusChange() throws Exception{
 
 		for(UserInterfaceFrameThreadState frame : this.collectAllUserInterfaceFrames()){
-			frame.putWorkItem(new FrameFocusChangeWorkItem(frame), WorkItemPriority.PRIORITY_LOW);
+			frame.putWorkItem(new FrameChangeWorkItem(frame), WorkItemPriority.PRIORITY_LOW);
 		}
 
-		this.helpMenuFrameThreadState.putWorkItem(new FrameFocusChangeWorkItem(this.helpMenuFrameThreadState), WorkItemPriority.PRIORITY_LOW);
+		this.helpMenuFrameThreadState.putWorkItem(new FrameChangeWorkItem(this.helpMenuFrameThreadState), WorkItemPriority.PRIORITY_LOW);
 	
 		if(this.collectAllUserInterfaceFrames().size() == 0){
 			//  If there are no active frames, there is no UI frame to clear what was there before:
@@ -771,7 +762,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.currentTerminalFrameDimensions = new FrameDimensions(frameCharacterWidth, terminalWidth, terminalHeight, 0L, 0L, terminalWidth, terminalHeight);
 		FrameBordersDescription frameBordersDescription = (this.rootSplitId == null) ? new FrameBordersDescription(new HashSet<Coordinate>()) : this.getUserInterfaceSplitById(this.rootSplitId).collectAllConnectionPoints(this.currentTerminalFrameDimensions);
 		if(this.rootSplitId != null){
-			this.getUserInterfaceSplitById(this.rootSplitId).setEquidistantFrameDimensions(this.currentTerminalFrameDimensions, frameBordersDescription);
+			this.getUserInterfaceSplitById(this.rootSplitId).setEquidistantFrameDimensions();
 		}
 
 		if(this.rootSplitId == null){
@@ -781,7 +772,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 		this.currentFrameDimensionsCollection.put(this.helpMenuFrameThreadState.getFrameId(), this.currentTerminalFrameDimensions);
 
-		this.helpMenuFrameThreadState.putWorkItem(new FrameDimensionsChangeWorkItem(this.helpMenuFrameThreadState, this.currentTerminalFrameDimensions, frameBordersDescription), WorkItemPriority.PRIORITY_LOW);
+		this.helpMenuFrameThreadState.putWorkItem(new FrameChangeWorkItem(this.helpMenuFrameThreadState), WorkItemPriority.PRIORITY_LOW);
 
 		this.notifyAllFramesOfFocusChange();
 	}

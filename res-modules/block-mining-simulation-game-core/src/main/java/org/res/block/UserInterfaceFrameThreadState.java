@@ -62,8 +62,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	public abstract void putWorkItem(UIWorkItem workItem, WorkItemPriority priority) throws Exception;
 	public abstract void render() throws Exception;
-	public abstract void onFrameDimensionsChanged() throws Exception;
-	public abstract void onFrameFocusChanged() throws Exception;
+	public abstract void onRenderFrame() throws Exception;
 	public abstract void onKeyboardInput(byte [] characters) throws Exception;
 	public abstract void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception;
 
@@ -108,6 +107,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	public static int DEFAULT_TEXT_FG_COLOR = WHITE_FG_COLOR;
 
 	protected FrameDimensions frameDimensions;
+	protected FrameDimensions focusedFrameDimensions;
 
 	public FrameDimensions getFrameDimensions(){
 		return frameDimensions;
@@ -497,10 +497,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		boolean containsBottomLeftHandCorner = hasBottomBorder && hasLeftBorder;
 		boolean containsBottomRightHandCorner = hasBottomBorder && hasRightBorder;
 
-		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
-		GetFocusedFrameDimensionsWorkItem getFocusedFrameDimensionsWorkItem = new GetFocusedFrameDimensionsWorkItem(cwts);
-		GetFocusedFrameDimensionsWorkItemResult getFocusedFrameDimensionsResult = (GetFocusedFrameDimensionsWorkItemResult)cwts.putBlockingWorkItem(getFocusedFrameDimensionsWorkItem, WorkItemPriority.PRIORITY_LOW);
-		FrameDimensions ffd = getFocusedFrameDimensionsResult.getFocusedFrameDimensions();
+		FrameDimensions ffd = this.focusedFrameDimensions;
 
 		if(hasTopBorder){
 			ColouredTextFragmentList fragmentList = new ColouredTextFragmentList();
@@ -573,18 +570,15 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 	}
 
-	public void onFrameDimensionsChange(FrameDimensions frameDimensions, FrameBordersDescription frameBordersDescription) throws Exception{
+	public void onFrameChange() throws Exception{
 		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
 		BeginRenderTransactionWorkItem beginRenderTransactionWorkItem = new BeginRenderTransactionWorkItem(cwts, this.frameId);
 		BeginRenderTransactionWorkItemResult beginRenderTransactionWorkItemResult = (BeginRenderTransactionWorkItemResult)cwts.putBlockingWorkItem(beginRenderTransactionWorkItem, WorkItemPriority.PRIORITY_LOW);
 
+		this.focusedFrameDimensions = beginRenderTransactionWorkItemResult.getFocusedFrameDimensions();
 		this.frameDimensions = beginRenderTransactionWorkItemResult.getCurrentFrameDimensions();
 		this.frameBordersDescription = beginRenderTransactionWorkItemResult.getFrameBordersDescription();
-		this.onFrameDimensionsChanged();
-	}
-
-	public void onFrameFocusChange() throws Exception{
-		this.onFrameFocusChanged();
+		this.onRenderFrame();
 	}
 
 	public void sendCellUpdatesInScreenArea(CuboidAddress areaToUpdate, String [][] updatedCellContents, int [][][] updatedColourCodes, Long drawOffsetX, Long drawOffsetY) throws Exception{

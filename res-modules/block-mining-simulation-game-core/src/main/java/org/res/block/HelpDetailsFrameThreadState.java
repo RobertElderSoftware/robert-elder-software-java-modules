@@ -286,12 +286,8 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 		}
 	}
 
-	public void onFrameDimensionsChanged() throws Exception{
+	public void onRenderFrame() throws Exception{
 		this.linePrintingInstructionsAtOffset = null; //  If dimension of frame change, must re-compute all lines.
-		this.render();
-	}
-
-	public void onFrameFocusChanged() throws Exception{
 		this.render();
 	}
 

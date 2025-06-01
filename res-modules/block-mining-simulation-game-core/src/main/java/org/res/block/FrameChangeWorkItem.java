@@ -31,28 +31,19 @@
 package org.res.block;
 
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
 import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
+public class FrameChangeWorkItem extends UIWorkItem {
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
-
-public class GetFocusedFrameDimensionsWorkItem extends ConsoleQueueableWorkItem {
-
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
-	public GetFocusedFrameDimensionsWorkItem(ConsoleWriterThreadState consoleWriterThreadState){
-		super(consoleWriterThreadState, true);
-	}
-
-	public WorkItemResult executeQueuedWork() throws Exception{
-		return this.consoleWriterThreadState.onGetFocusedFrameDimensions();
+	public FrameChangeWorkItem(UserInterfaceFrameThreadState userInterfaceFrameThreadState){
+		super(userInterfaceFrameThreadState, false);
 	}
 
 	public void doWork() throws Exception{
-		this.consoleWriterThreadState.addPendingQueueableWorkItem(this);
+		this.userInterfaceFrameThreadState.onFrameChange();
 	}
 }

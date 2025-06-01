@@ -142,10 +142,9 @@ public abstract class UserInterfaceSplitMulti extends UserInterfaceSplit {
 		return rtn;
 	}
 
-	public void setEquidistantFrameDimensions(FrameDimensions frameDimensions, FrameBordersDescription frameBordersDescription) throws Exception{
-		List<FrameDimensions> subFrameDimensions = this.getOrderedSubframeDimensions(frameDimensions);
+	public void setEquidistantFrameDimensions() throws Exception{
 		for(int i = 0; i < this.splitParts.size(); i++){
-			this.splitParts.get(i).setEquidistantFrameDimensions(subFrameDimensions.get(i), frameBordersDescription);
+			this.splitParts.get(i).setEquidistantFrameDimensions();
 		}
 	}
 

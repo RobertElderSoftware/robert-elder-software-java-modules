@@ -177,7 +177,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		return this.blockManagerThreadCollection;
 	}
 
-	public void onFrameDimensionsChanged() throws Exception{
+	public void onRenderFrame() throws Exception{
 		Long totalXBorderSize = this.getTotalXBorderSize();
 		Long totalYBorderSize = this.getTotalYBorderSize();
 		Long printableInnerWidth = this.getFrameWidth() - totalXBorderSize;
@@ -187,12 +187,12 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		this.mapAreaWidthInCells = mapAreaWidthInCells < 1L ? 1L : mapAreaWidthInCells;
 		this.mapAreaHeightInCells = mapAreaHeightInCells < 1L ? 1L : mapAreaHeightInCells;
 		this.mapAreaPaddingColumnsRight = printableInnerWidth - (this.mapAreaWidthInCells * this.getMapAreaCellWidth());
-		logger.info("onFrameChange calculated: mapAreaWidthInCells=" + mapAreaWidthInCells + ", mapAreaHeightInCells=" + mapAreaHeightInCells);
+		logger.info("onRenderFrame calculated: mapAreaWidthInCells=" + mapAreaWidthInCells + ", mapAreaHeightInCells=" + mapAreaHeightInCells);
 		Long topRightHandX = mapAreaWidthInCells / 2L;
 		Long topRightHandZ = mapAreaHeightInCells / 2L;
 		Long bottomLeftHandX = topRightHandX - (mapAreaWidthInCells - 1L);
 		Long bottomLeftHandZ = topRightHandZ - (mapAreaHeightInCells - 1L);
-		logger.info("onFrameChange calculated: topRightHandX=" + topRightHandX + ", topRightHandZ=" + topRightHandZ + ", bottomLeftHandX=" + bottomLeftHandX + ", bottomLeftHandZ=" + bottomLeftHandZ);
+		logger.info("onRenderFrame calculated: topRightHandX=" + topRightHandX + ", topRightHandZ=" + topRightHandZ + ", bottomLeftHandX=" + bottomLeftHandX + ", bottomLeftHandZ=" + bottomLeftHandZ);
 
 		Coordinate bottomleftHandCorner = new Coordinate(Arrays.asList(bottomLeftHandX + playerPosition.getX(), playerPosition.getY(), bottomLeftHandZ + playerPosition.getZ(), 0L));
 		Coordinate topRightHandCorner = new Coordinate(Arrays.asList(topRightHandX + playerPosition.getX(), playerPosition.getY(), topRightHandZ + playerPosition.getZ(), 0L));
@@ -201,10 +201,6 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 		this.forceBlockChangesInMapArea(); //  Necessary to re-print when terminal size changes, but map area stays same.
 		this.onMapAreaChange(newMapArea);
-		this.render();
-	}
-
-	public void onFrameFocusChanged() throws Exception{
 		this.render();
 	}
 
