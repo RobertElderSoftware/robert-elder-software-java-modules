@@ -574,8 +574,12 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 	public void onFrameDimensionsChange(FrameDimensions frameDimensions, FrameBordersDescription frameBordersDescription) throws Exception{
-		this.frameDimensions = frameDimensions;
-		this.frameBordersDescription = frameBordersDescription;
+		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		BeginRenderTransactionWorkItem beginRenderTransactionWorkItem = new BeginRenderTransactionWorkItem(cwts, this.frameId);
+		BeginRenderTransactionWorkItemResult beginRenderTransactionWorkItemResult = (BeginRenderTransactionWorkItemResult)cwts.putBlockingWorkItem(beginRenderTransactionWorkItem, WorkItemPriority.PRIORITY_LOW);
+
+		this.frameDimensions = beginRenderTransactionWorkItemResult.getCurrentFrameDimensions();
+		this.frameBordersDescription = beginRenderTransactionWorkItemResult.getFrameBordersDescription();
 		this.onFrameDimensionsChanged();
 	}
 

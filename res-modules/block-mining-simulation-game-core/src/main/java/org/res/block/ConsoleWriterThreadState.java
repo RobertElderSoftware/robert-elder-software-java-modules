@@ -83,6 +83,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	public Long focusedFrameId = null;
 
+	private Map<Long, FrameDimensions> currentFrameDimensionsCollection = new HashMap<Long, FrameDimensions>();
 	private Map<Long, UserInterfaceSplit> userInterfaceSplits = new HashMap<Long, UserInterfaceSplit>();
 	private Long rootSplitId;
 
@@ -164,6 +165,18 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			((UserInterfaceSplitMulti)this.getUserInterfaceSplitById(r)).setSplitPercentages(framePercents);
 			this.setRootSplit(r);
 		}
+	}
+
+	public BeginRenderTransactionWorkItemResult onBeginRenderTransaction(Long frameId) throws Exception{
+		UserInterfaceFrameThreadState focusedFrame = (this.focusedFrameId == null) ? null : this.getFrameStateById(this.focusedFrameId);
+		FrameDimensions focusedFrameDimensions = (focusedFrame.getFrameDimensions() == null) ? null : new FrameDimensions(focusedFrame.getFrameDimensions());
+		FrameDimensions currentFrameDimensions = this.currentFrameDimensionsCollection.get(frameId);
+		UserInterfaceSplit rootSplit = this.getUserInterfaceSplitById(this.rootSplitId);
+		return new BeginRenderTransactionWorkItemResult(
+			focusedFrameDimensions,
+			currentFrameDimensions,
+			(rootSplit == null) ? new FrameBordersDescription(new HashSet<Coordinate>()) : new FrameBordersDescription(rootSplit.collectAllConnectionPoints(this.currentTerminalFrameDimensions))
+		);
 	}
 
 	public void addSplitPartsByIds(Long parentSplitId, List<Long> childrenToAdd) throws Exception{
@@ -760,6 +773,13 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		if(this.rootSplitId != null){
 			this.getUserInterfaceSplitById(this.rootSplitId).setEquidistantFrameDimensions(this.currentTerminalFrameDimensions, frameBordersDescription);
 		}
+
+		if(this.rootSplitId == null){
+			this.currentFrameDimensionsCollection = new HashMap<Long, FrameDimensions>();
+		}else{
+			this.currentFrameDimensionsCollection = this.getUserInterfaceSplitById(this.rootSplitId).collectFrameDimensions(this.currentTerminalFrameDimensions);
+		}
+		this.currentFrameDimensionsCollection.put(this.helpMenuFrameThreadState.getFrameId(), this.currentTerminalFrameDimensions);
 
 		this.helpMenuFrameThreadState.putWorkItem(new FrameDimensionsChangeWorkItem(this.helpMenuFrameThreadState, this.currentTerminalFrameDimensions, frameBordersDescription), WorkItemPriority.PRIORITY_LOW);
 

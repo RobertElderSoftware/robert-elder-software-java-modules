@@ -125,6 +125,15 @@ public abstract class UserInterfaceSplitMulti extends UserInterfaceSplit {
 		}
 	}
 
+	public Map<Long, FrameDimensions> collectFrameDimensions(FrameDimensions frameDimensions) throws Exception{
+		Map<Long, FrameDimensions> rtn = new HashMap<Long, FrameDimensions>();
+		List<FrameDimensions> subFrameDimensions = this.getOrderedSubframeDimensions(frameDimensions);
+		for(int i = 0; i < this.splitParts.size(); i++){
+			rtn.putAll(this.splitParts.get(i).collectFrameDimensions(subFrameDimensions.get(i)));
+		}
+		return rtn;
+	}
+
 	public List<UserInterfaceFrameThreadState> collectUserInterfaceFrames() throws Exception{
 		List<UserInterfaceFrameThreadState> rtn = new ArrayList<UserInterfaceFrameThreadState>();
 		for(UserInterfaceSplit split : this.splitParts){

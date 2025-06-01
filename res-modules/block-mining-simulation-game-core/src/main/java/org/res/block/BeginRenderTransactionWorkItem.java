@@ -30,44 +30,32 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.stream.Collectors;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 
-import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import java.util.Date;
-import java.util.Set;
-import java.util.HashSet;
-import java.io.BufferedWriter;
-import java.text.SimpleDateFormat;
-import java.io.File;
-import java.io.FileOutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
-import java.util.concurrent.atomic.AtomicLong;
 
-public class FrameBordersDescription {
+public class BeginRenderTransactionWorkItem extends ConsoleQueueableWorkItem {
 
-	private Set<Coordinate> framePoints;
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	public FrameBordersDescription(Set<Coordinate> framePoints){
-		this.framePoints = framePoints;
+	private Long frameId;
+
+	public BeginRenderTransactionWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Long frameId){
+		super(consoleWriterThreadState, true);
+		this.frameId = frameId;
 	}
 
-	public FrameBordersDescription(FrameBordersDescription fd){
-		this.framePoints = new HashSet<Coordinate>(fd.getFramePoints());
+	public WorkItemResult executeQueuedWork() throws Exception{
+		return this.consoleWriterThreadState.onBeginRenderTransaction(this.frameId);
 	}
 
-	public Set<Coordinate> getFramePoints(){
-		return this.framePoints;
+	public void doWork() throws Exception{
+		this.consoleWriterThreadState.addPendingQueueableWorkItem(this);
 	}
 }

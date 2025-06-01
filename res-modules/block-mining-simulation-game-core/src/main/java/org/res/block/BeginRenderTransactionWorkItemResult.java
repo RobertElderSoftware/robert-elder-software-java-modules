@@ -30,44 +30,32 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.stream.Collectors;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 
-import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+public class BeginRenderTransactionWorkItemResult extends WorkItemResult {
 
-import java.util.Date;
-import java.util.Set;
-import java.util.HashSet;
-import java.io.BufferedWriter;
-import java.text.SimpleDateFormat;
-import java.io.File;
-import java.io.FileOutputStream;
+	private FrameDimensions focusedFrameDimensions;
+	private FrameDimensions currentFrameDimensions;
+	private FrameBordersDescription frameBordersDescription;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
-import java.util.concurrent.atomic.AtomicLong;
-
-public class FrameBordersDescription {
-
-	private Set<Coordinate> framePoints;
-
-	public FrameBordersDescription(Set<Coordinate> framePoints){
-		this.framePoints = framePoints;
+	public BeginRenderTransactionWorkItemResult(FrameDimensions focusedFrameDimensions, FrameDimensions currentFrameDimensions, FrameBordersDescription frameBordersDescription){
+		this.focusedFrameDimensions = focusedFrameDimensions;
+		this.currentFrameDimensions = currentFrameDimensions;
+		this.frameBordersDescription = frameBordersDescription;
 	}
 
-	public FrameBordersDescription(FrameBordersDescription fd){
-		this.framePoints = new HashSet<Coordinate>(fd.getFramePoints());
+	public FrameDimensions getFocusedFrameDimensions(){
+		return this.focusedFrameDimensions;
 	}
 
-	public Set<Coordinate> getFramePoints(){
-		return this.framePoints;
+	public FrameDimensions getCurrentFrameDimensions(){
+		return this.currentFrameDimensions;
+	}
+
+	public FrameBordersDescription getFrameBordersDescription(){
+		return this.frameBordersDescription;
 	}
 }

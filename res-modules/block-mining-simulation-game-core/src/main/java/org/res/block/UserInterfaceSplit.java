@@ -62,6 +62,7 @@ public abstract class UserInterfaceSplit {
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	public abstract void setEquidistantFrameDimensions(FrameDimensions frameDimensions, FrameBordersDescription frameBordersDescription) throws Exception;
 	public abstract List<FrameDimensions> getOrderedSubframeDimensions(FrameDimensions frameDimensions) throws Exception;
+	public abstract Map<Long, FrameDimensions> collectFrameDimensions(FrameDimensions frameDimensions) throws Exception;
 	public abstract FrameBordersDescription collectAllConnectionPoints(FrameDimensions frameDimensions) throws Exception;
 	public abstract List<UserInterfaceFrameThreadState> collectUserInterfaceFrames() throws Exception;
 	public abstract void removeSplitAtIndex(int i)throws Exception;

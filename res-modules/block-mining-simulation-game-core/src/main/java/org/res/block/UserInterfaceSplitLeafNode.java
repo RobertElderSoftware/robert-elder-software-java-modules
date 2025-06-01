@@ -85,6 +85,12 @@ public class UserInterfaceSplitLeafNode extends UserInterfaceSplit {
 		this.userInterfaceFrameThreadState.putWorkItem(new FrameDimensionsChangeWorkItem(this.userInterfaceFrameThreadState, frameDimensions, frameBordersDescription), WorkItemPriority.PRIORITY_LOW);
 	}
 
+	public Map<Long, FrameDimensions> collectFrameDimensions(FrameDimensions frameDimensions) throws Exception{
+		Map<Long, FrameDimensions> rtn = new HashMap<Long, FrameDimensions>();
+		rtn.put(this.userInterfaceFrameThreadState.getFrameId(), frameDimensions);
+		return rtn;
+	}
+
 	public List<FrameDimensions> getOrderedSubframeDimensions(FrameDimensions frameDimensions) throws Exception{
 		List<FrameDimensions> sumFrameDimensions = new ArrayList<FrameDimensions>();
 		return sumFrameDimensions;
