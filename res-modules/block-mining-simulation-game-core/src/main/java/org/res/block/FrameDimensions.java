@@ -73,6 +73,7 @@ public class FrameDimensions {
 		this.frameOffsetY = frameOffsetY;
 		this.terminalWidth = terminalWidth;
 		this.terminalHeight = terminalHeight;
+		this.sanityCheck();
 	}
 
 	public FrameDimensions(FrameDimensions f) throws Exception {
@@ -83,6 +84,31 @@ public class FrameDimensions {
 		this.frameOffsetY = f.getFrameOffsetY();
 		this.terminalWidth = f.getTerminalWidth();
 		this.terminalHeight = f.getTerminalHeight();
+		this.sanityCheck();
+	}
+
+	public final void sanityCheck() throws Exception{
+		if(this.frameCharacterWidth < 0L){
+			throw new Exception("this.frameCharacterWidth < 0L");
+		}
+		if(this.frameWidth < 0L){
+			throw new Exception("this.frameWidth < 0L");
+		}
+		if(this.frameHeight < 0L){
+			throw new Exception("this.frameHeight < 0L");
+		}
+		if(this.frameOffsetX < 0L){
+			throw new Exception("this.frameOffsetX < 0L");
+		}
+		if(this.frameOffsetY < 0L){
+			throw new Exception("this.frameOffsetY < 0L");
+		}
+		if(this.terminalWidth < 0L){
+			throw new Exception("this.terminalWidth < 0L");
+		}
+		if(this.terminalHeight < 0L){
+			throw new Exception("this.terminalHeight < 0L");
+		}
 	}
 
 	public Long getFrameCharacterWidth(){

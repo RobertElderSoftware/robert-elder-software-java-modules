@@ -73,10 +73,11 @@ public class UserInterfaceSplitHorizontal extends UserInterfaceSplitMulti {
 			//  In wide character mode, must be two column aligned:
 			Long allowableFrameWidth = fcw.equals(1L) ? frameDimensions.getFrameWidth() : (frameDimensions.getFrameWidth() / fcw) * fcw;
 			for(int i = 0; i < this.splitParts.size(); i++){
-				Long currentFrameHeight = (i == (this.splitParts.size() -1)) ? (frameDimensions.getFrameHeight() - yOffsetSoFar) : Math.round(Double.valueOf(frameDimensions.getFrameHeight()) * this.splitPercentages.get(i));
+				Long defaultFrameWidth = this.smarterRound(Double.valueOf(frameDimensions.getFrameHeight()) * this.splitPercentages.get(i), frameDimensions.getTerminalHeight());
+				Long currentFrameHeight = (i == (this.splitParts.size() -1)) ? (frameDimensions.getFrameHeight() - yOffsetSoFar) : defaultFrameWidth;
 
 				if(currentFrameHeight < 0){
-					throw new Exception("currentFrameHeight is negative: " + currentFrameHeight);
+					throw new Exception("currentFrameHeight is negative: " + currentFrameHeight + " for i=" + i + " this.splitParts.size()=" + this.splitParts.size());
 
 				}
 				FrameDimensions subFrameDimensions = new FrameDimensions(

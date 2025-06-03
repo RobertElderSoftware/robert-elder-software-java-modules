@@ -82,6 +82,14 @@ public abstract class UserInterfaceSplit {
 		return -1;
 	}
 
+	public Long smarterRound(Double v, Long maxColumn){
+		//if(v > (Double.valueOf(maxColumn) / 2.0)){
+		//	return (long)Math.ceil(v);
+		//}else{
+			return (long)Math.floor(v);
+		//}
+	}
+
 	public UserInterfaceSplit() throws Exception {
 		this.splitId = seq.getAndIncrement();
 	}

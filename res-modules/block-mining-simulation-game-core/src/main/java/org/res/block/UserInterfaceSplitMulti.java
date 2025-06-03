@@ -73,6 +73,9 @@ public abstract class UserInterfaceSplitMulti extends UserInterfaceSplit {
 			Double scaledDownPercent = this.splitPercentages.get(i) * (sizeBefore / sizeAfter);
 			total += scaledDownPercent;
 			this.splitPercentages.set(i, scaledDownPercent);
+			if(this.splitPercentages.get(i) < 0){
+				throw new Exception("this.splitPercentages.get(i) < 0");
+			}
 		}
 		Double newPercent = 1.0 - total;
 		if(newPercent < 0.0){
@@ -80,6 +83,20 @@ public abstract class UserInterfaceSplitMulti extends UserInterfaceSplit {
 		}
 		this.splitPercentages.add(newPercent);
 		this.splitParts.add(part);
+	}
+
+	public void sanitizeSplitPercentages() throws Exception{
+		Double d = 0.0;
+		for(int i = 0; i < this.splitPercentages.size(); i++){
+			d += this.splitPercentages.get(i);
+		}
+		logger.info("sanitizeSplitPercentages=" + d);
+		Double totalError = d - 1.0;
+		Double averageError = totalError / Double.valueOf(this.splitPercentages.size());
+		// Compensate for numerical errors that accumulate and distrubte them:
+		for(int i = 0; i < this.splitPercentages.size(); i++){
+			this.splitPercentages.set(i, this.splitPercentages.get(i) - averageError);
+		}
 	}
 
 	public void resizeChildSplitWithId(Long childSplitIdToResize, Long deltaX, Long maxDimensionSize) throws Exception{
@@ -100,6 +117,13 @@ public abstract class UserInterfaceSplitMulti extends UserInterfaceSplit {
 					this.splitPercentages.set(i, newSize);
 				}else{
 					this.splitPercentages.set(i, toDistribute + this.splitPercentages.get(i));
+				}
+				this.sanitizeSplitPercentages();
+				if(this.splitPercentages.get(i) < minLimit){
+					this.splitPercentages.set(i, minLimit);
+				}
+				if(this.splitPercentages.get(i) > maxLimit){
+					this.splitPercentages.set(i, maxLimit);
 				}
 			}
 		}
@@ -129,6 +153,9 @@ public abstract class UserInterfaceSplitMulti extends UserInterfaceSplit {
 			Double toDistribute = extra / this.splitPercentages.size();
 			for(int j = 0; j < this.splitPercentages.size(); j++){
 				this.splitPercentages.set(j, this.splitPercentages.get(j) + toDistribute);
+				if(this.splitPercentages.get(j) < 0){
+					throw new Exception("this.splitPercentages.get(j) < 0");
+				}
 			}
 		}
 	}
