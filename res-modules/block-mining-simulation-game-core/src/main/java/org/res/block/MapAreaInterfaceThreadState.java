@@ -567,8 +567,8 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 
 			//  Explicitly write spaces to any unused padded area on right edge of map:
-			int paddingAreaWidth = mapAreaPaddingColumnsRight.intValue();
-			int paddingAreaHeight = mapAreaHeightInCells.intValue();
+			int paddingAreaWidth = mapAreaPaddingColumnsRight < 0 ? 0 : mapAreaPaddingColumnsRight.intValue();
+			int paddingAreaHeight = mapAreaHeightInCells < 0 ? 0 : mapAreaHeightInCells.intValue();
 			int [][] paddingWidths = new int[paddingAreaWidth][paddingAreaHeight];
 			int [][][] paddingColourCodes = new int[paddingAreaWidth][paddingAreaHeight][1];
 			String [][] paddingCharacters = new String[paddingAreaWidth][paddingAreaHeight];

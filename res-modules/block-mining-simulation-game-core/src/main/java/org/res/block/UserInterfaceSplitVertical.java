@@ -74,7 +74,7 @@ public class UserInterfaceSplitVertical extends UserInterfaceSplitMulti {
 			//  For wide character mode, must make sure that vertical splitParts have an even number of columns:
 			Long usedFrameArea = fcw.equals(1L) ? frameDimensions.getFrameWidth() : ((frameDimensions.getFrameWidth() / numSplits) / fcw) * numSplits * fcw;
 			for(int i = 0; i < this.splitParts.size(); i++){
-				Long currentFrameWidth = (i == (this.splitParts.size() -1)) ? (frameDimensions.getFrameWidth() - xOffsetSoFar) : (long)(usedFrameArea * this.splitPercentages.get(i));
+				Long currentFrameWidth = (i == (this.splitParts.size() -1)) ? (frameDimensions.getFrameWidth() - xOffsetSoFar) : Math.round(Double.valueOf(usedFrameArea) * this.splitPercentages.get(i));
 				if(currentFrameWidth < 0){
 					throw new Exception("currentFrameWidth is negative: " + currentFrameWidth);
 				}

@@ -223,6 +223,43 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		return leaf.getSplitId();
 	}
 
+	public Map<Long, Long> getFrameIdToParentSplitIdMap() throws Exception{
+		Map<Long, Long> m = new HashMap<Long, Long>();
+		for(Map.Entry<Long, UserInterfaceSplit> e : userInterfaceSplits.entrySet()){
+			UserInterfaceSplit u = e.getValue();
+			if(u instanceof UserInterfaceSplitLeafNode){
+				UserInterfaceSplitLeafNode l = (UserInterfaceSplitLeafNode)u;
+				Long frameId = l.getUserInterfaceFrameThreadState().getFrameId();
+				if(m.containsKey(frameId)){
+					throw new Exception("Impossible");
+				}else{
+					m.put(frameId, l.getSplitId());
+				}
+			}
+		}
+		return m;
+	}
+
+	public Map<Long, Long> getChildToParentSplitIdMap() throws Exception{
+		Map<Long, Long> m = new HashMap<Long, Long>();
+		for(Map.Entry<Long, UserInterfaceSplit> e : userInterfaceSplits.entrySet()){
+			UserInterfaceSplit u = e.getValue();
+			if(u instanceof UserInterfaceSplitMulti){
+				UserInterfaceSplitMulti l = (UserInterfaceSplitMulti)u;
+				Long parentSplitId = l.getSplitId();
+				for(UserInterfaceSplit child : l.getSplitParts()){
+					Long childSplitId = child.getSplitId();
+					if(m.containsKey(childSplitId)){
+						throw new Exception("Impossible");
+					}else{
+						m.put(childSplitId, parentSplitId);
+					}
+				}
+			}
+		}
+		return m;
+	}
+
 	public UserInterfaceSplit getUserInterfaceSplitById(Long splitId) throws Exception{
 		if(userInterfaceSplits.containsKey(splitId)){
 			return userInterfaceSplits.get(splitId);
@@ -348,6 +385,53 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		m.rotateChildWithId(childSplitIdToRotate, isForward);
 		logger.info("onRotateSplit Rotated isForward=" + isForward);
 		return 0L;
+	}
+
+	public EmptyWorkItemResult onResizeFrame(Long frameId, Long deltaXColumns, Long deltaYColumns) throws Exception{
+		Long splitIdContainingFrame = this.getFrameIdToParentSplitIdMap().get(frameId);
+		Map<Long, Long> childToParentSplitIdMap = this.getChildToParentSplitIdMap();
+		Long closestHorizontalParentId = splitIdContainingFrame;
+		Long closestHorizontalChildId = null;
+		Long closestVerticalParentId = splitIdContainingFrame;
+		Long closestVerticalChildId = null;
+		UserInterfaceSplit closestHorizontalParent = null;
+		UserInterfaceSplit closestVerticalParent = null;
+		//  Look for closest parent horizontal split
+		while(true){
+			closestHorizontalParent = this.getUserInterfaceSplitById(closestHorizontalParentId);
+			if(closestHorizontalParent instanceof UserInterfaceSplitHorizontal){
+				break;
+			}else if(childToParentSplitIdMap.containsKey(closestHorizontalParentId)){
+				closestHorizontalChildId = closestHorizontalParentId;
+				closestHorizontalParentId = childToParentSplitIdMap.get(closestHorizontalParentId);
+			}else{
+				closestHorizontalParent = null;
+				break;
+			}
+		}
+		//  Look for closest parent vertical split
+		while(true){
+			closestVerticalParent = this.getUserInterfaceSplitById(closestVerticalParentId);
+			if(closestVerticalParent instanceof UserInterfaceSplitVertical){
+				break;
+			}else if(childToParentSplitIdMap.containsKey(closestVerticalParentId)){
+				closestVerticalChildId = closestVerticalParentId;
+				closestVerticalParentId = childToParentSplitIdMap.get(closestVerticalParentId);
+			}else{
+				closestVerticalParent = null;
+				break;
+			}
+		}
+
+		if(closestVerticalParent != null && (closestVerticalParent instanceof UserInterfaceSplitVertical)){
+			((UserInterfaceSplitVertical)closestVerticalParent).resizeChildSplitWithId(closestVerticalChildId, deltaXColumns, this.terminalWidth);
+		}
+		if(closestHorizontalParent != null && (closestHorizontalParent instanceof UserInterfaceSplitHorizontal)){
+			((UserInterfaceSplitHorizontal)closestHorizontalParent).resizeChildSplitWithId(closestHorizontalChildId, deltaYColumns, this.terminalHeight);
+		}
+
+		this.onFrameDimensionsChanged();
+		return new EmptyWorkItemResult();
 	}
 
 	public Long onCloseFrame(Long frameId) throws Exception{
@@ -752,17 +836,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
-	public void onTerminalDimensionsChanged(Long terminalWidth, Long terminalHeight, Long frameCharacterWidth) throws Exception{
-		this.initializeConsole(terminalWidth, terminalHeight);
-
-		if(this.focusedFrameId == null){
-			this.focusOnNextFrame();
-		}
-		//  When the terminal size changes, send a notify to all of the user interface frames to let them know about it
-		this.currentTerminalFrameDimensions = new FrameDimensions(frameCharacterWidth, terminalWidth, terminalHeight, 0L, 0L, terminalWidth, terminalHeight);
+	public void onFrameDimensionsChanged() throws Exception{
 		FrameBordersDescription frameBordersDescription = (this.rootSplitId == null) ? new FrameBordersDescription(new HashSet<Coordinate>()) : this.getUserInterfaceSplitById(this.rootSplitId).collectAllConnectionPoints(this.currentTerminalFrameDimensions);
 		if(this.rootSplitId != null){
-			this.getUserInterfaceSplitById(this.rootSplitId).setEquidistantFrameDimensions();
+			this.getUserInterfaceSplitById(this.rootSplitId).sendFrameChanceNotifies();
 		}
 
 		if(this.rootSplitId == null){
@@ -771,6 +848,18 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			this.currentFrameDimensionsCollection = this.getUserInterfaceSplitById(this.rootSplitId).collectFrameDimensions(this.currentTerminalFrameDimensions);
 		}
 		this.currentFrameDimensionsCollection.put(this.helpMenuFrameThreadState.getFrameId(), this.currentTerminalFrameDimensions);
+	}
+
+	public void onTerminalDimensionsChanged(Long terminalWidth, Long terminalHeight, Long frameCharacterWidth) throws Exception{
+		this.initializeConsole(terminalWidth, terminalHeight);
+
+		if(this.focusedFrameId == null){
+			this.focusOnNextFrame();
+		}
+		this.currentTerminalFrameDimensions = new FrameDimensions(frameCharacterWidth, terminalWidth, terminalHeight, 0L, 0L, terminalWidth, terminalHeight);
+
+		//  When the terminal size changes, send a notify to all of the user interface frames to let them know about it
+		this.onFrameDimensionsChanged();
 
 		this.helpMenuFrameThreadState.putWorkItem(new FrameChangeWorkItem(this.helpMenuFrameThreadState), WorkItemPriority.PRIORITY_LOW);
 

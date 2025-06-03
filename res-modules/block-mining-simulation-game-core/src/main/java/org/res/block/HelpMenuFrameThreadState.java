@@ -161,6 +161,17 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 						HelpMenuOptionType.DO_SUBMENU, 
 						new HelpMenuLevel(moveToOptionsList)
 					),
+					new SubMenuHelpMenuOption(
+						"Resize Current Frame",
+						HelpMenuOptionType.DO_SUBMENU, 
+						new HelpMenuLevel(Arrays.asList(
+							new SimpleHelpMenuOption("+++Increase Width+++", HelpMenuOptionType.RESIZE_FRAME_X_PLUS),
+							new SimpleHelpMenuOption("---Decrease Width---", HelpMenuOptionType.RESIZE_FRAME_X_MINUS),
+							new SimpleHelpMenuOption("+++Increase Height+++", HelpMenuOptionType.RESIZE_FRAME_Y_PLUS),
+							new SimpleHelpMenuOption("---Decrease Height---", HelpMenuOptionType.RESIZE_FRAME_Y_MINUS),
+							new SimpleHelpMenuOption("Back", HelpMenuOptionType.BACK_UP_LEVEL)
+						))
+					),
 					new SimpleHelpMenuOption("Close Current Frame", HelpMenuOptionType.CLOSE_CURRENT_FRAME),
 					new SimpleHelpMenuOption("Quit Game", HelpMenuOptionType.QUIT_GAME)
 				)
@@ -177,6 +188,21 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			this.render();
 		}else{
 			logger.info("HelpMenuFrameThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
+		}
+	}
+
+	public void onResizeFrame(Long deltaXColumns, Long deltaYColumns) throws Exception {
+		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+
+		//  Get id of currently focused frame
+		GetFocusedFrameWorkItem getFocusedFrameWorkItem = new GetFocusedFrameWorkItem(cwts);
+		WorkItemResult getFocusedFrameWorkItemResult = cwts.putBlockingWorkItem(getFocusedFrameWorkItem, WorkItemPriority.PRIORITY_LOW);
+		Long focusedFrameId = ((GetFocusedFrameWorkItemResult)getFocusedFrameWorkItemResult).getFocusedFrameId();
+		if(focusedFrameId == null){
+			logger.info("Cannot resize when no focused frame.");
+		}else{
+			ResizeFrameWorkItem resizeFrameWorkItem = new ResizeFrameWorkItem(cwts, focusedFrameId, deltaXColumns, deltaYColumns);
+			cwts.putBlockingWorkItem(resizeFrameWorkItem, WorkItemPriority.PRIORITY_LOW);
 		}
 	}
 
@@ -312,6 +338,18 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			} case HelpMenuOptionType.ROTATE_SPLIT:{
 				this.onRotateSplit((RotateSplitHelpMenuOption)option);
 				this.helpMenu.setActiveState(false);
+				break;
+			} case HelpMenuOptionType.RESIZE_FRAME_Y_PLUS:{
+				this.onResizeFrame(0L, 1L);
+				break;
+			} case HelpMenuOptionType.RESIZE_FRAME_Y_MINUS:{
+				this.onResizeFrame(0L, -1L);
+				break;
+			} case HelpMenuOptionType.RESIZE_FRAME_X_PLUS:{
+				this.onResizeFrame(1L, 0L);
+				break;
+			} case HelpMenuOptionType.RESIZE_FRAME_X_MINUS:{
+				this.onResizeFrame(-1L, 0L);
 				break;
 			} case HelpMenuOptionType.QUIT_GAME:{
 				logger.info("Menu option to quit was selected.  Exiting...");

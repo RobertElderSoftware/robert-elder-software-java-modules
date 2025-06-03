@@ -82,6 +82,28 @@ public abstract class UserInterfaceSplitMulti extends UserInterfaceSplit {
 		this.splitParts.add(part);
 	}
 
+	public void resizeChildSplitWithId(Long childSplitIdToResize, Long deltaX, Long maxDimensionSize) throws Exception{
+		int indexOfChild = this.getIndexForChildSplitWithId(childSplitIdToResize);
+		Double columnValue = 1.0 / Double.valueOf(maxDimensionSize);
+		Double amountToChange = Double.valueOf(deltaX) * columnValue;
+		Double currentSize = this.splitPercentages.get(indexOfChild);
+		Double newSize = (currentSize + amountToChange);
+		Double minLimit = columnValue;
+		Double maxLimit = 1.0 - columnValue;
+		newSize = newSize < minLimit ? minLimit : newSize;
+		newSize = newSize > maxLimit ? maxLimit : newSize;
+		if(!currentSize.equals(newSize)){
+			Double toDistribute = (-amountToChange) / (this.splitPercentages.size() -1);
+			
+			for(int i = 0; i < this.splitPercentages.size(); i++){
+				if(i == indexOfChild){
+					this.splitPercentages.set(i, newSize);
+				}else{
+					this.splitPercentages.set(i, toDistribute + this.splitPercentages.get(i));
+				}
+			}
+		}
+	}
 
 	public void rotateChildWithId(Long childSplitIdToRotate, boolean isForward) throws Exception{
 		int indexOfChild = this.getIndexForChildSplitWithId(childSplitIdToRotate);
@@ -142,9 +164,9 @@ public abstract class UserInterfaceSplitMulti extends UserInterfaceSplit {
 		return rtn;
 	}
 
-	public void setEquidistantFrameDimensions() throws Exception{
+	public void sendFrameChanceNotifies() throws Exception{
 		for(int i = 0; i < this.splitParts.size(); i++){
-			this.splitParts.get(i).setEquidistantFrameDimensions();
+			this.splitParts.get(i).sendFrameChanceNotifies();
 		}
 	}
 

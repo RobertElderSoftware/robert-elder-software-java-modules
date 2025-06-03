@@ -81,7 +81,7 @@ public class UserInterfaceSplitLeafNode extends UserInterfaceSplit {
 		return rtn;
 	}
 
-	public void setEquidistantFrameDimensions() throws Exception{
+	public void sendFrameChanceNotifies() throws Exception{
 		this.userInterfaceFrameThreadState.putWorkItem(new FrameChangeWorkItem(this.userInterfaceFrameThreadState), WorkItemPriority.PRIORITY_LOW);
 	}
 

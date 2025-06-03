@@ -60,7 +60,7 @@ public abstract class UserInterfaceSplit {
 	private static final AtomicLong seq = new AtomicLong(0);
 	public final long splitId;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	public abstract void setEquidistantFrameDimensions() throws Exception;
+	public abstract void sendFrameChanceNotifies() throws Exception;
 	public abstract List<FrameDimensions> getOrderedSubframeDimensions(FrameDimensions frameDimensions) throws Exception;
 	public abstract Map<Long, FrameDimensions> collectFrameDimensions(FrameDimensions frameDimensions) throws Exception;
 	public abstract FrameBordersDescription collectAllConnectionPoints(FrameDimensions frameDimensions) throws Exception;

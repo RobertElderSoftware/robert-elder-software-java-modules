@@ -30,44 +30,35 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.Map;
-import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 
-public enum HelpMenuOptionType {
-        OPEN_NEW_FRAME (1L),
-        QUIT_GAME (2L),
-        BACK_UP_LEVEL (3L),
-        DO_SUBMENU(4L),
-        CLOSE_CURRENT_FRAME (5L),
-        ROTATE_SPLIT (6L),
-        RESIZE_FRAME_X_PLUS (7L),
-        RESIZE_FRAME_X_MINUS (8L),
-        RESIZE_FRAME_Y_PLUS (9L),
-        RESIZE_FRAME_Y_MINUS (10L);
 
-        private final long id;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
 
-        private HelpMenuOptionType(long i) {
-                id = i;
-        }
+public class ResizeFrameWorkItem extends ConsoleQueueableWorkItem {
 
-        public boolean equalsId(long i) {
-                return id == i;
-        }
+	private Long frameId;
+	private Long deltaXColumns;
+	private Long deltaYColumns;
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-        public long toLong() {
-                return this.id;
-        }
-
-	private static final Map<Long, HelpMenuOptionType> helpMenuOptionTypesByValue = new HashMap<Long, HelpMenuOptionType>();
-
-	static {
-		for(HelpMenuOptionType type : HelpMenuOptionType.values()) {
-			helpMenuOptionTypesByValue.put(type.toLong(), type);
-		}
+	public ResizeFrameWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Long frameId, Long deltaXColumns, Long deltaYColumns){
+		super(consoleWriterThreadState, true);
+		this.frameId = frameId;
+		this.deltaXColumns = deltaXColumns;
+		this.deltaYColumns = deltaYColumns;
 	}
 
-	public static HelpMenuOptionType forValue(long value) {
-		return helpMenuOptionTypesByValue.get(value);
+	public WorkItemResult executeQueuedWork() throws Exception{
+		return this.consoleWriterThreadState.onResizeFrame(this.frameId, this.deltaXColumns, this.deltaYColumns);
+	}
+
+	public void doWork() throws Exception{
+		this.consoleWriterThreadState.addPendingQueueableWorkItem(this);
 	}
 }
