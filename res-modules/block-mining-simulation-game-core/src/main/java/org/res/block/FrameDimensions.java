@@ -53,6 +53,7 @@ import java.io.FileOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
+import java.util.Objects;
 
 public class FrameDimensions {
 
@@ -137,5 +138,24 @@ public class FrameDimensions {
 
 	public Long getTerminalHeight(){
 		return this.terminalHeight;
+	}
+
+	@Override
+	public final int hashCode(){
+		return 0;
+	}
+
+	@Override
+	public boolean equals(Object a){
+		FrameDimensions o = (FrameDimensions)a;
+		return (o != null) && (
+			Objects.equals(o.getFrameCharacterWidth(), this.frameCharacterWidth) &&
+			Objects.equals(o.getFrameWidth(), this.frameWidth) &&
+			Objects.equals(o.getFrameHeight(), this.frameHeight) &&
+			Objects.equals(o.getFrameOffsetX(), this.frameOffsetX) &&
+			Objects.equals(o.getFrameOffsetY(), this.frameOffsetY) &&
+			Objects.equals(o.getTerminalWidth(), this.terminalWidth) &&
+			Objects.equals(o.getTerminalHeight(), this.terminalHeight)
+		);
 	}
 }

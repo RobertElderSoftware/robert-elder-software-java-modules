@@ -191,9 +191,9 @@ public abstract class UserInterfaceSplitMulti extends UserInterfaceSplit {
 		return rtn;
 	}
 
-	public void sendFrameChanceNotifies() throws Exception{
+	public void sendFrameChangeNotifies(ConsoleWriterThreadState cwts) throws Exception{
 		for(int i = 0; i < this.splitParts.size(); i++){
-			this.splitParts.get(i).sendFrameChanceNotifies();
+			this.splitParts.get(i).sendFrameChangeNotifies(cwts);
 		}
 	}
 

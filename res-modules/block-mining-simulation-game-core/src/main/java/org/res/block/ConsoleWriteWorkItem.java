@@ -54,8 +54,9 @@ public class ConsoleWriteWorkItem extends ConsoleQueueableWorkItem {
 	private int ySize;
 	private FrameDimensions frameDimensions;
 	private int bufferIndex;
+	private FrameChangeWorkItemParams frameChangeParams;
 
-	public ConsoleWriteWorkItem(ConsoleWriterThreadState consoleWriterThreadState, int [][] characterWidths, int [][][] colourCodes, String [][] characters, boolean [][] hasChange, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions frameDimensions, int bufferIndex){
+	public ConsoleWriteWorkItem(ConsoleWriterThreadState consoleWriterThreadState, int [][] characterWidths, int [][][] colourCodes, String [][] characters, boolean [][] hasChange, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions frameDimensions, int bufferIndex, FrameChangeWorkItemParams frameChangeParams){
 		super(consoleWriterThreadState, true);
 		this.characterWidths = characterWidths;
 		this.colourCodes = colourCodes;
@@ -67,6 +68,7 @@ public class ConsoleWriteWorkItem extends ConsoleQueueableWorkItem {
 		this.ySize = ySize;
 		this.frameDimensions = frameDimensions;
 		this.bufferIndex = bufferIndex;
+		this.frameChangeParams = frameChangeParams;
 	}
 
 	public int [][] getCharacterWidths(){
@@ -98,7 +100,7 @@ public class ConsoleWriteWorkItem extends ConsoleQueueableWorkItem {
 	}
 
 	public WorkItemResult executeQueuedWork() throws Exception{
-		return this.consoleWriterThreadState.prepareTerminalTextChange(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, frameDimensions, bufferIndex);
+		return this.consoleWriterThreadState.prepareTerminalTextChange(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, frameDimensions, bufferIndex, frameChangeParams);
 	}
 
 	public void doWork() throws Exception{

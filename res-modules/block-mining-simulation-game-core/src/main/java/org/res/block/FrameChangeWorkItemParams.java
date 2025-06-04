@@ -31,20 +31,40 @@
 package org.res.block;
 
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
 import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class BeginRenderTransactionWorkItemResult extends WorkItemResult {
+public class FrameChangeWorkItemParams {
 
+	private Long terminalDimensionsChangeId;
+	private Long frameDimensionsChangeId;
+	private Long frameId;
 	private FrameDimensions focusedFrameDimensions;
 	private FrameDimensions currentFrameDimensions;
 	private FrameBordersDescription frameBordersDescription;
 
-	public BeginRenderTransactionWorkItemResult(FrameDimensions focusedFrameDimensions, FrameDimensions currentFrameDimensions, FrameBordersDescription frameBordersDescription){
+	public FrameChangeWorkItemParams(FrameDimensions focusedFrameDimensions, FrameDimensions currentFrameDimensions, FrameBordersDescription frameBordersDescription, Long terminalDimensionsChangeId, Long frameDimensionsChangeId, Long frameId){
+		this.terminalDimensionsChangeId = terminalDimensionsChangeId;
+		this.frameDimensionsChangeId = frameDimensionsChangeId;
+		this.frameId = frameId;
 		this.focusedFrameDimensions = focusedFrameDimensions;
 		this.currentFrameDimensions = currentFrameDimensions;
 		this.frameBordersDescription = frameBordersDescription;
+	}
+
+	public Long getTerminalDimensionsChangeId(){
+		return this.terminalDimensionsChangeId;
+	}
+
+	public Long getFrameDimensionsChangeId(){
+		return this.frameDimensionsChangeId;
+	}
+
+	public Long getFrameId(){
+		return this.frameId;
 	}
 
 	public FrameDimensions getFocusedFrameDimensions(){

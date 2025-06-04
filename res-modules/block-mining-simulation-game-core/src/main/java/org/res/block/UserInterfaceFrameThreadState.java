@@ -59,6 +59,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	private static final AtomicLong seq = new AtomicLong(0);
 	public final long frameId;
+	protected FrameChangeWorkItemParams currentFrameChangeWorkItemParams;
+
+	private final AtomicLong frameDimensionsChangeSeq = new AtomicLong(0);
 
 	public abstract void putWorkItem(UIWorkItem workItem, WorkItemPriority priority) throws Exception;
 	public abstract void render() throws Exception;
@@ -109,10 +112,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	protected FrameDimensions frameDimensions;
 	protected FrameDimensions focusedFrameDimensions;
 
-	public FrameDimensions getFrameDimensions(){
-		return frameDimensions;
-	}
-
 	private List<MeasuredTextFragment> getMeasuredTextFragments(ColouredTextFragmentList fragmentList, Long maxLineWidth) throws Exception{
 		List<MeasuredTextFragment> textFragments = new ArrayList<MeasuredTextFragment>();
 		for(ColouredTextFragment cf : fragmentList.getColouredTextFragments()){
@@ -156,6 +155,14 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 
 		return textFragments;
+	}
+
+	public Long getFrameDimensionsChangeId(){
+		return this.frameDimensionsChangeSeq.get();
+	}
+
+	public Long getAndIncrementFrameDimensionsChangeId(){
+		return this.frameDimensionsChangeSeq.getAndIncrement();
 	}
 
 	protected List<LinePrintingInstruction> getLinePrintingInstructions(String text, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign, Long maxLineLength) throws Exception{
@@ -290,8 +297,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 	public void sendConsolePrintMessage(int [][] characterWidths, int [][][] colourCodes, String [][] characters, boolean [][] hasChange, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions fd, int bufferIndex) throws Exception{
-
-		this.clientBlockModelContext.getConsoleWriterThreadState().putBlockingWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, fd, bufferIndex), WorkItemPriority.PRIORITY_LOW);
+		this.clientBlockModelContext.getConsoleWriterThreadState().putBlockingWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, fd, bufferIndex, this.currentFrameChangeWorkItemParams), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	protected void executeLinePrintingInstructionsAtYOffset(List<LinePrintingInstruction> instructions, Long yOffset) throws Exception{
@@ -497,7 +503,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		boolean containsBottomLeftHandCorner = hasBottomBorder && hasLeftBorder;
 		boolean containsBottomRightHandCorner = hasBottomBorder && hasRightBorder;
 
-		FrameDimensions ffd = this.focusedFrameDimensions;
+		FrameDimensions ffd = this.currentFrameChangeWorkItemParams.getFocusedFrameDimensions();
 
 		if(hasTopBorder){
 			ColouredTextFragmentList fragmentList = new ColouredTextFragmentList();
@@ -570,14 +576,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 	}
 
-	public void onFrameChange() throws Exception{
-		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
-		BeginRenderTransactionWorkItem beginRenderTransactionWorkItem = new BeginRenderTransactionWorkItem(cwts, this.frameId);
-		BeginRenderTransactionWorkItemResult beginRenderTransactionWorkItemResult = (BeginRenderTransactionWorkItemResult)cwts.putBlockingWorkItem(beginRenderTransactionWorkItem, WorkItemPriority.PRIORITY_LOW);
-
-		this.focusedFrameDimensions = beginRenderTransactionWorkItemResult.getFocusedFrameDimensions();
-		this.frameDimensions = beginRenderTransactionWorkItemResult.getCurrentFrameDimensions();
-		this.frameBordersDescription = beginRenderTransactionWorkItemResult.getFrameBordersDescription();
+	public void onFrameChange(FrameChangeWorkItemParams params) throws Exception{
+		this.currentFrameChangeWorkItemParams = params;
+		this.frameBordersDescription = params.getFrameBordersDescription();
+		this.frameDimensions = params.getCurrentFrameDimensions();
 		this.onRenderFrame();
 	}
 

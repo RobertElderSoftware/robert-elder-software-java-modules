@@ -39,11 +39,14 @@ import java.nio.LongBuffer;
 
 public class FrameChangeWorkItem extends UIWorkItem {
 
-	public FrameChangeWorkItem(UserInterfaceFrameThreadState userInterfaceFrameThreadState){
+	private FrameChangeWorkItemParams params;
+
+	public FrameChangeWorkItem(UserInterfaceFrameThreadState userInterfaceFrameThreadState, FrameChangeWorkItemParams params){
 		super(userInterfaceFrameThreadState, false);
+		this.params = params;
 	}
 
 	public void doWork() throws Exception{
-		this.userInterfaceFrameThreadState.onFrameChange();
+		this.userInterfaceFrameThreadState.onFrameChange(this.params);
 	}
 }
