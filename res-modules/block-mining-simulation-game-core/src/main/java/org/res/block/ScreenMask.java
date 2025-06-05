@@ -53,48 +53,26 @@ import java.lang.invoke.MethodHandles;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
-public class ScreenOutputBuffer {
+public class ScreenMask {
 
-	public int [][] characterWidths = null;
-	public int [][][] colourCodes = null;
-	public String [][] characters = null;
-	public boolean [][] changedFlags = null;
+	public int width;
+	public int height;
+	public boolean [][] flags = null;
 
-	public ScreenOutputBuffer(){
-
-	}
-
-	public void initialize(Long terminalWidth, Long terminalHeight){
-		// By default, make assumptions that minimize screen prints
-		this.initialize(terminalWidth, terminalHeight, 0, null, false, null);
+	public ScreenMask(){
 
 	}
 
-	public void initialize(Long terminalWidth, Long terminalHeight, int chrWidth, String s, boolean changed, String msg){
-		this.characterWidths = new int [terminalWidth.intValue()][terminalHeight.intValue()];
-		for(int [] a : this.characterWidths){
-			Arrays.fill(a, chrWidth);
-		}
-		this.colourCodes = new int [terminalWidth.intValue()][terminalHeight.intValue()][0];
-		this.characters = new String [terminalWidth.intValue()][terminalHeight.intValue()];
-		for(String [] a : this.characters){
-			Arrays.fill(a, s);
-		}
-		this.changedFlags = new boolean [terminalWidth.intValue()][terminalHeight.intValue()];
-		for(boolean [] a : this.changedFlags){
-			Arrays.fill(a, changed);
-		}
-		if(msg != null){
-			Long messageLength = Long.valueOf(msg.length());
-			Long xOffset = messageLength > terminalWidth ? 0 : ((terminalWidth - messageLength) / 2);
-			Long yOffset = terminalHeight / 2L;
+	public void initialize(int width, int height){
+		this.initialize(width, height, false);
+	}
 
-			for(Long i = 0L; i < msg.length(); i++){
-				if(((int)(xOffset + i)) < terminalWidth.intValue()){
-					this.characters[xOffset.intValue() + i.intValue()][yOffset.intValue()] = String.valueOf(msg.charAt(i.intValue()));
-				}
-			}
-
+	public void initialize(int width, int height, boolean defaultFlag){
+		this.width = width;
+		this.height = height;
+		this.flags = new boolean [width][height];
+		for(boolean [] a : this.flags){
+			Arrays.fill(a, defaultFlag);
 		}
 	}
 }

@@ -74,6 +74,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	private Long edgeDistanceScreenY = 10L;
 
 	private byte[] unprocessedInputBytes = new byte[0];
+	private FrameDimensions previousFrameDimensions = null;
 
 	public MapAreaInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
 		super(blockManagerThreadCollection, clientBlockModelContext);
@@ -178,30 +179,36 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void onRenderFrame() throws Exception{
-		Long totalXBorderSize = this.getTotalXBorderSize();
-		Long totalYBorderSize = this.getTotalYBorderSize();
-		Long printableInnerWidth = this.getFrameWidth() - totalXBorderSize;
-		this.mapAreaWidthInCells = printableInnerWidth / this.getMapAreaCellWidth();
-		this.mapAreaHeightInCells = this.getFrameHeight() - totalYBorderSize;
-		//  Don't allow the map area to negative when the window is resized very small:
-		this.mapAreaWidthInCells = mapAreaWidthInCells < 1L ? 1L : mapAreaWidthInCells;
-		this.mapAreaHeightInCells = mapAreaHeightInCells < 1L ? 1L : mapAreaHeightInCells;
-		this.mapAreaPaddingColumnsRight = printableInnerWidth - (this.mapAreaWidthInCells * this.getMapAreaCellWidth());
-		logger.info("onRenderFrame calculated: mapAreaWidthInCells=" + mapAreaWidthInCells + ", mapAreaHeightInCells=" + mapAreaHeightInCells);
-		Long topRightHandX = mapAreaWidthInCells / 2L;
-		Long topRightHandZ = mapAreaHeightInCells / 2L;
-		Long bottomLeftHandX = topRightHandX - (mapAreaWidthInCells - 1L);
-		Long bottomLeftHandZ = topRightHandZ - (mapAreaHeightInCells - 1L);
-		logger.info("onRenderFrame calculated: topRightHandX=" + topRightHandX + ", topRightHandZ=" + topRightHandZ + ", bottomLeftHandX=" + bottomLeftHandX + ", bottomLeftHandZ=" + bottomLeftHandZ);
+		if(
+			this.previousFrameDimensions == null ||
+			(!this.previousFrameDimensions.equals(this.frameDimensions))
+		){
+			Long totalXBorderSize = this.getTotalXBorderSize();
+			Long totalYBorderSize = this.getTotalYBorderSize();
+			Long printableInnerWidth = this.getFrameWidth() - totalXBorderSize;
+			this.mapAreaWidthInCells = printableInnerWidth / this.getMapAreaCellWidth();
+			this.mapAreaHeightInCells = this.getFrameHeight() - totalYBorderSize;
+			//  Don't allow the map area to negative when the window is resized very small:
+			this.mapAreaWidthInCells = mapAreaWidthInCells < 1L ? 1L : mapAreaWidthInCells;
+			this.mapAreaHeightInCells = mapAreaHeightInCells < 1L ? 1L : mapAreaHeightInCells;
+			this.mapAreaPaddingColumnsRight = printableInnerWidth - (this.mapAreaWidthInCells * this.getMapAreaCellWidth());
+			logger.info("onRenderFrame calculated: mapAreaWidthInCells=" + mapAreaWidthInCells + ", mapAreaHeightInCells=" + mapAreaHeightInCells);
+			Long topRightHandX = mapAreaWidthInCells / 2L;
+			Long topRightHandZ = mapAreaHeightInCells / 2L;
+			Long bottomLeftHandX = topRightHandX - (mapAreaWidthInCells - 1L);
+			Long bottomLeftHandZ = topRightHandZ - (mapAreaHeightInCells - 1L);
+			logger.info("onRenderFrame calculated: topRightHandX=" + topRightHandX + ", topRightHandZ=" + topRightHandZ + ", bottomLeftHandX=" + bottomLeftHandX + ", bottomLeftHandZ=" + bottomLeftHandZ);
 
-		Coordinate bottomleftHandCorner = new Coordinate(Arrays.asList(bottomLeftHandX + playerPosition.getX(), playerPosition.getY(), bottomLeftHandZ + playerPosition.getZ(), 0L));
-		Coordinate topRightHandCorner = new Coordinate(Arrays.asList(topRightHandX + playerPosition.getX(), playerPosition.getY(), topRightHandZ + playerPosition.getZ(), 0L));
+			Coordinate bottomleftHandCorner = new Coordinate(Arrays.asList(bottomLeftHandX + playerPosition.getX(), playerPosition.getY(), bottomLeftHandZ + playerPosition.getZ(), 0L));
+			Coordinate topRightHandCorner = new Coordinate(Arrays.asList(topRightHandX + playerPosition.getX(), playerPosition.getY(), topRightHandZ + playerPosition.getZ(), 0L));
 
-		CuboidAddress newMapArea = new CuboidAddress(bottomleftHandCorner, topRightHandCorner);
+			CuboidAddress newMapArea = new CuboidAddress(bottomleftHandCorner, topRightHandCorner);
 
-		this.forceBlockChangesInMapArea(); //  Necessary to re-print when terminal size changes, but map area stays same.
-		this.onMapAreaChange(newMapArea);
+			this.forceBlockChangesInMapArea(); //  Necessary to re-print when terminal size changes, but map area stays same.
+			this.onMapAreaChange(newMapArea);
+		}
 		this.render();
+		this.previousFrameDimensions = this.frameDimensions;
 	}
 
 	public void render() throws Exception{
