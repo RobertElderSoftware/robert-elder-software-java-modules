@@ -603,8 +603,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
-	public void sendFrameChangeWorkItem(UserInterfaceFrameThreadState frame) throws Exception{
-		FrameChangeWorkItemParams p = new FrameChangeWorkItemParams(
+	public FrameChangeWorkItemParams makeFrameChangeWorkItemParams(UserInterfaceFrameThreadState frame) throws Exception{
+		return new FrameChangeWorkItemParams(
 			this.getFocusedFrameDimensions(),
 			this.getFrameDimensionsForFrameId(frame.getFrameId()),
 			this.getFrameBordersDescription(),
@@ -612,7 +612,13 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			frame.getFrameDimensionsChangeId(),
 			frame.getFrameId()
 		);
-		frame.putWorkItem(new FrameChangeWorkItem(frame, p), WorkItemPriority.PRIORITY_LOW);
+	}
+
+	public void sendFrameChangeWorkItem(UserInterfaceFrameThreadState frame) throws Exception{
+		frame.putWorkItem(
+			new FrameChangeWorkItem(frame, makeFrameChangeWorkItemParams(frame)),
+			WorkItemPriority.PRIORITY_LOW
+		);
 	}
 
 	public void notifyAllFramesOfFocusChange() throws Exception{
@@ -735,18 +741,20 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
-	public EmptyWorkItemResult prepareTerminalTextChange(int [][] newCharacterWidths, int [][][] newColourCodes, String [][] newCharacters, boolean [][] hasChange, int xOffset, int yOffset, int xChangeSize, int yChangeSize, FrameDimensions frameDimensions, int bufferIndex, FrameChangeWorkItemParams frameChangeParams) throws Exception{
-		if(frameChangeParams.getTerminalDimensionsChangeId() < ConsoleWriterThreadState.terminalDimensionsChangeSeq.get()){
-			//logger.info("Discarding outdated text change: frameChangeParams.getTerminalDimensionsChangeId()=" + frameChangeParams.getTerminalDimensionsChangeId() + ", ConsoleWriterThreadState.terminalDimensionsChangeSeq.get()=" + ConsoleWriterThreadState.terminalDimensionsChangeSeq.get());
-			return new EmptyWorkItemResult();
-		}
+	public WorkItemResult prepareTerminalTextChange(int [][] newCharacterWidths, int [][][] newColourCodes, String [][] newCharacters, boolean [][] hasChange, int xOffset, int yOffset, int xChangeSize, int yChangeSize, FrameDimensions frameDimensions, int bufferIndex, FrameChangeWorkItemParams frameChangeParams) throws Exception{
 		if(!activeFrameStates.containsKey(frameChangeParams.getFrameId())){
 			logger.info("Discarding frame text change for frame id=: " + frameChangeParams.getFrameId() + " because frame id does not exist (it's probably closed).");
 			return new EmptyWorkItemResult();
 		}
-		if(frameChangeParams.getFrameDimensionsChangeId() < this.getFrameStateById(frameChangeParams.getFrameId()).getFrameDimensionsChangeId()){
-			logger.info("Discarding outdated frame text change: frameChangeParams.getFrameDimensionsChangeId()=" + frameChangeParams.getFrameDimensionsChangeId() + ", this.getFrameStateById(frameChangeParams.getFrameId()).getFrameDimensionsChangeId()=" + this.getFrameStateById(frameChangeParams.getFrameId()).getFrameDimensionsChangeId());
-			return new EmptyWorkItemResult();
+
+		UserInterfaceFrameThreadState frame = this.getFrameStateById(frameChangeParams.getFrameId());
+		if(frameChangeParams.getFrameDimensionsChangeId() < frame.getFrameDimensionsChangeId()){
+			logger.info("Discarding outdated frame text change: frameChangeParams.getFrameDimensionsChangeId()=" + frameChangeParams.getFrameDimensionsChangeId() + ", frame.getFrameDimensionsChangeId()=" + frame.getFrameDimensionsChangeId());
+			return makeFrameChangeWorkItemParams(frame);
+		}
+		if(frameChangeParams.getTerminalDimensionsChangeId() < ConsoleWriterThreadState.terminalDimensionsChangeSeq.get()){
+			logger.info("Discarding outdated text change: frameChangeParams.getTerminalDimensionsChangeId()=" + frameChangeParams.getTerminalDimensionsChangeId() + ", ConsoleWriterThreadState.terminalDimensionsChangeSeq.get()=" + ConsoleWriterThreadState.terminalDimensionsChangeSeq.get());
+			return makeFrameChangeWorkItemParams(frame);
 		}
 		for(int j = 0; j < yChangeSize; j++){
 			for(int i = 0; i < xChangeSize; i++){

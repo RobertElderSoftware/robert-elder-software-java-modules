@@ -146,16 +146,25 @@ public class FrameDimensions {
 	}
 
 	@Override
+	public String toString(){
+		return "frameCharacterWidth=" + String.valueOf(this.frameCharacterWidth) + "frameWidth=" + String.valueOf(this.frameWidth) + "frameHeight=" + String.valueOf(this.frameHeight) + "frameOffsetX=" + String.valueOf(this.frameOffsetX) + "frameOffsetY=" + String.valueOf(this.frameOffsetY) + "terminalWidth=" + String.valueOf(this.terminalWidth) + "terminalHeight=" + String.valueOf(this.terminalHeight);
+	}
+
+	@Override
 	public boolean equals(Object a){
 		FrameDimensions o = (FrameDimensions)a;
-		return (o != null) && (
-			Objects.equals(o.getFrameCharacterWidth(), this.frameCharacterWidth) &&
-			Objects.equals(o.getFrameWidth(), this.frameWidth) &&
-			Objects.equals(o.getFrameHeight(), this.frameHeight) &&
-			Objects.equals(o.getFrameOffsetX(), this.frameOffsetX) &&
-			Objects.equals(o.getFrameOffsetY(), this.frameOffsetY) &&
-			Objects.equals(o.getTerminalWidth(), this.terminalWidth) &&
-			Objects.equals(o.getTerminalHeight(), this.terminalHeight)
-		);
+		if(o == null){
+			return false;
+		}else{
+			return (
+				Objects.equals(o.getFrameCharacterWidth(), this.frameCharacterWidth) &&
+				Objects.equals(o.getFrameWidth(), this.frameWidth) &&
+				Objects.equals(o.getFrameHeight(), this.frameHeight) &&
+				Objects.equals(o.getFrameOffsetX(), this.frameOffsetX) &&
+				Objects.equals(o.getFrameOffsetY(), this.frameOffsetY) &&
+				Objects.equals(o.getTerminalWidth(), this.terminalWidth) &&
+				Objects.equals(o.getTerminalHeight(), this.terminalHeight)
+			);
+		}
 	}
 }

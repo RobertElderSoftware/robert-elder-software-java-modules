@@ -398,8 +398,8 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	public void render() throws Exception{
 		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
 
-		int terminalWidth = this.frameDimensions.getTerminalWidth().intValue();
-		int terminalHeight = this.frameDimensions.getTerminalHeight().intValue();
+		int terminalWidth = this.getFrameDimensions().getTerminalWidth().intValue();
+		int terminalHeight = this.getFrameDimensions().getTerminalHeight().intValue();
 
 		List<LinePrintingInstructionAtOffset> instructions = new ArrayList<LinePrintingInstructionAtOffset>();
 
@@ -440,7 +440,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			}
 		}
 
-		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, 0, 0, terminalWidth, terminalHeight, this.frameDimensions, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
+		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, 0, 0, terminalWidth, terminalHeight, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_MENU);
 
 		for(LinePrintingInstructionAtOffset instruction : instructions){
 			Long lineYOffset = instruction.getOffsetY() + yOffset;

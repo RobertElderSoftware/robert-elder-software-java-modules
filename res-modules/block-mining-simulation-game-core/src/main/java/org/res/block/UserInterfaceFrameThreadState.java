@@ -71,7 +71,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
-	protected FrameBordersDescription frameBordersDescription; // The set of screen coordinates that describe neighbouring frame edges (for drawing frames properly).
 
 	private Long mapAreaCellWidth = null;
 	private Long frameCharacterWidth = null;
@@ -108,9 +107,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	public static int DEFAULT_TEXT_BG_COLOR = DEFAULT_BG_COLOR;
 
 	public static int DEFAULT_TEXT_FG_COLOR = WHITE_FG_COLOR;
-
-	protected FrameDimensions frameDimensions;
-	protected FrameDimensions focusedFrameDimensions;
 
 	private List<MeasuredTextFragment> getMeasuredTextFragments(ColouredTextFragmentList fragmentList, Long maxLineWidth) throws Exception{
 		List<MeasuredTextFragment> textFragments = new ArrayList<MeasuredTextFragment>();
@@ -217,19 +213,19 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 
 	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, boolean xDirection, int bufferIndex) throws Exception{
-		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.frameDimensions, xDirection, bufferIndex);
+		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.getFrameDimensions(), xDirection, bufferIndex);
 	}
 
 	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, boolean xDirection) throws Exception{
-		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.frameDimensions, xDirection, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
+		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.getFrameDimensions(), xDirection, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
 	}
 
 	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, boolean xDirection, int bufferIndex) throws Exception{
-		this.printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.frameDimensions, xDirection, bufferIndex);
+		this.printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.getFrameDimensions(), xDirection, bufferIndex);
 	}
 
 	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, boolean xDirection) throws Exception{
-		this.printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.frameDimensions, xDirection, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
+		this.printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.getFrameDimensions(), xDirection, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
 	}
 
 	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, FrameDimensions fd, boolean xDirection, int bufferIndex) throws Exception{
@@ -297,7 +293,12 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 	public void sendConsolePrintMessage(int [][] characterWidths, int [][][] colourCodes, String [][] characters, boolean [][] hasChange, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions fd, int bufferIndex) throws Exception{
-		this.clientBlockModelContext.getConsoleWriterThreadState().putBlockingWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, fd, bufferIndex, this.currentFrameChangeWorkItemParams), WorkItemPriority.PRIORITY_LOW);
+		WorkItemResult workItemResult = this.clientBlockModelContext.getConsoleWriterThreadState().putBlockingWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, fd, bufferIndex, this.currentFrameChangeWorkItemParams), WorkItemPriority.PRIORITY_LOW);
+		if(workItemResult instanceof FrameChangeWorkItemParams){
+			//  This scenario happens when the write was discarded and 
+			//  these new params should catch us up with the newest frame/terminal dimensions
+			this.currentFrameChangeWorkItemParams = (FrameChangeWorkItemParams)workItemResult;
+		}
 	}
 
 	protected void executeLinePrintingInstructionsAtYOffset(List<LinePrintingInstruction> instructions, Long yOffset) throws Exception{
@@ -320,8 +321,16 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		return wrappedInstructions;
 	}
 
+	protected FrameDimensions getFrameDimensions(){
+		if(this.currentFrameChangeWorkItemParams == null){
+			return null;
+		}else{
+			return this.currentFrameChangeWorkItemParams.getCurrentFrameDimensions();
+		}
+	}
+
 	protected Long getFrameWidth(){
-		return this.frameDimensions == null ? null : this.frameDimensions.getFrameWidth();
+		return this.getFrameDimensions() == null ? null : this.getFrameDimensions().getFrameWidth();
 	}
 
 	protected Long getInnerFrameWidth() throws Exception{
@@ -330,23 +339,23 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 	protected Long getFrameHeight(){
-		return this.frameDimensions == null ? null : this.frameDimensions.getFrameHeight();
+		return this.getFrameDimensions() == null ? null : this.getFrameDimensions().getFrameHeight();
 	}
 
 	protected Long getFrameOffsetX(){
-		return this.frameDimensions == null ? null : this.frameDimensions.getFrameOffsetX();
+		return this.getFrameDimensions() == null ? null : this.getFrameDimensions().getFrameOffsetX();
 	}
 
 	protected Long getFrameOffsetY(){
-		return this.frameDimensions == null ? null : this.frameDimensions.getFrameOffsetY();
+		return this.getFrameDimensions() == null ? null : this.getFrameDimensions().getFrameOffsetY();
 	}
 
 	protected Long getTerminalWidth(){
-		return this.frameDimensions == null ? null : this.frameDimensions.getTerminalWidth();
+		return this.getFrameDimensions() == null ? null : this.getFrameDimensions().getTerminalWidth();
 	}
 
 	protected Long getTerminalHeight(){
-		return this.frameDimensions == null ? null : this.frameDimensions.getTerminalHeight();
+		return this.getFrameDimensions() == null ? null : this.getFrameDimensions().getTerminalHeight();
 	}
 
 	public Long getMapAreaCellWidth() throws Exception{
@@ -424,15 +433,19 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 	}
 
+	public FrameBordersDescription getFrameBordersDescription(){
+		return this.currentFrameChangeWorkItemParams.getFrameBordersDescription();
+	}
+
 	public String getFrameConnectionCharacterForCoordinate(Coordinate center) throws Exception{
 		Coordinate top = center.changeByDeltaXY(0L, -1L);  //  Cursor position above
 		Coordinate right = center.changeByDeltaXY(this.getFrameCharacterWidth(), 0L); //  Cursor position on right
 		Coordinate left = center.changeByDeltaXY(-this.getFrameCharacterWidth(), 0L); //  Cursor position on left
 		Coordinate bottom = center.changeByDeltaXY(0L, 1L);//  Cursor position below
-		boolean hasTopConnection = this.frameBordersDescription.getFramePoints().contains(top);
-		boolean hasRightConnection = this.frameBordersDescription.getFramePoints().contains(right);
-		boolean hasLeftConnection = this.frameBordersDescription.getFramePoints().contains(left);
-		boolean hasBottomConnection = this.frameBordersDescription.getFramePoints().contains(bottom);
+		boolean hasTopConnection = getFrameBordersDescription().getFramePoints().contains(top);
+		boolean hasRightConnection = getFrameBordersDescription().getFramePoints().contains(right);
+		boolean hasLeftConnection = getFrameBordersDescription().getFramePoints().contains(left);
+		boolean hasBottomConnection = getFrameBordersDescription().getFramePoints().contains(bottom);
 	
 		GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
 		boolean rg = mode.equals(GraphicsMode.ASCII);
@@ -570,17 +583,27 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 		boolean highlightConnectionPoints = false;
 		if(highlightConnectionPoints){ //  For debugging the code that draws the frame connections correctly.
-			for(Coordinate c : this.frameBordersDescription.getFramePoints()){
+			for(Coordinate c : getFrameBordersDescription().getFramePoints()){
 				this.printTextAtScreenXY(new ColouredTextFragment("X", new int [] {RED_BG_COLOR}), c.getX() - this.getFrameOffsetX(), c.getY() - this.getFrameOffsetY(), false);
 			}
 		}
 	}
 
 	public void onFrameChange(FrameChangeWorkItemParams params) throws Exception{
-		this.currentFrameChangeWorkItemParams = params;
-		this.frameBordersDescription = params.getFrameBordersDescription();
-		this.frameDimensions = params.getCurrentFrameDimensions();
-		this.onRenderFrame();
+		if(
+			//  If this change work item is out of date because of a previously rejected console write operation:
+			this.currentFrameChangeWorkItemParams != null &&
+			(
+				params.getFrameDimensionsChangeId() < this.currentFrameChangeWorkItemParams.getFrameDimensionsChangeId() ||
+				params.getTerminalDimensionsChangeId() < this.currentFrameChangeWorkItemParams.getTerminalDimensionsChangeId()
+			)
+		){
+			logger.info("Discarding frame change message that's out of date: params.getFrameChangeDimensionsId()=" + params.getFrameDimensionsChangeId() + " this.currentFrameChangeWorkItemParams.getFrameDimensionsChangeId()=" + this.currentFrameChangeWorkItemParams.getFrameDimensionsChangeId() + " || , " + params.getTerminalDimensionsChangeId() + " this.currentFrameChangeWorkItemParams.getTerminalDimensionsChangeId()=" + this.currentFrameChangeWorkItemParams.getTerminalDimensionsChangeId());
+		}else{
+			logger.info("Not discarding onFrame change, pass to child frame:");
+			this.currentFrameChangeWorkItemParams = params;
+			this.onRenderFrame();
+		}
 	}
 
 	public void sendCellUpdatesInScreenArea(CuboidAddress areaToUpdate, String [][] updatedCellContents, int [][][] updatedColourCodes, Long drawOffsetX, Long drawOffsetY) throws Exception{
@@ -646,12 +669,12 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			}
 		}
 
-		int xOffset = drawOffsetX.intValue() + this.frameDimensions.getFrameOffsetX().intValue();
-		int yOffset = drawOffsetY.intValue() + this.frameDimensions.getFrameOffsetY().intValue();
+		int xOffset = drawOffsetX.intValue() + this.getFrameDimensions().getFrameOffsetX().intValue();
+		int yOffset = drawOffsetY.intValue() + this.getFrameDimensions().getFrameOffsetY().intValue();
 		int xSize = totalWidth;
 		int ySize = totalHeight;
 
-		this.sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, this.frameDimensions, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
+		this.sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
 	}
 
 	public String whitespacePadMapAreaCell(String presentedText) throws Exception{

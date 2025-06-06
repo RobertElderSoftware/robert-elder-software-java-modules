@@ -37,7 +37,7 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class FrameChangeWorkItemParams {
+public class FrameChangeWorkItemParams extends WorkItemResult {
 
 	private Long terminalDimensionsChangeId;
 	private Long frameDimensionsChangeId;

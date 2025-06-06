@@ -179,9 +179,10 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void onRenderFrame() throws Exception{
+		FrameDimensions currentFrameDimensions = this.getFrameDimensions() == null ? null : new FrameDimensions(this.getFrameDimensions());
 		if(
 			this.previousFrameDimensions == null ||
-			(!this.previousFrameDimensions.equals(this.frameDimensions))
+			(!this.previousFrameDimensions.equals(currentFrameDimensions))
 		){
 			Long totalXBorderSize = this.getTotalXBorderSize();
 			Long totalYBorderSize = this.getTotalYBorderSize();
@@ -206,9 +207,12 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 			this.forceBlockChangesInMapArea(); //  Necessary to re-print when terminal size changes, but map area stays same.
 			this.onMapAreaChange(newMapArea);
+			logger.info("Did a map area change." + this.previousFrameDimensions + ", currentFrameDimensions=" + currentFrameDimensions + ", this.mapAreaHeightInCells=" + this.mapAreaHeightInCells);
+		}else{
+			logger.info("No map area change, previous=" + this.previousFrameDimensions + ", currentFrameDimensions=" + currentFrameDimensions);
 		}
 		this.render();
-		this.previousFrameDimensions = this.frameDimensions;
+		this.previousFrameDimensions = currentFrameDimensions;
 	}
 
 	public void render() throws Exception{
@@ -580,8 +584,8 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			int [][][] paddingColourCodes = new int[paddingAreaWidth][paddingAreaHeight][1];
 			String [][] paddingCharacters = new String[paddingAreaWidth][paddingAreaHeight];
 			boolean [][] paddingHasChange = new boolean [paddingAreaWidth][paddingAreaHeight];
-			int paddingXOffset = (int)(this.mapAreaWidthInCells * this.getMapAreaCellWidth() + this.frameDimensions.getFrameOffsetX() + this.getFrameCharacterWidth());
-			int paddingYOffset = (int)(this.frameDimensions.getFrameOffsetY() + this.getFrameCharacterHeight());
+			int paddingXOffset = (int)(this.mapAreaWidthInCells * this.getMapAreaCellWidth() + this.getFrameDimensions().getFrameOffsetX() + this.getFrameCharacterWidth());
+			int paddingYOffset = (int)(this.getFrameDimensions().getFrameOffsetY() + this.getFrameCharacterHeight());
 			for(int i = 0; i < paddingAreaWidth; i++){
 				for(int j = 0; j < paddingAreaHeight; j++){
 					paddingWidths[i][j] = 1;
@@ -591,7 +595,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 				}
 			}
 
-			this.sendConsolePrintMessage(paddingWidths, paddingColourCodes, paddingCharacters, paddingHasChange, paddingXOffset, paddingYOffset, paddingAreaWidth, paddingAreaHeight, this.frameDimensions, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
+			this.sendConsolePrintMessage(paddingWidths, paddingColourCodes, paddingCharacters, paddingHasChange, paddingXOffset, paddingYOffset, paddingAreaWidth, paddingAreaHeight, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
 		}else{
 		}
 	}
