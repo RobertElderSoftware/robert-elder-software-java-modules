@@ -811,10 +811,15 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 
-	public static void mergeNonNullCharactersDown(ScreenLayer topLayer, ScreenMask topMask, ScreenLayer outputLayer, ScreenMask outputMask) throws Exception{
+	public static void mergeChangedNonNullCharactersDown(ScreenLayer topLayer, ScreenMask topMask, ScreenLayer outputLayer, ScreenMask outputMask) throws Exception{
 		for(int i = 0; i < topLayer.width; i++){
 			for(int j = 0; j < topLayer.height; j++){
-				if(topLayer.characters[i][j] != null){
+				if(topLayer.characters[i][j] == null){
+					outputLayer.characterWidths[i][j] = outputLayer.characterWidths[i][j];
+					outputLayer.colourCodes[i][j] = outputLayer.colourCodes[i][j];
+					outputLayer.characters[i][j] = outputLayer.characters[i][j];
+					outputMask.flags[i][j] = outputMask.flags[i][j] || topMask.flags[i][j];
+				}else{
 					outputLayer.characterWidths[i][j] = topLayer.characterWidths[i][j];
 					outputLayer.colourCodes[i][j] = topLayer.colourCodes[i][j];
 					outputLayer.characters[i][j] = topLayer.characters[i][j];
@@ -845,7 +850,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 		for(int i = 0; i < numScreenLayers; i++){
 			if(this.screenLayerActiveStates[i]){
-				ConsoleWriterThreadState.mergeNonNullCharactersDown(
+				ConsoleWriterThreadState.mergeChangedNonNullCharactersDown(
 					this.screenLayers[i],
 					this.screenMasks[i],
 					tmpMergedLayers,
