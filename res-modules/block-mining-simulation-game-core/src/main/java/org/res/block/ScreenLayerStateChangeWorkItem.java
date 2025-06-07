@@ -40,49 +40,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class ConsoleScreenAreaChangeStatesWorkItem extends ConsoleQueueableWorkItem {
+public class ScreenLayerStateChangeWorkItem extends ConsoleQueueableWorkItem {
 
-	private String text;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private int xOffset;
-	private int yOffset;
-	private int xSize;
-	private int ySize;
 	private int bufferIndex;
-	private boolean state;
+	private boolean activeState;
 
-	public ConsoleScreenAreaChangeStatesWorkItem(ConsoleWriterThreadState consoleWriterThreadState, int xOffset, int yOffset, int xSize, int ySize, int bufferIndex, boolean state){
+	public ScreenLayerStateChangeWorkItem(ConsoleWriterThreadState consoleWriterThreadState, int bufferIndex, boolean activeState){
 		super(consoleWriterThreadState, true);
-		this.xOffset = xOffset;
-		this.yOffset = yOffset;
-		this.xSize = xSize;
-		this.ySize = ySize;
 		this.bufferIndex = bufferIndex;
-		this.state = state;
+		this.activeState = activeState;
 	}
 
-	public int getXOffset(){
-		return xOffset;
-	}
-
-	public int getYOffset(){
-		return yOffset;
-	}
-
-	public int getXSize(){
-		return xSize;
-	}
-
-	public int getYSize(){
-		return ySize;
-	}
-
-	public boolean getState(){
-		return state;
+	public boolean getActiveState(){
+		return activeState;
 	}
 
 	public WorkItemResult executeQueuedWork() throws Exception{
-		return this.consoleWriterThreadState.setScreenAreaChangeStates(xOffset, yOffset, xSize, ySize, bufferIndex, state);
+		return this.consoleWriterThreadState.onScreenLayerStateChange(bufferIndex, activeState);
 	}
 
 	public void doWork() throws Exception{

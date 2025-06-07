@@ -448,10 +448,10 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		}
 
 		if(this.helpMenu.getRequiresRedraw()){
-			//  De-activate/activate everything in menu layer:
-			cwts.putBlockingWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, 0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_MENU, this.helpMenu.getActiveState()), WorkItemPriority.PRIORITY_LOW);
-			//  Allow refresh of everything that was below the menu:
-			cwts.putBlockingWorkItem(new ConsoleScreenAreaChangeStatesWorkItem(cwts, 0, 0, terminalWidth, terminalHeight, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true), WorkItemPriority.PRIORITY_LOW);
+			cwts.putBlockingWorkItem(new ScreenLayerStateChangeWorkItem(cwts, ConsoleWriterThreadState.BUFFER_INDEX_MENU, this.helpMenu.getActiveState()), WorkItemPriority.PRIORITY_LOW);
+			//  Hack to force background layer to redraw itself and clear any previously printed larger help menu:
+			cwts.putBlockingWorkItem(new ScreenLayerStateChangeWorkItem(cwts, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, false), WorkItemPriority.PRIORITY_LOW);
+			cwts.putBlockingWorkItem(new ScreenLayerStateChangeWorkItem(cwts, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true), WorkItemPriority.PRIORITY_LOW);
 			this.helpMenu.setRequiresRedraw(false);
 		}
 	}
