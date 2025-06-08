@@ -74,7 +74,6 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	private Long edgeDistanceScreenY = 10L;
 
 	private byte[] unprocessedInputBytes = new byte[0];
-	private FrameDimensions previousFrameDimensions = null;
 
 	public MapAreaInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
 		super(blockManagerThreadCollection, clientBlockModelContext);
@@ -212,7 +211,6 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			logger.info("No map area change, previous=" + this.previousFrameDimensions + ", currentFrameDimensions=" + currentFrameDimensions);
 		}
 		this.render();
-		this.previousFrameDimensions = currentFrameDimensions;
 	}
 
 	public void render() throws Exception{
@@ -580,22 +578,24 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			//  Explicitly write spaces to any unused padded area on right edge of map:
 			int paddingAreaWidth = mapAreaPaddingColumnsRight < 0 ? 0 : mapAreaPaddingColumnsRight.intValue();
 			int paddingAreaHeight = mapAreaHeightInCells < 0 ? 0 : mapAreaHeightInCells.intValue();
-			int [][] paddingWidths = new int[paddingAreaWidth][paddingAreaHeight];
-			int [][][] paddingColourCodes = new int[paddingAreaWidth][paddingAreaHeight][1];
-			String [][] paddingCharacters = new String[paddingAreaWidth][paddingAreaHeight];
-			boolean [][] paddingHasChange = new boolean [paddingAreaWidth][paddingAreaHeight];
+			ScreenLayer paddingLayer = new ScreenLayer();
+			paddingLayer.initialize(paddingAreaWidth, paddingAreaHeight);
+
+			ScreenMask paddingMask = new ScreenMask();
+			paddingMask.initialize(paddingAreaWidth, paddingAreaHeight, false);
+
 			int paddingXOffset = (int)(this.mapAreaWidthInCells * this.getMapAreaCellWidth() + this.getFrameDimensions().getFrameOffsetX() + this.getFrameCharacterWidth());
 			int paddingYOffset = (int)(this.getFrameDimensions().getFrameOffsetY() + this.getFrameCharacterHeight());
 			for(int i = 0; i < paddingAreaWidth; i++){
 				for(int j = 0; j < paddingAreaHeight; j++){
-					paddingWidths[i][j] = 1;
-					paddingColourCodes[i][j] = new int [] {MAP_CELL_BG_COLOR2};
-					paddingCharacters[i][j] = " ";
-					paddingHasChange[i][j] = true;
+					paddingLayer.characterWidths[i][j] = 1;
+					paddingLayer.colourCodes[i][j] = new int [] {MAP_CELL_BG_COLOR2};
+					paddingLayer.characters[i][j] = " ";
+					paddingMask.flags[i][j] = true;
 				}
 			}
 
-			this.sendConsolePrintMessage(paddingWidths, paddingColourCodes, paddingCharacters, paddingHasChange, paddingXOffset, paddingYOffset, paddingAreaWidth, paddingAreaHeight, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
+			this.sendConsolePrintMessage(paddingLayer, paddingMask, paddingXOffset, paddingYOffset, paddingAreaWidth, paddingAreaHeight, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
 		}else{
 		}
 	}

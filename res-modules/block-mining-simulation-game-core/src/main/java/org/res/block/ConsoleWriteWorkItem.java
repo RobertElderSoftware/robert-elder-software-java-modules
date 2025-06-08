@@ -42,12 +42,9 @@ import java.lang.invoke.MethodHandles;
 
 public class ConsoleWriteWorkItem extends ConsoleQueueableWorkItem {
 
-	private String text;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private int [][] characterWidths;
-	private int [][][] colourCodes;
-	private String [][] characters;
-	private boolean [][] hasChange;
+	private ScreenLayer changes;
+	private ScreenMask mask;
 	private int xOffset;
 	private int yOffset;
 	private int xSize;
@@ -56,12 +53,10 @@ public class ConsoleWriteWorkItem extends ConsoleQueueableWorkItem {
 	private int bufferIndex;
 	private FrameChangeWorkItemParams frameChangeParams;
 
-	public ConsoleWriteWorkItem(ConsoleWriterThreadState consoleWriterThreadState, int [][] characterWidths, int [][][] colourCodes, String [][] characters, boolean [][] hasChange, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions frameDimensions, int bufferIndex, FrameChangeWorkItemParams frameChangeParams){
+	public ConsoleWriteWorkItem(ConsoleWriterThreadState consoleWriterThreadState, ScreenLayer changes, ScreenMask mask, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions frameDimensions, int bufferIndex, FrameChangeWorkItemParams frameChangeParams){
 		super(consoleWriterThreadState, true);
-		this.characterWidths = characterWidths;
-		this.colourCodes = colourCodes;
-		this.characters = characters;
-		this.hasChange = hasChange;
+		this.changes = changes;
+		this.mask = mask;
 		this.xOffset = xOffset;
 		this.yOffset = yOffset;
 		this.xSize = xSize;
@@ -69,18 +64,6 @@ public class ConsoleWriteWorkItem extends ConsoleQueueableWorkItem {
 		this.frameDimensions = frameDimensions;
 		this.bufferIndex = bufferIndex;
 		this.frameChangeParams = frameChangeParams;
-	}
-
-	public int [][] getCharacterWidths(){
-		return characterWidths;
-	}
-
-	public int [][][] getColourCodes(){
-		return colourCodes;
-	}
-
-	public String [][] getCharacters(){
-		return characters;
 	}
 
 	public int getXOffset(){
@@ -100,7 +83,7 @@ public class ConsoleWriteWorkItem extends ConsoleQueueableWorkItem {
 	}
 
 	public WorkItemResult executeQueuedWork() throws Exception{
-		return this.consoleWriterThreadState.prepareTerminalTextChange(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, frameDimensions, bufferIndex, frameChangeParams);
+		return this.consoleWriterThreadState.prepareTerminalTextChange(changes, mask, xOffset, yOffset, xSize, ySize, frameDimensions, bufferIndex, frameChangeParams);
 	}
 
 	public void doWork() throws Exception{

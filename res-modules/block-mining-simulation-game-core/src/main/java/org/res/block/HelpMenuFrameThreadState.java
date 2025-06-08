@@ -421,10 +421,12 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		}
 
 		int menuHeight = instructions.size() + this.helpMenu.getDisplayedHelpMenuOptions().size() + 1;
-		int [][] characterWidths = new int[terminalWidth][terminalHeight];
-		int [][][] colourCodes = new int[terminalWidth][terminalHeight][2];
-		String [][] characters = new String[terminalWidth][terminalHeight];
-		boolean [][] hasChange = new boolean [terminalWidth][terminalHeight];
+
+		ScreenLayer changes = new ScreenLayer();
+		changes.initialize(terminalWidth, terminalHeight);
+
+		ScreenMask mask = new ScreenMask();
+		mask.initialize(terminalWidth, terminalHeight, false);
 
 		int yOffset = (terminalHeight / 2) - (menuHeight / 2);
 		for(int i = 0; i < terminalWidth; i++){
@@ -433,14 +435,14 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 				String character = (this.helpMenu.getActiveState() && isInMenuBox) ? " " : null;
 				int [] colours = (this.helpMenu.getActiveState() && isInMenuBox) ? new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR} : new int [] {};
 				int characterWidth = (this.helpMenu.getActiveState() && isInMenuBox) ? 1 : 0;
-				characterWidths[i][j] = characterWidth;
-				colourCodes[i][j] = colours;
-				characters[i][j] = character;
-				hasChange[i][j] = true;
+				changes.characterWidths[i][j] = characterWidth;
+				changes.colourCodes[i][j] = colours;
+				changes.characters[i][j] = character;
+				mask.flags[i][j] = true;
 			}
 		}
 
-		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, 0, 0, terminalWidth, terminalHeight, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_MENU);
+		sendConsolePrintMessage(changes, mask, 0, 0, terminalWidth, terminalHeight, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_MENU);
 
 		for(LinePrintingInstructionAtOffset instruction : instructions){
 			Long lineYOffset = instruction.getOffsetY() + yOffset;

@@ -108,6 +108,11 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	public static int DEFAULT_TEXT_FG_COLOR = WHITE_FG_COLOR;
 
+	public FrameDimensions previousFrameDimensions;
+
+	public ScreenLayer[] bufferedScreenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
+	public ScreenMask[] bufferedScreenMasks = new ScreenMask [ConsoleWriterThreadState.numScreenLayers];
+
 	private List<MeasuredTextFragment> getMeasuredTextFragments(ColouredTextFragmentList fragmentList, Long maxLineWidth) throws Exception{
 		List<MeasuredTextFragment> textFragments = new ArrayList<MeasuredTextFragment>();
 		for(ColouredTextFragment cf : fragmentList.getColouredTextFragments()){
@@ -252,10 +257,12 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 		int xDimSize = xDirection ? totalWidth : 1;
 		int yDimSize = xDirection ? 1 : totalWidth;
-		int [][] characterWidths = new int[xDimSize][yDimSize];
-		int [][][] colourCodes = new int[xDimSize][yDimSize][1];
-		String [][] characters = new String[xDimSize][yDimSize];
-		boolean [][] hasChange = new boolean[xDimSize][yDimSize];
+
+		ScreenLayer changes = new ScreenLayer();
+		changes.initialize(xDimSize, yDimSize);
+
+		ScreenMask mask = new ScreenMask();
+		mask.initialize(xDimSize, yDimSize, false);
 
 		int currentOffset = 0;
 		for(int i = 0; i < charactersToPrint.size(); i++){
@@ -263,19 +270,19 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			int chrWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(s).getDeltaX().intValue();
 			int xIndex = xDirection ? currentOffset : 0;
 			int yIndex = xDirection ? 0 : currentOffset;
-			colourCodes[xIndex][yIndex] = newColourCodes[i];
-			characters[xIndex][yIndex] = s;
-			characterWidths[xIndex][yIndex] = chrWidth;
-			hasChange[xIndex][yIndex] = true;
+			changes.colourCodes[xIndex][yIndex] = newColourCodes[i];
+			changes.characters[xIndex][yIndex] = s;
+			changes.characterWidths[xIndex][yIndex] = chrWidth;
+			mask.flags[xIndex][yIndex] = true;
 			if(xDirection){
 				currentOffset++;
 				//  For multi-column characters in 'x' direction, reset any of the 'covered'
 				//  columns take up by the multi-column character:
 				for(int k = 1; k < chrWidth; k++){
-					colourCodes[currentOffset][yIndex] = new int [] {};
-					characters[currentOffset][yIndex] = null;
-					characterWidths[currentOffset][yIndex] = 0;
-					hasChange[currentOffset][yIndex] = true;
+					changes.colourCodes[currentOffset][yIndex] = new int [] {};
+					changes.characters[currentOffset][yIndex] = null;
+					changes.characterWidths[currentOffset][yIndex] = 0;
+					mask.flags[currentOffset][yIndex] = true;
 					currentOffset++;
 				}
 			}else{
@@ -289,15 +296,16 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int xSize = xDimSize;
 		int ySize = yDimSize;
 
-		sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, fd, bufferIndex);
+		//this.writeToLocalFrameBuffer(changes, mask, 0, 0, xSize, ySize, fd, bufferIndex);
+		sendConsolePrintMessage(changes, mask, xOffset, yOffset, xSize, ySize, fd, bufferIndex);
 	}
 
-	public void sendConsolePrintMessage(int [][] characterWidths, int [][][] colourCodes, String [][] characters, boolean [][] hasChange, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions fd, int bufferIndex) throws Exception{
-		WorkItemResult workItemResult = this.clientBlockModelContext.getConsoleWriterThreadState().putBlockingWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, fd, bufferIndex, this.currentFrameChangeWorkItemParams), WorkItemPriority.PRIORITY_LOW);
+	public void sendConsolePrintMessage(ScreenLayer changes, ScreenMask mask, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions fd, int bufferIndex) throws Exception{
+		WorkItemResult workItemResult = this.clientBlockModelContext.getConsoleWriterThreadState().putBlockingWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), changes, mask, xOffset, yOffset, xSize, ySize, fd, bufferIndex, this.currentFrameChangeWorkItemParams), WorkItemPriority.PRIORITY_LOW);
 		if(workItemResult instanceof FrameChangeWorkItemParams){
 			//  This scenario happens when the write was discarded and 
 			//  these new params should catch us up with the newest frame/terminal dimensions
-			this.currentFrameChangeWorkItemParams = (FrameChangeWorkItemParams)workItemResult;
+			this.onNewFrameChangeWorkItemParams((FrameChangeWorkItemParams)workItemResult);
 		}
 	}
 
@@ -601,9 +609,95 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			logger.info("Discarding frame change message that's out of date: params.getFrameChangeDimensionsId()=" + params.getFrameDimensionsChangeId() + " this.currentFrameChangeWorkItemParams.getFrameDimensionsChangeId()=" + this.currentFrameChangeWorkItemParams.getFrameDimensionsChangeId() + " || , " + params.getTerminalDimensionsChangeId() + " this.currentFrameChangeWorkItemParams.getTerminalDimensionsChangeId()=" + this.currentFrameChangeWorkItemParams.getTerminalDimensionsChangeId());
 		}else{
 			logger.info("Not discarding onFrame change, pass to child frame:");
-			this.currentFrameChangeWorkItemParams = params;
+			this.onNewFrameChangeWorkItemParams(params);
 			this.onRenderFrame();
+			this.onFinalizeFrame();
 		}
+	}
+
+	public void writeToLocalFrameBuffer(ScreenLayer changes, ScreenMask mask, int xOffset, int yOffset, int xChangeSize, int yChangeSize, FrameDimensions frameDimensions, int bufferIndex) throws Exception{
+		for(int j = 0; j < yChangeSize; j++){
+			for(int i = 0; i < xChangeSize; i++){
+				if(mask.flags[i][j]){
+					int extraSpaceForLastCharacter = changes.characterWidths[i][j] < 1 ? 0 : (changes.characterWidths[i][j] -1);
+					if(
+						//  Don't write beyond current terminal dimenions
+						//  Individual frames should be inside terminal area
+						//  but terminal resize events means there could
+						//  be a temporary inconsistency that makes this check
+						//  necessary:
+						(xOffset + i) < this.getFrameDimensions().getTerminalWidth() &&
+						(yOffset + j) < this.getFrameDimensions().getTerminalHeight() &&
+						(xOffset + i) >= 0 &&
+						(yOffset + j) >= 0 &&
+						//  Only allow a frame to write inside it's own borders:
+						(xOffset + i) < (frameDimensions.getFrameWidth()) &&
+						(yOffset + j) < (frameDimensions.getFrameHeight())
+					){
+						//  If it's changing in this update, or there is a change that hasn't been printed yet.
+						boolean hasChanged = !(
+							this.bufferedScreenLayers[bufferIndex].characterWidths[xOffset + i][yOffset + j] == changes.characterWidths[i][j] &&
+							Arrays.equals(this.bufferedScreenLayers[bufferIndex].colourCodes[xOffset + i][yOffset + j], changes.colourCodes[i][j]) &&
+							this.bufferedScreenLayers[bufferIndex].characters[xOffset + i][yOffset + j] == changes.characters[i][j]
+						) || this.bufferedScreenMasks[bufferIndex].flags[xOffset + i][yOffset + j];
+						this.bufferedScreenLayers[bufferIndex].characterWidths[xOffset + i][yOffset + j] = changes.characterWidths[i][j];
+						this.bufferedScreenLayers[bufferIndex].colourCodes[xOffset + i][yOffset + j] = changes.colourCodes[i][j];
+						this.bufferedScreenLayers[bufferIndex].characters[xOffset + i][yOffset + j] = changes.characters[i][j];
+						this.bufferedScreenMasks[bufferIndex].flags[xOffset + i][yOffset + j] = hasChanged;
+						//  If we're printing on a screen buffer that's in front, we will eventually need to update whatever was behind it:
+						if(hasChanged){
+							for(int k = bufferIndex; k >= 0 ; k--){
+								this.bufferedScreenMasks[bufferIndex].flags[xOffset + i][yOffset + j] = hasChanged;
+							}
+						}
+					}else{
+						//throw new Exception("Discarding character '" + changes.characters[i][j] + "' because if was out of bounds at x=" + (xOffset + i) + ", y=" + (yOffset + j));
+					}
+				}
+			}
+		}
+	}
+
+	public boolean hasFrameDimensionsChanged(){
+		if(this.getFrameDimensions() == null){
+			return this.previousFrameDimensions != null;
+		}else{
+			return !this.getFrameDimensions().equals(this.previousFrameDimensions);
+		}
+	}
+
+	public void onNewFrameChangeWorkItemParams(FrameChangeWorkItemParams params){
+		this.currentFrameChangeWorkItemParams = params;
+		if(this.hasFrameDimensionsChanged()){
+			// Refresh screen
+			int width = this.getFrameDimensions().getFrameWidth().intValue();
+			int height = this.getFrameDimensions().getFrameHeight().intValue();
+			//  After every resize event, clear the frame buffer and start with a blank background:
+			for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
+				int chrWidth = i == ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT ? 1 : 0;
+				String s = i == ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT ? " " : null;
+				int [] colours = i == ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT ? new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR} : new int[] {};
+
+				this.bufferedScreenLayers[i].initialize(width, height, chrWidth, s, colours);
+				this.bufferedScreenMasks[i].initialize(width, height, true);
+			}
+		}
+	}
+
+	public void onFinalizeFrame() throws Exception{
+		//  Send message with current frame contents.
+		/*
+		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
+			int xOffset = this.getFrameDimensions().getFrameOffsetX().intValue();
+			int yOffset = this.getFrameDimensions().getFrameOffsetY().intValue();
+
+			int width = this.getFrameDimensions().getFrameWidth().intValue();
+			int height = this.getFrameDimensions().getFrameHeight().intValue();
+			this.sendConsolePrintMessage(this.bufferedScreenLayers[i], this.bufferedScreenMasks[i], xOffset, yOffset, width, height, this.getFrameDimensions(), i);
+		}
+		*/
+
+		this.previousFrameDimensions = this.getFrameDimensions();
 	}
 
 	public void sendCellUpdatesInScreenArea(CuboidAddress areaToUpdate, String [][] updatedCellContents, int [][][] updatedColourCodes, Long drawOffsetX, Long drawOffsetY) throws Exception{
@@ -613,10 +707,11 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int totalWidth = (int)(this.getMapAreaCellWidth() * areaCellWidth);
 		int totalHeight = areaCellHeight;
 
-		int [][] characterWidths = new int[totalWidth][totalHeight];
-		int [][][] colourCodes = new int[totalWidth][totalHeight][1];
-		String [][] characters = new String[totalWidth][totalHeight];
-		boolean [][] hasChange = new boolean [totalWidth][totalHeight];
+		ScreenLayer changes = new ScreenLayer();
+		changes.initialize(totalWidth, totalHeight);
+
+		ScreenMask mask = new ScreenMask();
+		mask.initialize(totalWidth, totalHeight, false);
 
 		for(int j = 0; j < areaCellHeight; j++){
 			int currentOffset = 0;
@@ -624,29 +719,29 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				if(updatedCellContents[i][j] == null){
 					int paddedWidthSoFar = 0;
 					while(paddedWidthSoFar < this.getMapAreaCellWidth()){
-						colourCodes[currentOffset][j] = new int [] {MAP_CELL_BG_COLOR1};
-						characters[currentOffset][j] = null;
-						characterWidths[currentOffset][j] = 0;
-						hasChange[currentOffset][j] = false;
+						changes.colourCodes[currentOffset][j] = new int [] {MAP_CELL_BG_COLOR1};
+						changes.characters[currentOffset][j] = null;
+						changes.characterWidths[currentOffset][j] = 0;
+						mask.flags[currentOffset][j] = false;
 						currentOffset += 1;
 						paddedWidthSoFar += 1;
 					}
 				}else{
 					// The character in the cell
 					int chrWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(updatedCellContents[i][j]).getDeltaX().intValue();
-					colourCodes[currentOffset][j] = updatedColourCodes[i][j];
-					characters[currentOffset][j] = updatedCellContents[i][j];
-					characterWidths[currentOffset][j] = chrWidth;
-					hasChange[currentOffset][j] = true;
+					changes.colourCodes[currentOffset][j] = updatedColourCodes[i][j];
+					changes.characters[currentOffset][j] = updatedCellContents[i][j];
+					changes.characterWidths[currentOffset][j] = chrWidth;
+					mask.flags[currentOffset][j] = true;
 					currentOffset += (chrWidth > 0) ? 1 : 0;
 
 					//  For multi-column characters, reset any of the 'covered'
 					//  columns take up by the multi-column character:
 					for(int k = 1; k < chrWidth; k++){
-						colourCodes[currentOffset][j] = new int [] {};
-						characters[currentOffset][j] = null;
-						characterWidths[currentOffset][j] = 0;
-						hasChange[currentOffset][j] = true;
+						changes.colourCodes[currentOffset][j] = new int [] {};
+						changes.characters[currentOffset][j] = null;
+						changes.characterWidths[currentOffset][j] = 0;
+						mask.flags[currentOffset][j] = true;
 						currentOffset++;
 					}
 
@@ -655,10 +750,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 					while(paddedWidthSoFar < this.getMapAreaCellWidth()){
 						String space = " ";
 						int spaceWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(space).getDeltaX().intValue();
-						colourCodes[currentOffset][j] = updatedColourCodes[i][j];
-						characters[currentOffset][j] = space;
-						characterWidths[currentOffset][j] = spaceWidth;
-						hasChange[currentOffset][j] = true;
+						changes.colourCodes[currentOffset][j] = updatedColourCodes[i][j];
+						changes.characters[currentOffset][j] = space;
+						changes.characterWidths[currentOffset][j] = spaceWidth;
+						mask.flags[currentOffset][j] = true;
 						currentOffset += spaceWidth;
 						paddedWidthSoFar += spaceWidth;
 					}
@@ -674,7 +769,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int xSize = totalWidth;
 		int ySize = totalHeight;
 
-		this.sendConsolePrintMessage(characterWidths, colourCodes, characters, hasChange, xOffset, yOffset, xSize, ySize, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
+
+
+		//this.writeToLocalFrameBuffer(changes, mask, 0, 0, xSize, ySize, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
+		this.sendConsolePrintMessage(changes, mask, xOffset, yOffset, xSize, ySize, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
 	}
 
 	public String whitespacePadMapAreaCell(String presentedText) throws Exception{
@@ -701,6 +799,11 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 		this.frameId = seq.getAndIncrement();
+
+		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
+			this.bufferedScreenLayers[i] = new ScreenLayer();
+			this.bufferedScreenMasks[i] = new ScreenMask();
+		}
 	}
 
 	public long getFrameId(){

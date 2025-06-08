@@ -66,17 +66,27 @@ public class ScreenLayer {
 
 	public void initialize(int width, int height){
 		// By default, make assumptions that minimize screen prints
-		this.initialize(width, height, 0, null, null);
+		this.initialize(width, height, 0, null, new int [] {} , null);
 	}
 
-	public void initialize(int width, int height, int chrWidth, String s, String msg){
+	public void initialize(int width, int height, int chrWidth, String s, int [] colourCodes){
+		this.initialize(width, height, chrWidth, s, colourCodes, null);
+	}
+
+	public void initialize(int width, int height, int chrWidth, String s, int [] colourCodes, String msg){
 		this.width = width;
 		this.height = height;
 		this.characterWidths = new int [width][height];
 		for(int [] a : this.characterWidths){
 			Arrays.fill(a, chrWidth);
 		}
-		this.colourCodes = new int [width][height][0];
+		this.colourCodes = new int [width][height][colourCodes.length];
+		for(int [][] a : this.colourCodes){
+			for(int [] b : a){
+				Arrays.fill(a, colourCodes);
+			}
+		}
+
 		this.characters = new String [width][height];
 		for(String [] a : this.characters){
 			Arrays.fill(a, s);
