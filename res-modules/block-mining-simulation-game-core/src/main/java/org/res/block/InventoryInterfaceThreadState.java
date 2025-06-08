@@ -97,7 +97,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	}
 
 	public void reprintFrame() throws Exception {
-		this.drawBorders(true);
+		this.drawBorders();
 
 		this.printTextAtScreenXY(new ColouredTextFragment("- Inventory -", new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}), 10L, 0L, true);
 		PlayerInventory inventory = this.getPlayerInventory();

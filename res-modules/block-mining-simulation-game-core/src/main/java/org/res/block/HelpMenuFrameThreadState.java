@@ -396,6 +396,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void render() throws Exception{
+		/*
 		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
 
 		int terminalWidth = this.getFrameDimensions().getTerminalWidth().intValue();
@@ -442,7 +443,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			}
 		}
 
-		sendConsolePrintMessage(changes, mask, 0, 0, terminalWidth, terminalHeight, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_MENU);
+		this.writeToLocalFrameBuffer(changes, mask, 0, 0, terminalWidth, terminalHeight, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_MENU);
 
 		for(LinePrintingInstructionAtOffset instruction : instructions){
 			Long lineYOffset = instruction.getOffsetY() + yOffset;
@@ -452,7 +453,9 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		if(this.helpMenu.getRequiresRedraw()){
 			cwts.putBlockingWorkItem(new ScreenLayerStateChangeWorkItem(cwts, ConsoleWriterThreadState.BUFFER_INDEX_MENU, this.helpMenu.getActiveState()), WorkItemPriority.PRIORITY_LOW);
 			this.helpMenu.setRequiresRedraw(false);
+			this.onFinalizeFrame();
 		}
+		*/
 	}
 
 	public void onRenderFrame() throws Exception{
@@ -461,7 +464,6 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void reprintFrame() throws Exception {
-		//this.drawBorders(true);
 	}
 
 	public UIWorkItem takeWorkItem() throws Exception {

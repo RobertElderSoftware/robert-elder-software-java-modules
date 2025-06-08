@@ -291,13 +291,13 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			}
 		}
 
-		int xOffset = drawOffsetX.intValue() + fd.getFrameOffsetX().intValue();
-		int yOffset = drawOffsetY.intValue() + fd.getFrameOffsetY().intValue();
+		int xOffset = drawOffsetX.intValue();// + fd.getFrameOffsetX().intValue();
+		int yOffset = drawOffsetY.intValue();// + fd.getFrameOffsetY().intValue();
 		int xSize = xDimSize;
 		int ySize = yDimSize;
 
-		//this.writeToLocalFrameBuffer(changes, mask, 0, 0, xSize, ySize, fd, bufferIndex);
-		sendConsolePrintMessage(changes, mask, xOffset, yOffset, xSize, ySize, fd, bufferIndex);
+		this.writeToLocalFrameBuffer(changes, mask, xOffset, yOffset, xSize, ySize, fd, bufferIndex);
+		//sendConsolePrintMessage(changes, mask, xOffset, yOffset, xSize, ySize, fd, bufferIndex);
 	}
 
 	public void sendConsolePrintMessage(ScreenLayer changes, ScreenMask mask, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions fd, int bufferIndex) throws Exception{
@@ -431,16 +431,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 
-	public void clearFrame() throws Exception{
-		for(long l = 0L; l < this.getFrameHeight(); l++){
-			int repeatNumber = this.getFrameWidth().intValue();
-			if(repeatNumber < 0){
-				throw new Exception("repeatNumber is negative: " + repeatNumber);
-			}
-			this.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(repeatNumber), new int[] {FRAME_CLEAR_BG_COLOR}), 0L, l, true);
-		}
-	}
-
 	public FrameBordersDescription getFrameBordersDescription(){
 		return this.currentFrameChangeWorkItemParams.getFrameBordersDescription();
 	}
@@ -512,10 +502,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 	}
 
-	public void drawBorders(boolean alsoClearBackground) throws Exception{
-		if(alsoClearBackground){
-			this.clearFrame();
-		}
+	public void drawBorders() throws Exception{
 		Long fchrw = this.getFrameCharacterWidth();
 		boolean hasLeftBorder = this.hasLeftBorder();
 		boolean hasTopBorder = this.hasTopBorder();
@@ -609,9 +596,11 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			logger.info("Discarding frame change message that's out of date: params.getFrameChangeDimensionsId()=" + params.getFrameDimensionsChangeId() + " this.currentFrameChangeWorkItemParams.getFrameDimensionsChangeId()=" + this.currentFrameChangeWorkItemParams.getFrameDimensionsChangeId() + " || , " + params.getTerminalDimensionsChangeId() + " this.currentFrameChangeWorkItemParams.getTerminalDimensionsChangeId()=" + this.currentFrameChangeWorkItemParams.getTerminalDimensionsChangeId());
 		}else{
 			logger.info("Not discarding onFrame change, pass to child frame:");
-			this.onNewFrameChangeWorkItemParams(params);
+			boolean frameDimensionsChanged = this.onNewFrameChangeWorkItemParams(params);
 			this.onRenderFrame();
-			this.onFinalizeFrame();
+			if(frameDimensionsChanged){
+				this.onFinalizeFrame();
+			}
 		}
 	}
 
@@ -644,12 +633,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 						this.bufferedScreenLayers[bufferIndex].colourCodes[xOffset + i][yOffset + j] = changes.colourCodes[i][j];
 						this.bufferedScreenLayers[bufferIndex].characters[xOffset + i][yOffset + j] = changes.characters[i][j];
 						this.bufferedScreenMasks[bufferIndex].flags[xOffset + i][yOffset + j] = hasChanged;
-						//  If we're printing on a screen buffer that's in front, we will eventually need to update whatever was behind it:
-						if(hasChanged){
-							for(int k = bufferIndex; k >= 0 ; k--){
-								this.bufferedScreenMasks[bufferIndex].flags[xOffset + i][yOffset + j] = hasChanged;
-							}
-						}
 					}else{
 						//throw new Exception("Discarding character '" + changes.characters[i][j] + "' because if was out of bounds at x=" + (xOffset + i) + ", y=" + (yOffset + j));
 					}
@@ -666,9 +649,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 	}
 
-	public void onNewFrameChangeWorkItemParams(FrameChangeWorkItemParams params){
+	public boolean onNewFrameChangeWorkItemParams(FrameChangeWorkItemParams params){
 		this.currentFrameChangeWorkItemParams = params;
-		if(this.hasFrameDimensionsChanged()){
+		boolean dimensionsChanged = this.hasFrameDimensionsChanged();
+		if(dimensionsChanged){
 			// Refresh screen
 			int width = this.getFrameDimensions().getFrameWidth().intValue();
 			int height = this.getFrameDimensions().getFrameHeight().intValue();
@@ -682,22 +666,22 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				this.bufferedScreenMasks[i].initialize(width, height, true);
 			}
 		}
+		return dimensionsChanged;
 	}
 
 	public void onFinalizeFrame() throws Exception{
 		//  Send message with current frame contents.
-		/*
-		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
-			int xOffset = this.getFrameDimensions().getFrameOffsetX().intValue();
-			int yOffset = this.getFrameDimensions().getFrameOffsetY().intValue();
-
-			int width = this.getFrameDimensions().getFrameWidth().intValue();
-			int height = this.getFrameDimensions().getFrameHeight().intValue();
-			this.sendConsolePrintMessage(this.bufferedScreenLayers[i], this.bufferedScreenMasks[i], xOffset, yOffset, width, height, this.getFrameDimensions(), i);
-		}
-		*/
-
 		this.previousFrameDimensions = this.getFrameDimensions();
+		if(this.getFrameDimensions() != null){
+			for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
+				int xOffset = this.getFrameDimensions().getFrameOffsetX().intValue();
+				int yOffset = this.getFrameDimensions().getFrameOffsetY().intValue();
+
+				int width = this.getFrameDimensions().getFrameWidth().intValue();
+				int height = this.getFrameDimensions().getFrameHeight().intValue();
+				this.sendConsolePrintMessage(this.bufferedScreenLayers[i], this.bufferedScreenMasks[i], xOffset, yOffset, width, height, this.getFrameDimensions(), i);
+			}
+		}
 	}
 
 	public void sendCellUpdatesInScreenArea(CuboidAddress areaToUpdate, String [][] updatedCellContents, int [][][] updatedColourCodes, Long drawOffsetX, Long drawOffsetY) throws Exception{
@@ -764,15 +748,13 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			}
 		}
 
-		int xOffset = drawOffsetX.intValue() + this.getFrameDimensions().getFrameOffsetX().intValue();
-		int yOffset = drawOffsetY.intValue() + this.getFrameDimensions().getFrameOffsetY().intValue();
+		int xOffset = drawOffsetX.intValue();// + this.getFrameDimensions().getFrameOffsetX().intValue();
+		int yOffset = drawOffsetY.intValue();// + this.getFrameDimensions().getFrameOffsetY().intValue();
 		int xSize = totalWidth;
 		int ySize = totalHeight;
 
-
-
-		//this.writeToLocalFrameBuffer(changes, mask, 0, 0, xSize, ySize, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
-		this.sendConsolePrintMessage(changes, mask, xOffset, yOffset, xSize, ySize, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
+		this.writeToLocalFrameBuffer(changes, mask, xOffset, yOffset, xSize, ySize, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
+		//this.sendConsolePrintMessage(changes, mask, xOffset, yOffset, xSize, ySize, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
 	}
 
 	public String whitespacePadMapAreaCell(String presentedText) throws Exception{

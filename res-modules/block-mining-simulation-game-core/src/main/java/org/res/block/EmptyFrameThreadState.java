@@ -89,7 +89,7 @@ public class EmptyFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void reprintFrame() throws Exception {
-		this.drawBorders(true);
+		this.drawBorders();
 		String theText = "Empty Frame.";
 		this.printTextAtScreenXY(new ColouredTextFragment(theText, new int [] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}), this.getFrameWidth() > theText.length() ? ((this.getFrameWidth() - theText.length()) / 2L) : 0L, this.getFrameHeight() / 2L, true);
 	}

@@ -292,7 +292,7 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void reprintFrame() throws Exception {
-		this.drawBorders(true);
+		this.drawBorders();
 	}
 
 	public UIWorkItem takeWorkItem() throws Exception {

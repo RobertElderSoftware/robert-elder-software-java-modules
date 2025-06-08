@@ -291,6 +291,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		}
 
 		this.reprintFrame();
+		this.onFinalizeFrame();
 	}
 
 	private void resizeMapAreaCells() throws Exception{
@@ -443,6 +444,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 				this.printMapAreaUpdates(this.mapAreaCuboidAddress);
 			}
 		}
+		this.onFinalizeFrame();
 	}
 
 	public MapAreaCell recalculateMapAreaCellsAtCoordinate(Coordinate currentMapAreaCoordinate) throws Exception {
@@ -489,6 +491,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
 
 			this.printMapAreaUpdates(areaToUpdate);
+			this.onFinalizeFrame();
 			return;
 		}else{
 			logger.info("missing updateMapAreaFlags because this.mapAreaCuboidAddress was null.");
@@ -498,7 +501,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 	public void reprintFrame() throws Exception {
 		if(this.mapAreaCells != null){
-			this.drawBorders(false);
+			this.drawBorders();
 			//  Player coordinate:
 			String playerCoordinateString = "X=" + this.getPlayerPosition().getX() + ", Y=" + this.getPlayerPosition().getY() + ", Z=" + this.getPlayerPosition().getZ();
 			this.printTextAtScreenXY(new ColouredTextFragment(playerCoordinateString, new int [] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}), 10L, 0L, true);
