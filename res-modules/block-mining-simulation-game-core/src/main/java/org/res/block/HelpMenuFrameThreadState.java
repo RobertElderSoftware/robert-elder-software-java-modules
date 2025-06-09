@@ -71,7 +71,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	private HelpMenu helpMenu = null;
 
 	public HelpMenuFrameThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
-		super(blockManagerThreadCollection, clientBlockModelContext);
+		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_MENU});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 		this.helpMenu = new HelpMenu(false, new HelpMenuLevel(Arrays.asList()));
@@ -396,7 +396,6 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void render() throws Exception{
-		/*
 		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
 
 		int terminalWidth = this.getFrameDimensions().getTerminalWidth().intValue();
@@ -453,9 +452,8 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		if(this.helpMenu.getRequiresRedraw()){
 			cwts.putBlockingWorkItem(new ScreenLayerStateChangeWorkItem(cwts, ConsoleWriterThreadState.BUFFER_INDEX_MENU, this.helpMenu.getActiveState()), WorkItemPriority.PRIORITY_LOW);
 			this.helpMenu.setRequiresRedraw(false);
-			this.onFinalizeFrame();
 		}
-		*/
+		this.onFinalizeFrame();
 	}
 
 	public void onRenderFrame() throws Exception{

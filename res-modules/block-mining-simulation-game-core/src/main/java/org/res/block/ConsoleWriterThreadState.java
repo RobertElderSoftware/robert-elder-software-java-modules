@@ -277,7 +277,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		){
 			UserInterfaceFrameThreadState frame = this.getFrameStateById(frameId);
 
-			WorkItemProcessorTask<UIWorkItem> thread = new WorkItemProcessorTask<UIWorkItem>(frame, UIWorkItem.class);
+			WorkItemProcessorTask<UIWorkItem> thread = new WorkItemProcessorTask<UIWorkItem>(frame, UIWorkItem.class, frame.getClass());
 			this.blockManagerThreadCollection.addThread(thread);
 
 			if(activeFrameThreads.containsKey(frameId)){
@@ -1122,7 +1122,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public WorkItemResult putBlockingWorkItem(ConsoleWriterWorkItem workItem, WorkItemPriority priority) throws Exception {
 		BlockManagerThread t = this.blockManagerThreadCollection.getThreadById(Thread.currentThread().threadId());
 		if(t instanceof WorkItemProcessorTask){
-			Class<?> ct = ((WorkItemProcessorTask<?>)t).getEntityClass();
+			Class<?> ct = ((WorkItemProcessorTask<?>)t).getWorkItemClass();
 			if(ct == ConsoleWriterWorkItem.class && workItem.getIsBlocking()){
 				throw new Exception("Current thread is instanceof WorkItemProcessorTask<ConsoleWriterWorkItem>.  Attempting to block here will cause a deadlock.");
 			}else{

@@ -170,6 +170,10 @@ or modify the above command line arguments to whatever you like.
 
 Then, click 'run' icon to build and run single player client.
 
+#  Remote JVM Debugging Command
+
+java -agentlib:jdwp=transport=dt_socket,address=5005,server=y,suspend=y -jar res-modules/block-mining-simulation-game-single-player-client/target/block-mining-simulation-game-single-player-client-0.0.7.jar --log-file /tmp/single-player-block-client.log --block-world-file /tmp/single-player-world.sqlite
+
 #  Alternative Key Mappings (Dvorak)
 
 I received a couple requests to add support for reconfiguring the mapping of keyboard inputs, so I've added an option to specify a JSON config file where you can customize which input characters will trigger different actions in the game:

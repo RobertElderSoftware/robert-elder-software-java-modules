@@ -76,7 +76,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	private byte[] unprocessedInputBytes = new byte[0];
 
 	public MapAreaInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
-		super(blockManagerThreadCollection, clientBlockModelContext);
+		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 	}

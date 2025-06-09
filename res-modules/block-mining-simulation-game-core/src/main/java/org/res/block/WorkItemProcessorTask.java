@@ -40,23 +40,28 @@ import java.lang.invoke.MethodHandles;
 
 public class WorkItemProcessorTask<T extends WorkItem> extends BlockManagerThread {
 
-	protected Class<T> entityClass;
+	protected Class<T> workItemClass;
+	protected Class<?> descriptiveClass;
 	private WorkItemQueueOwner<T> workItemQueueOwner;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private boolean isThreadFinished = false;
 
-	public WorkItemProcessorTask(WorkItemQueueOwner<T> workItemQueueOwner, Class<T> entityClass){
+	public WorkItemProcessorTask(WorkItemQueueOwner<T> workItemQueueOwner, Class<T> workItemClass, Class<?> descriptiveClass){
 		this.workItemQueueOwner = workItemQueueOwner;
-		this.entityClass = entityClass;
-
+		this.workItemClass = workItemClass;
+		this.descriptiveClass = descriptiveClass;
 	}
 
 	public void setIsThreadFinished(boolean isThreadFinished){
 		this.isThreadFinished = isThreadFinished;
 	}
 
-	public Class<T> getEntityClass(){
-		return this.entityClass;
+	public Class<?> getDescriptiveClass(){
+		return this.descriptiveClass;
+	}
+
+	public Class<T> getWorkItemClass(){
+		return this.workItemClass;
 	}
 
 	public boolean getIsThreadFinished(){
@@ -65,13 +70,13 @@ public class WorkItemProcessorTask<T extends WorkItem> extends BlockManagerThrea
 
 	@Override
 	public String getBetterClassName() throws Exception{
-		return this.getClass().getName() + "<" + this.entityClass.getName() + ">, thread.threadId()=" + threadId();
+		return this.getClass().getName() + "<" + this.workItemClass.getName() + ", " + this.descriptiveClass.getName() + ">, thread.threadId()=" + threadId();
 	}
 
 	@Override
 	public void run() {
 		logger.info("Begin running WorkItemProcessorTask (id=" + Thread.currentThread().threadId() + ") for " + this.workItemQueueOwner.getClass().getName());
-		currentThread().setName(this.entityClass.asSubclass(this.entityClass).getSimpleName() + " for " + this.getClass().getSimpleName());
+		currentThread().setName(this.descriptiveClass.asSubclass(this.descriptiveClass).getSimpleName() + " for " + this.getClass().getSimpleName());
 		while (
 			!this.workItemQueueOwner.getBlockManagerThreadCollection().getIsProcessFinished() &&
 			!this.getIsThreadFinished() &&

@@ -63,7 +63,7 @@ public class EmptyFrameThreadState extends UserInterfaceFrameThreadState {
 	private ClientBlockModelContext clientBlockModelContext;
 
 	public EmptyFrameThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
-		super(blockManagerThreadCollection, clientBlockModelContext);
+		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 	}

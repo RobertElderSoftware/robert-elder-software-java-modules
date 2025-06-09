@@ -81,14 +81,14 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 		this.clientServerInterface.Connect();
 
-		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(this.inMemoryChunks, InMemoryChunksWorkItem.class));
-		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ChunkInitializerWorkItem>(this.chunkInitializerThreadState, ChunkInitializerWorkItem.class));
-		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ConsoleWriterWorkItem>(this.consoleWriterThreadState, ConsoleWriterWorkItem.class));
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(this.inMemoryChunks, InMemoryChunksWorkItem.class, this.inMemoryChunks.getClass()));
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ChunkInitializerWorkItem>(this.chunkInitializerThreadState, ChunkInitializerWorkItem.class, this.chunkInitializerThreadState.getClass()));
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ConsoleWriterWorkItem>(this.consoleWriterThreadState, ConsoleWriterWorkItem.class, this.consoleWriterThreadState.getClass()));
 		if(this.blockManagerThreadCollection.getIsJNIEnabled()){
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<SIGWINCHListenerWorkItem>(this.sigwinchListenerThreadState, SIGWINCHListenerWorkItem.class));
+			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<SIGWINCHListenerWorkItem>(this.sigwinchListenerThreadState, SIGWINCHListenerWorkItem.class, this.sigwinchListenerThreadState.getClass()));
 		}
 		this.blockManagerThreadCollection.addThread(new StandardInputReaderTask(this, this.consoleWriterThreadState));
-		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(this, BlockModelContextWorkItem.class));
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(this, BlockModelContextWorkItem.class, this.getClass()));
 	}
 
 

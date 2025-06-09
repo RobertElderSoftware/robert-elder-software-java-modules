@@ -68,7 +68,7 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 	private Long scrollOffset = 0L;
 
 	public HelpDetailsFrameThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
-		super(blockManagerThreadCollection, clientBlockModelContext);
+		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 	}
@@ -265,6 +265,7 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 		}else{
 			logger.info("HelpMenuFrameThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
 		}
+		this.onFinalizeFrame();
 	}
 
 	public void onKeyboardInput(byte [] characters) throws Exception {

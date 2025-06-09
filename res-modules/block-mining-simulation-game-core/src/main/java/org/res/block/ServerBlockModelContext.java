@@ -92,7 +92,7 @@ public class ServerBlockModelContext extends BlockModelContext {
 
         	this.blockDAO.ensureBlockTableExists();
 		this.blockDAO.turnOffAutoCommit();
-		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(this, BlockModelContextWorkItem.class));
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(this, BlockModelContextWorkItem.class, this.getClass()));
 	}
 
 	public BlockDAO getBlockDAO(){

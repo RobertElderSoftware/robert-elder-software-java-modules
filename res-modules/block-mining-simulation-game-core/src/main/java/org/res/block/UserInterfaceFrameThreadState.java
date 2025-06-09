@@ -60,6 +60,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	private static final AtomicLong seq = new AtomicLong(0);
 	public final long frameId;
 	protected FrameChangeWorkItemParams currentFrameChangeWorkItemParams;
+	protected int [] usedScreenLayers;
 
 	private final AtomicLong frameDimensionsChangeSeq = new AtomicLong(0);
 
@@ -291,13 +292,12 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			}
 		}
 
-		int xOffset = drawOffsetX.intValue();// + fd.getFrameOffsetX().intValue();
-		int yOffset = drawOffsetY.intValue();// + fd.getFrameOffsetY().intValue();
+		int xOffset = drawOffsetX.intValue();
+		int yOffset = drawOffsetY.intValue();
 		int xSize = xDimSize;
 		int ySize = yDimSize;
 
 		this.writeToLocalFrameBuffer(changes, mask, xOffset, yOffset, xSize, ySize, fd, bufferIndex);
-		//sendConsolePrintMessage(changes, mask, xOffset, yOffset, xSize, ySize, fd, bufferIndex);
 	}
 
 	public void sendConsolePrintMessage(ScreenLayer changes, ScreenMask mask, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions fd, int bufferIndex) throws Exception{
@@ -598,9 +598,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			logger.info("Not discarding onFrame change, pass to child frame:");
 			boolean frameDimensionsChanged = this.onNewFrameChangeWorkItemParams(params);
 			this.onRenderFrame();
-			if(frameDimensionsChanged){
-				this.onFinalizeFrame();
-			}
+			this.onFinalizeFrame();
 		}
 	}
 
@@ -657,13 +655,15 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			int width = this.getFrameDimensions().getFrameWidth().intValue();
 			int height = this.getFrameDimensions().getFrameHeight().intValue();
 			//  After every resize event, clear the frame buffer and start with a blank background:
-			for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
-				int chrWidth = i == ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT ? 1 : 0;
-				String s = i == ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT ? " " : null;
-				int [] colours = i == ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT ? new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR} : new int[] {};
+			for(int i = 0; i < this.usedScreenLayers.length; i++){
+				int l = usedScreenLayers[i];
+				int chrWidth = l == ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT ? 1 : 0;
+				//  Default layer should start with all spaces to erase background.
+				String s = l == ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT ? " " : null;
+				int [] colours = l == ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT ? new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR} : new int[] {};
 
-				this.bufferedScreenLayers[i].initialize(width, height, chrWidth, s, colours);
-				this.bufferedScreenMasks[i].initialize(width, height, true);
+				this.bufferedScreenLayers[l].initialize(width, height, chrWidth, s, colours);
+				this.bufferedScreenMasks[l].initialize(width, height, true);
 			}
 		}
 		return dimensionsChanged;
@@ -673,13 +673,14 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		//  Send message with current frame contents.
 		this.previousFrameDimensions = this.getFrameDimensions();
 		if(this.getFrameDimensions() != null){
-			for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
+			for(int i = 0; i < this.usedScreenLayers.length; i++){
+				int l = usedScreenLayers[i];
 				int xOffset = this.getFrameDimensions().getFrameOffsetX().intValue();
 				int yOffset = this.getFrameDimensions().getFrameOffsetY().intValue();
 
 				int width = this.getFrameDimensions().getFrameWidth().intValue();
 				int height = this.getFrameDimensions().getFrameHeight().intValue();
-				this.sendConsolePrintMessage(this.bufferedScreenLayers[i], this.bufferedScreenMasks[i], xOffset, yOffset, width, height, this.getFrameDimensions(), i);
+				this.sendConsolePrintMessage(this.bufferedScreenLayers[l], this.bufferedScreenMasks[l], xOffset, yOffset, width, height, this.getFrameDimensions(), l);
 			}
 		}
 	}
@@ -748,13 +749,12 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			}
 		}
 
-		int xOffset = drawOffsetX.intValue();// + this.getFrameDimensions().getFrameOffsetX().intValue();
-		int yOffset = drawOffsetY.intValue();// + this.getFrameDimensions().getFrameOffsetY().intValue();
+		int xOffset = drawOffsetX.intValue();
+		int yOffset = drawOffsetY.intValue();
 		int xSize = totalWidth;
 		int ySize = totalHeight;
 
 		this.writeToLocalFrameBuffer(changes, mask, xOffset, yOffset, xSize, ySize, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
-		//this.sendConsolePrintMessage(changes, mask, xOffset, yOffset, xSize, ySize, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
 	}
 
 	public String whitespacePadMapAreaCell(String presentedText) throws Exception{
@@ -777,14 +777,15 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	private ClientBlockModelContext clientBlockModelContext;
 
-	public UserInterfaceFrameThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
+	public UserInterfaceFrameThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, int [] usedScreenLayers) throws Exception {
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 		this.frameId = seq.getAndIncrement();
+		this.usedScreenLayers = usedScreenLayers;
 
-		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
-			this.bufferedScreenLayers[i] = new ScreenLayer();
-			this.bufferedScreenMasks[i] = new ScreenMask();
+		for(int i = 0; i < usedScreenLayers.length; i++){
+			this.bufferedScreenLayers[usedScreenLayers[i]] = new ScreenLayer();
+			this.bufferedScreenMasks[usedScreenLayers[i]] = new ScreenMask();
 		}
 	}
 
