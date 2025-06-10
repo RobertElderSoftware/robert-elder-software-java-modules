@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.ArrayList;
 
 import java.io.IOException;
@@ -111,6 +112,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	public FrameDimensions previousFrameDimensions;
 
+	public ScreenLayer[] previousBufferedScreenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
 	public ScreenLayer[] bufferedScreenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
 	public ScreenMask[] bufferedScreenMasks = new ScreenMask [ConsoleWriterThreadState.numScreenLayers];
 
@@ -300,8 +302,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		this.writeToLocalFrameBuffer(changes, mask, xOffset, yOffset, xSize, ySize, fd, bufferIndex);
 	}
 
-	public void sendConsolePrintMessage(ScreenLayer changes, ScreenMask mask, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions fd, int bufferIndex) throws Exception{
-		WorkItemResult workItemResult = this.clientBlockModelContext.getConsoleWriterThreadState().putBlockingWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), changes, mask, xOffset, yOffset, xSize, ySize, fd, bufferIndex, this.currentFrameChangeWorkItemParams), WorkItemPriority.PRIORITY_LOW);
+	public void sendConsolePrintMessage(List<ScreenLayerPrintParameters> params, FrameDimensions fd) throws Exception{
+		WorkItemResult workItemResult = this.clientBlockModelContext.getConsoleWriterThreadState().putBlockingWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), params, fd, this.currentFrameChangeWorkItemParams), WorkItemPriority.PRIORITY_LOW);
 		if(workItemResult instanceof FrameChangeWorkItemParams){
 			//  This scenario happens when the write was discarded and 
 			//  these new params should catch us up with the newest frame/terminal dimensions
@@ -606,7 +608,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		for(int j = 0; j < yChangeSize; j++){
 			for(int i = 0; i < xChangeSize; i++){
 				if(mask.flags[i][j]){
-					int extraSpaceForLastCharacter = changes.characterWidths[i][j] < 1 ? 0 : (changes.characterWidths[i][j] -1);
 					if(
 						//  Don't write beyond current terminal dimenions
 						//  Individual frames should be inside terminal area
@@ -621,18 +622,11 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 						(xOffset + i) < (frameDimensions.getFrameWidth()) &&
 						(yOffset + j) < (frameDimensions.getFrameHeight())
 					){
-						//  If it's changing in this update, or there is a change that hasn't been printed yet.
-						boolean hasChanged = !(
-							this.bufferedScreenLayers[bufferIndex].characterWidths[xOffset + i][yOffset + j] == changes.characterWidths[i][j] &&
-							Arrays.equals(this.bufferedScreenLayers[bufferIndex].colourCodes[xOffset + i][yOffset + j], changes.colourCodes[i][j]) &&
-							this.bufferedScreenLayers[bufferIndex].characters[xOffset + i][yOffset + j] == changes.characters[i][j]
-						) || this.bufferedScreenMasks[bufferIndex].flags[xOffset + i][yOffset + j];
 						this.bufferedScreenLayers[bufferIndex].characterWidths[xOffset + i][yOffset + j] = changes.characterWidths[i][j];
 						this.bufferedScreenLayers[bufferIndex].colourCodes[xOffset + i][yOffset + j] = changes.colourCodes[i][j];
 						this.bufferedScreenLayers[bufferIndex].characters[xOffset + i][yOffset + j] = changes.characters[i][j];
-						this.bufferedScreenMasks[bufferIndex].flags[xOffset + i][yOffset + j] = hasChanged;
 					}else{
-						//throw new Exception("Discarding character '" + changes.characters[i][j] + "' because if was out of bounds at x=" + (xOffset + i) + ", y=" + (yOffset + j));
+						//logger.info("Discarding character '" + changes.characters[i][j] + "' because if was out of bounds at x=" + (xOffset + i) + ", y=" + (yOffset + j));
 					}
 				}
 			}
@@ -657,30 +651,88 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			//  After every resize event, clear the frame buffer and start with a blank background:
 			for(int i = 0; i < this.usedScreenLayers.length; i++){
 				int l = usedScreenLayers[i];
-				int chrWidth = l == ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT ? 1 : 0;
-				//  Default layer should start with all spaces to erase background.
-				String s = l == ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT ? " " : null;
-				int [] colours = l == ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT ? new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR} : new int[] {};
+				int chrWidth = 0;
+				String s = null;
+				int [] colours = new int[] {};
 
 				this.bufferedScreenLayers[l].initialize(width, height, chrWidth, s, colours);
+				this.previousBufferedScreenLayers[l].initialize(width, height, 0, null, new int [] {});
 				this.bufferedScreenMasks[l].initialize(width, height, true);
 			}
 		}
 		return dimensionsChanged;
 	}
 
+	public List<ScreenLayerPrintParameters> makeScreenPrintParameters(ScreenLayer l, ScreenMask m, int bufferIndex) throws Exception{
+		
+		int lowestX = m.width +1;
+		int highestX = -1;
+		int lowestY = m.height +1;
+		int highestY = -1;
+		
+		for(int i = 0; i < m.width; i++){
+			for(int j = 0; j < m.height; j++){
+				if(m.flags[i][j]){
+					if(i < lowestX){
+						lowestX = i;
+					}
+					if(i > highestX){
+						highestX = i;
+					}
+					if(j < lowestY){
+						lowestY = j;
+					}
+					if(j > highestY){
+						highestY = j;
+					}
+				}
+			}
+		}
+		List<ScreenLayerPrintParameters> rtn = new ArrayList<ScreenLayerPrintParameters>();
+		if(highestX == -1){
+			return rtn; //  No differences.
+		}else{
+			rtn.add(new ScreenLayerPrintParameters(new ScreenLayer(l), new ScreenMask(m), lowestX, lowestY, (highestX - lowestX) +1, (highestY - lowestY) +1, bufferIndex));
+			return rtn;
+		}
+	}
+
+	public void computeFrameDifferences(ScreenLayer previous, ScreenLayer current, ScreenMask mask){
+		for(int i = 0; i < current.width; i++){
+			for(int j = 0; j < current.height; j++){
+				boolean hasChanged = !(
+					(current.characterWidths[i][j] == previous.characterWidths[i][j]) &&
+					Arrays.equals(current.colourCodes[i][j], previous.colourCodes[i][j]) &&
+					Objects.equals(current.characters[i][j], previous.characters[i][j])
+				);
+				mask.flags[i][j] = hasChanged;
+			}
+		}
+	}
+
 	public void onFinalizeFrame() throws Exception{
 		//  Send message with current frame contents.
 		this.previousFrameDimensions = this.getFrameDimensions();
 		if(this.getFrameDimensions() != null){
+			List<ScreenLayerPrintParameters> params = new ArrayList<ScreenLayerPrintParameters>();
 			for(int i = 0; i < this.usedScreenLayers.length; i++){
 				int l = usedScreenLayers[i];
-				int xOffset = this.getFrameDimensions().getFrameOffsetX().intValue();
-				int yOffset = this.getFrameDimensions().getFrameOffsetY().intValue();
+				int xOffset = 0;
+				int yOffset = 0;
 
 				int width = this.getFrameDimensions().getFrameWidth().intValue();
 				int height = this.getFrameDimensions().getFrameHeight().intValue();
-				this.sendConsolePrintMessage(this.bufferedScreenLayers[l], this.bufferedScreenMasks[l], xOffset, yOffset, width, height, this.getFrameDimensions(), l);
+
+				this.computeFrameDifferences(this.previousBufferedScreenLayers[l], this.bufferedScreenLayers[l], this.bufferedScreenMasks[l]);
+				params.addAll(makeScreenPrintParameters(this.bufferedScreenLayers[l], this.bufferedScreenMasks[l], l));
+			}
+			this.sendConsolePrintMessage(params, this.getFrameDimensions());
+			//  Clear all screen masks since all layers have been printed:
+			for(int i = 0; i < this.usedScreenLayers.length; i++){
+				int l = usedScreenLayers[i];
+				//  Save current copy of buffer to calculate differences:
+				this.previousBufferedScreenLayers[l] = new ScreenLayer(this.bufferedScreenLayers[l]);
+				//this.bufferedScreenMasks[l].initialize(this.getFrameDimensions().getFrameWidth().intValue(), this.getFrameDimensions().getFrameHeight().intValue(), false);
 			}
 		}
 	}
@@ -785,6 +837,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 		for(int i = 0; i < usedScreenLayers.length; i++){
 			this.bufferedScreenLayers[usedScreenLayers[i]] = new ScreenLayer();
+			this.previousBufferedScreenLayers[usedScreenLayers[i]] = new ScreenLayer();
 			this.bufferedScreenMasks[usedScreenLayers[i]] = new ScreenMask();
 		}
 	}

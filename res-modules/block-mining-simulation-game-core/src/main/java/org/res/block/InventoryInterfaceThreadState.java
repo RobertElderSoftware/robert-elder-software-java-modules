@@ -94,6 +94,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		if(this.getFrameWidth() != null && this.getFrameHeight() != null){
 			this.reprintFrame();
 		}
+		this.onFinalizeFrame();
 	}
 
 	public void reprintFrame() throws Exception {

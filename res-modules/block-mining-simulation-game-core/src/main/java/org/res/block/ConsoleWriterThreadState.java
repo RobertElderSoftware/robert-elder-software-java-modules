@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Objects;
 
 import java.util.Set;
 import java.util.HashSet;
@@ -750,7 +751,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
-	public WorkItemResult prepareTerminalTextChange(ScreenLayer changes, ScreenMask mask, int xOffset, int yOffset, int xChangeSize, int yChangeSize, FrameDimensions frameDimensions, int bufferIndex, FrameChangeWorkItemParams frameChangeParams) throws Exception{
+	public WorkItemResult prepareTerminalTextChange(List<ScreenLayerPrintParameters> params, FrameDimensions frameDimensions, FrameChangeWorkItemParams frameChangeParams) throws Exception{
 		if(!activeFrameStates.containsKey(frameChangeParams.getFrameId())){
 			logger.info("Discarding frame text change for frame id=: " + frameChangeParams.getFrameId() + " because frame id does not exist (it's probably closed).");
 			return new EmptyWorkItemResult();
@@ -765,44 +766,51 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			logger.info("Discarding outdated text change: frameChangeParams.getTerminalDimensionsChangeId()=" + frameChangeParams.getTerminalDimensionsChangeId() + ", ConsoleWriterThreadState.terminalDimensionsChangeSeq.get()=" + ConsoleWriterThreadState.terminalDimensionsChangeSeq.get());
 			return makeFrameChangeWorkItemParams(frame);
 		}
-		for(int j = 0; j < yChangeSize; j++){
-			for(int i = 0; i < xChangeSize; i++){
-				if(mask.flags[i][j]){
-					int extraSpaceForLastCharacter = changes.characterWidths[i][j] < 1 ? 0 : (changes.characterWidths[i][j] -1);
-					if(
-						//  Don't write beyond current terminal dimenions
-						//  Individual frames should be inside terminal area
-						//  but terminal resize events means there could
-						//  be a temporary inconsistency that makes this check
-						//  necessary:
-						(xOffset + i) < terminalWidth &&
-						(yOffset + j) < terminalHeight &&
-						(xOffset + i) >= 0 &&
-						(yOffset + j) >= 0 &&
-						//  Only allow a frame to write inside it's own borders:
-						(xOffset + i) < (frameDimensions.getFrameOffsetX() + frameDimensions.getFrameWidth() - extraSpaceForLastCharacter) &&
-						(yOffset + j) < (frameDimensions.getFrameOffsetY() + frameDimensions.getFrameHeight()) &&
-						(xOffset + i) >= frameDimensions.getFrameOffsetX() &&
-						(yOffset + j) >= frameDimensions.getFrameOffsetY()
-					){
-						//  If it's changing in this update, or there is a change that hasn't been printed yet.
-						boolean hasChanged = !(
-							this.screenLayers[bufferIndex].characterWidths[xOffset + i][yOffset + j] == changes.characterWidths[i][j] &&
-							Arrays.equals(this.screenLayers[bufferIndex].colourCodes[xOffset + i][yOffset + j], changes.colourCodes[i][j]) &&
-							this.screenLayers[bufferIndex].characters[xOffset + i][yOffset + j] == changes.characters[i][j]
-						) || this.screenMasks[bufferIndex].flags[xOffset + i][yOffset + j];
-						this.screenLayers[bufferIndex].characterWidths[xOffset + i][yOffset + j] = changes.characterWidths[i][j];
-						this.screenLayers[bufferIndex].colourCodes[xOffset + i][yOffset + j] = changes.colourCodes[i][j];
-						this.screenLayers[bufferIndex].characters[xOffset + i][yOffset + j] = changes.characters[i][j];
-						this.screenMasks[bufferIndex].flags[xOffset + i][yOffset + j] = hasChanged;
-						//  If we're printing on a screen buffer that's in front, we will eventually need to update whatever was behind it:
-						if(hasChanged){
-							for(int k = bufferIndex; k >= 0 ; k--){
-								this.screenMasks[bufferIndex].flags[xOffset + i][yOffset + j] = hasChanged;
-							}
+		for(ScreenLayerPrintParameters param : params){
+			ScreenLayer changes = param.getScreenLayer();
+			ScreenMask mask = param.getScreenMask();
+			int xOffsetFrame = param.getOffsetX();
+			int yOffsetFrame = param.getOffsetY();
+			int xChangeSize = param.getSizeX();
+			int yChangeSize = param.getSizeY();
+			int bufferIndex = param.getBufferIndex();
+
+			int xOffsetScreen = xOffsetFrame + frame.getFrameOffsetX().intValue();
+			int yOffsetScreen = yOffsetFrame + frame.getFrameOffsetY().intValue();
+			for(int j = 0; j < yChangeSize; j++){
+				for(int i = 0; i < xChangeSize; i++){
+					int x = xOffsetScreen + i;
+					int y = yOffsetScreen + j;
+					int xF = xOffsetFrame + i;
+					int yF = yOffsetFrame + j;
+					if(mask.flags[xF][yF]){
+						if(
+							//  Don't write beyond current terminal dimenions
+							//  Individual frames should be inside terminal area.
+							//  This check should always be true:
+							x < terminalWidth &&
+							y < terminalHeight &&
+							x >= 0 &&
+							y >= 0 &&
+							//  Only allow a frame to write inside it's own borders:
+							x < (frameDimensions.getFrameOffsetX() + frameDimensions.getFrameWidth()) &&
+							y < (frameDimensions.getFrameOffsetY() + frameDimensions.getFrameHeight()) &&
+							x >= frameDimensions.getFrameOffsetX() &&
+							y >= frameDimensions.getFrameOffsetY()
+						){
+							//  If it's changing in this update, or there is a change that hasn't been printed yet.
+							boolean hasChanged = !(
+								this.screenLayers[bufferIndex].characterWidths[x][y] == changes.characterWidths[xF][yF] &&
+								Arrays.equals(this.screenLayers[bufferIndex].colourCodes[x][y], changes.colourCodes[xF][yF]) &&
+								Objects.equals(this.screenLayers[bufferIndex].characters[x][y], changes.characters[xF][yF])
+							) || this.screenMasks[bufferIndex].flags[x][y];
+							this.screenLayers[bufferIndex].characterWidths[x][y] = changes.characterWidths[xF][yF];
+							this.screenLayers[bufferIndex].colourCodes[x][y] = changes.colourCodes[xF][yF];
+							this.screenLayers[bufferIndex].characters[x][y] = changes.characters[xF][yF];
+							this.screenMasks[bufferIndex].flags[x][y] = hasChanged;
+						}else{
+							throw new Exception("Error character '" + changes.characters[xF][yF] + "' because if was out of bounds at x=" + x + ", y=" + y);
 						}
-					}else{
-						//throw new Exception("Discarding character '" + changes.characters[i][j] + "' because if was out of bounds at x=" + (xOffset + i) + ", y=" + (yOffset + j));
 					}
 				}
 			}
@@ -886,8 +894,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 					mustSetColourCodes = true;
 				}
 				if(
-					this.mergedFinalScreenMask.flags[i][j] &&
-					this.mergedFinalScreenLayer.characters[i][j] != null
+					this.mergedFinalScreenMask.flags[i][j]
 				){
 					if(mustSetCursorPosition){
 						String currentPositionSequence = "\033[" + (j+1) + ";" + (i+1) + "H";
@@ -904,13 +911,15 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 						mustSetColourCodes = resetState;
 						lastUsedColourCodes = this.mergedFinalScreenLayer.colourCodes[i][j];
 					}
-					System.out.print(this.mergedFinalScreenLayer.characters[i][j]);
+					if(this.mergedFinalScreenLayer.characters[i][j] != null){
+						System.out.print(this.mergedFinalScreenLayer.characters[i][j]);
+					}
+					this.mergedFinalScreenMask.flags[i][j] = false;
 				}else{
 					mustSetCursorPosition = true;
 				}
 			}
 		}
-		this.mergedFinalScreenMask.initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue(), false); //Reset mask after all updates have been printed.
 		if(resetCursorPosition){
 			System.out.print("\033[0;0H"); //  Move cursor to 0,0 after every print.
 		}
@@ -1067,9 +1076,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		
 		for(int i = 0; i < width; i++){
 			for(int j = 0; j < height; j++){
-				if(((i + startX) < this.terminalWidth) && ((j + startY) < this.terminalHeight)){ // TODO:  Remove this check once the synchronize 'render' is finished.
-					this.screenMasks[bufferIndex].flags[i + startX][j + startY] = state;
-				}
+				this.screenMasks[bufferIndex].flags[i + startX][j + startY] = state;
 			}
 		}
 		return new EmptyWorkItemResult();

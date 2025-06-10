@@ -30,59 +30,62 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.Map;
-import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 
-import java.util.Set;
-import java.util.HashSet;
-import java.util.TreeMap;
-import java.io.ByteArrayOutputStream;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.Collections;
-import java.util.Comparator;
-
-import java.lang.Thread;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingDeque;
 
-public class ScreenMask {
+public class ScreenLayerPrintParameters {
 
-	public int width;
-	public int height;
-	public boolean [][] flags = null;
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+	private ScreenLayer screenLayer;
+	private ScreenMask screenMask;
+	private int xOffset;
+	private int yOffset;
+	private int xSize;
+	private int ySize;
+	private int bufferIndex;
 
-	public ScreenMask(){
+	public ScreenLayerPrintParameters(ScreenLayer screenLayer, ScreenMask screenMask, int xOffset, int yOffset, int xSize, int ySize, int bufferIndex){
+		this.screenLayer = screenLayer;
+		this.screenMask = screenMask;
+	       	this.xOffset = xOffset;
+		this.yOffset = yOffset;
+		this.xSize = xSize;
+	       	this.ySize = ySize;
+	       	this.bufferIndex = bufferIndex;
 	}
 
-	public ScreenMask(ScreenMask m){
-		this.width = m.width;
-		this.height = m.height;
-		this.flags = new boolean [width][height];
-		for(int i = 0; i < m.width; i++){
-			for(int j = 0; j < m.height; j++){
-				this.flags[i][j] = m.flags[i][j];
-			}
-		}
+	public ScreenLayer getScreenLayer(){
+		return this.screenLayer;
 	}
 
-	public void initialize(int width, int height){
-		this.initialize(width, height, false);
+	public ScreenMask getScreenMask(){
+		return this.screenMask;
 	}
 
-	public void initialize(int width, int height, boolean defaultFlag){
-		this.width = width;
-		this.height = height;
-		this.flags = new boolean [width][height];
-		for(boolean [] a : this.flags){
-			Arrays.fill(a, defaultFlag);
-		}
+	public int getOffsetX(){
+		return this.xOffset;
+	}
+
+	public int getOffsetY(){
+		return this.yOffset;
+	}
+
+	public int getSizeX(){
+		return this.xSize;
+	}
+
+	public int getSizeY(){
+		return this.ySize;
+	}
+
+	public int getBufferIndex(){
+		return this.bufferIndex;
 	}
 }

@@ -64,6 +64,32 @@ public class ScreenLayer {
 	public ScreenLayer(){
 	}
 
+	public ScreenLayer(ScreenLayer l){
+		this.width = l.width;
+		this.height = l.height;
+		this.characterWidths = new int [width][height];
+		for(int i = 0; i < l.width; i++){
+			for(int j = 0; j < l.height; j++){
+				this.characterWidths[i][j] = l.characterWidths[i][j];
+			}
+		}
+		this.colourCodes = new int [width][height][];
+		for(int i = 0; i < l.width; i++){
+			for(int j = 0; j < l.height; j++){
+				this.colourCodes[i][j] = new int [l.colourCodes[i][j].length];
+				for(int k = 0; k < l.colourCodes[i][j].length; k++){
+					this.colourCodes[i][j][k] = l.colourCodes[i][j][k];
+				}
+			}
+		}
+		this.characters = new String [width][height];
+		for(int i = 0; i < l.width; i++){
+			for(int j = 0; j < l.height; j++){
+				this.characters[i][j] = l.characters[i][j];
+			}
+		}
+	}
+
 	public void initialize(int width, int height){
 		// By default, make assumptions that minimize screen prints
 		this.initialize(width, height, 0, null, new int [] {} , null);

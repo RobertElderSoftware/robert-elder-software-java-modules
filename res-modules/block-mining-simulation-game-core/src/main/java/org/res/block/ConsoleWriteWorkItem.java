@@ -43,47 +43,19 @@ import java.lang.invoke.MethodHandles;
 public class ConsoleWriteWorkItem extends ConsoleQueueableWorkItem {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private ScreenLayer changes;
-	private ScreenMask mask;
-	private int xOffset;
-	private int yOffset;
-	private int xSize;
-	private int ySize;
 	private FrameDimensions frameDimensions;
-	private int bufferIndex;
 	private FrameChangeWorkItemParams frameChangeParams;
+	private List<ScreenLayerPrintParameters> params;
 
-	public ConsoleWriteWorkItem(ConsoleWriterThreadState consoleWriterThreadState, ScreenLayer changes, ScreenMask mask, int xOffset, int yOffset, int xSize, int ySize, FrameDimensions frameDimensions, int bufferIndex, FrameChangeWorkItemParams frameChangeParams){
+	public ConsoleWriteWorkItem(ConsoleWriterThreadState consoleWriterThreadState, List<ScreenLayerPrintParameters> params, FrameDimensions frameDimensions, FrameChangeWorkItemParams frameChangeParams){
 		super(consoleWriterThreadState, true);
-		this.changes = changes;
-		this.mask = mask;
-		this.xOffset = xOffset;
-		this.yOffset = yOffset;
-		this.xSize = xSize;
-		this.ySize = ySize;
+		this.params = params;
 		this.frameDimensions = frameDimensions;
-		this.bufferIndex = bufferIndex;
 		this.frameChangeParams = frameChangeParams;
 	}
 
-	public int getXOffset(){
-		return xOffset;
-	}
-
-	public int getYOffset(){
-		return yOffset;
-	}
-
-	public int getXSize(){
-		return xSize;
-	}
-
-	public int getYSize(){
-		return ySize;
-	}
-
 	public WorkItemResult executeQueuedWork() throws Exception{
-		return this.consoleWriterThreadState.prepareTerminalTextChange(changes, mask, xOffset, yOffset, xSize, ySize, frameDimensions, bufferIndex, frameChangeParams);
+		return this.consoleWriterThreadState.prepareTerminalTextChange(params, frameDimensions, frameChangeParams);
 	}
 
 	public void doWork() throws Exception{
