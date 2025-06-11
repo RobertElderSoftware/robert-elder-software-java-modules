@@ -442,7 +442,8 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			}
 		}
 
-		this.writeToLocalFrameBuffer(changes, mask, 0, 0, terminalWidth, terminalHeight, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_MENU);
+		ScreenRegion region = new ScreenRegion(0, 0, terminalWidth, terminalHeight);
+		this.writeToLocalFrameBuffer(changes, mask, region, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_MENU);
 
 		for(LinePrintingInstructionAtOffset instruction : instructions){
 			Long lineYOffset = instruction.getOffsetY() + yOffset;
@@ -456,7 +457,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		this.onFinalizeFrame();
 	}
 
-	public void onRenderFrame() throws Exception{
+	public void onRenderFrame(boolean dimensionsChanged) throws Exception{
 		this.rebuildHelpMenu(this.helpMenu.getActiveState());
 		this.render();
 	}

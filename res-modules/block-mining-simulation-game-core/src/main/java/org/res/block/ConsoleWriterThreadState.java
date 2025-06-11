@@ -172,7 +172,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				splits.add(makeLeafNodeSplit(inventoryInterfaceFrameId));
 				framePercents.add(0.25 / this.inventoryInterfaceFrameIds.size());
 			}
-			Long r = makeVerticalSplit();
+			Long r = makeHorizontalSplit();
 			this.addSplitPartsByIds(r, splits);
 			((UserInterfaceSplitMulti)this.getUserInterfaceSplitById(r)).setSplitPercentages(framePercents);
 			this.setRootSplit(r);
@@ -769,47 +769,48 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		for(ScreenLayerPrintParameters param : params){
 			ScreenLayer changes = param.getScreenLayer();
 			ScreenMask mask = param.getScreenMask();
-			int xOffsetFrame = param.getOffsetX();
-			int yOffsetFrame = param.getOffsetY();
-			int xChangeSize = param.getSizeX();
-			int yChangeSize = param.getSizeY();
+			Set<ScreenRegion> regions = param.getScreenRegions();
 			int bufferIndex = param.getBufferIndex();
 
-			int xOffsetScreen = xOffsetFrame + frame.getFrameOffsetX().intValue();
-			int yOffsetScreen = yOffsetFrame + frame.getFrameOffsetY().intValue();
-			for(int j = 0; j < yChangeSize; j++){
-				for(int i = 0; i < xChangeSize; i++){
-					int x = xOffsetScreen + i;
-					int y = yOffsetScreen + j;
-					int xF = xOffsetFrame + i;
-					int yF = yOffsetFrame + j;
-					if(mask.flags[xF][yF]){
-						if(
-							//  Don't write beyond current terminal dimenions
-							//  Individual frames should be inside terminal area.
-							//  This check should always be true:
-							x < terminalWidth &&
-							y < terminalHeight &&
-							x >= 0 &&
-							y >= 0 &&
-							//  Only allow a frame to write inside it's own borders:
-							x < (frameDimensions.getFrameOffsetX() + frameDimensions.getFrameWidth()) &&
-							y < (frameDimensions.getFrameOffsetY() + frameDimensions.getFrameHeight()) &&
-							x >= frameDimensions.getFrameOffsetX() &&
-							y >= frameDimensions.getFrameOffsetY()
-						){
-							//  If it's changing in this update, or there is a change that hasn't been printed yet.
-							boolean hasChanged = !(
-								this.screenLayers[bufferIndex].characterWidths[x][y] == changes.characterWidths[xF][yF] &&
-								Arrays.equals(this.screenLayers[bufferIndex].colourCodes[x][y], changes.colourCodes[xF][yF]) &&
-								Objects.equals(this.screenLayers[bufferIndex].characters[x][y], changes.characters[xF][yF])
-							) || this.screenMasks[bufferIndex].flags[x][y];
-							this.screenLayers[bufferIndex].characterWidths[x][y] = changes.characterWidths[xF][yF];
-							this.screenLayers[bufferIndex].colourCodes[x][y] = changes.colourCodes[xF][yF];
-							this.screenLayers[bufferIndex].characters[x][y] = changes.characters[xF][yF];
-							this.screenMasks[bufferIndex].flags[x][y] = hasChanged;
-						}else{
-							throw new Exception("Error character '" + changes.characters[xF][yF] + "' because if was out of bounds at x=" + x + ", y=" + y);
+			for(ScreenRegion region : regions){
+				int startX = region.getStartX();
+				int startY = region.getStartY();
+				int endX = region.getEndX();
+				int endY = region.getEndY();
+				for(int j = startY; j < endY; j++){
+					for(int i = startX; i < endX; i++){
+						int x = frame.getFrameOffsetX().intValue() + i;
+						int y = frame.getFrameOffsetY().intValue() + j;
+						int xF = i;
+						int yF = j;
+						if(mask.flags[xF][yF]){
+							if(
+								//  Don't write beyond current terminal dimenions
+								//  Individual frames should be inside terminal area.
+								//  This check should always be true:
+								x < terminalWidth &&
+								y < terminalHeight &&
+								x >= 0 &&
+								y >= 0 &&
+								//  Only allow a frame to write inside it's own borders:
+								x < (frameDimensions.getFrameOffsetX() + frameDimensions.getFrameWidth()) &&
+								y < (frameDimensions.getFrameOffsetY() + frameDimensions.getFrameHeight()) &&
+								x >= frameDimensions.getFrameOffsetX() &&
+								y >= frameDimensions.getFrameOffsetY()
+							){
+								//  If it's changing in this update, or there is a change that hasn't been printed yet.
+								boolean hasChanged = !(
+									this.screenLayers[bufferIndex].characterWidths[x][y] == changes.characterWidths[xF][yF] &&
+									Arrays.equals(this.screenLayers[bufferIndex].colourCodes[x][y], changes.colourCodes[xF][yF]) &&
+									Objects.equals(this.screenLayers[bufferIndex].characters[x][y], changes.characters[xF][yF])
+								) || this.screenMasks[bufferIndex].flags[x][y]; //  If there's a change, or an existing un-printed change
+								this.screenLayers[bufferIndex].characterWidths[x][y] = changes.characterWidths[xF][yF];
+								this.screenLayers[bufferIndex].colourCodes[x][y] = changes.colourCodes[xF][yF];
+								this.screenLayers[bufferIndex].characters[x][y] = changes.characters[xF][yF];
+								this.screenMasks[bufferIndex].flags[x][y] = hasChanged;
+							}else{
+								throw new Exception("Error character '" + changes.characters[xF][yF] + "' because if was out of bounds at x=" + x + ", y=" + y);
+							}
 						}
 					}
 				}
@@ -817,7 +818,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 		return new EmptyWorkItemResult();
 	}
-
 
 	public static void mergeChangedNonNullCharactersDown(ScreenLayer topLayer, ScreenMask topMask, ScreenLayer outputLayer, ScreenMask outputMask) throws Exception{
 		for(int i = 0; i < topLayer.width; i++){

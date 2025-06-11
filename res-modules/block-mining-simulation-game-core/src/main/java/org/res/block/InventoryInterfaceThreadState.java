@@ -81,7 +81,8 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		return this.blockManagerThreadCollection;
 	}
 
-	public void onRenderFrame() throws Exception{
+	public void onRenderFrame(boolean dimensionsChanged) throws Exception{
+		this.clearFrame();
 		this.render();
 	}
 
@@ -97,35 +98,52 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		this.onFinalizeFrame();
 	}
 
+	public ColouredTextFragmentList makeInventoryItemText(PlayerInventoryItemStack stack) throws Exception{
+		IndividualBlock blockFromStack = stack.getBlock(this.blockManagerThreadCollection.getBlockSchema());
+
+		GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
+		String blockPresentation = BlockSkins.getPresentation(blockFromStack.getClass(), mode.equals(GraphicsMode.ASCII));
+
+		String inventoryItemText = this.whitespacePadMapAreaCell(blockPresentation) + "  (" + stack.getQuantity().toString() + ") " + blockFromStack.getClass().getSimpleName() + " ";
+		return new ColouredTextFragmentList(new ColouredTextFragment(inventoryItemText, new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}));
+	}
+
 	public void reprintFrame() throws Exception {
 		this.drawBorders();
 
-		this.printTextAtScreenXY(new ColouredTextFragment("- Inventory -", new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}), 10L, 0L, true);
+		this.printTextAtScreenXY(new ColouredTextFragment("- Inventory -", new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}), 5L, 0L, true);
+
+		List<ColouredTextFragmentList> inventoryItemTextList = new ArrayList<ColouredTextFragmentList>();
 		PlayerInventory inventory = this.getPlayerInventory();
 		if(inventory != null){
 			List<PlayerInventoryItemStack> itemStacks = inventory.getInventoryItemStackList();
-			logger.info("Here is the inventory: " + inventory.asJsonString() + ".");
-			Long inventoryItemsXOffset = 2L;
 			if(itemStacks.size() == 0){
-				this.printTextAtScreenXY(new ColouredTextFragment("Empty.", new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}), inventoryItemsXOffset, 2L, true);
+				inventoryItemTextList.add(new ColouredTextFragmentList(new ColouredTextFragment("Empty.", new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR})));
 			}else{
 				for(int i = 0; i < itemStacks.size(); i++){
 					PlayerInventoryItemStack stack = itemStacks.get(i);
-					IndividualBlock blockFromStack = stack.getBlock(this.blockManagerThreadCollection.getBlockSchema());
-					int maxItemsInColumn = 4;
-					int xOffset = (i / maxItemsInColumn) * 30;
-					int yOffset = (i % maxItemsInColumn) * 2;
-
-					GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
-					String blockPresentation = BlockSkins.getPresentation(blockFromStack.getClass(), mode.equals(GraphicsMode.ASCII));
-
-					Long printTextX = inventoryItemsXOffset + xOffset;
-					Long printTextY = (long)(2 + yOffset);
-					String inventoryItemText = this.whitespacePadMapAreaCell(blockPresentation) + "  (" + stack.getQuantity().toString() + ") " + blockFromStack.getClass().getSimpleName() + " ";
-					this.printTextAtScreenXY(new ColouredTextFragment(inventoryItemText, new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}), printTextX, printTextY, true);
+					inventoryItemTextList.add(makeInventoryItemText(stack));
 				}
 			}
 		}
+
+		/*
+		int maxItemsInColumn = inventoryItemsPerColumn.intValue();
+		Long usableFrameWidth = this.getInnerFrameHeight() - 2L;
+		Long usableFrameHeight = this.getInnerFrameHeight() - 2L;
+		Long inventoryItemsPerColumn = usableFrameHeight / 2L;
+
+		int xOffset = (i / maxItemsInColumn) * 30;
+		int yOffset = (i % maxItemsInColumn) * 2;
+
+		Long printTextX = inventoryItemsXOffset + xOffset;
+		Long printTextY = (long)(2 + yOffset);
+
+		List<LinePrintingInstruction> introInstructions = this.getLinePrintingInstructions(inventoryItemTextList, 1L, 1L, false, false, this.getInnerFrameWidth());
+		rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(introInstructions, currentLine, 1L));
+		*/
+
+
 	}
 
 	private PlayerInventory getPlayerInventory(){

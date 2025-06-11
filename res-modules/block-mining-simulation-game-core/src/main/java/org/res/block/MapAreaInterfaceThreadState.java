@@ -177,7 +177,10 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		return this.blockManagerThreadCollection;
 	}
 
-	public void onRenderFrame() throws Exception{
+	public void onRenderFrame(boolean dimensionsChanged) throws Exception{
+		if(dimensionsChanged){
+			this.clearFrame();
+		}
 		FrameDimensions currentFrameDimensions = this.getFrameDimensions() == null ? null : new FrameDimensions(this.getFrameDimensions());
 		Long totalXBorderSize = this.getTotalXBorderSize();
 		Long totalYBorderSize = this.getTotalYBorderSize();

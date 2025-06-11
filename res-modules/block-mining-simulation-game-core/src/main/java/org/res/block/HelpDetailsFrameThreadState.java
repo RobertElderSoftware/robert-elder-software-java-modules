@@ -288,20 +288,11 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 		}
 	}
 
-	public void onRenderFrame() throws Exception{
+	public void onRenderFrame(boolean dimensionsChanged) throws Exception{
 		this.linePrintingInstructionsAtOffset = null; //  If dimension of frame change, must re-compute all lines.
 		this.render();
 	}
 
-	public void clearFrame() throws Exception{
-		for(long l = 0L; l < this.getFrameHeight(); l++){
-			int repeatNumber = this.getFrameWidth().intValue();
-			if(repeatNumber < 0){
-				throw new Exception("repeatNumber is negative: " + repeatNumber);
-			}
-			this.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(repeatNumber), new int[] {FRAME_CLEAR_BG_COLOR}), 0L, l, true);
-		}
-	}
 
 	public void reprintFrame() throws Exception {
 		this.drawBorders();

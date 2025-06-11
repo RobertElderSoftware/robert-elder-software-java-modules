@@ -30,11 +30,11 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.Set;
 import java.util.List;
 import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
-
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,19 +45,13 @@ public class ScreenLayerPrintParameters {
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private ScreenLayer screenLayer;
 	private ScreenMask screenMask;
-	private int xOffset;
-	private int yOffset;
-	private int xSize;
-	private int ySize;
+	private Set<ScreenRegion> regions;
 	private int bufferIndex;
 
-	public ScreenLayerPrintParameters(ScreenLayer screenLayer, ScreenMask screenMask, int xOffset, int yOffset, int xSize, int ySize, int bufferIndex){
+	public ScreenLayerPrintParameters(ScreenLayer screenLayer, ScreenMask screenMask, Set<ScreenRegion> regions, int bufferIndex){
 		this.screenLayer = screenLayer;
 		this.screenMask = screenMask;
-	       	this.xOffset = xOffset;
-		this.yOffset = yOffset;
-		this.xSize = xSize;
-	       	this.ySize = ySize;
+		this.regions = regions;
 	       	this.bufferIndex = bufferIndex;
 	}
 
@@ -69,20 +63,8 @@ public class ScreenLayerPrintParameters {
 		return this.screenMask;
 	}
 
-	public int getOffsetX(){
-		return this.xOffset;
-	}
-
-	public int getOffsetY(){
-		return this.yOffset;
-	}
-
-	public int getSizeX(){
-		return this.xSize;
-	}
-
-	public int getSizeY(){
-		return this.ySize;
+	public Set<ScreenRegion> getScreenRegions(){
+		return this.regions;
 	}
 
 	public int getBufferIndex(){
