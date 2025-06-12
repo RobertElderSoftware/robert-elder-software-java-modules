@@ -13,3 +13,8 @@ CURRENT_REVISION=$(grep -Po '<revision>[^<]+<\/revision>' pom.xml | sed 's/<revi
 mvn -e -Dmaven.repo.local=${MVN_REPO} clean install && #  Only required when dependency packages have been updated.
 mvn -e -Dmaven.repo.local=${MVN_REPO} -pl res-modules/block-mining-simulation-game-core -amd clean install &&
 mvn -e -Dmaven.repo.local=${MVN_REPO} -pl res-modules/block-mining-simulation-game-unit-tests -amd test
+
+
+# Run a specific test:
+#
+#mvn -e -pl res-modules/block-mining-simulation-game-unit-tests -Dtest=BlockManagerUnitTest#noiseGeneratorUnitTests test

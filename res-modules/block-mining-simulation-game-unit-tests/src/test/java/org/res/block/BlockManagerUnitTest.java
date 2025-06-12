@@ -160,8 +160,43 @@ public class BlockManagerUnitTest {
 		runCuboidAddressIntersectionUnitTest();
 	}
 
-	public static void main(String[] args) throws Exception {
+	@Test
+	public void noiseGeneratorUnitTests() throws Exception {
 		//  Just uncomment whichever unit test you want to run:
+		/*
+		runMultiDimensionalNoiseGeneratorUnitTest(
+			new MultiDimensionalNoiseGeneratorUnitTestParameters(
+				"sha512-patterns-around-origin",
+				MessageDigest.getInstance("SHA-512"),
+				false,      // Make video or not?
+				1000,        // width
+				1000,        // height
+				-500,       // x offset
+				-500,       // y offset
+				1,          // num frames
+				(p, noiseGenerator, x, y, z) -> {
+					long [] coordinate = new long [3];
+					coordinate[0] = x + p.getXOffset();
+					coordinate[1] = y + p.getYOffset();
+					coordinate[2] = z;
+
+					int num_octaves = 40;
+					double [] frequencies = new double [num_octaves];
+					double [] amplitudes = new double [num_octaves];
+					double frequency = 0.01;
+					double total_amplitude = 0.0;
+					for(int i = 0; i < num_octaves; i++){
+						frequencies[i] = frequency;
+						amplitudes[i] = 1.0 / Math.pow(frequency, 0.8);
+						total_amplitude += amplitudes[i];
+						frequency *= 1.2;
+					}
+
+					double noiseAtPixel = noiseGenerator.multiOctaveNoiseAtCoordinate(coordinate, frequencies, amplitudes) / Math.pow(total_amplitude, 0.7);
+					return noiseAtPixel;
+				}
+			)
+		);
 		runMultiDimensionalNoiseGeneratorUnitTest(
 			new MultiDimensionalNoiseGeneratorUnitTestParameters(
 				"example-ore-islands",
@@ -276,6 +311,7 @@ public class BlockManagerUnitTest {
                                 }
                         )
                 );
+                */
 	}
 
 	public static void runWorkItemQueueTest() throws Exception {
