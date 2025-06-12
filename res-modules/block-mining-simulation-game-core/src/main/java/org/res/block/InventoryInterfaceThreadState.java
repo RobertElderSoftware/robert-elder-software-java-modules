@@ -108,42 +108,79 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		return new ColouredTextFragmentList(new ColouredTextFragment(inventoryItemText, new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}));
 	}
 
+	public List<List<ColouredTextFragmentList>> divideIntoColumns(List<ColouredTextFragmentList> inventoryItemTextLists, Long maxItemsInColumn){
+		List<List<ColouredTextFragmentList>> rtn = new ArrayList<List<ColouredTextFragmentList>>();
+		int i = 0; 
+		List<ColouredTextFragmentList> currentList = new ArrayList<ColouredTextFragmentList>();
+		for(ColouredTextFragmentList l : inventoryItemTextLists){
+			if(i % maxItemsInColumn == 0){
+				if(currentList.size() > 0){
+					rtn.add(currentList);
+				}
+				currentList = new ArrayList<ColouredTextFragmentList>();
+			}
+			currentList.add(l);
+			i++;
+
+		}
+		if(currentList.size() > 0){
+			rtn.add(currentList);
+		}
+		return rtn;
+	}
+
+	public void printInventoryColumn(List<ColouredTextFragmentList> column, Long offset) throws Exception{
+
+		Long yPaddingTop = this.getInnerFrameHeight() < 2L ? 1L : 2L;
+		
+		if(this.getInnerFrameWidth() > 0L){
+			List<LinePrintingInstructionAtOffset> instructionsAtOffset = new ArrayList<LinePrintingInstructionAtOffset>();
+			for(int i = 0; i < column.size(); i++){
+				ColouredTextFragmentList text = column.get(i);
+				Long yOffset = yPaddingTop + (i * 2L);
+				//this.printTextAtScreenXY(text, 2L + offset, yOffset, true);
+
+				Long xOffset = 2L + offset;
+				List<LinePrintingInstruction> instructions = this.getLinePrintingInstructions(text, xOffset, yOffset, true, false, this.getInnerFrameWidth());
+				instructionsAtOffset.addAll(this.wrapLinePrintingInstructionsAtOffset(instructions, yOffset, 1L));
+			}
+			for(LinePrintingInstructionAtOffset instruction : instructionsAtOffset){
+				Long lineOffset = instruction.getOffsetY();
+				if((lineOffset >= 1L) && (lineOffset <= this.getFrameHeight() -2L)){
+					this.executeLinePrintingInstructionsAtYOffset(Arrays.asList(instruction.getLinePrintingInstruction()), lineOffset);
+				}
+			}
+		}
+	}
+
 	public void reprintFrame() throws Exception {
 		this.drawBorders();
 
 		this.printTextAtScreenXY(new ColouredTextFragment("- Inventory -", new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}), 5L, 0L, true);
 
-		List<ColouredTextFragmentList> inventoryItemTextList = new ArrayList<ColouredTextFragmentList>();
+		List<ColouredTextFragmentList> inventoryItemTextLists = new ArrayList<ColouredTextFragmentList>();
 		PlayerInventory inventory = this.getPlayerInventory();
 		if(inventory != null){
 			List<PlayerInventoryItemStack> itemStacks = inventory.getInventoryItemStackList();
 			if(itemStacks.size() == 0){
-				inventoryItemTextList.add(new ColouredTextFragmentList(new ColouredTextFragment("Empty.", new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR})));
+				inventoryItemTextLists.add(new ColouredTextFragmentList(new ColouredTextFragment("Empty.", new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR})));
 			}else{
 				for(int i = 0; i < itemStacks.size(); i++){
 					PlayerInventoryItemStack stack = itemStacks.get(i);
-					inventoryItemTextList.add(makeInventoryItemText(stack));
+					inventoryItemTextLists.add(makeInventoryItemText(stack));
 				}
 			}
 		}
 
-		/*
-		int maxItemsInColumn = inventoryItemsPerColumn.intValue();
-		Long usableFrameWidth = this.getInnerFrameHeight() - 2L;
-		Long usableFrameHeight = this.getInnerFrameHeight() - 2L;
-		Long inventoryItemsPerColumn = usableFrameHeight / 2L;
+		Long usableFrameWidth = this.getInnerFrameWidth();
+		Long usableFrameHeight = this.getInnerFrameHeight();
+		Long maxItemsInColumn = usableFrameHeight / 2L;
+		maxItemsInColumn = maxItemsInColumn < 1L ? 1L : maxItemsInColumn;
 
-		int xOffset = (i / maxItemsInColumn) * 30;
-		int yOffset = (i % maxItemsInColumn) * 2;
-
-		Long printTextX = inventoryItemsXOffset + xOffset;
-		Long printTextY = (long)(2 + yOffset);
-
-		List<LinePrintingInstruction> introInstructions = this.getLinePrintingInstructions(inventoryItemTextList, 1L, 1L, false, false, this.getInnerFrameWidth());
-		rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(introInstructions, currentLine, 1L));
-		*/
-
-
+		List<List<ColouredTextFragmentList>> columns = this.divideIntoColumns(inventoryItemTextLists, maxItemsInColumn);
+		for(int i = 0; i < columns.size(); i++){
+			this.printInventoryColumn(columns.get(i), 30L * i);
+		}
 	}
 
 	private PlayerInventory getPlayerInventory(){

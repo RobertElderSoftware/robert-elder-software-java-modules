@@ -486,12 +486,16 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
 
 			this.printMapAreaUpdates(areaToUpdate);
-			this.onFinalizeFrame();
 			return;
 		}else{
 			logger.info("missing updateMapAreaFlags because this.mapAreaCuboidAddress was null.");
 			return;
 		}
+	}
+
+	public void onUpdateMapAreaFlagsNotify(CuboidAddress areaToUpdate) throws Exception {
+		this.updateMapAreaFlags(areaToUpdate);
+		this.onFinalizeFrame();
 	}
 
 	public void reprintFrame() throws Exception {

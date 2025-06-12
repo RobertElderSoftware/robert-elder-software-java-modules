@@ -422,8 +422,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 
 		int menuHeight = instructions.size() + this.helpMenu.getDisplayedHelpMenuOptions().size() + 1;
 
-		ScreenLayer changes = new ScreenLayer();
-		changes.initialize(terminalWidth, terminalHeight);
+		ScreenLayer changes = new ScreenLayer(terminalWidth, terminalHeight);
 
 		ScreenMask mask = new ScreenMask();
 		mask.initialize(terminalWidth, terminalHeight, false);

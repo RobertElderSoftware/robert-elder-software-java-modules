@@ -263,8 +263,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int xDimSize = xDirection ? totalWidth : 1;
 		int yDimSize = xDirection ? 1 : totalWidth;
 
-		ScreenLayer changes = new ScreenLayer();
-		changes.initialize(xDimSize, yDimSize);
+		ScreenLayer changes = new ScreenLayer(xDimSize, yDimSize);
 
 		ScreenMask mask = new ScreenMask();
 		mask.initialize(xDimSize, yDimSize, false);
@@ -697,8 +696,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				String s = null;
 				int [] colours = new int[] {};
 
-				this.bufferedScreenLayers[l].initialize(width, height, chrWidth, s, colours);
-				this.previousBufferedScreenLayers[l].initialize(width, height, 0, null, new int [] {});
+				this.bufferedScreenLayers[l] = new ScreenLayer(width, height);
+				this.bufferedScreenLayers[l].initialize(chrWidth, s, colours);
+				this.previousBufferedScreenLayers[l] = new ScreenLayer(width, height);
+				this.previousBufferedScreenLayers[l].initialize(0, null, new int [] {});
 				this.bufferedScreenMasks[l].initialize(width, height, true);
 				this.changedScreenRegions.get(l).add(new ScreenRegion(0, 0, width, height));
 			}
@@ -760,8 +761,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int totalWidth = (int)(this.getMapAreaCellWidth() * areaCellWidth);
 		int totalHeight = areaCellHeight;
 
-		ScreenLayer changes = new ScreenLayer();
-		changes.initialize(totalWidth, totalHeight);
+		ScreenLayer changes = new ScreenLayer(totalWidth, totalHeight);
 
 		ScreenMask mask = new ScreenMask();
 		mask.initialize(totalWidth, totalHeight, false);
@@ -863,8 +863,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		this.usedScreenLayers = usedScreenLayers;
 
 		for(int i = 0; i < usedScreenLayers.length; i++){
-			this.bufferedScreenLayers[usedScreenLayers[i]] = new ScreenLayer();
-			this.previousBufferedScreenLayers[usedScreenLayers[i]] = new ScreenLayer();
+			this.bufferedScreenLayers[usedScreenLayers[i]] = new ScreenLayer(0,0);
+			this.previousBufferedScreenLayers[usedScreenLayers[i]] = new ScreenLayer(0,0);
 			this.bufferedScreenMasks[usedScreenLayers[i]] = new ScreenMask();
 		}
 

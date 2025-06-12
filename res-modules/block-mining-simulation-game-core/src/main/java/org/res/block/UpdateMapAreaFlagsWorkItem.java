@@ -45,6 +45,6 @@ public class UpdateMapAreaFlagsWorkItem extends MapAreaWorkItem {
 	}
 
 	public void doWork() throws Exception{
-		this.mapAreaInterfaceThreadState.updateMapAreaFlags(this.cuboidAddress);
+		this.mapAreaInterfaceThreadState.onUpdateMapAreaFlagsNotify(this.cuboidAddress);
 	}
 }

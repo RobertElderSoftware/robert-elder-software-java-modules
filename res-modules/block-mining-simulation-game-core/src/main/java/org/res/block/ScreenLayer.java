@@ -60,8 +60,14 @@ public class ScreenLayer {
 	public int [][] characterWidths = null;
 	public int [][][] colourCodes = null;
 	public String [][] characters = null;
+	private int [] defaultColourCodes = new int [] {};
 
-	public ScreenLayer(){
+	public ScreenLayer(int width, int height){
+		this.width = width;
+		this.height = height;
+		this.characterWidths = new int [width][height];
+		this.colourCodes = new int [width][height][];
+		this.characters = new String [width][height];
 	}
 
 	public ScreenLayer(ScreenLayer l){
@@ -90,40 +96,40 @@ public class ScreenLayer {
 		}
 	}
 
-	public void initialize(int width, int height){
+	public void initialize(){
 		// By default, make assumptions that minimize screen prints
-		this.initialize(width, height, 0, null, new int [] {} , null);
+		this.initialize(0, null, new int [] {} , null);
 	}
 
-	public void initialize(int width, int height, int chrWidth, String s, int [] colourCodes){
-		this.initialize(width, height, chrWidth, s, colourCodes, null);
+	public void initialize(int chrWidth, String s, int [] colourCodes){
+		this.initialize(chrWidth, s, colourCodes, null);
 	}
 
-	public void initialize(int width, int height, int chrWidth, String s, int [] colourCodes, String msg){
-		this.width = width;
-		this.height = height;
-		this.characterWidths = new int [width][height];
-		for(int [] a : this.characterWidths){
-			Arrays.fill(a, chrWidth);
-		}
-		this.colourCodes = new int [width][height][colourCodes.length];
-		for(int [][] a : this.colourCodes){
-			for(int [] b : a){
-				Arrays.fill(a, colourCodes);
+	public void initialize(int chrWidth, String s, int [] colourCodes, String msg){
+		this.initializeInRegion(chrWidth, s, colourCodes, msg, new ScreenRegion(0,0, this.width, this.height));
+	}
+
+	public void initializeInRegion(int chrWidth, String s, int [] colourCodes, String msg, ScreenRegion region){
+		int startX = region.getStartX();
+		int startY = region.getStartY();
+		int endX = region.getEndX();
+		int endY = region.getEndY();
+		this.defaultColourCodes = colourCodes;
+
+		for(int i = startX; i < endX; i++){
+			for(int j = startY; j < endY; j++){
+				this.characterWidths[i][j] = chrWidth;
+				this.colourCodes[i][j] = colourCodes;
+				this.characters[i][j] = s;
 			}
-		}
-
-		this.characters = new String [width][height];
-		for(String [] a : this.characters){
-			Arrays.fill(a, s);
 		}
 		if(msg != null){
 			int messageLength = msg.length();
-			int xOffset = messageLength > width ? 0 : ((width - messageLength) / 2);
-			int yOffset = height / 2;
+			int xOffset = messageLength > this.width ? 0 : ((this.width - messageLength) / 2);
+			int yOffset = this.height / 2;
 
 			for(int i = 0; i < msg.length(); i++){
-				if(((xOffset + i)) < width){
+				if(((xOffset + i)) < this.width){
 					this.characters[xOffset + i][yOffset] = String.valueOf(msg.charAt(i));
 				}
 			}

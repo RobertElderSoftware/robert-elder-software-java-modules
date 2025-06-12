@@ -85,11 +85,13 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private boolean [] screenLayerActiveStates = new boolean [ConsoleWriterThreadState.numScreenLayers];
 	private ScreenLayer [] screenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
 	private ScreenMask [] screenMasks = new ScreenMask [ConsoleWriterThreadState.numScreenLayers];
+	private List<Set<ScreenRegion>> regionsToUpdate = new ArrayList<Set<ScreenRegion>>();
+	private Set<ScreenRegion> mergedRegionsToUpdate = new HashSet<ScreenRegion>();
 
 	//  Final output that's suppoused to be printed to screen
         //  after all layers have been merged:
-	private ScreenLayer mergedFinalScreenLayer = new ScreenLayer();
-	private ScreenMask mergedFinalScreenMask = new ScreenMask();
+	private ScreenLayer mergedFinalScreenLayer = null;
+	private ScreenMask mergedFinalScreenMask = null;
 
 	public Long focusedFrameId = null;
 
@@ -109,9 +111,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.helpMenuFrameThreadState = (HelpMenuFrameThreadState)this.getFrameStateById(helpMenuFrameId);
 
 		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
-			this.screenLayers[i] = new ScreenLayer();
+			this.screenLayers[i] = new ScreenLayer(0, 0);
 			this.screenMasks[i] = new ScreenMask();
 			this.screenLayerActiveStates[i] = true;
+			this.regionsToUpdate.add(new HashSet<ScreenRegion>());
 		}
 		this.initializeConsole(80L, 24L); // Early setup is necessary so we can do text width calculations before drawing frame
 
@@ -640,9 +643,12 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		if(this.collectAllUserInterfaceFrames().size() == 0){
 			//  If there are no active frames, there is no UI frame to clear what was there before:
 			String msg = "All frames have been closed!  Press 'ESC' to open one.";
-			this.screenLayers[0].initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue(), 1, " ", new int [] {}, msg);
+			this.screenLayers[0] = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
+			this.screenLayers[0].initialize(1, " ", new int [] {}, msg);
 			this.screenMasks[0].initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue(), true);
-			this.mergedFinalScreenLayer.initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue());
+			this.mergedFinalScreenLayer = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
+			this.mergedFinalScreenMask.initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue(), false);
+			this.mergedFinalScreenLayer = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
 			this.mergedFinalScreenMask.initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue(), false);
 			this.printTerminalTextChanges(false);
 		}
@@ -771,6 +777,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			ScreenMask mask = param.getScreenMask();
 			Set<ScreenRegion> regions = param.getScreenRegions();
 			int bufferIndex = param.getBufferIndex();
+			int frameOffsetX = frame.getFrameOffsetX().intValue();
+			int frameOffsetY = frame.getFrameOffsetY().intValue();
 
 			for(ScreenRegion region : regions){
 				int startX = region.getStartX();
@@ -779,8 +787,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				int endY = region.getEndY();
 				for(int j = startY; j < endY; j++){
 					for(int i = startX; i < endX; i++){
-						int x = frame.getFrameOffsetX().intValue() + i;
-						int y = frame.getFrameOffsetY().intValue() + j;
+						int x = frameOffsetX + i;
+						int y = frameOffsetY + j;
 						int xF = i;
 						int yF = j;
 						if(mask.flags[xF][yF]){
@@ -814,55 +822,84 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 						}
 					}
 				}
+				this.regionsToUpdate.get(bufferIndex).add(
+					new ScreenRegion(
+						startX + frameOffsetX,
+						startY + frameOffsetY,
+						endX + frameOffsetX,
+						endY + frameOffsetY
+					)
+				);
 			}
 		}
 		return new EmptyWorkItemResult();
 	}
 
-	public static void mergeChangedNonNullCharactersDown(ScreenLayer topLayer, ScreenMask topMask, ScreenLayer outputLayer, ScreenMask outputMask) throws Exception{
-		for(int i = 0; i < topLayer.width; i++){
-			for(int j = 0; j < topLayer.height; j++){
-				if(topLayer.characters[i][j] == null){
-					outputLayer.characterWidths[i][j] = outputLayer.characterWidths[i][j];
-					outputLayer.colourCodes[i][j] = outputLayer.colourCodes[i][j];
-					outputLayer.characters[i][j] = outputLayer.characters[i][j];
-					outputMask.flags[i][j] = outputMask.flags[i][j] || topMask.flags[i][j];
-				}else{
-					outputLayer.characterWidths[i][j] = topLayer.characterWidths[i][j];
-					outputLayer.colourCodes[i][j] = topLayer.colourCodes[i][j];
-					outputLayer.characters[i][j] = topLayer.characters[i][j];
-					outputMask.flags[i][j] = topMask.flags[i][j];
+	public static void mergeChangedNonNullCharactersDown(ScreenLayer topLayer, ScreenMask topMask, ScreenLayer outputLayer, ScreenMask outputMask, Set<ScreenRegion> regions) throws Exception{
+		for(ScreenRegion region : regions){
+			int startX = region.getStartX();
+			int startY = region.getStartY();
+			int endX = region.getEndX();
+			int endY = region.getEndY();
+			for(int i = startX; i < endX; i++){
+				for(int j = startY; j < endY; j++){
+					if(topLayer.characters[i][j] == null){
+						outputLayer.characterWidths[i][j] = outputLayer.characterWidths[i][j];
+						outputLayer.colourCodes[i][j] = outputLayer.colourCodes[i][j];
+						outputLayer.characters[i][j] = outputLayer.characters[i][j];
+						outputMask.flags[i][j] = outputMask.flags[i][j] || topMask.flags[i][j];
+					}else{
+						outputLayer.characterWidths[i][j] = topLayer.characterWidths[i][j];
+						outputLayer.colourCodes[i][j] = topLayer.colourCodes[i][j];
+						outputLayer.characters[i][j] = topLayer.characters[i][j];
+						outputMask.flags[i][j] = topMask.flags[i][j];
+					}
 				}
 			}
 		}
 	}
 
-	public static void mergeChangedCharactersDown(ScreenLayer topLayer, ScreenMask topMask, ScreenLayer outputLayer, ScreenMask outputMask) throws Exception{
-		for(int i = 0; i < topLayer.width; i++){
-			for(int j = 0; j < topLayer.height; j++){
-				if(topMask.flags[i][j]){
-					outputLayer.characterWidths[i][j] = topLayer.characterWidths[i][j];
-					outputLayer.colourCodes[i][j] = topLayer.colourCodes[i][j];
-					outputLayer.characters[i][j] = topLayer.characters[i][j];
-					outputMask.flags[i][j] = topMask.flags[i][j];
+	public static void mergeChangedCharactersDown(ScreenLayer topLayer, ScreenMask topMask, ScreenLayer outputLayer, ScreenMask outputMask, Set<ScreenRegion> regions) throws Exception{
+		for(ScreenRegion region : regions){
+			int startX = region.getStartX();
+			int startY = region.getStartY();
+			int endX = region.getEndX();
+			int endY = region.getEndY();
+			for(int i = startX; i < endX; i++){
+				for(int j = startY; j < endY; j++){
+					if(topMask.flags[i][j]){
+						outputLayer.characterWidths[i][j] = topLayer.characterWidths[i][j];
+						outputLayer.colourCodes[i][j] = topLayer.colourCodes[i][j];
+						outputLayer.characters[i][j] = topLayer.characters[i][j];
+						outputMask.flags[i][j] = topMask.flags[i][j];
+					}
 				}
 			}
 		}
 	}
 
 	public void mergeActiveLayers() throws Exception{
-		ScreenLayer tmpMergedLayers = new ScreenLayer();
+		ScreenLayer tmpMergedLayers = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
 		ScreenMask tmpMergedMasks = new ScreenMask();
-		tmpMergedLayers.initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue());
 		tmpMergedMasks.initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue(), false);
 
+		for(Set<ScreenRegion> screenRegionSet : this.regionsToUpdate){
+			for(ScreenRegion region : screenRegionSet){
+				tmpMergedLayers.initializeInRegion(0, null, new int [] {}, null, region);
+			}
+		}
+
 		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
+			this.mergedRegionsToUpdate.addAll(this.regionsToUpdate.get(i));
+			this.regionsToUpdate.get(i).clear();
+
 			if(this.screenLayerActiveStates[i]){
 				ConsoleWriterThreadState.mergeChangedNonNullCharactersDown(
 					this.screenLayers[i],
 					this.screenMasks[i],
 					tmpMergedLayers,
-					tmpMergedMasks
+					tmpMergedMasks,
+					this.mergedRegionsToUpdate
 				);
 			}
 
@@ -874,52 +911,60 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			tmpMergedLayers,
 			tmpMergedMasks,
 			this.mergedFinalScreenLayer,
-			this.mergedFinalScreenMask
+			this.mergedFinalScreenMask,
+			this.mergedRegionsToUpdate
 		);
 	}
 
 	public void printTerminalTextChanges(boolean resetCursorPosition) throws Exception{
 		this.mergeActiveLayers();
 		boolean useRightToLeftPrint = this.blockManagerThreadCollection.getRightToLeftPrint();
-		int startColumn = useRightToLeftPrint ? this.terminalWidth.intValue() -1 : 0;
-		int endColumn = useRightToLeftPrint ? -1 : this.terminalWidth.intValue();
 		int loopUpdate = useRightToLeftPrint ? -1 : 1;
 		boolean resetState = useRightToLeftPrint ? true : false;
-		for(int j = 0; j < this.terminalHeight.intValue(); j++){
-			boolean mustSetCursorPosition = true;
-			boolean mustSetColourCodes = true;
-			for(int i = startColumn; i != endColumn; i += loopUpdate){
-				//  Try to intelligently issue as few ANSI escape sequences as possible:
-				if(!Arrays.equals(this.mergedFinalScreenLayer.colourCodes[i][j], lastUsedColourCodes)){
-					mustSetColourCodes = true;
-				}
-				if(
-					this.mergedFinalScreenMask.flags[i][j]
-				){
-					if(mustSetCursorPosition){
-						String currentPositionSequence = "\033[" + (j+1) + ";" + (i+1) + "H";
-						System.out.print(currentPositionSequence);
-						mustSetCursorPosition = resetState;
+		for(ScreenRegion region : this.mergedRegionsToUpdate){
+			int startX = region.getStartX();
+			int startY = region.getStartY();
+			int endX = region.getEndX();
+			int endY = region.getEndY();
+			int startColumn = useRightToLeftPrint ? endX -1 : startX;
+			int endColumn = useRightToLeftPrint ? startX -1 : endX;
+			for(int j = startY; j < endY; j++){
+				boolean mustSetCursorPosition = true;
+				boolean mustSetColourCodes = true;
+				for(int i = startColumn; i != endColumn; i += loopUpdate){
+					//  Try to intelligently issue as few ANSI escape sequences as possible:
+					if(!Arrays.equals(this.mergedFinalScreenLayer.colourCodes[i][j], lastUsedColourCodes)){
+						mustSetColourCodes = true;
 					}
-					if(mustSetColourCodes){
-						List<String> codes = new ArrayList<String>();
-						for(int c : this.mergedFinalScreenLayer.colourCodes[i][j]){
-							codes.add(String.valueOf(c));
+					if(
+						this.mergedFinalScreenMask.flags[i][j]
+					){
+						if(mustSetCursorPosition){
+							String currentPositionSequence = "\033[" + (j+1) + ";" + (i+1) + "H";
+							System.out.print(currentPositionSequence);
+							mustSetCursorPosition = resetState;
 						}
-						String currentColorSequence = "\033[0m\033[" + String.join(";", codes) + "m";
-						System.out.print(currentColorSequence);
-						mustSetColourCodes = resetState;
-						lastUsedColourCodes = this.mergedFinalScreenLayer.colourCodes[i][j];
+						if(mustSetColourCodes){
+							List<String> codes = new ArrayList<String>();
+							for(int c : this.mergedFinalScreenLayer.colourCodes[i][j]){
+								codes.add(String.valueOf(c));
+							}
+							String currentColorSequence = "\033[0m\033[" + String.join(";", codes) + "m";
+							System.out.print(currentColorSequence);
+							mustSetColourCodes = resetState;
+							lastUsedColourCodes = this.mergedFinalScreenLayer.colourCodes[i][j];
+						}
+						if(this.mergedFinalScreenLayer.characters[i][j] != null){
+							System.out.print(this.mergedFinalScreenLayer.characters[i][j]);
+						}
+						this.mergedFinalScreenMask.flags[i][j] = false;
+					}else{
+						mustSetCursorPosition = true;
 					}
-					if(this.mergedFinalScreenLayer.characters[i][j] != null){
-						System.out.print(this.mergedFinalScreenLayer.characters[i][j]);
-					}
-					this.mergedFinalScreenMask.flags[i][j] = false;
-				}else{
-					mustSetCursorPosition = true;
 				}
 			}
 		}
+		this.mergedRegionsToUpdate.clear();
 		if(resetCursorPosition){
 			System.out.print("\033[0;0H"); //  Move cursor to 0,0 after every print.
 		}
@@ -929,11 +974,13 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.terminalWidth = terminalWidth;
 		this.terminalHeight = terminalHeight;
 		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
-			this.screenLayers[i].initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue());
+			this.screenLayers[i] = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
+			this.screenLayers[i].initialize();
 			this.screenMasks[i].initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue());
 		}
 
-		this.mergedFinalScreenLayer.initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue());
+		this.mergedFinalScreenLayer = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
+		this.mergedFinalScreenMask = new ScreenMask();
 		this.mergedFinalScreenMask.initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue(), false);
 	}
 
@@ -1062,6 +1109,14 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			//  Signal a refresh for all layers
 			for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
 				this.screenMasks[i].initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue(), true);
+				this.regionsToUpdate.get(i).add(
+					new ScreenRegion(
+						0,
+						0,
+						this.terminalWidth.intValue(),
+						this.terminalHeight.intValue()
+					)
+				);
 			}
 			this.mergeActiveLayers();
 		}
@@ -1079,6 +1134,14 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				this.screenMasks[bufferIndex].flags[i + startX][j + startY] = state;
 			}
 		}
+		this.regionsToUpdate.get(bufferIndex).add(
+			new ScreenRegion(
+				startX,
+				startY,
+				endX,
+				endY
+			)
+		);
 		return new EmptyWorkItemResult();
 	}
 
