@@ -643,9 +643,18 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		if(this.collectAllUserInterfaceFrames().size() == 0){
 			//  If there are no active frames, there is no UI frame to clear what was there before:
 			String msg = "All frames have been closed!  Press 'ESC' to open one.";
-			this.screenLayers[0] = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
-			this.screenLayers[0].initialize(1, " ", new int [] {}, msg);
-			this.screenMasks[0].initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue(), true);
+			int bufferIndex = ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT;
+			this.screenLayers[bufferIndex] = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
+			this.screenLayers[bufferIndex].initialize(1, " ", new int [] {}, msg);
+			this.screenMasks[bufferIndex].initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue(), true);
+			this.regionsToUpdate.get(bufferIndex).add(
+				new ScreenRegion(
+					0,
+					0,
+					this.terminalWidth.intValue(),
+					this.terminalHeight.intValue()
+				)
+			);
 			this.mergedFinalScreenLayer = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
 			this.mergedFinalScreenMask.initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue(), false);
 			this.mergedFinalScreenLayer = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
@@ -883,6 +892,11 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		ScreenMask tmpMergedMasks = new ScreenMask();
 		tmpMergedMasks.initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue(), false);
 
+		//  Initialize any previously pending unprinted regions
+		for(ScreenRegion region : this.mergedRegionsToUpdate){
+			tmpMergedLayers.initializeInRegion(0, null, new int [] {}, null, region);
+		}
+		//  Initialize new pending unprinted regions
 		for(Set<ScreenRegion> screenRegionSet : this.regionsToUpdate){
 			for(ScreenRegion region : screenRegionSet){
 				tmpMergedLayers.initializeInRegion(0, null, new int [] {}, null, region);
@@ -936,6 +950,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 					if(!Arrays.equals(this.mergedFinalScreenLayer.colourCodes[i][j], lastUsedColourCodes)){
 						mustSetColourCodes = true;
 					}
+					//  These should always be initialized to empty array.
+					if(this.mergedFinalScreenLayer.colourCodes[i][j] == null){
+						throw new Exception("this.mergedFinalScreenLayer.colourCodes[i][j] == null");
+					}
 					if(
 						this.mergedFinalScreenMask.flags[i][j]
 					){
@@ -980,6 +998,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 
 		this.mergedFinalScreenLayer = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
+		this.mergedFinalScreenLayer.initialize();
 		this.mergedFinalScreenMask = new ScreenMask();
 		this.mergedFinalScreenMask.initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue(), false);
 	}

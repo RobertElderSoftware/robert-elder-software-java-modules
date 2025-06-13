@@ -68,7 +68,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	public abstract void putWorkItem(UIWorkItem workItem, WorkItemPriority priority) throws Exception;
 	public abstract void render() throws Exception;
-	public abstract void onRenderFrame(boolean dimensionsChanged) throws Exception;
+	public abstract void onRenderFrame(boolean requiresRefresh) throws Exception;
 	public abstract void onKeyboardInput(byte [] characters) throws Exception;
 	public abstract void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception;
 
@@ -307,13 +307,18 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	public void sendConsolePrintMessage(List<ScreenLayerPrintParameters> params, FrameDimensions fd) throws Exception{
 		WorkItemResult workItemResult = this.clientBlockModelContext.getConsoleWriterThreadState().putBlockingWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), params, fd, this.currentFrameChangeWorkItemParams), WorkItemPriority.PRIORITY_LOW);
 
-		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
-			this.changedScreenRegions.get(i).clear();
-		}
 		if(workItemResult instanceof FrameChangeWorkItemParams){
 			//  This scenario happens when the write was discarded and 
 			//  these new params should catch us up with the newest frame/terminal dimensions
-			this.onNewFrameChangeWorkItemParams((FrameChangeWorkItemParams)workItemResult);
+			this.onNewFrameChangeWorkItemParams((FrameChangeWorkItemParams)workItemResult, true);
+		}else{ //  Successfully printed
+			for(int i = 0; i < this.usedScreenLayers.length; i++){
+				int l = usedScreenLayers[i];
+				this.previousBufferedScreenLayers[l] = new ScreenLayer(this.bufferedScreenLayers[l]);
+				this.bufferedScreenMasks[l].initialize(this.getFrameDimensions().getFrameWidth().intValue(), this.getFrameDimensions().getFrameHeight().intValue(), false);
+				//  All these screen regions were successfully printed and are no longer needed:
+				this.changedScreenRegions.get(l).clear();
+			}
 		}
 	}
 
@@ -608,8 +613,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			logger.info("Discarding frame change message that's out of date: params.getFrameChangeDimensionsId()=" + params.getFrameDimensionsChangeId() + " this.currentFrameChangeWorkItemParams.getFrameDimensionsChangeId()=" + this.currentFrameChangeWorkItemParams.getFrameDimensionsChangeId() + " || , " + params.getTerminalDimensionsChangeId() + " this.currentFrameChangeWorkItemParams.getTerminalDimensionsChangeId()=" + this.currentFrameChangeWorkItemParams.getTerminalDimensionsChangeId());
 		}else{
 			logger.info("Not discarding onFrame change, pass to child frame:");
-			boolean dimensionsChanged = this.onNewFrameChangeWorkItemParams(params);
-			this.onRenderFrame(dimensionsChanged);
+			boolean requiresRefresh = this.onNewFrameChangeWorkItemParams(params, this.hasFrameDimensionsChanged(params));
+			this.onRenderFrame(requiresRefresh);
 			this.onFinalizeFrame();
 		}
 	}
@@ -674,18 +679,17 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		this.changedScreenRegions.get(bufferIndex).add(constrainedRegion);
 	}
 
-	public boolean hasFrameDimensionsChanged(){
-		if(this.getFrameDimensions() == null){
+	public boolean hasFrameDimensionsChanged(FrameChangeWorkItemParams params){
+		if(params.getCurrentFrameDimensions() == null){
 			return this.previousFrameDimensions != null;
 		}else{
-			return !this.getFrameDimensions().equals(this.previousFrameDimensions);
+			return !params.getCurrentFrameDimensions().equals(this.previousFrameDimensions);
 		}
 	}
 
-	public boolean onNewFrameChangeWorkItemParams(FrameChangeWorkItemParams params){
+	public boolean onNewFrameChangeWorkItemParams(FrameChangeWorkItemParams params, boolean requiresRefresh) throws Exception{
 		this.currentFrameChangeWorkItemParams = params;
-		boolean dimensionsChanged = this.hasFrameDimensionsChanged();
-		if(dimensionsChanged){
+		if(requiresRefresh){
 			// Refresh screen
 			int width = this.getFrameDimensions().getFrameWidth().intValue();
 			int height = this.getFrameDimensions().getFrameHeight().intValue();
@@ -701,14 +705,14 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				this.previousBufferedScreenLayers[l] = new ScreenLayer(width, height);
 				this.previousBufferedScreenLayers[l].initialize(0, null, new int [] {});
 				this.bufferedScreenMasks[l].initialize(width, height, true);
+				this.changedScreenRegions.get(l).clear();
 				this.changedScreenRegions.get(l).add(new ScreenRegion(0, 0, width, height));
 			}
 		}
-		return dimensionsChanged;
+		return requiresRefresh;
 	}
 
 	public List<ScreenLayerPrintParameters> makeScreenPrintParameters(ScreenLayer l, ScreenMask m, Set<ScreenRegion> regions, int bufferIndex) throws Exception{
-		
 		List<ScreenLayerPrintParameters> rtn = new ArrayList<ScreenLayerPrintParameters>();
 		rtn.add(new ScreenLayerPrintParameters(l, m, regions, bufferIndex));
 		return rtn;
@@ -721,7 +725,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 					(current.characterWidths[i][j] == previous.characterWidths[i][j]) &&
 					Arrays.equals(current.colourCodes[i][j], previous.colourCodes[i][j]) &&
 					Objects.equals(current.characters[i][j], previous.characters[i][j])
-				);
+				) || mask.flags[i][j];
 				mask.flags[i][j] = hasChanged;
 			}
 		}
@@ -744,13 +748,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				params.addAll(makeScreenPrintParameters(this.bufferedScreenLayers[l], this.bufferedScreenMasks[l], this.changedScreenRegions.get(l), l));
 			}
 			this.sendConsolePrintMessage(params, this.getFrameDimensions());
-			//  Clear all screen masks since all layers have been printed:
-			for(int i = 0; i < this.usedScreenLayers.length; i++){
-				int l = usedScreenLayers[i];
-				//  Save current copy of buffer to calculate differences:
-				this.previousBufferedScreenLayers[l] = new ScreenLayer(this.bufferedScreenLayers[l]);
-				//this.bufferedScreenMasks[l].initialize(this.getFrameDimensions().getFrameWidth().intValue(), this.getFrameDimensions().getFrameHeight().intValue(), false);
-			}
+
 		}
 	}
 

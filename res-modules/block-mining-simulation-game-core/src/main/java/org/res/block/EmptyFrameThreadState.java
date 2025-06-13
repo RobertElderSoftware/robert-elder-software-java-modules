@@ -80,7 +80,7 @@ public class EmptyFrameThreadState extends UserInterfaceFrameThreadState {
 		return this.blockManagerThreadCollection;
 	}
 
-	public void onRenderFrame(boolean dimensionsChanged) throws Exception{
+	public void onRenderFrame(boolean requiresRefresh) throws Exception{
 		this.render();
 	}
 

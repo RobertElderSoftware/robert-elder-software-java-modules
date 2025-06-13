@@ -81,7 +81,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		return this.blockManagerThreadCollection;
 	}
 
-	public void onRenderFrame(boolean dimensionsChanged) throws Exception{
+	public void onRenderFrame(boolean requiresRefresh) throws Exception{
 		this.clearFrame();
 		this.render();
 	}

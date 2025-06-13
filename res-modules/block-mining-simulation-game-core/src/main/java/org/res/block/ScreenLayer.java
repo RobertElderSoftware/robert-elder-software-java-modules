@@ -96,20 +96,20 @@ public class ScreenLayer {
 		}
 	}
 
-	public void initialize(){
+	public void initialize() throws Exception{
 		// By default, make assumptions that minimize screen prints
 		this.initialize(0, null, new int [] {} , null);
 	}
 
-	public void initialize(int chrWidth, String s, int [] colourCodes){
+	public void initialize(int chrWidth, String s, int [] colourCodes) throws Exception{
 		this.initialize(chrWidth, s, colourCodes, null);
 	}
 
-	public void initialize(int chrWidth, String s, int [] colourCodes, String msg){
+	public void initialize(int chrWidth, String s, int [] colourCodes, String msg) throws Exception{
 		this.initializeInRegion(chrWidth, s, colourCodes, msg, new ScreenRegion(0,0, this.width, this.height));
 	}
 
-	public void initializeInRegion(int chrWidth, String s, int [] colourCodes, String msg, ScreenRegion region){
+	public void initializeInRegion(int chrWidth, String s, int [] colourCodes, String msg, ScreenRegion region) throws Exception{
 		int startX = region.getStartX();
 		int startY = region.getStartY();
 		int endX = region.getEndX();
@@ -124,6 +124,12 @@ public class ScreenLayer {
 			}
 		}
 		if(msg != null){
+			if(colourCodes == null){
+				throw new Exception("colourCodes == null");
+			}
+			if(s == null){
+				throw new Exception("s == null");
+			}
 			int messageLength = msg.length();
 			int xOffset = messageLength > this.width ? 0 : ((this.width - messageLength) / 2);
 			int yOffset = this.height / 2;

@@ -456,7 +456,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		this.onFinalizeFrame();
 	}
 
-	public void onRenderFrame(boolean dimensionsChanged) throws Exception{
+	public void onRenderFrame(boolean requiresRefresh) throws Exception{
 		this.rebuildHelpMenu(this.helpMenu.getActiveState());
 		this.render();
 	}
