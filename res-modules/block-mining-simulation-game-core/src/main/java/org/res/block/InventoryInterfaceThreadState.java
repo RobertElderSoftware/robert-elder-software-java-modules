@@ -60,6 +60,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private PlayerInventory playerInventory = null;
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
+	private Long selectedInventoryItemIndex = null;
 
 	private ClientBlockModelContext clientBlockModelContext;
 
@@ -69,8 +70,54 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		this.clientBlockModelContext = clientBlockModelContext;
 	}
 	
+	public Long getNumInventoryItems() throws Exception{
+		PlayerInventory inventory = this.getPlayerInventory();
+		if(inventory == null){
+			return 0L;
+		}else{
+			List<PlayerInventoryItemStack> itemStacks = inventory.getInventoryItemStackList();
+			if(itemStacks.size() > 0){
+				return (long)itemStacks.size();
+			}else{
+				return 0L;
+			}
+		}
+	}
+
+	public Long getSelectedInventoryItemIndex() throws Exception{
+		if(getNumInventoryItems() != null && getNumInventoryItems() > 0){
+			if(this.selectedInventoryItemIndex == null){
+				this.selectedInventoryItemIndex = 0L;
+			}
+			return this.selectedInventoryItemIndex;
+		}else{
+			return null;
+		}
+	}
+
+	public void onInventoryItemSelectionChange(Long selectionDiff) throws Exception{
+		Long numInventoryItems = this.getNumInventoryItems();
+		if(numInventoryItems != null && numInventoryItems > 0){
+			Long initialIndex = this.selectedInventoryItemIndex == null ? 0L : this.selectedInventoryItemIndex;
+			Long newIndex = (initialIndex + selectionDiff + numInventoryItems) % numInventoryItems;
+			this.selectedInventoryItemIndex = newIndex;
+		}
+	}
+
 	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{
-		logger.info("Inventory frame, discarding ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
+		if(ansiEscapeSequence instanceof AnsiEscapeSequenceUpArrowKey){
+			this.onInventoryItemSelectionChange(-1L);
+		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceRightArrowKey){
+			this.onInventoryItemSelectionChange(this.getMaxItemsInColumn());
+		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceDownArrowKey){
+			this.onInventoryItemSelectionChange(1L);
+		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceLeftArrowKey){
+			this.onInventoryItemSelectionChange(-this.getMaxItemsInColumn());
+		}else{
+			logger.info("InventoryInterfaceThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
+		}
+		this.onRenderFrame(true);
+		this.onFinalizeFrame();
 	}
 
 	public void onKeyboardInput(byte [] characters) throws Exception {
@@ -98,14 +145,22 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		this.onFinalizeFrame();
 	}
 
-	public ColouredTextFragmentList makeInventoryItemText(PlayerInventoryItemStack stack) throws Exception{
+	public ColouredTextFragmentList makeInventoryItemText(PlayerInventoryItemStack stack, int itemIndex) throws Exception{
 		IndividualBlock blockFromStack = stack.getBlock(this.blockManagerThreadCollection.getBlockSchema());
 
 		GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
 		String blockPresentation = BlockSkins.getPresentation(blockFromStack.getClass(), mode.equals(GraphicsMode.ASCII));
+		String prefixCharacter = mode.equals(GraphicsMode.ASCII) ? CharacterConstants.INVENTORY_ARROW_ASCII : CharacterConstants.INVENTORY_ARROW_EMOJI;
 
-		String inventoryItemText = this.whitespacePadMapAreaCell(blockPresentation) + "  (" + stack.getQuantity().toString() + ") " + blockFromStack.getClass().getSimpleName() + " ";
-		return new ColouredTextFragmentList(new ColouredTextFragment(inventoryItemText, new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}));
+		int selectedIndex = this.getSelectedInventoryItemIndex().intValue();
+		String prefix = itemIndex == selectedIndex ? prefixCharacter : "";
+		String paddedPrefix = this.whitespacePad(prefix, 3L);
+
+		String inventoryItemText = this.whitespacePad(blockPresentation, this.getMapAreaCellWidth()) + "  (" + stack.getQuantity().toString() + ") " + blockFromStack.getClass().getSimpleName() + " ";
+		return new ColouredTextFragmentList(Arrays.asList(
+			new ColouredTextFragment(paddedPrefix, new int[] {DEFAULT_TEXT_BG_COLOR, GREEN_FG_COLOR}),
+			new ColouredTextFragment(inventoryItemText, new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR})
+		), true);
 	}
 
 	public List<List<ColouredTextFragmentList>> divideIntoColumns(List<ColouredTextFragmentList> inventoryItemTextLists, Long maxItemsInColumn){
@@ -167,23 +222,27 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 			}else{
 				for(int i = 0; i < itemStacks.size(); i++){
 					PlayerInventoryItemStack stack = itemStacks.get(i);
-					inventoryItemTextLists.add(makeInventoryItemText(stack));
+					inventoryItemTextLists.add(makeInventoryItemText(stack, i));
 				}
 			}
 		}
 
-		Long usableFrameWidth = this.getInnerFrameWidth();
-		Long usableFrameHeight = this.getInnerFrameHeight();
-		Long maxItemsInColumn = usableFrameHeight / 2L;
-		maxItemsInColumn = maxItemsInColumn < 1L ? 1L : maxItemsInColumn;
-
-		List<List<ColouredTextFragmentList>> columns = this.divideIntoColumns(inventoryItemTextLists, maxItemsInColumn);
+		List<List<ColouredTextFragmentList>> columns = this.divideIntoColumns(inventoryItemTextLists, getMaxItemsInColumn());
 		for(int i = 0; i < columns.size(); i++){
 			this.printInventoryColumn(columns.get(i), 30L * i);
 		}
 	}
 
-	private PlayerInventory getPlayerInventory(){
+	private Long getMaxItemsInColumn()throws Exception{
+		Long m = this.getUsableFrameHeight() / 2L; // Two rows per item
+		return m < 1L ? 1L : m;
+	}
+
+	private Long getUsableFrameHeight() throws Exception{
+		return this.getInnerFrameHeight();
+	}
+
+	private PlayerInventory getPlayerInventory()throws Exception{
 		return this.playerInventory;
 	}
 

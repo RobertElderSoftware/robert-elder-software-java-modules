@@ -81,6 +81,7 @@ public class EmptyFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void onRenderFrame(boolean requiresRefresh) throws Exception{
+		this.clearFrame();
 		this.render();
 	}
 

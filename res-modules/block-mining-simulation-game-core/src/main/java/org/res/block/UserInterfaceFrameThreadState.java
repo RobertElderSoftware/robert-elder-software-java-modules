@@ -30,6 +30,8 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
@@ -63,6 +65,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	public final long frameId;
 	protected FrameChangeWorkItemParams currentFrameChangeWorkItemParams;
 	protected int [] usedScreenLayers;
+	protected boolean completedInitialOpen = false; //  Used to speed up feedback on initial open.
 
 	private final AtomicLong frameDimensionsChangeSeq = new AtomicLong(0);
 
@@ -118,6 +121,43 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	public ScreenMask[] bufferedScreenMasks = new ScreenMask [ConsoleWriterThreadState.numScreenLayers];
 	public List<Set<ScreenRegion>> changedScreenRegions = new ArrayList<Set<ScreenRegion>>();
 
+	protected static List<String[]> splitStringByDelimiterPairs(String str, String delimiterRegex){
+		List<String[]> rtn = new ArrayList<String[]>();
+
+		Pattern stringPattern = Pattern.compile(delimiterRegex);
+		Matcher m = stringPattern.matcher(str);
+
+		int offset = 0;
+		while(m.find(offset)){
+			String token = str.substring(offset, m.start());
+			String delimiter = str.substring(m.start(), m.end());
+			offset = m.end();
+			rtn.add(new String [] {token, delimiter});
+		}
+		String lastToken = str.substring(offset, str.length());
+		if(!lastToken.equals("")){
+			rtn.add(new String [] {lastToken, null});
+		}
+		return rtn;
+	}
+
+	protected static List<String> splitStringIntoCharactersUnicodeAware(String str){
+		List<String> utf16CodePoints = str.codePoints().mapToObj(Character::toString).collect(Collectors.toList());
+		List<String> rtn = new ArrayList<String>();
+		for(String s : utf16CodePoints){
+			//  If any of the characters are 'variation selectors', don't split
+			//  them up and keep them associated with the previous character:
+			if(s.codePointAt(0) >= 0xFE00 && s.codePointAt(0) <= 0xFE0F && rtn.size() > 0){
+				int previousCharIndex = rtn.size() -1;
+				String previousChar = rtn.get(previousCharIndex);
+				rtn.set(previousCharIndex, previousChar + s);
+			}else{
+				rtn.add(s);
+			}
+		}
+		return rtn;
+	}
+
 	private List<MeasuredTextFragment> getMeasuredTextFragments(ColouredTextFragmentList fragmentList, Long maxLineWidth) throws Exception{
 		List<MeasuredTextFragment> textFragments = new ArrayList<MeasuredTextFragment>();
 		for(ColouredTextFragment cf : fragmentList.getColouredTextFragments()){
@@ -125,9 +165,11 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			String spaceCharacter = " ";
 			String[] lines = cf.getText().split(newlineCharacter);
 			for(int i = 0; i < lines.length; i++){
-				String[] words = lines[i].split(spaceCharacter);
-				for(int j = 0; j < words.length; j++){
-					List<String> characters = ColouredTextFragment.splitStringIntoCharactersUnicodeAware(words[j]);
+				List<String []> delimitedWords = UserInterfaceFrameThreadState.splitStringByDelimiterPairs(lines[i], "\\s+");
+				for(int j = 0; j < delimitedWords.size(); j++){
+					String word = delimitedWords.get(j)[0];
+					String spaceDelimiter = delimitedWords.get(j)[1];
+					List<String> characters = UserInterfaceFrameThreadState.splitStringIntoCharactersUnicodeAware(word);
 					List<String> charactersSoFar = new ArrayList<String>();
 					Long wordLength = 0L;
 					Long wordHeight = 0L;
@@ -148,10 +190,12 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 					if(charactersSoFar.size() > 0){
 						textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(String.join("", charactersSoFar), cf.getAnsiColourCodes()), new TextWidthMeasurementWorkItemResult(wordLength, wordHeight)));
 					}
-					if(j != words.length -1){
-						//  Add back space characters between words
+					if(j != delimitedWords.size() -1 || fragmentList.getPreserveWhitespace()){
+						//  Add back any space characters between words
 						//  as long as they're not at the end of lines.
-						textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(spaceCharacter, cf.getAnsiColourCodes()), this.clientBlockModelContext.measureTextLengthOnTerminal(spaceCharacter)));
+						if(spaceDelimiter != null){
+							textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(spaceDelimiter, cf.getAnsiColourCodes()), this.clientBlockModelContext.measureTextLengthOnTerminal(spaceCharacter)));
+						}
 					}
 				}
 				if(i != lines.length -1){
@@ -209,10 +253,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				flushBuffer = true;
 				i++;
 			}else{
-				boolean isSpace = textFragment.getColouredTextFragment().getText().equals(" ");
+				boolean isSpace = textFragment.getColouredTextFragment().getText().matches("\\s+");
 				//  Do not add leading spaces to the start of a line:
-				if(!isSpace || lineLengthSoFar > 0L){
-				lineLengthSoFar += textFragment.getTextDisplacement().getDeltaX();
+				if(!isSpace || lineLengthSoFar > 0L || tfl.getPreserveWhitespace()){
+					lineLengthSoFar += textFragment.getTextDisplacement().getDeltaX();
 					currentLineFragments.add(textFragment.getColouredTextFragment());
 				}
 				i++;
@@ -824,17 +868,16 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		this.writeToLocalFrameBuffer(changes, mask, region, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
 	}
 
-	public String whitespacePadMapAreaCell(String presentedText) throws Exception{
+	public String whitespacePad(String presentedText, Long paddedWidth) throws Exception{
 		//  An empty cell with zero byte length will otherwise render to nothing causing the last cell to not get overprinted.
 		//  Adding the extra space after the Rocks because the 'rock' emoji only takes up one space for the background colour, and BG colour won't update correctly otherwise.
 
 		Long presentedTextWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(presentedText).getDeltaX();
-		Long paddedMapAreaCellWidth = this.getMapAreaCellWidth();
-		if(presentedTextWidth > paddedMapAreaCellWidth){
-			throw new Exception("Character has terminal width of " + presentedTextWidth + " which is wider than allowed paddedMapAreaCellWidth value of " + paddedMapAreaCellWidth);
+		if(presentedTextWidth > paddedWidth){
+			throw new Exception("Text has terminal width of " + presentedTextWidth + " which is wider than allowed paddedWidth value of " + paddedWidth);
 		}
 
-		while(presentedTextWidth < paddedMapAreaCellWidth){
+		while(presentedTextWidth < paddedWidth){
 			presentedText += " ";
 			presentedTextWidth += 1;
 		}
@@ -849,6 +892,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				throw new Exception("repeatNumber is negative: " + repeatNumber);
 			}
 			this.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(repeatNumber), new int[] {FRAME_CLEAR_BG_COLOR}), 0L, l, true);
+		}
+		if(!this.completedInitialOpen){
+			this.onFinalizeFrame(); //  Initial clear frame to give fast feedback to user.
+			this.completedInitialOpen = true;
 		}
 	}
 

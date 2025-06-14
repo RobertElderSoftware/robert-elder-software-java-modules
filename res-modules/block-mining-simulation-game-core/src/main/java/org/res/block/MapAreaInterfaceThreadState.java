@@ -141,7 +141,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 						this.clientBlockModelContext.putWorkItem(new ClientActionWorkItem(this.clientBlockModelContext, action), WorkItemPriority.PRIORITY_LOW);
 						break;
 					}default:{
-						throw new Exception("Unexpected action=" + action.toString());
+						logger.info("Discarding Unexpected action=" + action.toString());
 					}
 				}
 			}

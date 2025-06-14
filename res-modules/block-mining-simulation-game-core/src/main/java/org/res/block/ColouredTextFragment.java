@@ -39,7 +39,10 @@ public class ColouredTextFragment{
 	private String text;
 	private int [] ansiColourCodes;
 
-	public ColouredTextFragment(String text, int [] ansiColourCodes) {
+	public ColouredTextFragment(String text, int [] ansiColourCodes) throws Exception{
+		if(text == null || ansiColourCodes == null){
+			throw new Exception("text == null || ansiColourCodes == null");
+		}
 		this.text = text;
 		this.ansiColourCodes = ansiColourCodes;
 	}
@@ -52,26 +55,10 @@ public class ColouredTextFragment{
 		return ansiColourCodes;
 	}
 
-	protected static List<String> splitStringIntoCharactersUnicodeAware(String str){
-		List<String> utf16CodePoints = str.codePoints().mapToObj(Character::toString).collect(Collectors.toList());
-		List<String> rtn = new ArrayList<String>();
-		for(String s : utf16CodePoints){
-			//  If any of the characters are 'variation selectors', don't split
-			//  them up and keep them associated with the previous character:
-			if(s.codePointAt(0) >= 0xFE00 && s.codePointAt(0) <= 0xFE0F && rtn.size() > 0){
-				int previousCharIndex = rtn.size() -1;
-				String previousChar = rtn.get(previousCharIndex);
-				rtn.set(previousCharIndex, previousChar + s);
-			}else{
-				rtn.add(s);
-			}
-		}
-		return rtn;
-	}
 
 	public List<ColouredCharacter> getColouredCharacters(){
 		List<ColouredCharacter> rtn = new ArrayList<ColouredCharacter>();
-		List<String> charactersToPrint = ColouredTextFragment.splitStringIntoCharactersUnicodeAware(this.getText());
+		List<String> charactersToPrint = UserInterfaceFrameThreadState.splitStringIntoCharactersUnicodeAware(this.getText());
 		for(String s : charactersToPrint){
 			rtn.add(new ColouredCharacter(s, this.getAnsiColourCodes()));
 		}

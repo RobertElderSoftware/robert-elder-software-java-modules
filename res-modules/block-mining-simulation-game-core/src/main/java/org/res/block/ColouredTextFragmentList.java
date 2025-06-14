@@ -37,6 +37,7 @@ import java.util.ArrayList;
 public class ColouredTextFragmentList{
 
 	private List<ColouredTextFragment> colouredTextFragements = new ArrayList<ColouredTextFragment>();
+	private boolean preserveWhitespace;
 
 	public ColouredTextFragmentList() {
 
@@ -44,10 +45,26 @@ public class ColouredTextFragmentList{
 
 	public ColouredTextFragmentList(ColouredTextFragment colouredTextFragement) {
 		this.colouredTextFragements = new ArrayList<ColouredTextFragment>(Arrays.asList(colouredTextFragement));
+		this.preserveWhitespace = false;
 	}
 
 	public ColouredTextFragmentList(List<ColouredTextFragment> colouredTextFragements) {
 		this.colouredTextFragements = colouredTextFragements;
+		this.preserveWhitespace = false;
+	}
+
+	public ColouredTextFragmentList(ColouredTextFragment colouredTextFragement, boolean preserveWhitespace) {
+		this.colouredTextFragements = new ArrayList<ColouredTextFragment>(Arrays.asList(colouredTextFragement));
+		this.preserveWhitespace = preserveWhitespace;
+	}
+
+	public ColouredTextFragmentList(List<ColouredTextFragment> colouredTextFragements, boolean preserveWhitespace) {
+		this.colouredTextFragements = colouredTextFragements;
+		this.preserveWhitespace = preserveWhitespace;
+	}
+
+	public boolean getPreserveWhitespace(){
+		return this.preserveWhitespace;
 	}
 
 	public List<ColouredTextFragment> getColouredTextFragments(){

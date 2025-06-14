@@ -69,4 +69,8 @@ public class CharacterConstants {
 	public static final String BOX_DRAWINGS_DOUBLE_VERTICAL_AND_RIGHT = "\u2560";//╠
 	public static final String BOX_DRAWINGS_DOUBLE_UP_AND_HORIZONTAL = "\u2569";//╩
 	public static final String BOX_DRAWINGS_DOUBLE_VERTICAL_AND_HORIZONTAL = "\u256C";//╬
+											  //
+	public static final String INVENTORY_ARROW_EMOJI = "\uD83E\uDC46";// 🡆
+	public static final String INVENTORY_ARROW_ASCII = "->";
 }
+
