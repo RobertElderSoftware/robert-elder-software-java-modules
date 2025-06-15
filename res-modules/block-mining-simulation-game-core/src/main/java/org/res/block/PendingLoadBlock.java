@@ -30,56 +30,38 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.TreeSet;
 import java.util.List;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
-import java.io.IOException;
 
-import java.util.Date;
-import java.util.Set;
-import java.util.HashSet;
-import java.io.BufferedWriter;
-import java.text.SimpleDateFormat;
-import java.io.File;
-import java.io.FileOutputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonNull;
+import com.google.gson.reflect.TypeToken;
 
-public class MapAreaCell {
+public class PendingLoadBlock extends IndividualBlock {
 
-	private IndividualBlock currentBlock = new PendingLoadBlock();
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+	/*
+		A 'block' representing a region of space that has not been loaded yet.
+		It is not known if this bock is uninitialized, empty or contains another block type.
+		
+	*/
 
-	public MapAreaCell() throws Exception {
-
+	public PendingLoadBlock() throws Exception {
 	}
 
-	public boolean equals(MapAreaCell other) throws Exception{
-		if(this.getCurrentBlock() == null){
-			return other.getCurrentBlock() == null;
-		}else{
-			return this.getCurrentBlock().equals(other.getCurrentBlock());
-		}
+	public byte [] getBlockData() throws Exception {
+		return null;
 	}
 
-	public String renderBlockCell(boolean isUseASCII) throws Exception {
-		//  null = block does not exist yet.
-		String presentedText = this.currentBlock == null ? "" : BlockSkins.getPresentation(this.currentBlock.getClass(), isUseASCII);
-		return presentedText;
-	}
-
-	public IndividualBlock getCurrentBlock() {
-		return this.currentBlock;
-	}
-
-	public void setCurrentBlock(IndividualBlock b) throws Exception {
-		this.currentBlock = b;
+	public boolean isMineable() throws Exception{
+		return false;
 	}
 }

@@ -203,7 +203,6 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 		CuboidAddress newMapArea = new CuboidAddress(bottomleftHandCorner, topRightHandCorner);
 
-		this.forceBlockChangesInMapArea(); //  Necessary to re-print when terminal size changes, but map area stays same.
 		this.onMapAreaChange(newMapArea);
 		this.render();
 	}
@@ -298,18 +297,6 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		}
 	}
 
-	private void forceBlockChangesInMapArea() throws Exception{
-		//  In certain cases (such as when the terminal window is resized and the screen has been cleared)
-		//  we may way to force all of the blocks to be printed again if they haven't changed:
-		if(this.mapAreaCells != null){
-			for(int i = 0; i < this.mapAreaCells.length; i++){
-				for(int j = 0; j < this.mapAreaCells[i].length; j++){
-					this.mapAreaCells[i][j].addMapAreaCellFlag(MapAreaCellFlag.BLOCK_CHANGE);
-				}
-			}
-		}
-	}
-
 	private void onMapAreaChange(CuboidAddress newMapArea) throws Exception{
 		this.clientBlockModelContext.putWorkItem(new MapAreaChangeWorkItem(this.clientBlockModelContext, newMapArea), WorkItemPriority.PRIORITY_LOW);
 		CuboidAddress previousMapArea = this.mapAreaCuboidAddress;
@@ -339,13 +326,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 					//  Move all cells to the left by diffX
 					for(int i = 0; i < (this.mapAreaWidthInCells.intValue() - diffX.intValue()); i++){
 						for(int j = 0; j < this.mapAreaHeightInCells.intValue(); j++){
-							boolean has_change = !this.mapAreaCells[i][j].equals(this.mapAreaCells[i + diffX.intValue()][j]);
 							this.mapAreaCells[i][j] = this.mapAreaCells[i + diffX.intValue()][j];
-							if(this.mapAreaCells[i][j].getCurrentBlock() == null){
-								this.mapAreaCells[i][j].addMapAreaCellFlag(MapAreaCellFlag.PENDING_LOAD);
-							}else if(has_change){
-								this.mapAreaCells[i][j].addMapAreaCellFlag(MapAreaCellFlag.BLOCK_CHANGE);
-							}
 						}
 					}
 					//  Initialize new cells in the empty space
@@ -353,7 +334,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 						for(int j = 0; j < this.mapAreaHeightInCells.intValue(); j++){
 							this.mapAreaCells[i][j] = new MapAreaCell();
 							Coordinate theCoordinate = afterLower.changeByDeltaXYZ(Long.valueOf(i), 0L, (this.mapAreaCuboidAddress.getWidthForIndex(2L) - 1L) - Long.valueOf(j));
-							this.updateMapAreaFlags(new CuboidAddress(theCoordinate, theCoordinate));
+							this.recalculateMapAreaCellsAtCoordinate(theCoordinate);
 						}
 					}
 
@@ -362,13 +343,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 					//  Move all cells to the right by diffX
 					for(int i = this.mapAreaWidthInCells.intValue() -1; i >= (-diffX.intValue()); i--){
 						for(int j = 0; j < this.mapAreaHeightInCells.intValue(); j++){
-							boolean has_change = !this.mapAreaCells[i][j].equals(this.mapAreaCells[i + diffX.intValue()][j]);
 							this.mapAreaCells[i][j] = this.mapAreaCells[i + diffX.intValue()][j];
-							if(this.mapAreaCells[i][j].getCurrentBlock() == null){
-								this.mapAreaCells[i][j].addMapAreaCellFlag(MapAreaCellFlag.PENDING_LOAD);
-							}else if(has_change){
-								this.mapAreaCells[i][j].addMapAreaCellFlag(MapAreaCellFlag.BLOCK_CHANGE);
-							}
 						}
 					}
 					//  Initialize new cells in the empty space
@@ -376,7 +351,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 						for(int j = 0; j < this.mapAreaHeightInCells.intValue(); j++){
 							this.mapAreaCells[i][j] = new MapAreaCell();
 							Coordinate theCoordinate = afterLower.changeByDeltaXYZ(Long.valueOf(i), 0L, (this.mapAreaCuboidAddress.getWidthForIndex(2L) - 1L) - Long.valueOf(j));
-							this.updateMapAreaFlags(new CuboidAddress(theCoordinate, theCoordinate));
+							this.recalculateMapAreaCellsAtCoordinate(theCoordinate);
 						}
 					}
 					this.printMapAreaUpdates(this.mapAreaCuboidAddress);
@@ -391,13 +366,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 					//  Move all cells down by diffZ (up in mapArea cell array)
 					for(int i = 0; i < this.mapAreaWidthInCells.intValue(); i++){
 						for(int j = this.mapAreaHeightInCells.intValue() -1; j >= diffZ.intValue(); j--){
-							boolean has_change = !this.mapAreaCells[i][j].equals(this.mapAreaCells[i][j - diffZ.intValue()]);
 							this.mapAreaCells[i][j] = this.mapAreaCells[i][j - diffZ.intValue()];
-							if(this.mapAreaCells[i][j].getCurrentBlock() == null){
-								this.mapAreaCells[i][j].addMapAreaCellFlag(MapAreaCellFlag.PENDING_LOAD);
-							}else if(has_change){
-								this.mapAreaCells[i][j].addMapAreaCellFlag(MapAreaCellFlag.BLOCK_CHANGE);
-							}
 						}
 					}
 					//  Initialize new cells in the empty space
@@ -405,7 +374,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 						for(int j = 0; j < diffZ.intValue(); j++){
 							this.mapAreaCells[i][j] = new MapAreaCell();
 							Coordinate theCoordinate = afterLower.changeByDeltaXYZ(Long.valueOf(i), 0L, (this.mapAreaCuboidAddress.getWidthForIndex(2L) - 1L) - Long.valueOf(j));
-							this.updateMapAreaFlags(new CuboidAddress(theCoordinate, theCoordinate));
+							this.recalculateMapAreaCellsAtCoordinate(theCoordinate);
 						}
 					}
 					this.printMapAreaUpdates(this.mapAreaCuboidAddress);
@@ -413,13 +382,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 					//  Move all cells up by diffZ (down in mapArea cell array)
 					for(int i = 0; i < this.mapAreaWidthInCells.intValue(); i++){
 						for(int j = 0; j < this.mapAreaHeightInCells.intValue() + diffZ.intValue(); j++){
-							boolean has_change = !this.mapAreaCells[i][j].equals(this.mapAreaCells[i][j - diffZ.intValue()]);
 							this.mapAreaCells[i][j] = this.mapAreaCells[i][j - diffZ.intValue()];
-							if(this.mapAreaCells[i][j].getCurrentBlock() == null){
-								this.mapAreaCells[i][j].addMapAreaCellFlag(MapAreaCellFlag.PENDING_LOAD);
-							}else if(has_change){
-								this.mapAreaCells[i][j].addMapAreaCellFlag(MapAreaCellFlag.BLOCK_CHANGE);
-							}
 						}
 					}
 					//  Initialize new cells in the empty space
@@ -427,7 +390,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 						for(int j = this.mapAreaHeightInCells.intValue() + diffZ.intValue(); j < this.mapAreaHeightInCells.intValue(); j++){
 							this.mapAreaCells[i][j] = new MapAreaCell();
 							Coordinate theCoordinate = afterLower.changeByDeltaXYZ(Long.valueOf(i), 0L, (this.mapAreaCuboidAddress.getWidthForIndex(2L) - 1L) - Long.valueOf(j));
-							this.updateMapAreaFlags(new CuboidAddress(theCoordinate, theCoordinate));
+							this.recalculateMapAreaCellsAtCoordinate(theCoordinate);
 						}
 					}
 					this.printMapAreaUpdates(this.mapAreaCuboidAddress);
@@ -442,34 +405,18 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		this.onFinalizeFrame();
 	}
 
-	public MapAreaCell recalculateMapAreaCellsAtCoordinate(Coordinate currentMapAreaCoordinate) throws Exception {
+	public void recalculateMapAreaCellsAtCoordinate(Coordinate currentMapAreaCoordinate) throws Exception {
 		IndividualBlock b = clientBlockModelContext.readBlockAtCoordinate(currentMapAreaCoordinate);
 		Long xCellOffset = currentMapAreaCoordinate.getX() - this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getX();
 		Long yCellOffset = (this.mapAreaCuboidAddress.getWidthForIndex(2L) - 1L) - (currentMapAreaCoordinate.getZ() - this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getZ());
 		if(xCellOffset < this.mapAreaWidthInCells && yCellOffset < this.mapAreaHeightInCells){
 			MapAreaCell currentMapAreaCell = this.mapAreaCells[xCellOffset.intValue()][yCellOffset.intValue()];
 
-			if(b == null){ /* Chunk not even loaded. */
+			if(b != null){ /* Chunk not even loaded. */
 				currentMapAreaCell.setCurrentBlock(b);
-				currentMapAreaCell.addMapAreaCellFlag(MapAreaCellFlag.PENDING_LOAD);
-			}else{
-				currentMapAreaCell.setCurrentBlock(b);
-
-				if(currentMapAreaCell.hasPendingLoadFlags()){ //  If this block was pending before, but now it's not, this requires a reprint.
-					currentMapAreaCell.addMapAreaCellFlag(MapAreaCellFlag.BLOCK_CHANGE);
-					currentMapAreaCell.clearPendingLoadFlags();
-				}
 			}
-
-			/*  Does player position need to be re-rendered? */
-			if(this.stalePlayerPositions.contains(currentMapAreaCoordinate)){
-				currentMapAreaCell.addMapAreaCellFlag(MapAreaCellFlag.PLAYER_MOVEMENT);
-				this.stalePlayerPositions.remove(currentMapAreaCoordinate);
-			}
-			return currentMapAreaCell;
 		}else{
 			logger.info("Saw xCellOffset=" + xCellOffset + " < this.mapAreaWidthInCells=" + this.mapAreaWidthInCells + " || yCellOffset=" + yCellOffset + " < this.mapAreaHeightInCells=" + this.mapAreaHeightInCells + ".  TODO: Fix this error case with a more robust design.");
-			return null;
 		}
 	}
 
@@ -510,6 +457,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	public void printMapAreaUpdates(CuboidAddress areaToUpdate) throws Exception {
 		if(this.mapAreaCuboidAddress != null){
 			logger.info("Doing printMapAreaUpdates with mapArea cuboid as " + this.mapAreaCuboidAddress + ".");
+
 	
 			GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
 			boolean useASCII = mode.equals(GraphicsMode.ASCII);
@@ -524,6 +472,12 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			do{
 				Coordinate currentMapAreaCoordinate = regionIteration.getCurrentCoordinate();
 				if(this.mapAreaCuboidAddress.containsCoordinate(currentMapAreaCoordinate)){
+
+					/*  Does player position need to be re-rendered? */
+					if(this.stalePlayerPositions.contains(currentMapAreaCoordinate)){
+						this.stalePlayerPositions.remove(currentMapAreaCoordinate);
+					}
+
 					boolean isPlayerPosition = false;
 					if(
 						this.getPlayerPosition() != null &&
@@ -543,28 +497,13 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 					int defaultBackgroundColour = overSolidBlock ? GRAY_BG_COLOR : MAP_CELL_BG_COLOR2;
 					int backgroundColour = isPlayerPosition ? PLAYER_BG_COLOR : defaultBackgroundColour;
 
-					String stringToWrite = null;
-					if(currentMapAreaCell.hasBlockChangedFlags()){ /*  Updated cell */
-						stringToWrite = currentMapAreaCell.renderBlockCell(useASCII);
-						//stringToWrite = "U";
-					}else if(currentMapAreaCell.hasPlayerMovementFlags()){ /*  Where player is or was */
-						stringToWrite = currentMapAreaCell.renderBlockCell(useASCII);
-						//stringToWrite = "P";
-					}else if(currentMapAreaCell.hasPendingLoadFlags()){ /*  Loading cell */
-						stringToWrite = "?";
-					}else{
-						stringToWrite = null;
-						//stringToWrite = "-";
-					}
+					String stringToWrite = currentMapAreaCell.renderBlockCell(useASCII);
 
 					Long xCellOffsetInUpdateArea = currentMapAreaCoordinate.getX() - areaToUpdate.getCanonicalLowerCoordinate().getX();
 					Long yCellOffsetInUpdateArea = (areaToUpdateHeight -1L) -(currentMapAreaCoordinate.getZ() - areaToUpdate.getCanonicalLowerCoordinate().getZ());
 					updatedCellContents[xCellOffsetInUpdateArea.intValue()][yCellOffsetInUpdateArea.intValue()] = stringToWrite;
 					updatedBackgroundColours[xCellOffsetInUpdateArea.intValue()][yCellOffsetInUpdateArea.intValue()][0] = backgroundColour;
 					updatedBackgroundColours[xCellOffsetInUpdateArea.intValue()][yCellOffsetInUpdateArea.intValue()][1] = DEFAULT_TEXT_FG_COLOR;
-
-
-					currentMapAreaCell.clearNonLoadingFlags();
 				}
 			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
 

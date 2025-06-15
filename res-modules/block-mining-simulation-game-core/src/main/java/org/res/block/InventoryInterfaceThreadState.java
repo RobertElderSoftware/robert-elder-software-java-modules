@@ -70,6 +70,16 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		this.clientBlockModelContext = clientBlockModelContext;
 	}
 	
+	public void onSelectionChange(Long newSelection) throws Exception{
+		this.selectedInventoryItemIndex = newSelection;
+
+		PlayerInventory inventory = this.getPlayerInventory();
+		List<PlayerInventoryItemStack> itemStacks = inventory.getInventoryItemStackList();
+		PlayerInventoryItemStack currentStack = itemStacks.get(this.selectedInventoryItemIndex.intValue());
+		IndividualBlock blockFromStack = currentStack.getBlock(this.blockManagerThreadCollection.getBlockSchema());
+		this.clientBlockModelContext.putWorkItem(new InventoryItemSelectionChangeWorkItem(this.clientBlockModelContext, blockFromStack.getClass()), WorkItemPriority.PRIORITY_LOW);
+	}
+
 	public Long getNumInventoryItems() throws Exception{
 		PlayerInventory inventory = this.getPlayerInventory();
 		if(inventory == null){
@@ -87,7 +97,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	public Long getSelectedInventoryItemIndex() throws Exception{
 		if(getNumInventoryItems() != null && getNumInventoryItems() > 0){
 			if(this.selectedInventoryItemIndex == null){
-				this.selectedInventoryItemIndex = 0L;
+				this.onSelectionChange(0L);
 			}
 			return this.selectedInventoryItemIndex;
 		}else{
@@ -100,7 +110,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		if(numInventoryItems != null && numInventoryItems > 0){
 			Long initialIndex = this.selectedInventoryItemIndex == null ? 0L : this.selectedInventoryItemIndex;
 			Long newIndex = (initialIndex + selectionDiff + numInventoryItems) % numInventoryItems;
-			this.selectedInventoryItemIndex = newIndex;
+			this.onSelectionChange(newIndex);
 		}
 	}
 

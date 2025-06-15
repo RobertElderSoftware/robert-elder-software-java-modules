@@ -71,13 +71,13 @@ public class BlockSkins {
 		patternsTmp.put(WoodenBlock.class.getName(),"\uD83E\uDEB5");
 		patternsTmp.put(UnrecognizedBlock.class.getName(),"\uD83D\uDEAB");
 		patternsTmp.put(EmptyBlock.class.getName(),"");
+		patternsTmp.put(PendingLoadBlock.class.getName(),"?");
 		patternsTmp.put(UninitializedBlock.class.getName(),"U");
 		patternsTmp.put(PlayerPositionXYZ.class.getName(),"P");
 		patternsTmp.put(PlayerInventory.class.getName(),"!");
 		patterns = Collections.unmodifiableMap(patternsTmp);
 
 		Map<String, String> descriptionsTmp = new HashMap<String, String>();
-		descriptionsTmp.put(Rock.class.getName(), "One cubic meter of an unspecified type of rocks.");
 		descriptionsTmp.put(WoodenPick.class.getName(),"A wooden pick axe.  Capable of mining all blocks within a radius of 1 from the player.");
 		descriptionsTmp.put(StonePick.class.getName(),"A stone pick axe.  Capable of mining all blocks within a radius of 2 from the player.");
 		descriptionsTmp.put(IronPick.class.getName(),"An iron pick axe.  Capable of mining all blocks within a radius of 3 from the player.");
@@ -94,6 +94,7 @@ public class BlockSkins {
 		descriptionsTmp.put(WoodenBlock.class.getName(),"One cubic meter of wooden block.");
 		descriptionsTmp.put(UnrecognizedBlock.class.getName(),"An unrecognized block that is not found existing block schema.");
 		descriptionsTmp.put(EmptyBlock.class.getName(),"An empty block that represents a region of the world that contains nothing.");
+		descriptionsTmp.put(PendingLoadBlock.class.getName(),"Pending Load block.");
 		descriptionsTmp.put(UninitializedBlock.class.getName(),"Uninitialized block.");
 		descriptionsTmp.put(PlayerPositionXYZ.class.getName(),"Player position block.");
 		descriptionsTmp.put(PlayerInventory.class.getName(),"Player inventory block.");

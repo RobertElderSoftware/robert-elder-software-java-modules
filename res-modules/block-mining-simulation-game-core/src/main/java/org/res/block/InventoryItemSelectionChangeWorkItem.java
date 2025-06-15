@@ -30,27 +30,21 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.Map;
-import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 
-public enum MapAreaCellFlag {
-        PLAYER_MOVEMENT ("PLAYER_MOVEMENT", "P"),
-        BLOCK_CHANGE ("BLOCK_CHANGE", "B"),
-        PENDING_LOAD ("PENDING_LOAD", "?");
+public class InventoryItemSelectionChangeWorkItem extends BlockModelContextWorkItem {
 
-        private final String longName;
-        private final String shortName;
+	private Class<?> blockClass;
 
-        private MapAreaCellFlag(String longName, String shortName) {
-                this.longName = longName;
-                this.shortName = shortName;
-        }
-
-	public String getLongName(String longName) {
-		return this.longName;
+	public InventoryItemSelectionChangeWorkItem(BlockModelContext blockModelContext, Class<?> blockClass){
+		super(blockModelContext);
+		this.blockClass = blockClass;
 	}
 
-	public String getShortName(String shortName) {
-		return this.shortName;
+	public void doWork() throws Exception{
+		((ClientBlockModelContext)this.blockModelContext).onInventoryItemSelectionChange(this.blockClass);
 	}
 }

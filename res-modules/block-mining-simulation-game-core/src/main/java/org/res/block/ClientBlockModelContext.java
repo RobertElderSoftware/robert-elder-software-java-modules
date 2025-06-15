@@ -52,7 +52,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	private PlayerInventory playerInventory = null;
 
 	private CuboidAddress mapAreaCuboidAddress;
-
+	private Class<?> selectedBlockClass = null;
 
 	public ClientBlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ClientServerInterface clientServerInterface) throws Exception {
 		super(blockManagerThreadCollection, clientServerInterface);
@@ -159,17 +159,21 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		boolean hasStonePick = this.playerInventory.containsBlockCount(stonePickData, 1L);
 		boolean hasIronPick = this.playerInventory.containsBlockCount(ironPickData, 1L);
 
+		boolean hasSelectedWoodenPick = this.selectedBlockClass != null && this.selectedBlockClass == WoodenPick.class;
+		boolean hasSelectedStonePick = this.selectedBlockClass != null && this.selectedBlockClass == StonePick.class;
+		boolean hasSelectedIronPick = this.selectedBlockClass != null && this.selectedBlockClass == IronPick.class;
+
 		byte [] pickDataToUse = null;
 		Long miningDistance = null;
-		if(hasIronPick){
+		if(hasIronPick && hasSelectedIronPick){
 			miningDistance = 3L;
 			pickDataToUse = ironPickData;
 		}else{
-			if(hasStonePick){
+			if(hasStonePick && hasSelectedStonePick){
 				miningDistance = 2L;
 				pickDataToUse = stonePickData;
 			}else{
-				if(hasWoodenPick){
+				if(hasWoodenPick && hasSelectedWoodenPick){
 					miningDistance = 1L;
 					pickDataToUse = woodenPickData;
 				}else{
@@ -215,15 +219,17 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
 	}
 
-	public void doPlaceRockAtPlayerPosition() throws Exception{
-		byte [] blockDataToPlace = this.getBlockDataForClass(Rock.class);
-		if(this.playerInventory.containsBlockCount(blockDataToPlace, 1L)){
-			this.playerInventory.addItemCountToInventory(blockDataToPlace, -1L);
-			this.onPlayerInventoryChange();
-			this.doBlockWriteAtPlayerPosition(blockDataToPlace, this.getPlayerPosition(), 0L);
-			this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
-		}else{
-			//  Does not have any more of these blocks.
+	public void doPlaceItemAtPlayerPosition() throws Exception{
+		if(this.selectedBlockClass != null){
+			byte [] blockDataToPlace = this.getBlockDataForClass(this.selectedBlockClass);
+			if(this.playerInventory.containsBlockCount(blockDataToPlace, 1L)){
+				this.playerInventory.addItemCountToInventory(blockDataToPlace, -1L);
+				this.onPlayerInventoryChange();
+				this.doBlockWriteAtPlayerPosition(blockDataToPlace, this.getPlayerPosition(), 0L);
+				this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
+			}else{
+				//  Does not have any more of these blocks.
+			}
 		}
 	}
 
@@ -309,7 +315,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	public void onUserInterfaceAction(UserInterfaceActionType action) throws Exception {
 		switch(action){
 			case ACTION_PLACE_BLOCK:{
-				this.doPlaceRockAtPlayerPosition();
+				this.doPlaceItemAtPlayerPosition();
 				break;
 			}case ACTION_CRAFTING:{
 				this.onTryCrafting();
@@ -532,6 +538,10 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	public void postCuboidsWrite(Long numDimensions, List<CuboidAddress> cuboidAddresses) throws Exception{
 
+	}
+
+	public void onInventoryItemSelectionChange(Class<?> blockClass) throws Exception{
+		this.selectedBlockClass = blockClass;
 	}
 
 	public void onMapAreaChange(CuboidAddress newMapArea) throws Exception{
