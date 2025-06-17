@@ -86,6 +86,16 @@ public class BlockManagerUnitTest {
 
 	}
 
+	//  mvn -pl res-modules/block-mining-simulation-game-unit-tests -Dtest=BlockManagerUnitTest#threeDimensionalCircularBufferTest test
+	@Test
+        public void threeDimensionalCircularBufferTest() throws Exception {
+                Coordinate p1 = new Coordinate(Arrays.asList(10L));
+                Coordinate p2 = new Coordinate(Arrays.asList(20L));
+                CuboidAddress ca = new CuboidAddress(p1,p2);
+                ThreeDimensionalCircularBuffer<Long> b = new ThreeDimensionalCircularBuffer<Long>(0L);
+                b.updateBufferRegion(ca);
+        }
+
 	@Test
 	public void hiddenCharactersTest() throws Exception {
 		String [] chars = new String [] {"A", "\u2550"};
