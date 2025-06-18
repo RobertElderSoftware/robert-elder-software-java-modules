@@ -86,15 +86,93 @@ public class BlockManagerUnitTest {
 
 	}
 
+	public long getRandBetweenRange(Random rand, long lower, long upper){
+		// Returns long values >= lower and < upper
+		return (long)(rand.nextDouble() * (upper-lower)) + lower;
+	}
+
+	public Coordinate getRandomCoordinate(Random rand, CuboidAddress ca){
+		Long numDimensions = ca.getNumDimensions();
+		List<Long> l = new ArrayList<Long>();
+		Coordinate lower = ca.getCanonicalLowerCoordinate();
+		Coordinate upper = ca.getCanonicalUpperCoordinate();
+		for(long i = 0; i < numDimensions; i++){
+			l.add(getRandBetweenRange(rand, lower.getValueAtIndex(i), upper.getValueAtIndex(i) + 1L));
+		}
+		return new Coordinate(l);
+	}
+
+	public CuboidAddress getRandomCuboidAddress(Random rand, CuboidAddress ca) throws Exception{
+		//  Returns a random cuboid address within 'ca'
+		return new CuboidAddress(getRandomCoordinate(rand, ca), getRandomCoordinate(rand, ca));
+	}
+
 	//  mvn -pl res-modules/block-mining-simulation-game-unit-tests -Dtest=BlockManagerUnitTest#threeDimensionalCircularBufferTest test
 	@Test
-        public void threeDimensionalCircularBufferTest() throws Exception {
-                Coordinate p1 = new Coordinate(Arrays.asList(10L));
-                Coordinate p2 = new Coordinate(Arrays.asList(20L));
-                CuboidAddress ca = new CuboidAddress(p1,p2);
-                ThreeDimensionalCircularBuffer<Long> b = new ThreeDimensionalCircularBuffer<Long>(0L);
-                b.updateBufferRegion(ca);
-        }
+	public void threeDimensionalCircularBufferTest() throws Exception {
+		Random rand = new Random(1234);
+		Long dimensionsToTest = 1L;
+		int numRegionsToTest = 100;
+		int numPointsPerRegionToTest = 1000;
+		List<Long> testRegionLower = new ArrayList<Long>();
+		List<Long> testRegionUpper = new ArrayList<Long>();
+		for(long i = 0; i < dimensionsToTest; i++){
+			testRegionLower.add(-10L);
+			testRegionUpper.add(10L);
+		}
+		CuboidAddress testRegion = new CuboidAddress(new Coordinate(testRegionLower), new Coordinate(testRegionUpper));
+
+		Long uninitializedValue = 0L;
+		ThreeDimensionalCircularBuffer<Long> b = new ThreeDimensionalCircularBuffer<Long>(Long.class, uninitializedValue);
+
+		CuboidAddress previousCuboid = null;
+		for(int i = 0; i < numRegionsToTest; i++){
+			CuboidAddress newCuboidAddress = getRandomCuboidAddress(rand, testRegion);
+			CuboidAddress intersectionAddress = previousCuboid == null ? null : newCuboidAddress.getIntersectionCuboidAddress(previousCuboid);
+			System.out.println("Updating region from " + String.valueOf(previousCuboid) + " to " + String.valueOf(newCuboidAddress) + ". Intersection was " + String.valueOf(intersectionAddress) + ".");
+			previousCuboid = newCuboidAddress;
+			b.updateBufferRegion(newCuboidAddress);
+			for(int j = 0; j < numPointsPerRegionToTest; j++){
+				Coordinate randomCoordinateToUpdate = getRandomCoordinate(rand, testRegion);
+
+				Long valueToStore = getRandBetweenRange(rand, -999999L, 999999L);
+				int setExceptionsObserved = 0;
+				int setExceptionsExpected = newCuboidAddress.containsCoordinate(randomCoordinateToUpdate) ? 0 : 1;
+				try{
+					b.setObjectAtCoordinate(randomCoordinateToUpdate, valueToStore);
+				}catch(Exception e){
+					setExceptionsObserved++;
+				}
+				if(setExceptionsObserved == setExceptionsExpected){
+					System.out.println("Correctly observed " + setExceptionsObserved + " exceptions when setting coordinate " + randomCoordinateToUpdate + " into cuboid " + newCuboidAddress);
+				}else{
+					throw new Exception("Expected " + setExceptionsExpected + " but saw " + setExceptionsObserved + " exceptions when setting coordinate " + randomCoordinateToUpdate + " into cuboid " + newCuboidAddress);
+				}
+
+				int getExceptionsObserved = 0;
+				int getExceptionsExpected = newCuboidAddress.containsCoordinate(randomCoordinateToUpdate) ? 0 : 1;
+				Long valueRetrieved = null;
+				try{
+					valueRetrieved = b.getObjectAtCoordinate(randomCoordinateToUpdate);
+				}catch(Exception e){
+					getExceptionsObserved++;
+				}
+				if(getExceptionsObserved == getExceptionsExpected){
+					System.out.println("Correctly observed " + getExceptionsObserved + " exceptions when getting coordinate " + randomCoordinateToUpdate + " into cuboid " + newCuboidAddress);
+				}else{
+					throw new Exception("Expected " + getExceptionsExpected + " but saw " + getExceptionsObserved + " exceptions when getting coordinate " + randomCoordinateToUpdate + " into cuboid " + newCuboidAddress);
+				}
+
+				if(getExceptionsExpected == 0){
+					if(valueToStore.equals(valueRetrieved)){
+						System.out.println("Stored value " + valueToStore + " and retrieved value " + valueRetrieved + ".");
+					}else{
+						throw new Exception("Stored value " + valueToStore + " but retrieved value " + valueRetrieved + ".");
+					}
+				}
+			}
+		}
+	}
 
 	@Test
 	public void hiddenCharactersTest() throws Exception {

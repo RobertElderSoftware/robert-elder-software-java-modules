@@ -32,23 +32,32 @@ package org.res.block;
 
 public class ThreeDimensionalCircularBuffer<T>{
 
-        private CuboidAddress cuboidAddress = null;
-        private Long startX = null;
-        private Long endX = null;
+	private CuboidAddress cuboidAddress = null;
+	private Long startX = null;
+	private Long endX = null;
 
-        private Object [] buffer = new Object [0];
-        private Object uninitializedObject;
+	private Object [] buffer = new Object [0];
+	private Object uninitializedObject;
+	private Class<T> classType;
 
-        public ThreeDimensionalCircularBuffer(Object uninitializedObject) {
-        	this.uninitializedObject = uninitializedObject;
-        }
+	public ThreeDimensionalCircularBuffer(Class<T> classType, T uninitializedObject) {
+		this.classType = classType;
+		this.uninitializedObject = uninitializedObject;
+	}
 
-        public void updateBufferRegion(CuboidAddress newCuboidAddress) throws Exception{
-                if(newCuboidAddress == null){
-                	throw new Exception("newCuboidAddress == null");
+	public void updateBufferRegion(CuboidAddress newCuboidAddress) throws Exception{
+		if(newCuboidAddress == null){
+			throw new Exception("newCuboidAddress == null");
 		}
-                if(this.cuboidAddress == null){
-                	Object [] newBuffer = new Object [(int)newCuboidAddress.getWidthForIndex(0L)];
+		if(this.cuboidAddress == null){
+			int sizeX = (int)newCuboidAddress.getWidthForIndex(0L);
+			Object [] newBuffer = new Object [sizeX];
+			for(int i = 0; i < sizeX; i++){
+				newBuffer[i] = uninitializedObject;
+			}
+			this.buffer = newBuffer;
+			this.startX = 0L;
+			this.endX = (long)sizeX;
 		}else{
 			Coordinate oldLower = this.cuboidAddress.getCanonicalLowerCoordinate();
 			Coordinate oldUpper = this.cuboidAddress.getCanonicalUpperCoordinate();
@@ -72,27 +81,76 @@ public class ThreeDimensionalCircularBuffer<T>{
 				//  No re-allocation needed
 				this.startX += startXDisplacement;
 				this.endX += endXDisplacement;
-				int startElementsToInitialize = Math.max(0, startXDisplacement.intValue());
-				int endElementsToInitialize = -Math.min(0, endXDisplacement.intValue());
+				int startElementsToInitialize = (Math.max(0, startXDisplacement.intValue()) % newSize.intValue());
+				int endElementsToInitialize = -(Math.min(0, endXDisplacement.intValue()) % newSize.intValue());
 				//  Re-set un-initialized elements at start of buffer:
 				for(int i = 0; i < startElementsToInitialize; i++){
-        				int index = (this.startX.intValue() + i) % newSize.intValue();
-        				this.buffer[index] = uninitializedObject;
+					int index = (((this.startX.intValue() + i) % newSize.intValue()) + newSize.intValue()) % newSize.intValue();
+					if(index < 0){		
+						throw new Exception("index < 0");
+					}
+					this.buffer[index] = uninitializedObject;
 				}
 				//  Re-set un-initialized elements at end of buffer:
 				for(int i = 0; i < endElementsToInitialize; i++){
-        				int index = (this.endX.intValue() -1 - i) % newSize.intValue();
-        				this.buffer[index] = uninitializedObject;
+					int index = (((this.endX.intValue() -1 - i) % newSize.intValue()) + newSize.intValue()) % newSize.intValue();
+					if(index < 0){		
+						throw new Exception("index < 0");
+					}
+					this.buffer[index] = uninitializedObject;
 				}
 			}else{
 				Object [] newBuffer = new Object [newSize.intValue()];
-				for(int i = 0; i < oldSize.intValue(); i++){
-        				newBuffer[i] = this.buffer[i];
+				for(int i = 0; (i < oldSize.intValue() && i < newSize.intValue()); i++){
+					newBuffer[i] = this.buffer[i];
 				}
 
+				//  If the new size is larger than the old size, set the remaining empty space to uninitialized values.
+				for(int i = oldSize.intValue(); i < newSize.intValue(); i++){
+					newBuffer[i] = uninitializedObject;
+				}
+
+				this.startX = 0L;
+				this.endX = newSize;
 				this.buffer = newBuffer;
 			}
 		}
-                this.cuboidAddress = cuboidAddress;
-        }
+		this.cuboidAddress = newCuboidAddress;
+	}
+
+	public void setObjectAtCoordinate(Coordinate c, T object) throws Exception{
+		if(this.cuboidAddress == null){
+			throw new Exception("this.cuboidAddress == null");
+		}else{
+			Coordinate lower = this.cuboidAddress.getCanonicalLowerCoordinate();
+			Coordinate upper = this.cuboidAddress.getCanonicalUpperCoordinate();
+			Long lowerBoundX = lower.getX();
+			Long upperBoundX = upper.getX() + 1L;
+			if(c.getX() >= lowerBoundX && c.getX() < upperBoundX){
+				Long sizeX = this.cuboidAddress.getWidthForIndex(0L);
+				int indexInBuffer = (int)((c.getX() - lowerBoundX) % sizeX);
+				this.buffer[indexInBuffer] = object;
+			}else{
+				throw new Exception("c.getX() = " + c.getX() + ", but c.getX() >= lowerBoundX && c.getX() < upperBoundX");
+			}
+		}
+	}
+
+	public T getObjectAtCoordinate(Coordinate c) throws Exception{
+		if(this.cuboidAddress == null){
+			throw new Exception("this.cuboidAddress == null");
+		}else{
+			Coordinate lower = this.cuboidAddress.getCanonicalLowerCoordinate();
+			Coordinate upper = this.cuboidAddress.getCanonicalUpperCoordinate();
+			Long lowerBoundX = lower.getX();
+			Long upperBoundX = upper.getX() + 1L;
+			if(c.getX() >= lowerBoundX && c.getX() < upperBoundX){
+				Long sizeX = this.cuboidAddress.getWidthForIndex(0L);
+				int indexInBuffer = (int)((c.getX() - lowerBoundX) % sizeX);
+				return classType.cast(this.buffer[indexInBuffer]);
+			}else{
+				throw new Exception("c.getX() = " + c.getX() + ", but c.getX() >= lowerBoundX && c.getX() < upperBoundX");
+			}
+		}
+	}
 }
