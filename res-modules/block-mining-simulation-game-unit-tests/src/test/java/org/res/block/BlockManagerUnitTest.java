@@ -110,65 +110,116 @@ public class BlockManagerUnitTest {
 	//  mvn -pl res-modules/block-mining-simulation-game-unit-tests -Dtest=BlockManagerUnitTest#threeDimensionalCircularBufferTest test
 	@Test
 	public void threeDimensionalCircularBufferTest() throws Exception {
-		Random rand = new Random(1234);
-		Long dimensionsToTest = 1L;
-		int numRegionsToTest = 100;
-		int numPointsPerRegionToTest = 1000;
-		List<Long> testRegionLower = new ArrayList<Long>();
-		List<Long> testRegionUpper = new ArrayList<Long>();
-		for(long i = 0; i < dimensionsToTest; i++){
-			testRegionLower.add(-10L);
-			testRegionUpper.add(10L);
-		}
-		CuboidAddress testRegion = new CuboidAddress(new Coordinate(testRegionLower), new Coordinate(testRegionUpper));
+		Random overallRand = new Random(1234);
+		for(int iterations = 0; iterations < 1000; iterations++){
+			Random rand = new Random(overallRand.nextInt());
+			Long dimensionsToTest = 2L;
+			int numRegionsToTest = 30;
+			int numPointsPerRegionToTest = 20;
+			List<Long> testRegionLower = new ArrayList<Long>();
+			List<Long> testRegionUpper = new ArrayList<Long>();
+			for(long i = 0; i < dimensionsToTest; i++){
+				testRegionLower.add(-10L);
+				testRegionUpper.add(10L);
+			}
+			CuboidAddress testRegion = new CuboidAddress(new Coordinate(testRegionLower), new Coordinate(testRegionUpper));
 
-		Long uninitializedValue = 0L;
-		ThreeDimensionalCircularBuffer<Long> b = new ThreeDimensionalCircularBuffer<Long>(Long.class, uninitializedValue);
+			Long uninitializedValue = 0L;
+			ThreeDimensionalCircularBuffer<Long> b = new ThreeDimensionalCircularBuffer<Long>(Long.class, uninitializedValue);
 
-		CuboidAddress previousCuboid = null;
-		for(int i = 0; i < numRegionsToTest; i++){
-			CuboidAddress newCuboidAddress = getRandomCuboidAddress(rand, testRegion);
-			CuboidAddress intersectionAddress = previousCuboid == null ? null : newCuboidAddress.getIntersectionCuboidAddress(previousCuboid);
-			System.out.println("Updating region from " + String.valueOf(previousCuboid) + " to " + String.valueOf(newCuboidAddress) + ". Intersection was " + String.valueOf(intersectionAddress) + ".");
-			previousCuboid = newCuboidAddress;
-			b.updateBufferRegion(newCuboidAddress);
-			for(int j = 0; j < numPointsPerRegionToTest; j++){
-				Coordinate randomCoordinateToUpdate = getRandomCoordinate(rand, testRegion);
+			//  Keep track of blocks that should be in the buffer and the values that they should have.
+			Map<Coordinate, Long> blocksInBuffer = new HashMap<Coordinate, Long>();
 
-				Long valueToStore = getRandBetweenRange(rand, -999999L, 999999L);
-				int setExceptionsObserved = 0;
-				int setExceptionsExpected = newCuboidAddress.containsCoordinate(randomCoordinateToUpdate) ? 0 : 1;
-				try{
-					b.setObjectAtCoordinate(randomCoordinateToUpdate, valueToStore);
-				}catch(Exception e){
-					setExceptionsObserved++;
-				}
-				if(setExceptionsObserved == setExceptionsExpected){
-					System.out.println("Correctly observed " + setExceptionsObserved + " exceptions when setting coordinate " + randomCoordinateToUpdate + " into cuboid " + newCuboidAddress);
-				}else{
-					throw new Exception("Expected " + setExceptionsExpected + " but saw " + setExceptionsObserved + " exceptions when setting coordinate " + randomCoordinateToUpdate + " into cuboid " + newCuboidAddress);
-				}
+			CuboidAddress previousCuboid = null;
+			for(int i = 0; i < numRegionsToTest; i++){
+				CuboidAddress newCuboidAddress = getRandomCuboidAddress(rand, testRegion);
+				CuboidAddress intersectionAddress = previousCuboid == null ? null : newCuboidAddress.getIntersectionCuboidAddress(previousCuboid);
+				System.out.println("Updating region from " + String.valueOf(previousCuboid) + " to " + String.valueOf(newCuboidAddress) + ". Intersection was " + String.valueOf(intersectionAddress) + ".");
+				previousCuboid = newCuboidAddress;
+				b.updateBufferRegion(newCuboidAddress);
 
-				int getExceptionsObserved = 0;
-				int getExceptionsExpected = newCuboidAddress.containsCoordinate(randomCoordinateToUpdate) ? 0 : 1;
-				Long valueRetrieved = null;
-				try{
-					valueRetrieved = b.getObjectAtCoordinate(randomCoordinateToUpdate);
-				}catch(Exception e){
-					getExceptionsObserved++;
-				}
-				if(getExceptionsObserved == getExceptionsExpected){
-					System.out.println("Correctly observed " + getExceptionsObserved + " exceptions when getting coordinate " + randomCoordinateToUpdate + " into cuboid " + newCuboidAddress);
-				}else{
-					throw new Exception("Expected " + getExceptionsExpected + " but saw " + getExceptionsObserved + " exceptions when getting coordinate " + randomCoordinateToUpdate + " into cuboid " + newCuboidAddress);
-				}
-
-				if(getExceptionsExpected == 0){
-					if(valueToStore.equals(valueRetrieved)){
-						System.out.println("Stored value " + valueToStore + " and retrieved value " + valueRetrieved + ".");
-					}else{
-						throw new Exception("Stored value " + valueToStore + " but retrieved value " + valueRetrieved + ".");
+				//  Build list of coordinates that were removed by the buffer region change:
+				Set<Coordinate> coordinatesToRemove = new HashSet<Coordinate>();
+				for(Map.Entry<Coordinate, Long> e : blocksInBuffer.entrySet()){
+					if(!newCuboidAddress.containsCoordinate(e.getKey())){
+						coordinatesToRemove.add(e.getKey());
 					}
+				}
+
+				//  Actually remove them:
+				for(Coordinate c : coordinatesToRemove){
+					blocksInBuffer.remove(c);
+					System.out.println("Removed coordinate " + c + " because it's not contained in the new region " + newCuboidAddress);
+				}
+
+				for(int j = 0; j < numPointsPerRegionToTest; j++){
+					Coordinate randomCoordinateToUpdate = getRandomCoordinate(rand, testRegion);
+
+					Long valueToStore = getRandBetweenRange(rand, -999999L, 999999L);
+					int setExceptionsObserved = 0;
+					boolean currentRegionContainsCoordinate = newCuboidAddress.containsCoordinate(randomCoordinateToUpdate);
+
+					//  Add the new coordinate to the set of blocks that should be there:
+					if(currentRegionContainsCoordinate){
+						blocksInBuffer.put(randomCoordinateToUpdate, valueToStore);
+					}
+
+					int setExceptionsExpected = currentRegionContainsCoordinate ? 0 : 1;
+					try{
+						b.setObjectAtCoordinate(randomCoordinateToUpdate, valueToStore);
+					}catch(Exception e){
+						setExceptionsObserved++;
+					}
+					if(setExceptionsObserved == setExceptionsExpected){
+						System.out.println("Correctly observed " + setExceptionsObserved + " exceptions when setting coordinate " + randomCoordinateToUpdate + " with value " + valueToStore + " into cuboid " + newCuboidAddress);
+					}else{
+						throw new Exception("Expected " + setExceptionsExpected + " but saw " + setExceptionsObserved + " exceptions when setting coordinate " + randomCoordinateToUpdate + " into cuboid " + newCuboidAddress);
+					}
+
+					int getExceptionsObserved = 0;
+					int getExceptionsExpected = newCuboidAddress.containsCoordinate(randomCoordinateToUpdate) ? 0 : 1;
+					Long valueRetrieved = null;
+					try{
+						valueRetrieved = b.getObjectAtCoordinate(randomCoordinateToUpdate);
+					}catch(Exception e){
+						getExceptionsObserved++;
+					}
+					if(getExceptionsObserved == getExceptionsExpected){
+						System.out.println("Correctly observed " + getExceptionsObserved + " exceptions when getting coordinate " + randomCoordinateToUpdate + " into cuboid " + newCuboidAddress);
+					}else{
+						throw new Exception("Expected " + getExceptionsExpected + " but saw " + getExceptionsObserved + " exceptions when getting coordinate " + randomCoordinateToUpdate + " into cuboid " + newCuboidAddress);
+					}
+
+					if(getExceptionsExpected == 0){
+						if(valueToStore.equals(valueRetrieved)){
+							System.out.println("Stored value " + valueToStore + " and retrieved value " + valueRetrieved + " at " + randomCoordinateToUpdate + ".");
+						}else{
+							throw new Exception("Stored value " + valueToStore + " but retrieved value " + valueRetrieved + " at " + randomCoordinateToUpdate + ".");
+						}
+					}
+
+					//  Cycle through all values that are suppoused to be in the buffer region to make sure they have the values that they're supposed to:
+					System.out.println("BEGIN checking all points within current buffer region " + newCuboidAddress);
+					RegionIteration regionIteration = new RegionIteration(newCuboidAddress.getCanonicalLowerCoordinate(), newCuboidAddress);
+					do{
+						Coordinate currentCoordinate = regionIteration.getCurrentCoordinate();
+						if(blocksInBuffer.containsKey(currentCoordinate)){
+							Long actualValue = b.getObjectAtCoordinate(currentCoordinate);
+							Long expectedValue = blocksInBuffer.get(currentCoordinate);
+							if(!actualValue.equals(expectedValue)){
+								throw new Exception("Expected value " + expectedValue + " but saw value " + actualValue + " for coordinate " + currentCoordinate);
+							}
+						}else{ // Uninitialized cell in buffer:
+							Long actualValue = b.getObjectAtCoordinate(currentCoordinate);
+							Long expectedValue = uninitializedValue;
+							if(!actualValue.equals(expectedValue)){
+								throw new Exception("Expected default value " + expectedValue + " but saw value " + actualValue + " for coordinate " + currentCoordinate);
+							}
+						}
+					}while (regionIteration.incrementCoordinateWithinCuboidAddress());
+					System.out.println("END checking all points within current buffer region " + newCuboidAddress);
+
+
 				}
 			}
 		}

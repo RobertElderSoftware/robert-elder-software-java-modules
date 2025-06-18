@@ -30,13 +30,15 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.Arrays;
+
 public class ThreeDimensionalCircularBuffer<T>{
 
 	private CuboidAddress cuboidAddress = null;
-	private Long startX = null;
-	private Long endX = null;
+	private Long circularOffsetX = null;  //  The offset that describes where the circular buffer 'starts'.
+	private Long circularOffsetY = null;  //  The offset that describes where the circular buffer 'starts'.
 
-	private Object [] buffer = new Object [0];
+	private Object [][] buffer = new Object [0][0];
 	private Object uninitializedObject;
 	private Class<T> classType;
 
@@ -45,73 +47,164 @@ public class ThreeDimensionalCircularBuffer<T>{
 		this.uninitializedObject = uninitializedObject;
 	}
 
+	public static final Long pm(Long numerator, Long denominator){
+		return ((numerator % denominator) + denominator) % denominator;
+	}
+
+	public static final int pm(int numerator, int denominator){
+		return ((numerator % denominator) + denominator) % denominator;
+	}
+
 	public void updateBufferRegion(CuboidAddress newCuboidAddress) throws Exception{
 		if(newCuboidAddress == null){
 			throw new Exception("newCuboidAddress == null");
 		}
+
+		if(newCuboidAddress.equals(new CuboidAddress(new Coordinate(Arrays.asList(-8L, 8L)), new Coordinate(Arrays.asList(7L, 10L))))){
+			System.out.println("afdsafds");
+		}
+
 		if(this.cuboidAddress == null){
 			int sizeX = (int)newCuboidAddress.getWidthForIndex(0L);
-			Object [] newBuffer = new Object [sizeX];
+			int sizeY = (int)newCuboidAddress.getWidthForIndex(1L);
+			Object [][] newBuffer = new Object [sizeX][sizeY];
 			for(int i = 0; i < sizeX; i++){
-				newBuffer[i] = uninitializedObject;
+				for(int j = 0; j < sizeY; j++){
+					newBuffer[i][j] = uninitializedObject;
+				}
 			}
 			this.buffer = newBuffer;
-			this.startX = 0L;
-			this.endX = (long)sizeX;
+			this.circularOffsetX = 0L;
+			this.circularOffsetY = 0L;
 		}else{
-			Coordinate oldLower = this.cuboidAddress.getCanonicalLowerCoordinate();
-			Coordinate oldUpper = this.cuboidAddress.getCanonicalUpperCoordinate();
+			Long oldXSize = this.cuboidAddress.getWidthForIndex(0L);
+			Long newXSize = newCuboidAddress.getWidthForIndex(0L);
 
-			Coordinate newLower = newCuboidAddress.getCanonicalLowerCoordinate();
-			Coordinate newUpper = newCuboidAddress.getCanonicalUpperCoordinate();
+			Long startXDisplacement = newCuboidAddress.getCanonicalLowerCoordinate().getX() - this.cuboidAddress.getCanonicalLowerCoordinate().getX();
+			Long endXDisplacement = newCuboidAddress.getCanonicalUpperCoordinate().getX() - this.cuboidAddress.getCanonicalUpperCoordinate().getX();
 
-			Long oldStartX = oldLower.getX();
-			Long oldEndX = oldUpper.getX() + 1L;
+			Long oldYSize = this.cuboidAddress.getWidthForIndex(1L);
+			Long newYSize = newCuboidAddress.getWidthForIndex(1L);
 
-			Long newStartX = newLower.getX();
-			Long newEndX = newUpper.getX() + 1L;
+			Long startYDisplacement = newCuboidAddress.getCanonicalLowerCoordinate().getY() - this.cuboidAddress.getCanonicalLowerCoordinate().getY();
+			Long endYDisplacement = newCuboidAddress.getCanonicalUpperCoordinate().getY() - this.cuboidAddress.getCanonicalUpperCoordinate().getY();
 
-			Long oldSize = oldEndX - oldStartX;
-			Long newSize = newEndX - newStartX;
-
-			Long startXDisplacement = newStartX - oldStartX;
-			Long endXDisplacement = newEndX - oldEndX;
-
-			if(oldSize.equals(newSize)){
+			if(
+				oldXSize.equals(newXSize) &&
+				oldYSize.equals(newYSize)
+			){
 				//  No re-allocation needed
-				this.startX += startXDisplacement;
-				this.endX += endXDisplacement;
-				int startElementsToInitialize = (Math.max(0, startXDisplacement.intValue()) % newSize.intValue());
-				int endElementsToInitialize = -(Math.min(0, endXDisplacement.intValue()) % newSize.intValue());
+				int startXElementsToInitialize = Math.min(Math.max(0, startXDisplacement.intValue()), newXSize.intValue());
+				int endXElementsToInitialize = Math.min(-(Math.min(0, endXDisplacement.intValue())), newXSize.intValue());
+				int startYElementsToInitialize = Math.min(Math.max(0, startYDisplacement.intValue()), newYSize.intValue());
+				int endYElementsToInitialize = Math.min(-(Math.min(0, endYDisplacement.intValue())), newYSize.intValue());
 				//  Re-set un-initialized elements at start of buffer:
-				for(int i = 0; i < startElementsToInitialize; i++){
-					int index = (((this.startX.intValue() + i) % newSize.intValue()) + newSize.intValue()) % newSize.intValue();
-					if(index < 0){		
-						throw new Exception("index < 0");
+				for(int i = 0; i < startXElementsToInitialize; i++){
+					int toX = pm(this.circularOffsetX.intValue() + i, newXSize.intValue());
+					for(int j = 0; j < newYSize.intValue(); j++){
+						int toY = pm(this.circularOffsetY.intValue() + j, newYSize.intValue());
+						this.buffer[toX][toY] = uninitializedObject;
 					}
-					this.buffer[index] = uninitializedObject;
 				}
 				//  Re-set un-initialized elements at end of buffer:
-				for(int i = 0; i < endElementsToInitialize; i++){
-					int index = (((this.endX.intValue() -1 - i) % newSize.intValue()) + newSize.intValue()) % newSize.intValue();
-					if(index < 0){		
-						throw new Exception("index < 0");
+				for(int i = 0; i < endXElementsToInitialize; i++){
+					int toX = pm(this.circularOffsetX.intValue() -1 - i, newXSize.intValue());
+					for(int j = 0; j < newYSize.intValue(); j++){
+						int toY = pm(this.circularOffsetY.intValue() + j, newYSize.intValue());
+						this.buffer[toX][toY] = uninitializedObject;
 					}
-					this.buffer[index] = uninitializedObject;
 				}
+
+				for(int i = 0; i < newXSize.intValue(); i++){
+					int toX = pm(this.circularOffsetX.intValue() + i, newXSize.intValue());
+					for(int j = 0; j < startYElementsToInitialize; j++){
+						int toY = pm(this.circularOffsetY.intValue() + j, newYSize.intValue());
+						this.buffer[toX][toY] = uninitializedObject;
+					}
+				}
+
+				for(int i = 0; i < newXSize.intValue(); i++){
+					int toX = pm(this.circularOffsetX.intValue() + i, newXSize.intValue());
+					for(int j = 0; j < endYElementsToInitialize; j++){
+						int toY = pm(this.circularOffsetY.intValue() -1 - j, newYSize.intValue());
+						this.buffer[toX][toY] = uninitializedObject;
+					}
+				}
+
+
+				this.circularOffsetX = pm(this.circularOffsetX + startXDisplacement, newXSize);
+				this.circularOffsetY = pm(this.circularOffsetY + startYDisplacement, newYSize);
 			}else{
-				Object [] newBuffer = new Object [newSize.intValue()];
-				for(int i = 0; (i < oldSize.intValue() && i < newSize.intValue()); i++){
-					newBuffer[i] = this.buffer[i];
+				Object [][] newBuffer = new Object [newXSize.intValue()][newYSize.intValue()];
+
+				CuboidAddress intersectionAddress = this.cuboidAddress.getIntersectionCuboidAddress(newCuboidAddress);
+
+				if(intersectionAddress == null){ //  No intersection, buffer covers entirely new region with no overlap
+					for(int i = 0; i < newXSize.intValue(); i++){
+						for(int j = 0; j < newYSize.intValue(); j++){
+							newBuffer[i][j] = uninitializedObject;
+						}
+					}
+				}else{
+					int intersectionSizeX = (int)intersectionAddress.getWidthForIndex(0L);
+					int toCopyXOffset = (int)(intersectionAddress.getCanonicalLowerCoordinate().getX() - newCuboidAddress.getCanonicalLowerCoordinate().getX());
+					int fromCopyXOffset = (int)(intersectionAddress.getCanonicalLowerCoordinate().getX() - this.cuboidAddress.getCanonicalLowerCoordinate().getX());
+
+					int intersectionSizeY = (int)intersectionAddress.getWidthForIndex(1L);
+					int toCopyYOffset = (int)(intersectionAddress.getCanonicalLowerCoordinate().getY() - newCuboidAddress.getCanonicalLowerCoordinate().getY());
+					int fromCopyYOffset = (int)(intersectionAddress.getCanonicalLowerCoordinate().getY() - this.cuboidAddress.getCanonicalLowerCoordinate().getY());
+
+					for(int i = 0; i < intersectionSizeX; i++){
+						int fromX = pm(this.circularOffsetX.intValue() + i + fromCopyXOffset, oldXSize.intValue());
+						int toX = pm(i + toCopyXOffset, newXSize.intValue());
+						for(int j = 0; j < intersectionSizeY; j++){
+							int fromY = pm(this.circularOffsetY.intValue() + j + fromCopyYOffset, oldYSize.intValue());
+							int toY = pm(j + toCopyYOffset, newYSize.intValue());
+							newBuffer[toX][toY] = this.buffer[fromX][fromY];
+						}
+					}
+
+					int startXElementsToInitialize = (Math.max(0, -startXDisplacement.intValue()) % newXSize.intValue());
+					int endXElementsToInitialize = -(Math.min(0, -endXDisplacement.intValue()) % newXSize.intValue());
+					int startYElementsToInitialize = (Math.max(0, -startYDisplacement.intValue()) % newYSize.intValue());
+					int endYElementsToInitialize = -(Math.min(0, -endYDisplacement.intValue()) % newYSize.intValue());
+
+					//  Re-set un-initialized elements at start of buffer:
+					for(int i = 0; i < startXElementsToInitialize; i++){
+						int toX = pm(i, newXSize.intValue());
+						for(int j = 0; j < newYSize.intValue(); j++){
+							int toY = pm(j, newYSize.intValue());
+							newBuffer[toX][toY] = uninitializedObject;
+						}
+					}
+					//  Re-set un-initialized elements at end of buffer:
+					for(int i = 0; i < endXElementsToInitialize; i++){
+						int toX = pm(newXSize.intValue() -1 - i, newXSize.intValue());
+						for(int j = 0; j < newYSize.intValue(); j++){
+							int toY = pm(j, newYSize.intValue());
+							newBuffer[toX][toY] = uninitializedObject;
+						}
+					}
+
+					for(int i = 0; i < newXSize.intValue(); i++){
+						int toX = pm(i, newXSize.intValue());
+						for(int j = 0; j < startYElementsToInitialize; j++){
+							int toY = pm(j, newYSize.intValue());
+							newBuffer[toX][toY] = uninitializedObject;
+						}
+					}
+
+					for(int i = 0; i < newXSize.intValue(); i++){
+						int toX = pm(i, newXSize.intValue());
+						for(int j = 0; j < endYElementsToInitialize; j++){
+							int toY = pm(newYSize.intValue() -1 - j, newYSize.intValue());
+							newBuffer[toX][toY] = uninitializedObject;
+						}
+					}
 				}
 
-				//  If the new size is larger than the old size, set the remaining empty space to uninitialized values.
-				for(int i = oldSize.intValue(); i < newSize.intValue(); i++){
-					newBuffer[i] = uninitializedObject;
-				}
-
-				this.startX = 0L;
-				this.endX = newSize;
+				this.circularOffsetX = 0L;
+				this.circularOffsetY = 0L;
 				this.buffer = newBuffer;
 			}
 		}
@@ -126,12 +219,22 @@ public class ThreeDimensionalCircularBuffer<T>{
 			Coordinate upper = this.cuboidAddress.getCanonicalUpperCoordinate();
 			Long lowerBoundX = lower.getX();
 			Long upperBoundX = upper.getX() + 1L;
-			if(c.getX() >= lowerBoundX && c.getX() < upperBoundX){
+			Long lowerBoundY = lower.getY();
+			Long upperBoundY = upper.getY() + 1L;
+			if(
+				(c.getX() >= lowerBoundX && c.getX() < upperBoundX) &&
+				(c.getY() >= lowerBoundY && c.getY() < upperBoundY)
+			){
 				Long sizeX = this.cuboidAddress.getWidthForIndex(0L);
-				int indexInBuffer = (int)((c.getX() - lowerBoundX) % sizeX);
-				this.buffer[indexInBuffer] = object;
+				Long sizeY = this.cuboidAddress.getWidthForIndex(1L);
+				int xIndexInBuffer = (int)((this.circularOffsetX + c.getX() - lowerBoundX) % sizeX);
+				int yIndexInBuffer = (int)((this.circularOffsetY + c.getY() - lowerBoundY) % sizeY);
+				this.buffer[xIndexInBuffer][yIndexInBuffer] = object;
 			}else{
-				throw new Exception("c.getX() = " + c.getX() + ", but c.getX() >= lowerBoundX && c.getX() < upperBoundX");
+				throw new Exception(
+					"(c.getX() = " + c.getX() + ", but c.getX() >= lowerBoundX && c.getX() < upperBoundX) &&" +
+					"(c.getY() = " + c.getY() + ", but c.getY() >= lowerBoundY && c.getY() < upperBoundY)"
+				);
 			}
 		}
 	}
@@ -144,12 +247,26 @@ public class ThreeDimensionalCircularBuffer<T>{
 			Coordinate upper = this.cuboidAddress.getCanonicalUpperCoordinate();
 			Long lowerBoundX = lower.getX();
 			Long upperBoundX = upper.getX() + 1L;
-			if(c.getX() >= lowerBoundX && c.getX() < upperBoundX){
+			Long lowerBoundY = lower.getY();
+			Long upperBoundY = upper.getY() + 1L;
+			if(
+				(c.getX() >= lowerBoundX && c.getX() < upperBoundX) &&
+				(c.getY() >= lowerBoundY && c.getY() < upperBoundY)
+			){
 				Long sizeX = this.cuboidAddress.getWidthForIndex(0L);
-				int indexInBuffer = (int)((c.getX() - lowerBoundX) % sizeX);
-				return classType.cast(this.buffer[indexInBuffer]);
+				Long sizeY = this.cuboidAddress.getWidthForIndex(1L);
+				int xIndexInBuffer = (int)((this.circularOffsetX + c.getX() - lowerBoundX) % sizeX);
+				int yIndexInBuffer = (int)((this.circularOffsetY + c.getY() - lowerBoundY) % sizeY);
+				if(this.buffer[xIndexInBuffer][yIndexInBuffer] == null){
+					throw new Exception("this.buffer[xIndexInBuffer][yIndexInBuffer] == null");
+				}else{
+					return classType.cast(this.buffer[xIndexInBuffer][yIndexInBuffer]);
+				}
 			}else{
-				throw new Exception("c.getX() = " + c.getX() + ", but c.getX() >= lowerBoundX && c.getX() < upperBoundX");
+				throw new Exception(
+					"(c.getX() = " + c.getX() + ", but c.getX() >= lowerBoundX && c.getX() < upperBoundX) &&" +
+					"(c.getY() = " + c.getY() + ", but c.getY() >= lowerBoundY && c.getY() < upperBoundY)"
+				);
 			}
 		}
 	}
