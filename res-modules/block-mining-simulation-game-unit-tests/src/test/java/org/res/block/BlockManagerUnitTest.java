@@ -102,9 +102,32 @@ public class BlockManagerUnitTest {
 		return new Coordinate(l);
 	}
 
-	public CuboidAddress getRandomCuboidAddress(Random rand, CuboidAddress ca) throws Exception{
-		//  Returns a random cuboid address within 'ca'
-		return new CuboidAddress(getRandomCoordinate(rand, ca), getRandomCoordinate(rand, ca));
+	public CuboidAddress getRandomCuboidAddress(Random rand, Long dimensionsToTest, CuboidAddress previousCuboid, CuboidAddress ca) throws Exception{
+		if(previousCuboid == null || rand.nextInt(10) < 4){
+			//  Returns a random cuboid address within 'ca'
+			CuboidAddress rtn = new CuboidAddress(getRandomCoordinate(rand, ca), getRandomCoordinate(rand, ca));
+			System.out.println("Created a new random cuboid " + rtn);
+			return rtn;
+		}else{
+			//  Translate the previous cuboid around by a consistent amount for each dimension
+			//  so that it will remain the same shape/size.
+			//  This will be the most common use case.
+			Long [] translation = new Long [dimensionsToTest.intValue()];
+			for(int i = 0 ; i < dimensionsToTest.intValue(); i++){
+				translation[i] = getRandBetweenRange(rand, -10L, 10L);
+			}
+
+			Coordinate lower = previousCuboid.getCanonicalLowerCoordinate();
+			Coordinate upper = previousCuboid.getCanonicalUpperCoordinate();
+
+			for(long i = 0 ; i < dimensionsToTest; i++){
+				lower = lower.changeValueAtIndex(i, lower.getValueAtIndex(i) + translation[(int)i]);
+				upper = upper.changeValueAtIndex(i, upper.getValueAtIndex(i) + translation[(int)i]);
+			}
+			CuboidAddress rtn = new CuboidAddress(lower, upper);
+			System.out.println("Created a test cuboid by translating " + previousCuboid + " by " + String.valueOf(translation) + " to " + rtn);
+			return rtn;
+		}
 	}
 
 	//  mvn -pl res-modules/block-mining-simulation-game-unit-tests -Dtest=BlockManagerUnitTest#threeDimensionalCircularBufferTest test
@@ -113,7 +136,7 @@ public class BlockManagerUnitTest {
 		Random overallRand = new Random(1234);
 		for(int iterations = 0; iterations < 1000; iterations++){
 			Random rand = new Random(overallRand.nextInt());
-			Long dimensionsToTest = 2L;
+			Long dimensionsToTest = 3L;
 			int numRegionsToTest = 30;
 			int numPointsPerRegionToTest = 20;
 			List<Long> testRegionLower = new ArrayList<Long>();
@@ -132,7 +155,7 @@ public class BlockManagerUnitTest {
 
 			CuboidAddress previousCuboid = null;
 			for(int i = 0; i < numRegionsToTest; i++){
-				CuboidAddress newCuboidAddress = getRandomCuboidAddress(rand, testRegion);
+				CuboidAddress newCuboidAddress = getRandomCuboidAddress(rand, dimensionsToTest, previousCuboid, testRegion);
 				CuboidAddress intersectionAddress = previousCuboid == null ? null : newCuboidAddress.getIntersectionCuboidAddress(previousCuboid);
 				System.out.println("Updating region from " + String.valueOf(previousCuboid) + " to " + String.valueOf(newCuboidAddress) + ". Intersection was " + String.valueOf(intersectionAddress) + ".");
 				previousCuboid = newCuboidAddress;
@@ -199,6 +222,7 @@ public class BlockManagerUnitTest {
 					}
 
 					//  Cycle through all values that are suppoused to be in the buffer region to make sure they have the values that they're supposed to:
+					int numPointsChecked = 0;
 					System.out.println("BEGIN checking all points within current buffer region " + newCuboidAddress);
 					RegionIteration regionIteration = new RegionIteration(newCuboidAddress.getCanonicalLowerCoordinate(), newCuboidAddress);
 					do{
@@ -216,8 +240,9 @@ public class BlockManagerUnitTest {
 								throw new Exception("Expected default value " + expectedValue + " but saw value " + actualValue + " for coordinate " + currentCoordinate);
 							}
 						}
+						numPointsChecked++;
 					}while (regionIteration.incrementCoordinateWithinCuboidAddress());
-					System.out.println("END checking all points within current buffer region " + newCuboidAddress);
+					System.out.println("END checking all " + numPointsChecked + " points within current buffer region " + newCuboidAddress);
 
 
 				}
