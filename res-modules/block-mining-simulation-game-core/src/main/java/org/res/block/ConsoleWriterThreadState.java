@@ -765,8 +765,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			}
 		}
 	}
-
-	public WorkItemResult prepareTerminalTextChange(List<ScreenLayerPrintParameters> params, FrameDimensions frameDimensions, FrameChangeWorkItemParams frameChangeParams) throws Exception{
+	public WorkItemResult getConsoleUpdateRejection(FrameChangeWorkItemParams frameChangeParams) throws Exception {
 		if(!activeFrameStates.containsKey(frameChangeParams.getFrameId())){
 			logger.info("Discarding frame text change for frame id=: " + frameChangeParams.getFrameId() + " because frame id does not exist (it's probably closed).");
 			return new EmptyWorkItemResult();
@@ -781,6 +780,16 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			logger.info("Discarding outdated text change: frameChangeParams.getTerminalDimensionsChangeId()=" + frameChangeParams.getTerminalDimensionsChangeId() + ", ConsoleWriterThreadState.terminalDimensionsChangeSeq.get()=" + ConsoleWriterThreadState.terminalDimensionsChangeSeq.get());
 			return makeFrameChangeWorkItemParams(frame);
 		}
+		return null;
+	}
+
+	public WorkItemResult prepareTerminalTextChange(List<ScreenLayerPrintParameters> params, FrameDimensions frameDimensions, FrameChangeWorkItemParams frameChangeParams) throws Exception{
+		WorkItemResult rejection = this.getConsoleUpdateRejection(frameChangeParams);
+		if(rejection != null){
+			return rejection;
+		}
+
+		UserInterfaceFrameThreadState frame = this.getFrameStateById(frameChangeParams.getFrameId());
 		for(ScreenLayerPrintParameters param : params){
 			ScreenLayer changes = param.getScreenLayer();
 			ScreenMask mask = param.getScreenMask();
@@ -904,7 +913,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 
 		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
-			this.mergedRegionsToUpdate.addAll(this.regionsToUpdate.get(i));
+			//  If any layer has a change in a given region, re-calculate the merge down for all layers in that region:
+			for(Set<ScreenRegion> screenRegionSet : this.regionsToUpdate){
+				this.mergedRegionsToUpdate.addAll(screenRegionSet);
+			}
 			this.regionsToUpdate.get(i).clear();
 
 			if(this.screenLayerActiveStates[i]){
@@ -1122,7 +1134,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.workItemQueue.putWorkItem(workItem, priority);
 	}
 
-	public EmptyWorkItemResult onScreenLayerStateChange(int bufferIndex, boolean activeState) throws Exception{
+	public WorkItemResult onScreenLayerStateChange(int bufferIndex, boolean activeState, FrameChangeWorkItemParams frameChangeParams) throws Exception{
 		if(!(this.screenLayerActiveStates[bufferIndex] == activeState)){
 			this.screenLayerActiveStates[bufferIndex] = activeState;
 			//  Signal a refresh for all layers
@@ -1142,7 +1154,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		return new EmptyWorkItemResult();
 	}
 
-	public EmptyWorkItemResult setScreenAreaChangeStates(int startX, int startY, int endX, int endY, int bufferIndex, boolean state){
+	public EmptyWorkItemResult setScreenAreaChangeStates(int startX, int startY, int endX, int endY, int bufferIndex, boolean state) throws Exception{
 		//  Invalidate a sub-area of screen so that the characters are that location will 
 		//  be printed on the next print attempt.
 		int width = endX - startX;
@@ -1150,7 +1162,15 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		
 		for(int i = 0; i < width; i++){
 			for(int j = 0; j < height; j++){
-				this.screenMasks[bufferIndex].flags[i + startX][j + startY] = state;
+				if(bufferIndex >= this.screenMasks.length){
+					throw new Exception("bufferIndex >= this.screenMasks[bufferIndex].length");
+				}else if(i + startX >= this.screenMasks[bufferIndex].flags.length){
+					throw new Exception("i + startX >= this.screenMasks[bufferIndex].flags[i + startX].length");
+				}else if(j + startY >= this.screenMasks[bufferIndex].flags[i + startX].length){
+					throw new Exception("j + startY >= this.screenMasks[bufferIndex].flags[i + startX][j + startY].length");
+				}else{
+					this.screenMasks[bufferIndex].flags[i + startX][j + startY] = state;
+				}
 			}
 		}
 		this.regionsToUpdate.get(bufferIndex).add(
@@ -1182,7 +1202,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				System.out.flush();
 				//  We just by-passed the screen printing buffer, so invalidate the area of the
 				//  screen where the test character was and re-print whatever was there:
-				this.setScreenAreaChangeStates(0, 0, 16, 4, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true);
+				int refreshAreaX = Math.min(16, this.screenMasks[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT].width);
+				int refreshAreaY = Math.min(4, this.screenMasks[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT].height);
+				this.setScreenAreaChangeStates(0, 0, refreshAreaX, refreshAreaY, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true);
 				this.printTerminalTextChanges(false);
 				logger.info("Finished printing test text '" + text + "' and issued cursor re-positioning request to calculate width. Waiting for result on stdin...");
 			}

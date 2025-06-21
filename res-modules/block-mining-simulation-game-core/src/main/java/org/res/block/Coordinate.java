@@ -78,6 +78,12 @@ public class Coordinate extends Vector{
 		return c;
 	}
 
+	public Coordinate changeByDeltaY(Long deltaY) throws Exception {
+		Coordinate c = this;
+		c = c.changeY(c.getY() + deltaY);
+		return c;
+	}
+
 	public Coordinate changeByDeltaXY(Long deltaX, Long deltaY) throws Exception {
 		Coordinate c = this;
 		c = c.changeX(c.getX() + deltaX);

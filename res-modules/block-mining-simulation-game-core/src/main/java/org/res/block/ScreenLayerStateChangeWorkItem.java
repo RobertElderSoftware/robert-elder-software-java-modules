@@ -45,11 +45,13 @@ public class ScreenLayerStateChangeWorkItem extends ConsoleQueueableWorkItem {
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private int bufferIndex;
 	private boolean activeState;
+	private FrameChangeWorkItemParams frameChangeParams;
 
-	public ScreenLayerStateChangeWorkItem(ConsoleWriterThreadState consoleWriterThreadState, int bufferIndex, boolean activeState){
+	public ScreenLayerStateChangeWorkItem(ConsoleWriterThreadState consoleWriterThreadState, int bufferIndex, boolean activeState, FrameChangeWorkItemParams frameChangeParams){
 		super(consoleWriterThreadState, true);
 		this.bufferIndex = bufferIndex;
 		this.activeState = activeState;
+		this.frameChangeParams = frameChangeParams;
 	}
 
 	public boolean getActiveState(){
@@ -57,7 +59,7 @@ public class ScreenLayerStateChangeWorkItem extends ConsoleQueueableWorkItem {
 	}
 
 	public WorkItemResult executeQueuedWork() throws Exception{
-		return this.consoleWriterThreadState.onScreenLayerStateChange(bufferIndex, activeState);
+		return this.consoleWriterThreadState.onScreenLayerStateChange(bufferIndex, activeState, frameChangeParams);
 	}
 
 	public void doWork() throws Exception{

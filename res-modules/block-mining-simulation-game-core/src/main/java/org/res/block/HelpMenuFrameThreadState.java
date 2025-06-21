@@ -450,7 +450,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		}
 
 		if(this.helpMenu.getRequiresRedraw()){
-			cwts.putBlockingWorkItem(new ScreenLayerStateChangeWorkItem(cwts, ConsoleWriterThreadState.BUFFER_INDEX_MENU, this.helpMenu.getActiveState()), WorkItemPriority.PRIORITY_LOW);
+			this.sendScreenLayerStateChange(ConsoleWriterThreadState.BUFFER_INDEX_MENU, this.helpMenu.getActiveState());
 			this.helpMenu.setRequiresRedraw(false);
 		}
 		this.onFinalizeFrame();

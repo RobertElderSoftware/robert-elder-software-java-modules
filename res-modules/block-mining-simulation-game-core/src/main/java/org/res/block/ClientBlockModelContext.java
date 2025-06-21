@@ -190,6 +190,8 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		do{
 			coordinatesToCheck.add(regionIteration.getCurrentCoordinate());
 		}while (regionIteration.incrementCoordinateWithinCuboidAddress());
+		//  Last, try block below:
+		coordinatesToCheck.add(centerPosition.changeByDeltaY(-1L));
 
 		Long numBlocksMined = 0L;
 

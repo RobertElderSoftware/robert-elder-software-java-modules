@@ -180,30 +180,32 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	public void onRenderFrame(boolean requiresRefresh) throws Exception{
 		if(requiresRefresh){
 			this.clearFrame();
+			FrameDimensions currentFrameDimensions = this.getFrameDimensions() == null ? null : new FrameDimensions(this.getFrameDimensions());
+			Long totalXBorderSize = this.getTotalXBorderSize();
+			Long totalYBorderSize = this.getTotalYBorderSize();
+			Long printableInnerWidth = this.getFrameWidth() - totalXBorderSize;
+			this.mapAreaWidthInCells = printableInnerWidth / this.getMapAreaCellWidth();
+			this.mapAreaHeightInCells = this.getFrameHeight() - totalYBorderSize;
+			//  Don't allow the map area to negative when the window is resized very small:
+			this.mapAreaWidthInCells = mapAreaWidthInCells < 1L ? 1L : mapAreaWidthInCells;
+			this.mapAreaHeightInCells = mapAreaHeightInCells < 1L ? 1L : mapAreaHeightInCells;
+			this.mapAreaPaddingColumnsRight = printableInnerWidth - (this.mapAreaWidthInCells * this.getMapAreaCellWidth());
+			logger.info("onRenderFrame calculated: mapAreaWidthInCells=" + mapAreaWidthInCells + ", mapAreaHeightInCells=" + mapAreaHeightInCells);
+			Long topRightHandX = mapAreaWidthInCells / 2L;
+			Long topRightHandZ = mapAreaHeightInCells / 2L;
+			Long bottomLeftHandX = topRightHandX - (mapAreaWidthInCells - 1L);
+			Long bottomLeftHandZ = topRightHandZ - (mapAreaHeightInCells - 1L);
+			logger.info("onRenderFrame calculated: topRightHandX=" + topRightHandX + ", topRightHandZ=" + topRightHandZ + ", bottomLeftHandX=" + bottomLeftHandX + ", bottomLeftHandZ=" + bottomLeftHandZ);
+
+			Coordinate bottomleftHandCorner = new Coordinate(Arrays.asList(bottomLeftHandX + playerPosition.getX(), playerPosition.getY() -1L, bottomLeftHandZ + playerPosition.getZ(), 0L));
+			Coordinate topRightHandCorner = new Coordinate(Arrays.asList(topRightHandX + playerPosition.getX(), playerPosition.getY(), topRightHandZ + playerPosition.getZ(), 0L));
+
+			CuboidAddress newMapArea = new CuboidAddress(bottomleftHandCorner, topRightHandCorner);
+
+			this.onMapAreaChange(newMapArea);
+			this.printMapAreaUpdates(newMapArea);
 		}
-		FrameDimensions currentFrameDimensions = this.getFrameDimensions() == null ? null : new FrameDimensions(this.getFrameDimensions());
-		Long totalXBorderSize = this.getTotalXBorderSize();
-		Long totalYBorderSize = this.getTotalYBorderSize();
-		Long printableInnerWidth = this.getFrameWidth() - totalXBorderSize;
-		this.mapAreaWidthInCells = printableInnerWidth / this.getMapAreaCellWidth();
-		this.mapAreaHeightInCells = this.getFrameHeight() - totalYBorderSize;
-		//  Don't allow the map area to negative when the window is resized very small:
-		this.mapAreaWidthInCells = mapAreaWidthInCells < 1L ? 1L : mapAreaWidthInCells;
-		this.mapAreaHeightInCells = mapAreaHeightInCells < 1L ? 1L : mapAreaHeightInCells;
-		this.mapAreaPaddingColumnsRight = printableInnerWidth - (this.mapAreaWidthInCells * this.getMapAreaCellWidth());
-		logger.info("onRenderFrame calculated: mapAreaWidthInCells=" + mapAreaWidthInCells + ", mapAreaHeightInCells=" + mapAreaHeightInCells);
-		Long topRightHandX = mapAreaWidthInCells / 2L;
-		Long topRightHandZ = mapAreaHeightInCells / 2L;
-		Long bottomLeftHandX = topRightHandX - (mapAreaWidthInCells - 1L);
-		Long bottomLeftHandZ = topRightHandZ - (mapAreaHeightInCells - 1L);
-		logger.info("onRenderFrame calculated: topRightHandX=" + topRightHandX + ", topRightHandZ=" + topRightHandZ + ", bottomLeftHandX=" + bottomLeftHandX + ", bottomLeftHandZ=" + bottomLeftHandZ);
 
-		Coordinate bottomleftHandCorner = new Coordinate(Arrays.asList(bottomLeftHandX + playerPosition.getX(), playerPosition.getY(), bottomLeftHandZ + playerPosition.getZ(), 0L));
-		Coordinate topRightHandCorner = new Coordinate(Arrays.asList(topRightHandX + playerPosition.getX(), playerPosition.getY(), topRightHandZ + playerPosition.getZ(), 0L));
-
-		CuboidAddress newMapArea = new CuboidAddress(bottomleftHandCorner, topRightHandCorner);
-
-		this.onMapAreaChange(newMapArea);
 		this.render();
 	}
 
@@ -254,6 +256,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 				mapAreaAfter = new CuboidAddress(newLower, newUpper);
 			}
 			this.onMapAreaChange(mapAreaAfter);
+			this.printMapAreaUpdates(mapAreaAfter);
 		}
 	}
 
@@ -278,10 +281,10 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		this.playerPosition = newPosition;
 
 		if(lastGameInterfacePosition != null){
-			this.updateMapAreaFlags(new CuboidAddress(lastGameInterfacePosition, lastGameInterfacePosition));
+			this.updateMapAreaBlocks(new CuboidAddress(lastGameInterfacePosition, lastGameInterfacePosition));
 		}
 		if(newPosition != null){
-			this.updateMapAreaFlags(new CuboidAddress(newPosition, newPosition));
+			this.updateMapAreaBlocks(new CuboidAddress(newPosition, newPosition));
 		}
 
 		this.reprintFrame();
@@ -294,48 +297,34 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		this.mapAreaCuboidAddress = newMapArea;
 
 		this.mapAreaBlocks.updateBufferRegion(newMapArea);
-		this.updateMapAreaFlags(newMapArea);
-		this.printMapAreaUpdates(newMapArea);
-
-		this.onFinalizeFrame();
+		this.updateMapAreaBlocks(newMapArea);
 	}
 
-	public void recalculateMapAreaCellsAtCoordinate(Coordinate currentMapAreaCoordinate) throws Exception {
-		IndividualBlock b = clientBlockModelContext.readBlockAtCoordinate(currentMapAreaCoordinate);
-		Long xCellOffset = currentMapAreaCoordinate.getX() - this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getX();
-		Long yCellOffset = (this.mapAreaCuboidAddress.getWidthForIndex(2L) - 1L) - (currentMapAreaCoordinate.getZ() - this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getZ());
-		if(xCellOffset < this.mapAreaWidthInCells && yCellOffset < this.mapAreaHeightInCells){
-
-			if(b != null){ /* Chunk not even loaded. */
-				this.mapAreaBlocks.setObjectAtCoordinate(currentMapAreaCoordinate, b);
-			}
-		}else{
-			logger.info("Saw xCellOffset=" + xCellOffset + " < this.mapAreaWidthInCells=" + this.mapAreaWidthInCells + " || yCellOffset=" + yCellOffset + " < this.mapAreaHeightInCells=" + this.mapAreaHeightInCells + ".  TODO: Fix this error case with a more robust design.");
-		}
-	}
-
-	public void updateMapAreaFlags(CuboidAddress areaToUpdate) throws Exception {
+	public void updateMapAreaBlocks(CuboidAddress areaToUpdate) throws Exception {
 		if(this.mapAreaCuboidAddress != null){
-			logger.info("Doing updateMapAreaFlags for area " + areaToUpdate + " with mapArea cuboid as " + this.mapAreaCuboidAddress + ".");
+			logger.info("Doing updateMapAreaBlocks for area " + areaToUpdate + " with mapArea cuboid as " + this.mapAreaCuboidAddress + ".");
 		
 			RegionIteration regionIteration = new RegionIteration(areaToUpdate.getCanonicalLowerCoordinate(), areaToUpdate);
 			do{
 				Coordinate currentMapAreaCoordinate = regionIteration.getCurrentCoordinate();
 				if(this.mapAreaCuboidAddress.containsCoordinate(currentMapAreaCoordinate)){
-					this.recalculateMapAreaCellsAtCoordinate(currentMapAreaCoordinate);
+					IndividualBlock b = clientBlockModelContext.readBlockAtCoordinate(currentMapAreaCoordinate);
+					if(b != null){ /* Chunk not even loaded. */
+						this.mapAreaBlocks.setObjectAtCoordinate(currentMapAreaCoordinate, b);
+					}
 				}
 			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
 
 			this.printMapAreaUpdates(areaToUpdate);
 			return;
 		}else{
-			logger.info("missing updateMapAreaFlags because this.mapAreaCuboidAddress was null.");
+			logger.info("missing updateMapAreaBlocks because this.mapAreaCuboidAddress was null.");
 			return;
 		}
 	}
 
 	public void onUpdateMapAreaFlagsNotify(CuboidAddress areaToUpdate) throws Exception {
-		this.updateMapAreaFlags(areaToUpdate);
+		this.updateMapAreaBlocks(areaToUpdate);
 		this.onFinalizeFrame();
 	}
 
@@ -362,10 +351,19 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			String [][] updatedCellContents = new String [areaToUpdateWidth.intValue()][areaToUpdateHeight.intValue()];
 			int [][][] updatedBackgroundColours = new int [areaToUpdateWidth.intValue()][areaToUpdateHeight.intValue()][2];
 
-			RegionIteration regionIteration = new RegionIteration(areaToUpdate.getCanonicalLowerCoordinate(), areaToUpdate);
+			//  Expand the 'areaToUpate' to include one y value above to update background colours for the loaded chunks in the layer below
+			Coordinate lowerAreaToUpdate = areaToUpdate.getCanonicalLowerCoordinate();
+			Coordinate upperAreaToUpdate = areaToUpdate.getCanonicalUpperCoordinate().changeByDeltaXYZ(0L, 1L, 0L);
+			CuboidAddress expandedAreaToUpdate = new CuboidAddress(lowerAreaToUpdate, upperAreaToUpdate);
+			//  The visible layer to iterate over is only the top of the 2 y layers:
+			Coordinate lowerVisibleLayer = this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().changeByDeltaXYZ(0L, 1L, 0L);
+			Coordinate upperVisibleLayer = this.mapAreaCuboidAddress.getCanonicalUpperCoordinate();
+			CuboidAddress visibleArea = new CuboidAddress(lowerVisibleLayer, upperVisibleLayer);
+			RegionIteration regionIteration = new RegionIteration(expandedAreaToUpdate.getCanonicalLowerCoordinate(), expandedAreaToUpdate);
 			do{
 				Coordinate currentMapAreaCoordinate = regionIteration.getCurrentCoordinate();
-				if(this.mapAreaCuboidAddress.containsCoordinate(currentMapAreaCoordinate)){
+				Coordinate underBlockCoordinate = currentMapAreaCoordinate.changeByDeltaXYZ(0L, -1L, 0L);
+				if(visibleArea.containsCoordinate(currentMapAreaCoordinate)){
 
 					/*  Does player position need to be re-rendered? */
 					if(this.stalePlayerPositions.contains(currentMapAreaCoordinate)){
@@ -385,13 +383,30 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 					Long yCellOffset = (this.mapAreaCuboidAddress.getWidthForIndex(2L) -1L) - (currentMapAreaCoordinate.getZ() - this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getZ());
 
 					IndividualBlock currentMapAreaCell = this.mapAreaBlocks.getObjectAtCoordinate(currentMapAreaCoordinate);
+					IndividualBlock underBlock = this.mapAreaBlocks.getObjectAtCoordinate(underBlockCoordinate);
+
 					//logger.info("printMapAreaUpdates() for " + currentMapAreaCoordinate + " xCellOffset=" + xCellOffset + " yCellOffset=" + yCellOffset);
 
-					boolean overSolidBlock = false;
+					boolean overSolidBlock = !(
+						underBlock instanceof EmptyBlock ||
+						underBlock instanceof UninitializedBlock ||
+						underBlock instanceof PendingLoadBlock
+					);
+					boolean overExcitingBlock = overSolidBlock && !(
+						underBlock instanceof Rock
+					);
 					int defaultBackgroundColour = overSolidBlock ? GRAY_BG_COLOR : MAP_CELL_BG_COLOR2;
+					defaultBackgroundColour = overExcitingBlock ? RED_BG_COLOR : defaultBackgroundColour;
 					int backgroundColour = isPlayerPosition ? PLAYER_BG_COLOR : defaultBackgroundColour;
 
 					String stringToWrite = BlockSkins.getPresentation(currentMapAreaCell.getClass(), useASCII);
+					if(
+						//  If the block underneath is loading, don't display the block on top of it, display the in progress block underneath:
+						underBlock instanceof UninitializedBlock ||
+						underBlock instanceof PendingLoadBlock
+					){
+						stringToWrite = BlockSkins.getPresentation(underBlock.getClass(), useASCII);
+					}
 
 					Long xCellOffsetInUpdateArea = currentMapAreaCoordinate.getX() - areaToUpdate.getCanonicalLowerCoordinate().getX();
 					Long yCellOffsetInUpdateArea = (areaToUpdateHeight -1L) -(currentMapAreaCoordinate.getZ() - areaToUpdate.getCanonicalLowerCoordinate().getZ());

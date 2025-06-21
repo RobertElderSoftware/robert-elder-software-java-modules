@@ -348,13 +348,17 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		this.writeToLocalFrameBuffer(changes, mask, region, fd, bufferIndex);
 	}
 
+	public void sendScreenLayerStateChange(int bufferIndex, boolean newState) throws Exception{
+		WorkItemResult workItemResult = this.clientBlockModelContext.getConsoleWriterThreadState().putBlockingWorkItem(new ScreenLayerStateChangeWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), bufferIndex, newState, this.currentFrameChangeWorkItemParams), WorkItemPriority.PRIORITY_LOW);
+	}
+
 	public void sendConsolePrintMessage(List<ScreenLayerPrintParameters> params, FrameDimensions fd) throws Exception{
 		WorkItemResult workItemResult = this.clientBlockModelContext.getConsoleWriterThreadState().putBlockingWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), params, fd, this.currentFrameChangeWorkItemParams), WorkItemPriority.PRIORITY_LOW);
 
 		if(workItemResult instanceof FrameChangeWorkItemParams){
 			//  This scenario happens when the write was discarded and 
 			//  these new params should catch us up with the newest frame/terminal dimensions
-			this.onNewFrameChangeWorkItemParams((FrameChangeWorkItemParams)workItemResult, true);
+			this.onNewFrameChangeWorkItemParams((FrameChangeWorkItemParams)workItemResult);
 		}else{ //  Successfully printed
 			for(int i = 0; i < this.usedScreenLayers.length; i++){
 				int l = usedScreenLayers[i];
@@ -657,8 +661,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			logger.info("Discarding frame change message that's out of date: params.getFrameChangeDimensionsId()=" + params.getFrameDimensionsChangeId() + " this.currentFrameChangeWorkItemParams.getFrameDimensionsChangeId()=" + this.currentFrameChangeWorkItemParams.getFrameDimensionsChangeId() + " || , " + params.getTerminalDimensionsChangeId() + " this.currentFrameChangeWorkItemParams.getTerminalDimensionsChangeId()=" + this.currentFrameChangeWorkItemParams.getTerminalDimensionsChangeId());
 		}else{
 			logger.info("Not discarding onFrame change, pass to child frame:");
-			boolean requiresRefresh = this.onNewFrameChangeWorkItemParams(params, this.hasFrameDimensionsChanged(params));
-			this.onRenderFrame(requiresRefresh);
+			this.onNewFrameChangeWorkItemParams(params);
+			this.onRenderFrame(true);
 			this.onFinalizeFrame();
 		}
 	}
@@ -731,29 +735,26 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 	}
 
-	public boolean onNewFrameChangeWorkItemParams(FrameChangeWorkItemParams params, boolean requiresRefresh) throws Exception{
+	public void onNewFrameChangeWorkItemParams(FrameChangeWorkItemParams params) throws Exception{
 		this.currentFrameChangeWorkItemParams = params;
-		if(requiresRefresh){
-			// Refresh screen
-			int width = this.getFrameDimensions().getFrameWidth().intValue();
-			int height = this.getFrameDimensions().getFrameHeight().intValue();
-			//  After every resize event, clear the frame buffer and start with a blank background:
-			for(int i = 0; i < this.usedScreenLayers.length; i++){
-				int l = usedScreenLayers[i];
-				int chrWidth = 0;
-				String s = null;
-				int [] colours = new int[] {};
+		// Refresh screen
+		int width = this.getFrameDimensions().getFrameWidth().intValue();
+		int height = this.getFrameDimensions().getFrameHeight().intValue();
+		//  After every resize event, clear the frame buffer and start with a blank background:
+		for(int i = 0; i < this.usedScreenLayers.length; i++){
+			int l = usedScreenLayers[i];
+			int chrWidth = 0;
+			String s = null;
+			int [] colours = new int[] {};
 
-				this.bufferedScreenLayers[l] = new ScreenLayer(width, height);
-				this.bufferedScreenLayers[l].initialize(chrWidth, s, colours);
-				this.previousBufferedScreenLayers[l] = new ScreenLayer(width, height);
-				this.previousBufferedScreenLayers[l].initialize(0, null, new int [] {});
-				this.bufferedScreenMasks[l].initialize(width, height, true);
-				this.changedScreenRegions.get(l).clear();
-				this.changedScreenRegions.get(l).add(new ScreenRegion(0, 0, width, height));
-			}
+			this.bufferedScreenLayers[l] = new ScreenLayer(width, height);
+			this.bufferedScreenLayers[l].initialize(chrWidth, s, colours);
+			this.previousBufferedScreenLayers[l] = new ScreenLayer(width, height);
+			this.previousBufferedScreenLayers[l].initialize(0, null, new int [] {});
+			this.bufferedScreenMasks[l].initialize(width, height, true);
+			this.changedScreenRegions.get(l).clear();
+			this.changedScreenRegions.get(l).add(new ScreenRegion(0, 0, width, height));
 		}
-		return requiresRefresh;
 	}
 
 	public List<ScreenLayerPrintParameters> makeScreenPrintParameters(ScreenLayer l, ScreenMask m, Set<ScreenRegion> regions, int bufferIndex) throws Exception{
@@ -792,7 +793,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				params.addAll(makeScreenPrintParameters(this.bufferedScreenLayers[l], this.bufferedScreenMasks[l], this.changedScreenRegions.get(l), l));
 			}
 			this.sendConsolePrintMessage(params, this.getFrameDimensions());
-
 		}
 	}
 

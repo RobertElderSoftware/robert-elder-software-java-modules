@@ -15,7 +15,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <VERSION-org.springframework.boot>2.7.18</VERSION-org.springframework.boot>
-    <VERSION-org.springframework>5.3.27</VERSION-org.springframework>
+    <VERSION-org.springframework>5.3.39</VERSION-org.springframework>
   </properties>
 
   <packaging>pom</packaging>
