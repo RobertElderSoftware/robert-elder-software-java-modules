@@ -395,9 +395,11 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 					boolean overExcitingBlock = overSolidBlock && !(
 						underBlock instanceof Rock
 					);
-					int defaultBackgroundColour = overSolidBlock ? GRAY_BG_COLOR : MAP_CELL_BG_COLOR2;
-					defaultBackgroundColour = overExcitingBlock ? RED_BG_COLOR : defaultBackgroundColour;
-					int backgroundColour = isPlayerPosition ? PLAYER_BG_COLOR : defaultBackgroundColour;
+					int underBlockColour = useASCII ? MAGENTA_BG_COLOR : GRAY_BG_COLOR;
+					int emptyBlockBGColour = useASCII ? BLACK_BG_COLOR : MAP_CELL_BG_COLOR2;
+					int loadingBlockBGColour = useASCII ? BLACK_BG_COLOR : MAP_CELL_BG_COLOR2;
+					int blockBGColour = overSolidBlock ? underBlockColour : emptyBlockBGColour;
+					blockBGColour = overExcitingBlock ? RED_BG_COLOR : blockBGColour;
 
 					String stringToWrite = BlockSkins.getPresentation(currentMapAreaCell.getClass(), useASCII);
 					if(
@@ -406,13 +408,17 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 						underBlock instanceof PendingLoadBlock
 					){
 						stringToWrite = BlockSkins.getPresentation(underBlock.getClass(), useASCII);
+						blockBGColour = loadingBlockBGColour;
 					}
+
+					int backgroundColour = isPlayerPosition ? PLAYER_BG_COLOR : blockBGColour;
+					int textColour = useASCII ? YELLOW_FG_COLOR : DEFAULT_TEXT_FG_COLOR;
 
 					Long xCellOffsetInUpdateArea = currentMapAreaCoordinate.getX() - areaToUpdate.getCanonicalLowerCoordinate().getX();
 					Long yCellOffsetInUpdateArea = (areaToUpdateHeight -1L) -(currentMapAreaCoordinate.getZ() - areaToUpdate.getCanonicalLowerCoordinate().getZ());
 					updatedCellContents[xCellOffsetInUpdateArea.intValue()][yCellOffsetInUpdateArea.intValue()] = stringToWrite;
 					updatedBackgroundColours[xCellOffsetInUpdateArea.intValue()][yCellOffsetInUpdateArea.intValue()][0] = backgroundColour;
-					updatedBackgroundColours[xCellOffsetInUpdateArea.intValue()][yCellOffsetInUpdateArea.intValue()][1] = DEFAULT_TEXT_FG_COLOR;
+					updatedBackgroundColours[xCellOffsetInUpdateArea.intValue()][yCellOffsetInUpdateArea.intValue()][1] = textColour;
 				}
 			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
 

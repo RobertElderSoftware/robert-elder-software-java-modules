@@ -189,6 +189,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		}else{
 			logger.info("HelpMenuFrameThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
 		}
+		this.onFinalizeFrame();
 	}
 
 	public void onResizeFrame(Long deltaXColumns, Long deltaYColumns) throws Exception {
@@ -264,7 +265,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
 	}
 
-	public void onOpenHelpDetails(Class<?> frameStateClass) throws Exception {
+	public void onOpenFrame(Class<?> frameStateClass) throws Exception {
 		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
 		//  Open the required frame:
 		OpenFrameWorkItem openFrameWorkItem = new OpenFrameWorkItem(cwts, frameStateClass);
@@ -316,6 +317,8 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void onEnterKeyPressed() throws Exception {
+		//  Only explicitly call render from some menu options.  Others will trigger a frame change anyway.
+		//  Currently, there are bugs in handling missed redraw events when frame sizes are changing.
 		HelpMenuOption option = this.helpMenu.getDisplayedHelpMenuOptions().get(this.helpMenu.getCurrentMenuYIndex());
 		switch(option.getHelpMenuOptionType()){
 			case HelpMenuOptionType.CLOSE_CURRENT_FRAME:{
@@ -325,15 +328,19 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 				break;
 			} case HelpMenuOptionType.OPEN_NEW_FRAME:{
 				OpenFrameClassHelpMenuOption co = (OpenFrameClassHelpMenuOption)option;
-				this.onOpenHelpDetails(co.getFrameStateClass());
+				this.onOpenFrame(co.getFrameStateClass());
 				this.helpMenu.resetMenuState();
 				this.helpMenu.setActiveState(false);
 				break;
 			} case HelpMenuOptionType.DO_SUBMENU:{
 				this.helpMenu.descendIntoSubmenu();
+				this.render();
+				this.onFinalizeFrame();
 				break;
 			} case HelpMenuOptionType.BACK_UP_LEVEL:{
 				this.helpMenu.ascendFromSubmenu();
+				this.render();
+				this.onFinalizeFrame();
 				break;
 			} case HelpMenuOptionType.ROTATE_SPLIT:{
 				this.onRotateSplit((RotateSplitHelpMenuOption)option);
@@ -359,7 +366,6 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 				throw new Exception("Unknown help menu option: " + option.getHelpMenuOptionType().toString());
 			} 
 		}
-		this.render();
 	}
 
 	public void onKeyboardInput(byte [] characters) throws Exception {
@@ -378,6 +384,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 					}case ACTION_HELP_MENU_TOGGLE:{
 						this.helpMenu.setActiveState(false);
 						this.render();
+						this.onFinalizeFrame();
 						break;
 					}default:{
 						logger.info("Ignoring " + b);
@@ -449,11 +456,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			this.executeLinePrintingInstructionsAtYOffset(Arrays.asList(instruction.getLinePrintingInstruction()), lineYOffset, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
 		}
 
-		if(this.helpMenu.getRequiresRedraw()){
-			this.sendScreenLayerStateChange(ConsoleWriterThreadState.BUFFER_INDEX_MENU, this.helpMenu.getActiveState());
-			this.helpMenu.setRequiresRedraw(false);
-		}
-		this.onFinalizeFrame();
+		this.setScreenLayerState(ConsoleWriterThreadState.BUFFER_INDEX_MENU, this.helpMenu.getActiveState());
 	}
 
 	public void onRenderFrame(boolean requiresRefresh) throws Exception{

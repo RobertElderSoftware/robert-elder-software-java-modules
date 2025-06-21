@@ -47,12 +47,14 @@ public class ScreenLayerPrintParameters {
 	private ScreenMask screenMask;
 	private Set<ScreenRegion> regions;
 	private int bufferIndex;
+	private boolean isActive;
 
-	public ScreenLayerPrintParameters(ScreenLayer screenLayer, ScreenMask screenMask, Set<ScreenRegion> regions, int bufferIndex){
+	public ScreenLayerPrintParameters(ScreenLayer screenLayer, ScreenMask screenMask, Set<ScreenRegion> regions, int bufferIndex, boolean isActive){
 		this.screenLayer = screenLayer;
 		this.screenMask = screenMask;
 		this.regions = regions;
 	       	this.bufferIndex = bufferIndex;
+	       	this.isActive = isActive;
 	}
 
 	public ScreenLayer getScreenLayer(){
@@ -69,5 +71,9 @@ public class ScreenLayerPrintParameters {
 
 	public int getBufferIndex(){
 		return this.bufferIndex;
+	}
+
+	public boolean getIsActive(){
+		return this.isActive;
 	}
 }

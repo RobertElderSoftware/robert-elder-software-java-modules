@@ -834,6 +834,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 								this.screenLayers[bufferIndex].colourCodes[x][y] = changes.colourCodes[xF][yF];
 								this.screenLayers[bufferIndex].characters[x][y] = changes.characters[xF][yF];
 								this.screenMasks[bufferIndex].flags[x][y] = hasChanged;
+
+
 							}else{
 								throw new Exception("Error character '" + changes.characters[xF][yF] + "' because if was out of bounds at x=" + x + ", y=" + y);
 							}
@@ -849,11 +851,12 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 					)
 				);
 			}
+			this.onScreenLayerStateChange(bufferIndex, param.getIsActive());
 		}
 		return new EmptyWorkItemResult();
 	}
 
-	public static void mergeChangedNonNullCharactersDown(ScreenLayer topLayer, ScreenMask topMask, ScreenLayer outputLayer, ScreenMask outputMask, Set<ScreenRegion> regions) throws Exception{
+	public static void mergeNonNullCharactersDown(ScreenLayer topLayer, ScreenMask topMask, ScreenLayer outputLayer, ScreenMask outputMask, Set<ScreenRegion> regions) throws Exception{
 		for(ScreenRegion region : regions){
 			int startX = region.getStartX();
 			int startY = region.getStartY();
@@ -885,11 +888,15 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			int endY = region.getEndY();
 			for(int i = startX; i < endX; i++){
 				for(int j = startY; j < endY; j++){
-					if(topMask.flags[i][j]){
+					if(!(
+						(Objects.equals(outputLayer.characters[i][j], topLayer.characters[i][j])) &&
+						(Objects.equals(outputLayer.characterWidths[i][j], topLayer.characterWidths[i][j])) &&
+						(Arrays.equals(outputLayer.colourCodes[i][j], topLayer.colourCodes[i][j]))
+					)){
 						outputLayer.characterWidths[i][j] = topLayer.characterWidths[i][j];
 						outputLayer.colourCodes[i][j] = topLayer.colourCodes[i][j];
 						outputLayer.characters[i][j] = topLayer.characters[i][j];
-						outputMask.flags[i][j] = topMask.flags[i][j];
+						outputMask.flags[i][j] = true;
 					}
 				}
 			}
@@ -911,16 +918,14 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				tmpMergedLayers.initializeInRegion(0, null, new int [] {}, null, region);
 			}
 		}
+		//  If any layer has a change in a given region, re-calculate the merge down for all layers in that region:
+		for(Set<ScreenRegion> screenRegionSet : this.regionsToUpdate){
+			this.mergedRegionsToUpdate.addAll(screenRegionSet);
+		}
 
 		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
-			//  If any layer has a change in a given region, re-calculate the merge down for all layers in that region:
-			for(Set<ScreenRegion> screenRegionSet : this.regionsToUpdate){
-				this.mergedRegionsToUpdate.addAll(screenRegionSet);
-			}
-			this.regionsToUpdate.get(i).clear();
-
 			if(this.screenLayerActiveStates[i]){
-				ConsoleWriterThreadState.mergeChangedNonNullCharactersDown(
+				ConsoleWriterThreadState.mergeNonNullCharactersDown(
 					this.screenLayers[i],
 					this.screenMasks[i],
 					tmpMergedLayers,
@@ -931,6 +936,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 			//  After layer is merged, remove change signals for layer:
 			this.screenMasks[i].initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue(), false);
+		}
+		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
+			this.regionsToUpdate.get(i).clear();
 		}
 
 		ConsoleWriterThreadState.mergeChangedCharactersDown(
@@ -946,7 +954,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.mergeActiveLayers();
 		boolean useRightToLeftPrint = this.blockManagerThreadCollection.getRightToLeftPrint();
 		int loopUpdate = useRightToLeftPrint ? -1 : 1;
-		boolean resetState = useRightToLeftPrint ? true : false;
+		boolean resetState = useRightToLeftPrint ? true : true; // TODO:  Optimize this in the future.
 		for(ScreenRegion region : this.mergedRegionsToUpdate){
 			int startX = region.getStartX();
 			int startY = region.getStartY();
@@ -1134,24 +1142,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.workItemQueue.putWorkItem(workItem, priority);
 	}
 
-	public WorkItemResult onScreenLayerStateChange(int bufferIndex, boolean activeState, FrameChangeWorkItemParams frameChangeParams) throws Exception{
-		if(!(this.screenLayerActiveStates[bufferIndex] == activeState)){
-			this.screenLayerActiveStates[bufferIndex] = activeState;
-			//  Signal a refresh for all layers
-			for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
-				this.screenMasks[i].initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue(), true);
-				this.regionsToUpdate.get(i).add(
-					new ScreenRegion(
-						0,
-						0,
-						this.terminalWidth.intValue(),
-						this.terminalHeight.intValue()
-					)
-				);
-			}
-			this.mergeActiveLayers();
-		}
-		return new EmptyWorkItemResult();
+	public void onScreenLayerStateChange(int bufferIndex, boolean activeState) throws Exception{
+		this.screenLayerActiveStates[bufferIndex] = activeState;
+
 	}
 
 	public EmptyWorkItemResult setScreenAreaChangeStates(int startX, int startY, int endX, int endY, int bufferIndex, boolean state) throws Exception{
@@ -1162,15 +1155,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		
 		for(int i = 0; i < width; i++){
 			for(int j = 0; j < height; j++){
-				if(bufferIndex >= this.screenMasks.length){
-					throw new Exception("bufferIndex >= this.screenMasks[bufferIndex].length");
-				}else if(i + startX >= this.screenMasks[bufferIndex].flags.length){
-					throw new Exception("i + startX >= this.screenMasks[bufferIndex].flags[i + startX].length");
-				}else if(j + startY >= this.screenMasks[bufferIndex].flags[i + startX].length){
-					throw new Exception("j + startY >= this.screenMasks[bufferIndex].flags[i + startX][j + startY].length");
-				}else{
-					this.screenMasks[bufferIndex].flags[i + startX][j + startY] = state;
-				}
+				this.screenMasks[bufferIndex].flags[i + startX][j + startY] = state;
 			}
 		}
 		this.regionsToUpdate.get(bufferIndex).add(

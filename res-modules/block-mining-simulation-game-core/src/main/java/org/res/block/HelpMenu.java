@@ -62,14 +62,12 @@ public class HelpMenu {
 	private List<HelpMenuLevel> helpMenuLevelStack = new ArrayList<HelpMenuLevel>();
 	private List<Integer> helpMenuLevelIndexStack = new ArrayList<Integer>();
 	private boolean activeState;
-	private boolean requireRedraw = false;
 
 	public HelpMenu(boolean activeState, HelpMenuLevel helpMenuLevel) throws Exception {
 		this.activeState= activeState;
 		this.helpMenuLevel = helpMenuLevel;
 		this.helpMenuLevelStack.add(helpMenuLevel);
 		this.helpMenuLevelIndexStack.add(0);
-		this.requireRedraw = true;
 	}
 
 	public boolean getActiveState(){
@@ -78,7 +76,6 @@ public class HelpMenu {
 
 	public void setActiveState(boolean activeState){
 		if(this.activeState != activeState){
-			this.requireRedraw = true;
 			this.activeState = activeState;
 		}
 	}
@@ -88,13 +85,11 @@ public class HelpMenu {
 		HelpMenuLevel subLevel = options.get(getCurrentMenuYIndex()).getHelpMenuLevel();
 		this.helpMenuLevelStack.add(subLevel);
 		this.helpMenuLevelIndexStack.add(0);
-		this.requireRedraw = true;
 	}
 
 	public void ascendFromSubmenu() throws Exception{
 		this.helpMenuLevelStack.remove(this.helpMenuLevelStack.size()-1);
 		this.helpMenuLevelIndexStack.remove(this.helpMenuLevelIndexStack.size()-1);
-		this.requireRedraw = true;
 	}
 
 	public int getCurrentMenuYIndex(){
@@ -106,7 +101,6 @@ public class HelpMenu {
 		this.helpMenuLevelIndexStack.clear();
 		this.helpMenuLevelStack.add(helpMenuLevel);
 		this.helpMenuLevelIndexStack.add(0);
-		this.requireRedraw = true;
 	}
 
 	public List<HelpMenuOption> getDisplayedHelpMenuOptions(){
@@ -122,13 +116,5 @@ public class HelpMenu {
 	public void moveSelectionUp(){
 		int newMenuYIndex = (getCurrentMenuYIndex() <= 0) ? 0 : getCurrentMenuYIndex() - 1;
 		this.helpMenuLevelIndexStack.set(this.helpMenuLevelIndexStack.size()-1, newMenuYIndex);
-	}
-
-	public boolean getRequiresRedraw(){
-		return this.requireRedraw;
-	}
-
-	public void setRequiresRedraw(boolean b){
-		this.requireRedraw = b;
 	}
 }
