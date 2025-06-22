@@ -887,9 +887,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			int startY = region.getStartY();
 			int endX = region.getEndX();
 			int endY = region.getEndY();
-			for(int i = startX; i < endX; i++){
-				int j = 0;
-				while(j < endY){
+			for(int j = startY; j < endY; j++){
+				int i = startX;
+				while(i < endX){
 					if(!(
 						(Objects.equals(outputLayer.characters[i][j], topLayer.characters[i][j])) &&
 						(Objects.equals(outputLayer.characterWidths[i][j], topLayer.characterWidths[i][j])) &&
@@ -902,13 +902,13 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 					}
 					//  For multi-column characters, explicitly initialize any 'covered' characters as null to resolve printing glitches:
 					int currentChrWidth = outputLayer.characterWidths[i][j];
-					for(int k = 1; k < (currentChrWidth -1); k++){
-						outputLayer.characterWidths[i][k] = 0;
-						outputLayer.colourCodes[i][k] = new int [] {};
-						outputLayer.characters[i][k] = null;
-						outputMask.flags[i][k] = outputMask.flags[i][j];
+					for(int k = 1; k < currentChrWidth; k++){
+						outputLayer.characterWidths[i+k][j] = 0;
+						outputLayer.colourCodes[i+k][j] = outputLayer.colourCodes[i][j];
+						outputLayer.characters[i+k][j] = null;
+						outputMask.flags[i+k][j] = outputMask.flags[i][j];
 					}
-					j += (currentChrWidth <= 1) ? 1 : (currentChrWidth -1);
+					i += (currentChrWidth < 1) ? 1 : currentChrWidth; 
 				}
 			}
 		}
@@ -993,7 +993,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 							this.stringBuilder.append(currentPositionSequence);
 							mustSetCursorPosition = resetState;
 						}
-						if(mustSetColourCodes){
+						if(mustSetColourCodes && this.mergedFinalScreenLayer.characters[i][j] != null){
 							List<String> codes = new ArrayList<String>();
 							for(int c : this.mergedFinalScreenLayer.colourCodes[i][j]){
 								codes.add(String.valueOf(c));
