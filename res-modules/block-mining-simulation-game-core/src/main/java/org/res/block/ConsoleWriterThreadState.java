@@ -902,7 +902,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 					}
 					//  For multi-column characters, explicitly initialize any 'covered' characters as null to resolve printing glitches:
 					int currentChrWidth = outputLayer.characterWidths[i][j];
-					for(int k = 1; k < currentChrWidth; k++){
+					for(int k = 1; (k < currentChrWidth) && (k+i) < endX; k++){
 						outputLayer.characterWidths[i+k][j] = 0;
 						outputLayer.colourCodes[i+k][j] = outputLayer.colourCodes[i][j];
 						outputLayer.characters[i+k][j] = null;
