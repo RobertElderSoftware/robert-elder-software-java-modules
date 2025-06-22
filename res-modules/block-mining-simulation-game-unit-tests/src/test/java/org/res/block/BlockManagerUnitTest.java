@@ -277,9 +277,14 @@ public class BlockManagerUnitTest {
 				}
 			}
 		}
-		System.out.println("");
-		System.out.println("");
-		System.out.println("");
+                System.out.println("");
+                System.out.println("");
+                System.out.println("The above test will illustrate disappearing characters in the first two lines for the double wide character.");
+                System.out.println("This is a problem GNU screen when run in wide character mode because GNU screen calculates the width of \u2550 as 1 when it's actually 2.");
+                System.out.println("Other terminals correctly update the cursor 2 positions, so it normally won't be an issue and will be handled naturally.");
+                System.out.println("The only way to handle this case would be to hard-code a width for this character in the game when run with this terminal.");
+                System.out.println("Even vim is not able to handle this case correctly.");
+                System.out.println("");
 	}
 
 	@Test

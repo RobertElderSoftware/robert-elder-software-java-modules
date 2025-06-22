@@ -31,6 +31,7 @@
 package org.res.block;
 
 import java.util.List;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 import java.util.Random;
@@ -71,24 +72,15 @@ public class Coordinate extends Vector{
 	}
 
 	public Coordinate changeByDeltaXYZ(Long deltaX, Long deltaY, Long deltaZ) throws Exception {
-		Coordinate c = this;
-		c = c.changeX(c.getX() + deltaX);
-		c = c.changeY(c.getY() + deltaY);
-		c = c.changeZ(c.getZ() + deltaZ);
-		return c;
+		return new Coordinate(super.changeValues(Arrays.asList(this.getX() + deltaX, this.getY() + deltaY, this.getZ() + deltaZ)));
 	}
 
 	public Coordinate changeByDeltaY(Long deltaY) throws Exception {
-		Coordinate c = this;
-		c = c.changeY(c.getY() + deltaY);
-		return c;
+		return new Coordinate(super.changeValues(Arrays.asList(this.getX() + 0L, this.getY() + deltaY)));
 	}
 
 	public Coordinate changeByDeltaXY(Long deltaX, Long deltaY) throws Exception {
-		Coordinate c = this;
-		c = c.changeX(c.getX() + deltaX);
-		c = c.changeY(c.getY() + deltaY);
-		return c;
+		return new Coordinate(super.changeValues(Arrays.asList(this.getX() + deltaX, this.getY() + deltaY)));
 	}
 
 	public Coordinate subtract(Coordinate other) throws Exception {

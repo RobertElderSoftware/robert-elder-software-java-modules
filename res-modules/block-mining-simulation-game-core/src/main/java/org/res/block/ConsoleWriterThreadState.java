@@ -98,6 +98,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private Map<Long, FrameDimensions> currentFrameDimensionsCollection = new HashMap<Long, FrameDimensions>();
 	private Map<Long, UserInterfaceSplit> userInterfaceSplits = new HashMap<Long, UserInterfaceSplit>();
 	private Long rootSplitId;
+	private final StringBuilder stringBuilder = new StringBuilder();
 
 	private int [] lastUsedColourCodes = new int [] {UserInterfaceFrameThreadState.RESET_BG_COLOR};
 
@@ -887,17 +888,27 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			int endX = region.getEndX();
 			int endY = region.getEndY();
 			for(int i = startX; i < endX; i++){
-				for(int j = startY; j < endY; j++){
+				int j = 0;
+				while(j < endY){
 					if(!(
 						(Objects.equals(outputLayer.characters[i][j], topLayer.characters[i][j])) &&
 						(Objects.equals(outputLayer.characterWidths[i][j], topLayer.characterWidths[i][j])) &&
 						(Arrays.equals(outputLayer.colourCodes[i][j], topLayer.colourCodes[i][j]))
-					)){
+					) || topMask.flags[i][j]){
 						outputLayer.characterWidths[i][j] = topLayer.characterWidths[i][j];
 						outputLayer.colourCodes[i][j] = topLayer.colourCodes[i][j];
 						outputLayer.characters[i][j] = topLayer.characters[i][j];
 						outputMask.flags[i][j] = true;
 					}
+					//  For multi-column characters, explicitly initialize any 'covered' characters as null to resolve printing glitches:
+					int currentChrWidth = outputLayer.characterWidths[i][j];
+					for(int k = 1; k < (currentChrWidth -1); k++){
+						outputLayer.characterWidths[i][k] = 0;
+						outputLayer.colourCodes[i][k] = new int [] {};
+						outputLayer.characters[i][k] = null;
+						outputMask.flags[i][k] = outputMask.flags[i][j];
+					}
+					j += (currentChrWidth <= 1) ? 1 : (currentChrWidth -1);
 				}
 			}
 		}
@@ -979,7 +990,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 					){
 						if(mustSetCursorPosition){
 							String currentPositionSequence = "\033[" + (j+1) + ";" + (i+1) + "H";
-							System.out.print(currentPositionSequence);
+							this.stringBuilder.append(currentPositionSequence);
 							mustSetCursorPosition = resetState;
 						}
 						if(mustSetColourCodes){
@@ -988,12 +999,12 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 								codes.add(String.valueOf(c));
 							}
 							String currentColorSequence = "\033[0m\033[" + String.join(";", codes) + "m";
-							System.out.print(currentColorSequence);
+							this.stringBuilder.append(currentColorSequence);
 							mustSetColourCodes = resetState;
 							lastUsedColourCodes = this.mergedFinalScreenLayer.colourCodes[i][j];
 						}
 						if(this.mergedFinalScreenLayer.characters[i][j] != null){
-							System.out.print(this.mergedFinalScreenLayer.characters[i][j]);
+							this.stringBuilder.append(this.mergedFinalScreenLayer.characters[i][j]);
 						}
 						this.mergedFinalScreenMask.flags[i][j] = false;
 					}else{
@@ -1004,8 +1015,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 		this.mergedRegionsToUpdate.clear();
 		if(resetCursorPosition){
-			System.out.print("\033[0;0H"); //  Move cursor to 0,0 after every print.
+			this.stringBuilder.append("\033[0;0H"); //  Move cursor to 0,0 after every print.
 		}
+		System.out.print(this.stringBuilder); //  Print accumulated output
+		this.stringBuilder.setLength(0);      //  clear buffer.
 	}
 
 	public final void initializeConsole(Long terminalWidth, Long terminalHeight) throws Exception{

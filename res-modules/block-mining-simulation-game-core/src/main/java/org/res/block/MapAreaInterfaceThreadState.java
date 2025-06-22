@@ -64,7 +64,6 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	private Long mapAreaWidthInCells;
 	private Coordinate playerPosition;
 	private CuboidAddress mapAreaCuboidAddress;
-	private Set<Coordinate> stalePlayerPositions = new HashSet<Coordinate>();
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
 	private ClientBlockModelContext clientBlockModelContext;
@@ -203,7 +202,6 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			CuboidAddress newMapArea = new CuboidAddress(bottomleftHandCorner, topRightHandCorner);
 
 			this.onMapAreaChange(newMapArea);
-			this.printMapAreaUpdates(newMapArea);
 		}
 
 		this.render();
@@ -256,7 +254,6 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 				mapAreaAfter = new CuboidAddress(newLower, newUpper);
 			}
 			this.onMapAreaChange(mapAreaAfter);
-			this.printMapAreaUpdates(mapAreaAfter);
 		}
 	}
 
@@ -268,23 +265,16 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			}
 		}
 
-		if(previousPosition != null){
-			this.stalePlayerPositions.add(this.playerPosition);
-		}
-		if(newPosition != null){
-			this.stalePlayerPositions.add(newPosition);
-		}
-
 		//logger.info("Changed player position from " + (this.playerPosition == null ? "null" : this.playerPosition.toString()) + " to " + newPosition);
 		this.clientBlockModelContext.putWorkItem(new ClientNotifyPlayerPositionChangeWorkItem(this.clientBlockModelContext, this.playerPosition == null ? null : this.playerPosition.copy(), newPosition.copy()), WorkItemPriority.PRIORITY_LOW);
 		Coordinate lastGameInterfacePosition = this.playerPosition;
 		this.playerPosition = newPosition;
 
 		if(lastGameInterfacePosition != null){
-			this.updateMapAreaBlocks(new CuboidAddress(lastGameInterfacePosition, lastGameInterfacePosition));
+			this.printMapAreaUpdates(new CuboidAddress(lastGameInterfacePosition, lastGameInterfacePosition));
 		}
 		if(newPosition != null){
-			this.updateMapAreaBlocks(new CuboidAddress(newPosition, newPosition));
+			this.printMapAreaUpdates(new CuboidAddress(newPosition, newPosition));
 		}
 
 		this.reprintFrame();
@@ -297,34 +287,37 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		this.mapAreaCuboidAddress = newMapArea;
 
 		this.mapAreaBlocks.updateBufferRegion(newMapArea);
-		this.updateMapAreaBlocks(newMapArea);
+		this.loadMapAreaBlocksFromMemory(newMapArea, previousMapArea);
+		this.printMapAreaUpdates(newMapArea);
 	}
 
-	public void updateMapAreaBlocks(CuboidAddress areaToUpdate) throws Exception {
+	public void loadMapAreaBlocksFromMemory(CuboidAddress areaToUpdate, CuboidAddress areaToExclude) throws Exception {
 		if(this.mapAreaCuboidAddress != null){
-			logger.info("Doing updateMapAreaBlocks for area " + areaToUpdate + " with mapArea cuboid as " + this.mapAreaCuboidAddress + ".");
+			logger.info("Doing loadMapAreaBlocksFromMemory for area " + areaToUpdate + " with mapArea cuboid as " + this.mapAreaCuboidAddress + ".");
 		
 			RegionIteration regionIteration = new RegionIteration(areaToUpdate.getCanonicalLowerCoordinate(), areaToUpdate);
 			do{
 				Coordinate currentMapAreaCoordinate = regionIteration.getCurrentCoordinate();
-				if(this.mapAreaCuboidAddress.containsCoordinate(currentMapAreaCoordinate)){
+				if(
+					(areaToExclude == null || (!areaToExclude.containsCoordinate(currentMapAreaCoordinate))) &&
+					this.mapAreaCuboidAddress.containsCoordinate(currentMapAreaCoordinate)
+				){
 					IndividualBlock b = clientBlockModelContext.readBlockAtCoordinate(currentMapAreaCoordinate);
 					if(b != null){ /* Chunk not even loaded. */
 						this.mapAreaBlocks.setObjectAtCoordinate(currentMapAreaCoordinate, b);
 					}
 				}
 			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
-
-			this.printMapAreaUpdates(areaToUpdate);
 			return;
 		}else{
-			logger.info("missing updateMapAreaBlocks because this.mapAreaCuboidAddress was null.");
+			logger.info("missing loadMapAreaBlocksFromMemory because this.mapAreaCuboidAddress was null.");
 			return;
 		}
 	}
 
 	public void onUpdateMapAreaFlagsNotify(CuboidAddress areaToUpdate) throws Exception {
-		this.updateMapAreaBlocks(areaToUpdate);
+		this.loadMapAreaBlocksFromMemory(areaToUpdate, null);
+		this.printMapAreaUpdates(areaToUpdate);
 		this.onFinalizeFrame();
 	}
 
@@ -364,11 +357,6 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 				Coordinate currentMapAreaCoordinate = regionIteration.getCurrentCoordinate();
 				Coordinate underBlockCoordinate = currentMapAreaCoordinate.changeByDeltaXYZ(0L, -1L, 0L);
 				if(visibleArea.containsCoordinate(currentMapAreaCoordinate)){
-
-					/*  Does player position need to be re-rendered? */
-					if(this.stalePlayerPositions.contains(currentMapAreaCoordinate)){
-						this.stalePlayerPositions.remove(currentMapAreaCoordinate);
-					}
 
 					boolean isPlayerPosition = false;
 					if(

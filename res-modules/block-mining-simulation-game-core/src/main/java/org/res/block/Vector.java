@@ -155,6 +155,27 @@ public class Vector implements Comparable<Vector>{
 		return new Vector(newValues);
 	}
 
+	public Vector changeValues(List<Long> valuesToUpdate) throws Exception {
+		/*
+			Don't mutate the existing vector, instead create a new one
+			NOTE:  this vector could contain more elements than are being changed.
+		*/
+		if(!(valuesToUpdate.size() <= this.coordinateValues.size())){
+			throw new Exception("Trying to set values of length to " + valuesToUpdate.size() + " beyond end of list length " + this.coordinateValues);
+		}
+
+		List<Long> newValues = new ArrayList<Long>();
+		for(int i = 0; i < valuesToUpdate.size(); i++){
+			newValues.add(valuesToUpdate.get(i));
+		}
+		//  Add any remaining coordinate values:
+		for(int i = valuesToUpdate.size(); i < this.coordinateValues.size(); i++){
+			newValues.add(this.coordinateValues.get(i));
+		}
+
+		return new Vector(newValues);
+	}
+
 	public String toString(){
 		return "(" + this.coordinateValues.stream().map(Object::toString).collect(Collectors.joining(", ")) + ")";
 	}
