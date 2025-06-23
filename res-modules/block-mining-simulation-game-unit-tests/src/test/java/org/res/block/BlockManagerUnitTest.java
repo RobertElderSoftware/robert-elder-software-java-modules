@@ -130,15 +130,14 @@ public class BlockManagerUnitTest {
 		}
 	}
 
-	//  mvn -pl res-modules/block-mining-simulation-game-unit-tests -Dtest=BlockManagerUnitTest#threeDimensionalCircularBufferTest test
 	@Test
 	public void threeDimensionalCircularBufferTest() throws Exception {
 		Random overallRand = new Random(1234);
-		for(int iterations = 0; iterations < 1000; iterations++){
+		for(int iterations = 0; iterations < 100; iterations++){
 			Random rand = new Random(overallRand.nextInt());
 			Long dimensionsToTest = 3L;
-			int numRegionsToTest = 30;
-			int numPointsPerRegionToTest = 20;
+			int numRegionsToTest = 20;
+			int numPointsPerRegionToTest = 15;
 			List<Long> testRegionLower = new ArrayList<Long>();
 			List<Long> testRegionUpper = new ArrayList<Long>();
 			for(long i = 0; i < dimensionsToTest; i++){

@@ -73,6 +73,10 @@ public class ScreenMask {
 		}
 	}
 
+	public void initialize(boolean defaultFlag){
+		this.initialize(this.width, this.height, defaultFlag);
+	}
+
 	public void initialize(int width, int height){
 		this.initialize(width, height, false);
 	}

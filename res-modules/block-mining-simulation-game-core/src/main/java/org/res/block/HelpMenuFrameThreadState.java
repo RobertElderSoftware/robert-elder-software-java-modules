@@ -135,11 +135,11 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		return rtn;
 	}
 
-	public void rebuildHelpMenu(boolean activeState) throws Exception{
+	public void rebuildHelpMenu(HelpMenu previousHelpMenu) throws Exception{
 		List<HelpMenuOption> moveToOptionsList = this.getSplitMoveToOptionsList();
 
 		this.helpMenu = new HelpMenu(
-			activeState,
+			previousHelpMenu,
 			new HelpMenuLevel(
 				Arrays.asList(
 					new SubMenuHelpMenuOption(
@@ -459,8 +459,8 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		this.setScreenLayerState(ConsoleWriterThreadState.BUFFER_INDEX_MENU, this.helpMenu.getActiveState());
 	}
 
-	public void onRenderFrame(boolean requiresRefresh) throws Exception{
-		this.rebuildHelpMenu(this.helpMenu.getActiveState());
+	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
+		this.rebuildHelpMenu(this.helpMenu);
 		this.render();
 	}
 

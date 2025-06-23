@@ -71,8 +71,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	private final AtomicLong frameDimensionsChangeSeq = new AtomicLong(0);
 
 	public abstract void putWorkItem(UIWorkItem workItem, WorkItemPriority priority) throws Exception;
-	public abstract void render() throws Exception;
-	public abstract void onRenderFrame(boolean requiresRefresh) throws Exception;
+	public abstract void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception;
 	public abstract void onKeyboardInput(byte [] characters) throws Exception;
 	public abstract void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception;
 
@@ -361,7 +360,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			for(int i = 0; i < this.usedScreenLayers.length; i++){
 				int l = usedScreenLayers[i];
 				this.previousBufferedScreenLayers[l] = new ScreenLayer(this.bufferedScreenLayers[l]);
-				this.bufferedScreenMasks[l].initialize(this.getFrameDimensions().getFrameWidth().intValue(), this.getFrameDimensions().getFrameHeight().intValue(), false);
+				this.bufferedScreenMasks[l].initialize(false);
 				//  All these screen regions were successfully printed and are no longer needed:
 				this.changedScreenRegions.get(l).clear();
 			}
@@ -661,11 +660,12 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}else{
 			logger.info("Not discarding onFrame change, pass to child frame:");
 			this.onNewFrameChangeWorkItemParams(params);
-			boolean hasFrameDimensionsChanged = this.hasFrameDimensionsChanged(params);
-			if(hasFrameDimensionsChanged){
+			boolean hasThisFrameDimensionsChanged = this.hasThisFrameDimensionsChanged(params);
+			boolean hasOtherFrameDimensionsChanged = this.hasOtherFrameDimensionsChanged(params);
+			if(hasThisFrameDimensionsChanged || hasOtherFrameDimensionsChanged){
 				this.initializeFrames();
 			}
-			this.onRenderFrame(hasFrameDimensionsChanged);
+			this.onRenderFrame(hasThisFrameDimensionsChanged, hasOtherFrameDimensionsChanged);
 			boolean printedSuccessfully = this.onFinalizeFrame();
 			if(printedSuccessfully){
 				this.previousSuccessfullyPrintedFrameChangeWorkItemParams = this.currentFrameChangeWorkItemParams;
@@ -733,7 +733,18 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		this.changedScreenRegions.get(bufferIndex).add(constrainedRegion);
 	}
 
-	public boolean hasFrameDimensionsChanged(FrameChangeWorkItemParams params){
+	public boolean hasOtherFrameDimensionsChanged(FrameChangeWorkItemParams params){
+		Long previous = this.previousSuccessfullyPrintedFrameChangeWorkItemParams == null ? null : this.previousSuccessfullyPrintedFrameChangeWorkItemParams.getFrameDimensionsChangeId();
+		Long current = params == null ? null : params.getFrameDimensionsChangeId();
+
+		if(current == null){
+			return previous != null;
+		}else{
+			return !current.equals(previous);
+		}
+	}
+
+	public boolean hasThisFrameDimensionsChanged(FrameChangeWorkItemParams params){
 		FrameDimensions previous = this.previousSuccessfullyPrintedFrameChangeWorkItemParams == null ? null : this.previousSuccessfullyPrintedFrameChangeWorkItemParams.getCurrentFrameDimensions();
 		FrameDimensions current = params == null ? null : params.getCurrentFrameDimensions();
 
@@ -769,7 +780,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 	}
 
-	public void setScreenLayerState(int bufferIndex, boolean isActive){
+	public void setScreenLayerState(int bufferIndex, boolean isActive) throws Exception{
 		if(!(this.pendingScreenLayerActiveStates[bufferIndex] == isActive)){
 			this.pendingScreenLayerActiveStates[bufferIndex] = isActive;
 			//  Refresh for all layers when a layer changes active state
@@ -785,7 +796,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 						height
 					)
 				);
-				this.bufferedScreenMasks[l].initialize(width, height, true);
+				this.bufferedScreenMasks[l].initialize(true);
 			}
 		}
 	}
@@ -800,9 +811,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		for(int i = 0; i < current.width; i++){
 			for(int j = 0; j < current.height; j++){
 				boolean hasChanged = !(
-					(current.characterWidths[i][j] == previous.characterWidths[i][j]) &&
-					Arrays.equals(current.colourCodes[i][j], previous.colourCodes[i][j]) &&
-					Objects.equals(current.characters[i][j], previous.characters[i][j])
+						(current.characterWidths[i][j] == previous.characterWidths[i][j]) &&
+								Arrays.equals(current.colourCodes[i][j], previous.colourCodes[i][j]) &&
+								Objects.equals(current.characters[i][j], previous.characters[i][j])
 				) || mask.flags[i][j];
 				mask.flags[i][j] = hasChanged;
 			}

@@ -288,7 +288,7 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 		}
 	}
 
-	public void onRenderFrame(boolean requiresRefresh) throws Exception{
+	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
 		this.linePrintingInstructionsAtOffset = null; //  If dimension of frame change, must re-compute all lines.
 		this.render();
 	}

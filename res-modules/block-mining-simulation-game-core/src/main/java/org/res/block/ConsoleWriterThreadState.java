@@ -1074,6 +1074,22 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		if(this.rootSplitId != null){
 			this.getUserInterfaceSplitById(this.rootSplitId).sendFrameChangeNotifies(this);
 		}
+		//  Help menu is not part of UI tree.  It needs it's own notify message and frame change increment:
+		this.sendFrameChangeNotify(this.helpMenuFrameThreadState);
+	}
+
+	public void sendFrameChangeNotify(UserInterfaceFrameThreadState frame) throws Exception{
+		frame.getAndIncrementFrameDimensionsChangeId(); // Consume an ID
+		Long frameDimensionsChangeId = frame.getFrameDimensionsChangeId(); // Get that ID.
+		FrameChangeWorkItemParams params = new FrameChangeWorkItemParams(
+			this.getFocusedFrameDimensions(),
+			this.getFrameDimensionsForFrameId(frame.getFrameId()),
+			this.getFrameBordersDescription(),
+			this.getTerminalDimensionsChangeId(),
+			frameDimensionsChangeId,
+			frame.getFrameId()
+		);
+		frame.putWorkItem(new FrameChangeWorkItem(frame, params), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public Long getTerminalDimensionsChangeId(){

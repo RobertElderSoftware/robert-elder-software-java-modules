@@ -109,7 +109,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		Long numInventoryItems = this.getNumInventoryItems();
 		if(numInventoryItems != null && numInventoryItems > 0){
 			Long initialIndex = this.selectedInventoryItemIndex == null ? 0L : this.selectedInventoryItemIndex;
-			Long newIndex = (initialIndex + selectionDiff + numInventoryItems) % numInventoryItems;
+			Long newIndex = (((initialIndex + selectionDiff) % numInventoryItems) + numInventoryItems) % numInventoryItems;
 			this.onSelectionChange(newIndex);
 		}
 	}
@@ -126,7 +126,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		}else{
 			logger.info("InventoryInterfaceThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
 		}
-		this.onRenderFrame(true);
+		this.onRenderFrame(true, true);
 		this.onFinalizeFrame();
 	}
 
@@ -138,7 +138,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		return this.blockManagerThreadCollection;
 	}
 
-	public void onRenderFrame(boolean requiresRefresh) throws Exception{
+	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
 		this.clearFrame();
 		this.render();
 	}
@@ -206,8 +206,13 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 				//this.printTextAtScreenXY(text, 2L + offset, yOffset, true);
 
 				Long xOffset = 2L + offset;
-				List<LinePrintingInstruction> instructions = this.getLinePrintingInstructions(text, xOffset, yOffset, true, false, this.getInnerFrameWidth());
-				instructionsAtOffset.addAll(this.wrapLinePrintingInstructionsAtOffset(instructions, yOffset, 1L));
+				Long paddingLeft = xOffset;
+				Long paddingRight = this.getInnerFrameWidth() - (xOffset + getInventoryColumnWidth()) + 2L;
+				paddingRight = Math.max(2L, paddingRight);
+				if((paddingLeft + 1L) < this.getInnerFrameWidth()){ // Don't print beyond the edge of the frame.
+					List<LinePrintingInstruction> instructions = this.getLinePrintingInstructions(text, paddingLeft, paddingRight, true, false, this.getInnerFrameWidth());
+					instructionsAtOffset.addAll(this.wrapLinePrintingInstructionsAtOffset(instructions, yOffset, 1L));
+				}
 			}
 			for(LinePrintingInstructionAtOffset instruction : instructionsAtOffset){
 				Long lineOffset = instruction.getOffsetY();
@@ -216,6 +221,10 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 				}
 			}
 		}
+	}
+
+	public Long getInventoryColumnWidth(){
+		return 30L;
 	}
 
 	public void reprintFrame() throws Exception {
@@ -239,7 +248,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 
 		List<List<ColouredTextFragmentList>> columns = this.divideIntoColumns(inventoryItemTextLists, getMaxItemsInColumn());
 		for(int i = 0; i < columns.size(); i++){
-			this.printInventoryColumn(columns.get(i), 30L * i);
+			this.printInventoryColumn(columns.get(i), getInventoryColumnWidth() * i);
 		}
 	}
 

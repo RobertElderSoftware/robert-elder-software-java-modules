@@ -82,18 +82,9 @@ public class UserInterfaceSplitLeafNode extends UserInterfaceSplit {
 	}
 
 	public void sendFrameChangeNotifies(ConsoleWriterThreadState cwts) throws Exception{
-		this.userInterfaceFrameThreadState.getAndIncrementFrameDimensionsChangeId();
-		Long frameDimensionsChangeId = this.userInterfaceFrameThreadState.getFrameDimensionsChangeId();
-		FrameChangeWorkItemParams params = new FrameChangeWorkItemParams(
-			cwts.getFocusedFrameDimensions(),
-			cwts.getFrameDimensionsForFrameId(this.userInterfaceFrameThreadState.getFrameId()),
-			cwts.getFrameBordersDescription(),
-			cwts.getTerminalDimensionsChangeId(),
-			frameDimensionsChangeId,
-			this.userInterfaceFrameThreadState.getFrameId()
-		);
-		this.userInterfaceFrameThreadState.putWorkItem(new FrameChangeWorkItem(this.userInterfaceFrameThreadState, params), WorkItemPriority.PRIORITY_LOW);
+		cwts.sendFrameChangeNotify(this.userInterfaceFrameThreadState);
 	}
+
 
 	public Map<Long, FrameDimensions> collectFrameDimensions(FrameDimensions frameDimensions) throws Exception{
 		Map<Long, FrameDimensions> rtn = new HashMap<Long, FrameDimensions>();

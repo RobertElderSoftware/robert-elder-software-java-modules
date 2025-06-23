@@ -64,10 +64,25 @@ public class HelpMenu {
 	private boolean activeState;
 
 	public HelpMenu(boolean activeState, HelpMenuLevel helpMenuLevel) throws Exception {
-		this.activeState= activeState;
+		this.activeState = activeState;
 		this.helpMenuLevel = helpMenuLevel;
 		this.helpMenuLevelStack.add(helpMenuLevel);
 		this.helpMenuLevelIndexStack.add(0);
+	}
+
+	public HelpMenu(HelpMenu previousHelpMenu, HelpMenuLevel helpMenuLevel) throws Exception {
+		this.activeState = previousHelpMenu.getActiveState();
+		this.helpMenuLevel = helpMenuLevel;
+		HelpMenuLevel curentHelpMenuLevel = helpMenuLevel;
+		//  Re-build the same help menu and try to keep the same item selected:
+		for(int i = 0; i < previousHelpMenu.getHelpMenuLevelIndexStack().size(); i++){
+			Integer index = previousHelpMenu.getHelpMenuLevelIndexStack().get(i);
+			this.helpMenuLevelStack.add(curentHelpMenuLevel);
+			this.helpMenuLevelIndexStack.add(index);
+			if(i != previousHelpMenu.getHelpMenuLevelIndexStack().size() -1){
+				curentHelpMenuLevel = this.helpMenuLevelStack.get(this.helpMenuLevelStack.size()-1).getHelpMenuOptions().get(index).getHelpMenuLevel();
+			}
+		}
 	}
 
 	public boolean getActiveState(){
@@ -77,7 +92,14 @@ public class HelpMenu {
 	public void setActiveState(boolean activeState){
 		if(this.activeState != activeState){
 			this.activeState = activeState;
+			if(!this.activeState){
+				this.resetMenuState();
+			}
 		}
+	}
+
+	public List<Integer> getHelpMenuLevelIndexStack(){
+		return this.helpMenuLevelIndexStack;
 	}
 
 	public void descendIntoSubmenu() throws Exception{

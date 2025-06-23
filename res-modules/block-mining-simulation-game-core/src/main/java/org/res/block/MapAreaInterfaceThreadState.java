@@ -176,8 +176,8 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		return this.blockManagerThreadCollection;
 	}
 
-	public void onRenderFrame(boolean requiresRefresh) throws Exception{
-		if(requiresRefresh){
+	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
+		if(hasThisFrameDimensionsChanged){
 			this.clearFrame();
 			FrameDimensions currentFrameDimensions = this.getFrameDimensions() == null ? null : new FrameDimensions(this.getFrameDimensions());
 			Long totalXBorderSize = this.getTotalXBorderSize();
@@ -200,14 +200,13 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			Coordinate topRightHandCorner = new Coordinate(Arrays.asList(topRightHandX + playerPosition.getX(), playerPosition.getY(), topRightHandZ + playerPosition.getZ(), 0L));
 
 			CuboidAddress newMapArea = new CuboidAddress(bottomleftHandCorner, topRightHandCorner);
-
 			this.onMapAreaChange(newMapArea);
+
+		}else if(hasOtherFrameDimensionsChanged){
+			this.clearFrame();
+			this.onMapAreaChange(this.mapAreaCuboidAddress); // Refresh map area
 		}
 
-		this.render();
-	}
-
-	public void render() throws Exception{
 		this.reprintFrame();
 	}
 

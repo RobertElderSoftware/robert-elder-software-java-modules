@@ -28,7 +28,7 @@ Press the 'm' key to mine blocks.
 
 #  Crafting
 
-You can press the 'c' key to try and craft new blocks, such as metallic iron, and an iron pickaxe.  Currently, the game only supports four different crafting recipes:
+You can press the 'c' key to try and craft new blocks, such as metallic iron, and an iron pickaxe.  Crafting will occur automatically if you have enough reagents. Currently, the game only supports four different crafting recipes:
 
 -  Using wood to make a Wooden Pick Axe
 -  Using stone and wood to make a Stone Pick Axe
@@ -37,7 +37,7 @@ You can press the 'c' key to try and craft new blocks, such as metallic iron, an
 
 #  Place Blocks
 
-Press the 'p' key to place blocks (currently only supports placing rock blocks).
+Press the 'p' key to place whatever block is currently selected in your inventory.
 
 #  In Game Help Menu
 
@@ -52,7 +52,7 @@ You can switch focus between the 'frames' in the game's UI by pressing the 'TAB'
 You can run the .jar file with the '--help' flag to show a help menu:
 
 ```
-java -jar block-mining-simulation-game-single-player-client-0.0.6.jar --help
+java -jar block-mining-simulation-game-single-player-client-0.0.7.jar --help
 ```
 
 
@@ -89,8 +89,8 @@ Currently, the game has only been tested to work on a default installation of Ub
 Compiling the game from scratch is not necessary.  You can download pre-compiled .jar files from GitHub in the 'Releases' section for this repo:
 
 ```
-wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.6/block-mining-simulation-game-single-player-client-0.0.6.jar
-java -jar block-mining-simulation-game-single-player-client-0.0.6.jar
+wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.7/block-mining-simulation-game-single-player-client-0.0.7.jar
+java -jar block-mining-simulation-game-single-player-client-0.0.7.jar
 ```
 
 The game should immediately launch and fill up the terminal with graphics.  You can exit the game by pressing the 'q' key.  By default, the game saves it's world data into a SQLite database file that lives in the current directory.
@@ -100,11 +100,11 @@ The game should immediately launch and fill up the terminal with graphics.  You 
 If you are concerned about the authenticity of the .jar file, you can also verify the signature using GPG:
 
 ```
-wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.6/block-mining-simulation-game-single-player-client-0.0.6.jar.asc
+wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.7/block-mining-simulation-game-single-player-client-0.0.7.jar.asc
 gpg --search-keys robert@robertelder.org
 #  Should match the key for 'robert@robertelder.org'
 gpg --recv-keys ECBD481DBCA5C48804FBD08720B9852CF0558BAA
-gpg --verify block-mining-simulation-game-single-player-client-0.0.6.jar.asc block-mining-simulation-game-single-player-client-0.0.6.jar
+gpg --verify block-mining-simulation-game-single-player-client-0.0.7.jar.asc block-mining-simulation-game-single-player-client-0.0.7.jar
 ```
 
 The output should look something like this:
@@ -135,6 +135,20 @@ Next, you can compile the game from source by running this command:
 ```
 
 Once it finishes building, it should launch right into the game.
+
+#  Run Unit Tests
+
+You can run the unit tests with this command:
+
+```
+mvn test
+```
+
+You can run a specific unit test (ex.  'threeDimensionalCircularBufferTest') with a command like this:
+
+```
+mvn -pl res-modules/block-mining-simulation-game-unit-tests -Dtest=BlockManagerUnitTest#threeDimensionalCircularBufferTest test
+```
 
 #  Building In IntelliJ IDEA
 
@@ -172,7 +186,19 @@ Then, click 'run' icon to build and run single player client.
 
 #  Remote JVM Debugging Command
 
+Here is an example of how to run the game so that a debugger (such as IntelliJ) can be connected:
+
+```
 java -agentlib:jdwp=transport=dt_socket,address=5005,server=y,suspend=y -jar res-modules/block-mining-simulation-game-single-player-client/target/block-mining-simulation-game-single-player-client-0.0.7.jar --log-file /tmp/single-player-block-client.log --block-world-file /tmp/single-player-world.sqlite
+```
+
+#  Profiler Running Command
+
+Here is an example of how to run the game so that a profiler like 'visualvm' can be connected.  This is useful for profiling the efficiency of the game and determining which functions consume the most CPU cycles or memory:
+
+```
+java -Dspring-boot.run.jvmArguments="-Xdebug -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=9010 -Dcom.sun.management.jmxremote.rmi.port=9010 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=localhost" -jar res-modules/block-mining-simulation-game-single-player-client/target/block-mining-simulation-game-single-player-client-0.0.7.jar --log-file /tmp/single-player-block-client.log --block-world-file /tmp/single-player-world.sqlite
+```
 
 #  Alternative Key Mappings (Dvorak)
 
