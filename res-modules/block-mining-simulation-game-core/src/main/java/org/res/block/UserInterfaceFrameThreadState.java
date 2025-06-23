@@ -114,7 +114,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	public static int FRAME_CLEAR_BG_COLOR = DEFAULT_BG_COLOR;
 	public static int DEFAULT_TEXT_BG_COLOR = DEFAULT_BG_COLOR;
 
-	public static int DEFAULT_TEXT_FG_COLOR = WHITE_FG_COLOR;
+	public static int DEFAULT_TEXT_FG_COLOR = GREEN_FG_COLOR;
 
 	public ScreenLayer[] previousBufferedScreenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
 	public ScreenLayer[] bufferedScreenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
