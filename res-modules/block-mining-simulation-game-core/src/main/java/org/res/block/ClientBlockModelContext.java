@@ -191,7 +191,8 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			coordinatesToCheck.add(regionIteration.getCurrentCoordinate());
 		}while (regionIteration.incrementCoordinateWithinCuboidAddress());
 		//  Last, try block below:
-		coordinatesToCheck.add(centerPosition.changeByDeltaY(-1L));
+		Coordinate underBlock = centerPosition.changeByDeltaY(-1L);
+		coordinatesToCheck.add(underBlock);
 
 		Long numBlocksMined = 0L;
 
@@ -210,7 +211,11 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			}
 		}
 		if(pickDataToUse != null){
-			this.doBlockWriteAtPlayerPosition("".getBytes("UTF-8"), centerPosition, miningDistance);
+			if(numBlocksMined.equals(1L)){
+				this.doBlockWriteAtPlayerPosition("".getBytes("UTF-8"), underBlock, 0L);
+			}else{
+				this.doBlockWriteAtPlayerPosition("".getBytes("UTF-8"), centerPosition, miningDistance);
+			}
 		}
 		if(numBlocksMined > 1L){
 			this.playerInventory.addItemCountToInventory(pickDataToUse, -1L);
