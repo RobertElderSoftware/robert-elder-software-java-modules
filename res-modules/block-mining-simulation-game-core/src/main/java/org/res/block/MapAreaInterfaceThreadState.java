@@ -75,7 +75,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	private byte[] unprocessedInputBytes = new byte[0];
 
 	public MapAreaInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
-		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT});
+		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, ConsoleWriterThreadState.BUFFER_INDEX_OVERLAY});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 	}
@@ -269,11 +269,11 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		Coordinate lastGameInterfacePosition = this.playerPosition;
 		this.playerPosition = newPosition;
 
-		if(lastGameInterfacePosition != null){
-			this.printMapAreaUpdates(new CuboidAddress(lastGameInterfacePosition, lastGameInterfacePosition));
+		if(lastGameInterfacePosition != null && this.mapAreaCuboidAddress != null){
+			this.updatePlayerOverlay(new CuboidAddress(lastGameInterfacePosition, lastGameInterfacePosition), false);
 		}
-		if(newPosition != null){
-			this.printMapAreaUpdates(new CuboidAddress(newPosition, newPosition));
+		if(newPosition != null && this.mapAreaCuboidAddress != null){
+			this.updatePlayerOverlay(new CuboidAddress(newPosition, newPosition), true);
 		}
 
 		this.reprintFrame();
@@ -284,6 +284,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		this.clientBlockModelContext.putWorkItem(new MapAreaChangeWorkItem(this.clientBlockModelContext, newMapArea), WorkItemPriority.PRIORITY_LOW);
 		CuboidAddress previousMapArea = this.mapAreaCuboidAddress;
 		this.mapAreaCuboidAddress = newMapArea;
+		this.updatePlayerOverlay(new CuboidAddress(this.playerPosition, this.playerPosition), true);
 
 		this.mapAreaBlocks.updateBufferRegion(newMapArea);
 		this.loadMapAreaBlocksFromMemory(newMapArea, previousMapArea);
@@ -329,6 +330,39 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		}
 	}
 
+	public void updatePlayerOverlay(CuboidAddress playerPositionCA, boolean isPlayerLocation) throws Exception{
+		String [][] currentPositionContents = new String [1][1];
+		currentPositionContents[0][0] = isPlayerLocation ? "\uD83D\uDE0A" : null;
+		int [][][] currentPositionColours = new int [1][1][0];
+		currentPositionColours[0][0] = isPlayerLocation ? new int [] {PLAYER_BG_COLOR} : new int [] {};
+
+		this.sendCellUpdatesInScreenArea(
+			playerPositionCA,
+			currentPositionContents,
+			currentPositionColours,
+			this.getMapXOffsetInScreenCoordinates(playerPositionCA),
+			this.getMapYOffsetInScreenCoordinates(playerPositionCA),
+			ConsoleWriterThreadState.BUFFER_INDEX_OVERLAY
+		);
+	}
+
+	public Long getMapXOffsetInCells(CuboidAddress ca) throws Exception{
+		return ca.getCanonicalLowerCoordinate().getX() - this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getX();
+		
+	}
+
+	public Long getMapYOffsetInCells(CuboidAddress ca)throws Exception{
+		return this.mapAreaCuboidAddress.getCanonicalUpperCoordinate().getZ() - ca.getCanonicalUpperCoordinate().getZ();
+	}
+
+	public Long getMapXOffsetInScreenCoordinates(CuboidAddress ca) throws Exception{
+		return (this.getMapXOffsetInCells(ca) * this.getMapAreaCellWidth()) + this.getFrameCharacterWidth();
+	}
+
+	public Long getMapYOffsetInScreenCoordinates(CuboidAddress ca)throws Exception{
+		return this.getMapYOffsetInCells(ca) + this.getFrameCharacterHeight();
+	}
+		
 	public void printMapAreaUpdates(CuboidAddress areaToUpdate) throws Exception {
 		if(this.mapAreaCuboidAddress != null){
 			logger.info("Doing printMapAreaUpdates with mapArea cuboid as " + this.mapAreaCuboidAddress + ".");
@@ -356,16 +390,6 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 				Coordinate currentMapAreaCoordinate = regionIteration.getCurrentCoordinate();
 				Coordinate underBlockCoordinate = currentMapAreaCoordinate.changeByDeltaXYZ(0L, -1L, 0L);
 				if(visibleArea.containsCoordinate(currentMapAreaCoordinate)){
-
-					boolean isPlayerPosition = false;
-					if(
-						this.getPlayerPosition() != null &&
-						currentMapAreaCoordinate.getX().equals(this.getPlayerPosition().getX()) &&
-						currentMapAreaCoordinate.getY().equals(this.getPlayerPosition().getY()) &&
-						currentMapAreaCoordinate.getZ().equals(this.getPlayerPosition().getZ())
-					){
-						isPlayerPosition = true;
-					}
 					Long xCellOffset = currentMapAreaCoordinate.getX() - this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getX();
 					Long yCellOffset = (this.mapAreaCuboidAddress.getWidthForIndex(2L) -1L) - (currentMapAreaCoordinate.getZ() - this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getZ());
 
@@ -398,7 +422,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 						blockBGColour = loadingBlockBGColour;
 					}
 
-					int backgroundColour = isPlayerPosition ? PLAYER_BG_COLOR : blockBGColour;
+					int backgroundColour = blockBGColour;
 					int textColour = useASCII ? YELLOW_FG_COLOR : DEFAULT_TEXT_FG_COLOR;
 
 					Long xCellOffsetInUpdateArea = currentMapAreaCoordinate.getX() - areaToUpdate.getCanonicalLowerCoordinate().getX();
@@ -409,13 +433,17 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 				}
 			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
 
-			Long xCellOffsetDraw = areaToUpdate.getCanonicalLowerCoordinate().getX() - this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getX();
-			Long yCellOffsetDraw = ((mapAreaHeightInCells -1L) + this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getZ()) - ((areaToUpdateHeight -1L) + areaToUpdate.getCanonicalLowerCoordinate().getZ());
-
-			Long screenDrawX = (xCellOffsetDraw * this.getMapAreaCellWidth()) + this.getFrameCharacterWidth();
-			Long screenDrawY = yCellOffsetDraw + this.getFrameCharacterHeight();
+			Long screenDrawX = (this.getMapXOffsetInCells(areaToUpdate) * this.getMapAreaCellWidth()) + this.getFrameCharacterWidth();
+			Long screenDrawY = this.getMapYOffsetInCells(areaToUpdate) + this.getFrameCharacterHeight();
 		
-			this.sendCellUpdatesInScreenArea(areaToUpdate, updatedCellContents, updatedBackgroundColours, screenDrawX, screenDrawY);
+			this.sendCellUpdatesInScreenArea(
+				areaToUpdate,
+				updatedCellContents,
+				updatedBackgroundColours,
+				this.getMapXOffsetInScreenCoordinates(areaToUpdate),
+				this.getMapYOffsetInScreenCoordinates(areaToUpdate),
+				ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT
+			);
 		}else{
 		}
 	}

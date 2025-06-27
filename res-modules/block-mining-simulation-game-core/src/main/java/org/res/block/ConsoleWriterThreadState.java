@@ -79,9 +79,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private Long terminalHeight = null;
 	private FrameDimensions currentTerminalFrameDimensions = null;
 	private HelpMenuFrameThreadState helpMenuFrameThreadState = null;
-	public static int numScreenLayers = 2;
+	public static int numScreenLayers = 3;
 	public static final int BUFFER_INDEX_DEFAULT = 0;
-	public static final int BUFFER_INDEX_MENU = 1;
+	public static final int BUFFER_INDEX_OVERLAY = 1;
+	public static final int BUFFER_INDEX_MENU = 2;
 	private boolean [] screenLayerActiveStates = new boolean [ConsoleWriterThreadState.numScreenLayers];
 	private ScreenLayer [] screenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
 	private ScreenMask [] screenMasks = new ScreenMask [ConsoleWriterThreadState.numScreenLayers];

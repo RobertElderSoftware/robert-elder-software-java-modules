@@ -848,7 +848,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		return false;
 	}
 
-	public void sendCellUpdatesInScreenArea(CuboidAddress areaToUpdate, String [][] updatedCellContents, int [][][] updatedColourCodes, Long drawOffsetX, Long drawOffsetY) throws Exception{
+	public void sendCellUpdatesInScreenArea(CuboidAddress areaToUpdate, String [][] updatedCellContents, int [][][] updatedColourCodes, Long drawOffsetX, Long drawOffsetY, int bufferIndex) throws Exception{
 		//  Print a square of padded cells on the terminal.
 		int areaCellWidth = (int)areaToUpdate.getWidthForIndex(0L);
 		int areaCellHeight = (int)areaToUpdate.getWidthForIndex(2L);
@@ -866,10 +866,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				if(updatedCellContents[i][j] == null){
 					int paddedWidthSoFar = 0;
 					while(paddedWidthSoFar < this.getMapAreaCellWidth()){
-						changes.colourCodes[currentOffset][j] = new int [] {MAP_CELL_BG_COLOR1};
+						changes.colourCodes[currentOffset][j] = new int [] {};
 						changes.characters[currentOffset][j] = null;
 						changes.characterWidths[currentOffset][j] = 0;
-						mask.flags[currentOffset][j] = false;
+						mask.flags[currentOffset][j] = true;
 						currentOffset += 1;
 						paddedWidthSoFar += 1;
 					}
@@ -917,7 +917,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int ySize = totalHeight;
 
 		ScreenRegion region = new ScreenRegion(xOffset, yOffset, xOffset + xSize, yOffset + ySize);
-		this.writeToLocalFrameBuffer(changes, mask, region, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
+		this.writeToLocalFrameBuffer(changes, mask, region, this.getFrameDimensions(), bufferIndex);
 	}
 
 	public String whitespacePad(String presentedText, Long paddedWidth) throws Exception{
