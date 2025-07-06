@@ -60,7 +60,7 @@ public abstract class BlockSession {
 		Map<CuboidAddress, Long> intersections = new TreeMap<CuboidAddress, Long>();
 		for(CuboidAddress address : addresses){
 			for(Map.Entry<CuboidAddress, Long> existingRegionSubscription : this.subscribedRegions.entrySet()){
-				CuboidAddress intersection = existingRegionSubscription.getKey().getIntersectionCuboidAddress(address);
+				CuboidAddress intersection = existingRegionSubscription.getKey().getIntersectionCuboidAddress(address, true);
 				if(intersection != null){
 					intersections.put(intersection, existingRegionSubscription.getValue());
 				}
@@ -88,7 +88,7 @@ public abstract class BlockSession {
 				preExistingSubscription.add(regionToSubscribeTo);
 			}else{
 				for(Map.Entry<CuboidAddress, Long> existingRegionSubscription : this.subscribedRegions.entrySet()){
-					CuboidAddress intersection = existingRegionSubscription.getKey().getIntersectionCuboidAddress(regionToSubscribeTo);
+					CuboidAddress intersection = existingRegionSubscription.getKey().getIntersectionCuboidAddress(regionToSubscribeTo, true);
 					if(intersection == null){
 						//blockModelContext.logMessage("Region " + regionToSubscribeTo + " has no intersection with " + existingRegionSubscription + ". Add it.");
 					}else{

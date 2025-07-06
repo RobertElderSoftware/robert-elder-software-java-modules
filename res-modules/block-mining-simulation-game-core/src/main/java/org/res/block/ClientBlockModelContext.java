@@ -66,7 +66,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.logMessage("Ran init of ClientBlockModelContext.");
 
 		/*  This defines the dimensions of the 'chunks' that are loaded into memory as we move around */
-		CuboidAddress chunkSizeCuboidAddress = new CuboidAddress(new Coordinate(Arrays.asList(0L, 0L, 0L, 0L)), new Coordinate(Arrays.asList(2L, 2L, 4L, 0L)));
+		CuboidAddress chunkSizeCuboidAddress = new CuboidAddress(new Coordinate(Arrays.asList(0L, 0L, 0L, 0L)), new Coordinate(Arrays.asList(3L, 3L, 5L, 1L)));
 		this.inMemoryChunks = new InMemoryChunks(blockManagerThreadCollection, this, chunkSizeCuboidAddress);
 		this.notifyLoadedRegionsChanged();
 		this.chunkInitializerThreadState = new ChunkInitializerThreadState(blockManagerThreadCollection, this, this.inMemoryChunks);
@@ -139,8 +139,8 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		if(reachableMapArea != null){
 			requiredRegions.add(reachableMapArea.copy());
 		}
-		requiredRegions.add(new CuboidAddress(playerPositionBlockAddress.copy(), playerPositionBlockAddress.copy()));
-		requiredRegions.add(new CuboidAddress(playerInventoryBlockAddress.copy(), playerInventoryBlockAddress.copy()));
+		requiredRegions.add(new CuboidAddress(playerPositionBlockAddress.copy(), playerPositionBlockAddress.add(Coordinate.makeUnitCoordinate(4L)).copy()));
+		requiredRegions.add(new CuboidAddress(playerInventoryBlockAddress.copy(), playerInventoryBlockAddress.add(Coordinate.makeUnitCoordinate(4L)).copy()));
 		return requiredRegions;
 	}
 
@@ -183,7 +183,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		}
 
 		Coordinate startingPosition = centerPosition.changeByDeltaXYZ(-miningDistance, 0L, -miningDistance);
-		CuboidAddress regionToMine = new CuboidAddress(startingPosition, startingPosition.changeByDeltaXYZ(2L*miningDistance, 0L, 2L*miningDistance));
+		CuboidAddress regionToMine = new CuboidAddress(startingPosition, startingPosition.changeByDeltaXYZ(2L * miningDistance, 0L, 2L * miningDistance).add(Coordinate.makeUnitCoordinate(4L)));
 		
 		List<Coordinate> coordinatesToCheck = new ArrayList<Coordinate>();
 		RegionIteration regionIteration = new RegionIteration(startingPosition, regionToMine);
@@ -339,7 +339,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	public void writeSingleBlockAtPosition(byte [] data, Coordinate position) throws Exception{
 		Long numDimensions = position.getNumDimensions();
 
-		CuboidAddress blocksToChangeAddress = new CuboidAddress(position, position);
+		CuboidAddress blocksToChangeAddress = new CuboidAddress(position, position.add(Coordinate.makeUnitCoordinate(4L)));
 		BlockMessageBinaryBuffer dataForOneCuboid = new BlockMessageBinaryBuffer();
 
 		Long numBlocks = blocksToChangeAddress.getVolume();
@@ -361,7 +361,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 		Coordinate lower = position.changeX(position.getX() - radius).changeZ(position.getZ() - radius);
 		Coordinate upper = position.changeX(position.getX() + radius).changeZ(position.getZ() + radius);
-		CuboidAddress blocksToChangeAddress = new CuboidAddress(lower, upper);
+		CuboidAddress blocksToChangeAddress = new CuboidAddress(lower, upper.add(Coordinate.makeUnitCoordinate(4L)));
 		BlockMessageBinaryBuffer dataForOneCuboid = new BlockMessageBinaryBuffer();
 
 		Long numBlocks = blocksToChangeAddress.getVolume();
@@ -464,7 +464,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			debugging issues with read/write ordering of cuboid data.
 		*/
 		Long numDimensions = 4L;
-		Coordinate upper = new Coordinate(Arrays.asList(1L, 0L, 1L, 0L));
+		Coordinate upper = new Coordinate(Arrays.asList(2L, 1L, 2L, 1L));
 		Coordinate lower = new Coordinate(Arrays.asList(0L, 0L, 0L, 0L));
 
 		CuboidAddress ca = new CuboidAddress(lower, upper);
@@ -553,7 +553,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	public void onMapAreaChange(CuboidAddress newMapArea) throws Exception{
 		this.mapAreaCuboidAddress = newMapArea;
-		CuboidAddress ga = newMapArea == null ? null : newMapArea.copy();
 		//  The chunk initializer needs to know about the reachable area which extends beyond the viewport:
 		this.chunkInitializerThreadState.putWorkItem(new ChunkInitializerNotifyMapAreaChangeWorkItem(this.chunkInitializerThreadState, getReachableMapAreaCuboidAddress().copy()), WorkItemPriority.PRIORITY_HIGH);
 		this.notifyLoadedRegionsChanged();

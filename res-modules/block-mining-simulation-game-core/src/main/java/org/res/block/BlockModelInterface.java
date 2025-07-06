@@ -32,7 +32,6 @@ package org.res.block;
 
 import java.util.List;
 import org.res.block.Cuboid;
-import org.res.block.CuboidAddress;
 
 public interface BlockModelInterface{
 	public abstract void writeBlocksInRegion(Cuboid cuboid) throws Exception;

@@ -47,14 +47,21 @@ public class RegionIteration {
 	private Coordinate coordinate;
 	private CuboidAddress cuboidAddress;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+	private boolean isOverflow = false;
 
-	public RegionIteration(Coordinate coordinate, CuboidAddress cuboidAddress) {
+	public RegionIteration(Coordinate coordinate, CuboidAddress cuboidAddress) throws Exception{
 		this.coordinate = coordinate;
 		this.cuboidAddress = cuboidAddress;
+		//  If this iteration is initialized with a zero sized region, overflow immediately:
+		this.isOverflow = !cuboidAddress.containsCoordinate(coordinate);
 	}
 
-	public Coordinate getCurrentCoordinate(){
-		return this.coordinate;
+	public Coordinate getCurrentCoordinate() throws Exception {
+		if(this.isOverflow){
+			throw new Exception("This region iteration is in overflow state at coordinate " + coordinate + " for cuboid address " + this.cuboidAddress + ".");
+		}else{
+			return this.coordinate;
+		}
 	}
 
 	public boolean incrementInRange(Coordinate lower, Coordinate upper) throws Exception {
@@ -66,14 +73,14 @@ public class RegionIteration {
 		Returns true when value was incremented, returns false on overflow condition.
 		*/
 		Long i = 0L;
-		boolean isOverflow = true;
+		this.isOverflow = false;
 		while(i < this.coordinate.getNumDimensions()){
 			/*  Try to increment the coordinate in the lowest position. */
-			if(this.coordinate.getValueAtIndex(i).equals(upper.getValueAtIndex(i))){
+			if(this.coordinate.getValueAtIndex(i) >= (upper.getValueAtIndex(i) -1L)){
 				this.coordinate = coordinate.changeValueAtIndex(i, lower.getValueAtIndex(i));
 				if(this.coordinate.getNumDimensions().equals(i + 1L)){ /* Overflow condition. */
 					//logger.info("Reached overflow condition: " + this.toString());
-					isOverflow = false;
+					this.isOverflow = true;
 					break;
 				}
 			}else{
@@ -87,11 +94,11 @@ public class RegionIteration {
 		if(this.coordinate.getValueAtIndex(i) < lower.getValueAtIndex(i)){
 			throw new Exception("Coordinate value " + this.coordinate.getValueAtIndex(i) + " outside lower bound of " + lower.getValueAtIndex(i));
 		}
-		if(this.coordinate.getValueAtIndex(i) > upper.getValueAtIndex(i)){
+		if(this.coordinate.getValueAtIndex(i) >= upper.getValueAtIndex(i)){
 			throw new Exception("Coordinate value " + this.coordinate.getValueAtIndex(i) + " outside upper bound of " + upper.getValueAtIndex(i));
 		}
 
-		return isOverflow;
+		return !this.isOverflow;
 	}
 
 	public boolean incrementCoordinateWithinCuboidAddress() throws Exception{

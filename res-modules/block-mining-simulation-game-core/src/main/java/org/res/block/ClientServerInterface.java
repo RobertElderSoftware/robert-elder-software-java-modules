@@ -33,8 +33,6 @@ package org.res.block;
 import java.util.List;
 import java.util.Set;
 import org.res.block.Cuboid;
-import org.res.block.CuboidAddress;
-import org.res.block.Cuboid;
 import org.res.block.BlockSession;
 
 public abstract class ClientServerInterface{

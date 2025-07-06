@@ -37,7 +37,7 @@ import org.res.block.Coordinate;
 import java.io.IOException;
 
 import java.util.Set;
-import java.util.HashSet;
+import java.util.TreeSet;
 import java.util.List;
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -68,7 +68,7 @@ import java.lang.ProcessBuilder.Redirect;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.HashMap;
+import java.util.TreeMap;
 
 import java.awt.Container;
 import java.awt.Font;
@@ -91,7 +91,7 @@ public class BlockManagerUnitTest {
 		return (long)(rand.nextDouble() * (upper-lower)) + lower;
 	}
 
-	public Coordinate getRandomCoordinate(Random rand, CuboidAddress ca){
+	public Coordinate getRandomCoordinate(Random rand, CuboidAddress ca) throws Exception{
 		Long numDimensions = ca.getNumDimensions();
 		List<Long> l = new ArrayList<Long>();
 		Coordinate lower = ca.getCanonicalLowerCoordinate();
@@ -150,7 +150,7 @@ public class BlockManagerUnitTest {
 			ThreeDimensionalCircularBuffer<Long> b = new ThreeDimensionalCircularBuffer<Long>(Long.class, uninitializedValue);
 
 			//  Keep track of blocks that should be in the buffer and the values that they should have.
-			Map<Coordinate, Long> blocksInBuffer = new HashMap<Coordinate, Long>();
+			Map<Coordinate, Long> blocksInBuffer = new TreeMap<Coordinate, Long>();
 
 			CuboidAddress previousCuboid = null;
 			for(int i = 0; i < numRegionsToTest; i++){
@@ -161,7 +161,7 @@ public class BlockManagerUnitTest {
 				b.updateBufferRegion(newCuboidAddress);
 
 				//  Build list of coordinates that were removed by the buffer region change:
-				Set<Coordinate> coordinatesToRemove = new HashSet<Coordinate>();
+				Set<Coordinate> coordinatesToRemove = new TreeSet<Coordinate>();
 				for(Map.Entry<Coordinate, Long> e : blocksInBuffer.entrySet()){
 					if(!newCuboidAddress.containsCoordinate(e.getKey())){
 						coordinatesToRemove.add(e.getKey());
@@ -224,23 +224,25 @@ public class BlockManagerUnitTest {
 					int numPointsChecked = 0;
 					System.out.println("BEGIN checking all points within current buffer region " + newCuboidAddress);
 					RegionIteration regionIteration = new RegionIteration(newCuboidAddress.getCanonicalLowerCoordinate(), newCuboidAddress);
-					do{
-						Coordinate currentCoordinate = regionIteration.getCurrentCoordinate();
-						if(blocksInBuffer.containsKey(currentCoordinate)){
-							Long actualValue = b.getObjectAtCoordinate(currentCoordinate);
-							Long expectedValue = blocksInBuffer.get(currentCoordinate);
-							if(!actualValue.equals(expectedValue)){
-								throw new Exception("Expected value " + expectedValue + " but saw value " + actualValue + " for coordinate " + currentCoordinate);
+					if(newCuboidAddress.getVolume() > 0L){
+						do{
+							Coordinate currentCoordinate = regionIteration.getCurrentCoordinate();
+							if(blocksInBuffer.containsKey(currentCoordinate)){
+								Long actualValue = b.getObjectAtCoordinate(currentCoordinate);
+								Long expectedValue = blocksInBuffer.get(currentCoordinate);
+								if(!actualValue.equals(expectedValue)){
+									throw new Exception("Expected value " + expectedValue + " but saw value " + actualValue + " for coordinate " + currentCoordinate);
+								}
+							}else{ // Uninitialized cell in buffer:
+								Long actualValue = b.getObjectAtCoordinate(currentCoordinate);
+								Long expectedValue = uninitializedValue;
+								if(!actualValue.equals(expectedValue)){
+									throw new Exception("Expected default value " + expectedValue + " but saw value " + actualValue + " for coordinate " + currentCoordinate);
+								}
 							}
-						}else{ // Uninitialized cell in buffer:
-							Long actualValue = b.getObjectAtCoordinate(currentCoordinate);
-							Long expectedValue = uninitializedValue;
-							if(!actualValue.equals(expectedValue)){
-								throw new Exception("Expected default value " + expectedValue + " but saw value " + actualValue + " for coordinate " + currentCoordinate);
-							}
-						}
-						numPointsChecked++;
-					}while (regionIteration.incrementCoordinateWithinCuboidAddress());
+							numPointsChecked++;
+						}while (regionIteration.incrementCoordinateWithinCuboidAddress());
+					}
 					System.out.println("END checking all " + numPointsChecked + " points within current buffer region " + newCuboidAddress);
 
 
@@ -311,21 +313,6 @@ public class BlockManagerUnitTest {
 		}
 		System.out.println("");
 		System.out.println("");
-	}
-
-	@Test
-	public void workItemQueueTest() throws Exception {
-		runWorkItemQueueTest();
-	}
-
-	@Test
-	public void intersectingChunkSetUnitTest() throws Exception {
-		runIntersectingChunkSetUnitTest();
-	}
-
-	@Test
-	public void cuboidAddressIntersectionUnitTest() throws Exception {
-		runCuboidAddressIntersectionUnitTest();
 	}
 
 	@Test
@@ -482,7 +469,8 @@ public class BlockManagerUnitTest {
                 */
 	}
 
-	public static void runWorkItemQueueTest() throws Exception {
+	@Test
+	public void runWorkItemQueueTest() throws Exception {
 		WorkItemQueue<UnitTestWorkItem> workItemQueue = new WorkItemQueue<UnitTestWorkItem>();
 
 		Random rand = new Random(1234);
@@ -521,7 +509,7 @@ public class BlockManagerUnitTest {
 		System.out.println("TEST PASSED.");
 	}
 
-	public static void runMultiDimensionalNoiseGeneratorUnitTest(MultiDimensionalNoiseGeneratorUnitTestParameters params) throws Exception {
+	public void runMultiDimensionalNoiseGeneratorUnitTest(MultiDimensionalNoiseGeneratorUnitTestParameters params) throws Exception {
 
 		int width = params.getWidth();
 		int height = params.getHeight();
@@ -630,62 +618,83 @@ public class BlockManagerUnitTest {
 		}
 	}
 
-	public static void runIntersectingChunkSetUnitTest() throws Exception {
+	@Test
+	public void runIntersectingChunkSetUnitTest() throws Exception {
 		Random rand = new Random(1234);
-		Long numTestIterations = 100L;
+		Long numTestIterations = 1000L;
 		int maxNumDimensions = 5;
 		System.out.println("Begin testing " + numTestIterations + " rounds runIntersectingChunkSetUnitTest to " + maxNumDimensions + " dimensions each.");
 		for(long l = 0L; l < numTestIterations; l++){
 			Long numDimensions = (long)rand.nextInt(maxNumDimensions) + 1;
 
-			CuboidAddress randomRegion = new CuboidAddress(
+			CuboidAddress tmpA = new CuboidAddress(
 				Coordinate.getRandomCoordinate(rand, numDimensions, -8, 8),
 				Coordinate.getRandomCoordinate(rand, numDimensions, -6, 6)
 			);
 
-			CuboidAddress chunkSize = new CuboidAddress(
+			CuboidAddress randomRegion = new CuboidAddress(
+				tmpA.getCanonicalLowerCoordinate(),
+				tmpA.getCanonicalUpperCoordinate().add(Coordinate.makeUnitCoordinate(numDimensions))
+			);
+
+			CuboidAddress tmpB = new CuboidAddress(
 				Coordinate.makeOriginCoordinate(numDimensions),
 				Coordinate.getRandomCoordinate(rand, numDimensions, 1, 12)
 			);
-			//System.out.println("Random region is " + randomRegion + " chunkSize is " + chunkSize);
 
-			Set<CuboidAddress> inefficientlyCalculatedRequiredRegions = new HashSet<CuboidAddress>();
+			CuboidAddress chunkSize = new CuboidAddress(
+				tmpB.getCanonicalLowerCoordinate(),
+				tmpB.getCanonicalUpperCoordinate().add(Coordinate.makeUnitCoordinate(numDimensions))
+			);
 
-			RegionIteration regionIteration = new RegionIteration(randomRegion.getCanonicalLowerCoordinate(), randomRegion);
-			do{
-				Coordinate currentCoordinate = regionIteration.getCurrentCoordinate();
-				CuboidAddress chunkCuboidAddress = CuboidAddress.blockCoordinateToChunkCuboidAddress(currentCoordinate, chunkSize);
-				inefficientlyCalculatedRequiredRegions.add(chunkCuboidAddress);
-			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
+
+
+			System.out.println("Random region is " + randomRegion + " chunkSize is " + chunkSize);
+
+			Set<CuboidAddress> inefficientlyCalculatedRequiredRegions = new TreeSet<CuboidAddress>();
+
+			if(randomRegion.getVolume() > 0L){
+				RegionIteration regionIteration = new RegionIteration(randomRegion.getCanonicalLowerCoordinate(), randomRegion);
+				do{
+					Coordinate currentCoordinate = regionIteration.getCurrentCoordinate();
+					CuboidAddress chunkCuboidAddress = CuboidAddress.blockCoordinateToChunkCuboidAddress(currentCoordinate, chunkSize);
+					inefficientlyCalculatedRequiredRegions.add(chunkCuboidAddress);
+				}while (regionIteration.incrementCoordinateWithinCuboidAddress());
+			}
 			//System.out.println("inefficientlyCalculatedRequiredRegions: " + inefficientlyCalculatedRequiredRegions);
 
-			Set<CuboidAddress> efficientlyCalculatedRequiredRegions = new HashSet<CuboidAddress>();
+			Set<CuboidAddress> efficientlyCalculatedRequiredRegions = new TreeSet<CuboidAddress>();
 			efficientlyCalculatedRequiredRegions.addAll(randomRegion.getIntersectingChunkSet(chunkSize));
 			//System.out.println("efficientlyCalculatedRequiredRegions: " + efficientlyCalculatedRequiredRegions);
 
 			for(CuboidAddress efficient : efficientlyCalculatedRequiredRegions){
 				if(!inefficientlyCalculatedRequiredRegions.contains(efficient)){
-					throw new Exception("Efficiently calculated region " + efficient + " was not present in " + inefficientlyCalculatedRequiredRegions);
+					throw new Exception("Efficiently calculated region " + efficient + " was not present in inefficientlyCalculatedRequiredRegions=" + inefficientlyCalculatedRequiredRegions + ", randomRegion=" + randomRegion + ", chunkSize=" + chunkSize);
 				}
 			}
 
 			for(CuboidAddress inefficient : inefficientlyCalculatedRequiredRegions){
 				if(!efficientlyCalculatedRequiredRegions.contains(inefficient)){
-					throw new Exception("Inefficiently calculated region " + inefficient + " was not present in " + efficientlyCalculatedRequiredRegions);
+					throw new Exception("Inefficiently calculated region " + inefficient + " was not present in " + efficientlyCalculatedRequiredRegions + ", randomRegion=" + randomRegion + ", chunkSize=" + chunkSize);
 				}
 			}
 		}
 		System.out.println("Finished testing " + numTestIterations + " rounds runIntersectingChunkSetUnitTest to " + maxNumDimensions + " dimensions each.");
 	}
 
-	public static void runCuboidAddressIntersectionUnitTest() throws Exception {
+	@Test
+	public void runCuboidAddressIntersectionUnitTest() throws Exception {
 		Random rand = new Random(1234);
-		Long numTestIterations = 1000L;
+		Long numTestIterations = 10000L;
 		int maxNumDimensions = 8;
 		System.out.println("Begin testing " + numTestIterations + " rounds of region intersections with up to " + maxNumDimensions + " dimensions each.");
 		for(long l = 0L; l < numTestIterations; l++){
 			Long numDimensions = (long)rand.nextInt(maxNumDimensions) + 1;
 
+			System.out.println(rand.nextInt());
+			System.out.println(rand.nextInt());
+			System.out.println(rand.nextInt());
+			System.out.println(rand.nextInt());
 			CuboidAddress addressA = new CuboidAddress(
 				Coordinate.getRandomCoordinate(rand, numDimensions, -2, 2),
 				Coordinate.getRandomCoordinate(rand, numDimensions, -2, 2)
@@ -696,41 +705,50 @@ public class BlockManagerUnitTest {
 				Coordinate.getRandomCoordinate(rand, numDimensions, -2, 2)
 			);
 
-			//System.out.println("BEGIN-----");
+			System.out.println("BEGIN-----");
 
-			CuboidAddress calculatedIntersection = addressA.getIntersectionCuboidAddress(addressB);
+			boolean nullOnIntersectFail = rand.nextInt() == 0 ? true : false;
 
-			//System.out.println("Made these two random addresses: " + addressA + " and " + addressB + ", calculatedIntersection was calculated as: " + calculatedIntersection);
+			CuboidAddress calculatedIntersection = addressA.getIntersectionCuboidAddress(addressB, nullOnIntersectFail);
 
-			Set<Coordinate> insideIntersection = new HashSet<Coordinate>();
-			Set<Coordinate> outsideIntersection = new HashSet<Coordinate>();
+			System.out.println("Made these two random addresses: " + addressA + " and " + addressB + ", calculatedIntersection was calculated as: " + calculatedIntersection);
 
-			RegionIteration regionIterationA = new RegionIteration(addressA.getCanonicalLowerCoordinate(), addressA);
-			do{
-				Coordinate currentCoordinate = regionIterationA.getCurrentCoordinate();
-				if(addressA.containsCoordinate(currentCoordinate) && addressB.containsCoordinate(currentCoordinate)){
-					//System.out.println(currentCoordinate + " is inside intersection.");
-					insideIntersection.add(currentCoordinate.copy());
-				}else{
-					//System.out.println(currentCoordinate + " is outside intersection.");
-					outsideIntersection.add(currentCoordinate.copy());
-				}
-			}while (regionIterationA.incrementCoordinateWithinCuboidAddress());
+			Set<Coordinate> insideIntersection = new TreeSet<Coordinate>();
+			Set<Coordinate> outsideIntersection = new TreeSet<Coordinate>();
 
-			RegionIteration regionIterationB = new RegionIteration(addressB.getCanonicalLowerCoordinate(), addressB);
-			do{
-				Coordinate currentCoordinate = regionIterationB.getCurrentCoordinate();
-				if(addressA.containsCoordinate(currentCoordinate) && addressB.containsCoordinate(currentCoordinate)){
-					//System.out.println(currentCoordinate + " is inside intersection.");
-					insideIntersection.add(currentCoordinate.copy());
-				}else{
-					//System.out.println(currentCoordinate + " is outside intersection.");
-					outsideIntersection.add(currentCoordinate.copy());
-				}
-			}while (regionIterationB.incrementCoordinateWithinCuboidAddress());
+			System.out.println("addressA.getCanonicalLowerCoordinate()=" + addressA.getCanonicalLowerCoordinate() + ".");
+			if(addressA.getVolume() > 0L){
+				RegionIteration regionIterationA = new RegionIteration(addressA.getCanonicalLowerCoordinate(), addressA);
+				do{
+					Coordinate currentCoordinate = regionIterationA.getCurrentCoordinate();
+					System.out.println("currentCoordinate=" + currentCoordinate + " in A.");
+					if(addressA.containsCoordinate(currentCoordinate) && addressB.containsCoordinate(currentCoordinate)){
+						System.out.println(currentCoordinate + " is inside intersectionA.");
+						insideIntersection.add(currentCoordinate.copy());
+					}else{
+						System.out.println(currentCoordinate + " is outside intersectionA.");
+						outsideIntersection.add(currentCoordinate.copy());
+					}
+				}while (regionIterationA.incrementCoordinateWithinCuboidAddress());
+			}
 
-			//System.out.println("Here are the points that are in intersection: " + insideIntersection + ".");
-			//System.out.println("Here are the points that are outside intersection: " + outsideIntersection + ".");
+			if(addressB.getVolume() > 0L){
+				RegionIteration regionIterationB = new RegionIteration(addressB.getCanonicalLowerCoordinate(), addressB);
+				do{
+					Coordinate currentCoordinate = regionIterationB.getCurrentCoordinate();
+					System.out.println("currentCoordinate=" + currentCoordinate + " in B.");
+					if(addressA.containsCoordinate(currentCoordinate) && addressB.containsCoordinate(currentCoordinate)){
+						System.out.println(currentCoordinate + " is inside intersectionB.");
+						insideIntersection.add(currentCoordinate.copy());
+					}else{
+						System.out.println(currentCoordinate + " is outside intersectionB.");
+						outsideIntersection.add(currentCoordinate.copy());
+					}
+				}while (regionIterationB.incrementCoordinateWithinCuboidAddress());
+			}
+
+			System.out.println("Here are the points that are in intersection: " + insideIntersection + ".");
+			System.out.println("Here are the points that are outside intersection: " + outsideIntersection + ".");
 
 			CuboidAddress empiricalIntersection = null;
 			if(insideIntersection.size() > 0){
@@ -753,29 +771,90 @@ public class BlockManagerUnitTest {
 				List<Long> highestGuessedIntersection = new ArrayList<Long>();
 				for(Long i = 0L; i < numDimensions; i++){
 					lowestGuessedIntersection.add(lowest[i.intValue()]);
-					highestGuessedIntersection.add(highest[i.intValue()]);
+					highestGuessedIntersection.add(highest[i.intValue()] + 1L);
 				}
 				empiricalIntersection = new CuboidAddress(new Coordinate(lowestGuessedIntersection), new Coordinate(highestGuessedIntersection));
-				//System.out.println("The cuboid address intersection was empirically shown to be " + empiricalIntersection);
+				System.out.println("The cuboid address intersection was empirically shown to be " + empiricalIntersection);
 			}else{
-				//System.out.println("There was no intersection cuboid address to calculate.");
+				System.out.println("There was no intersection cuboid address to calculate.");
+			}
+
+			if(empiricalIntersection == null){
+				/*
+					This is super inefficient, and technically this way of calculating
+					the 'empirical' intersection would work for the previous case as 
+					well, but the point here is to have a robust test that is simple
+					to verify for correctness.  Also having two different way of calculating
+					the same thing gives better test coverage.
+				*/
+				boolean hasSomeZeroSizeIntersection = true;
+				//  This case can happen when the intersection is a zero sized region.
+				Long [] lowest = new Long[numDimensions.intValue()];
+				Long [] highest = new Long[numDimensions.intValue()];
+				Coordinate lowerA = addressA.getCanonicalLowerCoordinate();
+				Coordinate upperA = addressA.getCanonicalUpperCoordinate();
+				Coordinate lowerB = addressB.getCanonicalLowerCoordinate();
+				Coordinate upperB = addressB.getCanonicalUpperCoordinate();
+				for(Long i = 0L; i < numDimensions; i++){
+					long aMin = Math.min(lowerA.getValueAtIndex(i), upperA.getValueAtIndex(i));
+					long aMax = Math.max(lowerA.getValueAtIndex(i), upperA.getValueAtIndex(i));
+					long bMin = Math.min(lowerB.getValueAtIndex(i), upperB.getValueAtIndex(i));
+					long bMax = Math.max(lowerB.getValueAtIndex(i), upperB.getValueAtIndex(i));
+
+
+					if(aMax <= bMin){
+						/*  No intersection */
+						hasSomeZeroSizeIntersection = false;
+					}else{
+						if(aMin >= bMax){
+							/*  No intersection */
+							hasSomeZeroSizeIntersection = false;
+						}else{
+							//  Intersection starts at the highest 'low' coordinate:
+							Long lowerOverlap = aMin >= bMin ? aMin : bMin;
+							//  And goes to the lowest 'upper' coordinate:
+							Long upperOverlap = aMax <= bMax ? aMax : bMax;
+							lowest[i.intValue()] = lowerOverlap;
+							highest[i.intValue()] = upperOverlap;
+						}
+					}
+				}
+				
+				if(hasSomeZeroSizeIntersection){
+					List<Long> lowestGuessedIntersection = new ArrayList<Long>();
+					List<Long> highestGuessedIntersection = new ArrayList<Long>();
+					for(Long i = 0L; i < numDimensions; i++){
+						lowestGuessedIntersection.add(lowest[i.intValue()]);
+						highestGuessedIntersection.add(highest[i.intValue()]);
+					}
+					empiricalIntersection = new CuboidAddress(new Coordinate(lowestGuessedIntersection), new Coordinate(highestGuessedIntersection));
+				}else{
+					if(nullOnIntersectFail){
+						empiricalIntersection = null;
+					}else{
+						empiricalIntersection = new CuboidAddress(
+							Coordinate.makeOriginCoordinate(numDimensions),
+							Coordinate.makeOriginCoordinate(numDimensions)
+						);
+					}
+				}
 			}
 
 			if(empiricalIntersection == null){
 				if(calculatedIntersection == null){
-					//System.out.println("Pass: Empirical and calculated intersection were both null.");
+					System.out.println("Pass: Empirical and calculated intersection were both null.");
 				}else{
-					throw new Exception("There was a difference between empirical intersection which was null: and the obtained intersection was: " + calculatedIntersection);
+					throw new Exception("There was a difference between empirical intersection which was null: and the calculated intersection was: " + calculatedIntersection + ".  A was " + addressA + ", B was " + addressB);
 				}
 			}else{
 				if(empiricalIntersection.equals(calculatedIntersection)){
-					//System.out.println("Pass, : " + empiricalIntersection + " is the same as " + calculatedIntersection + ".");
+					System.out.println("Pass, : " + empiricalIntersection + " is the same as " + calculatedIntersection + ".");
 				}else{
-					throw new Exception("There was a difference between empirical intersection: " + empiricalIntersection + " and the obtained intersection: " + calculatedIntersection);
+					throw new Exception("There was a difference between empirical intersection: " + empiricalIntersection + " and the calculated intersection: " + calculatedIntersection + ".  A was " + addressA + ", B was " + addressB);
 				}
 			}
 			
-			//System.out.println("END-----");
+			System.out.println("END-----");
 		}
 
 		System.out.println("Finished " + numTestIterations + " rounds of testing region intersections with up to " + maxNumDimensions + " dimensions each.");

@@ -34,7 +34,11 @@ import java.util.Arrays;
 
 public class ThreeDimensionalCircularBuffer<T>{
 
-	private CuboidAddress cuboidAddress = null;
+	//  Initialize with empty buffer
+	private CuboidAddress cuboidAddress = new CuboidAddress( 
+		Coordinate.makeOriginCoordinate(3L),
+		Coordinate.makeOriginCoordinate(3L)
+	);
 	private Long circularOffsetX = null;  //  The offset that describes where the circular buffer 'starts'.
 	private Long circularOffsetY = null;  //  The offset that describes where the circular buffer 'starts'.
 	private Long circularOffsetZ = null;  //  The offset that describes where the circular buffer 'starts'.
@@ -43,32 +47,35 @@ public class ThreeDimensionalCircularBuffer<T>{
 	private Object uninitializedObject;
 	private Class<T> classType;
 
-	public ThreeDimensionalCircularBuffer(Class<T> classType, T uninitializedObject) {
+	public ThreeDimensionalCircularBuffer(Class<T> classType, T uninitializedObject) throws Exception {
 		this.classType = classType;
 		this.uninitializedObject = uninitializedObject;
 	}
 
 	public static final Long pm(Long numerator, Long denominator){
-		return ((numerator % denominator) + denominator) % denominator;
+		return denominator.equals(0L) ? 0L : ((numerator % denominator) + denominator) % denominator;
 	}
 
 	public static final int pm(int numerator, int denominator){
-		return ((numerator % denominator) + denominator) % denominator;
+		return denominator == 0 ? 0 : ((numerator % denominator) + denominator) % denominator;
 	}
 
 	public static void initializeEmptyRegions(Object [][][] a, Long circularOffsetX, Long circularOffsetY, Long circularOffsetZ, Long sizeX, Long sizeY, Long sizeZ, Object uninitializedObject, CuboidAddress intersection, CuboidAddress regionToInitialize) throws Exception{
 
-		RegionIteration regionIteration = new RegionIteration(regionToInitialize.getCanonicalLowerCoordinate(), regionToInitialize);
-		do{
-			Coordinate currentCoordinate = regionIteration.getCurrentCoordinate();
-			if(intersection == null || (!intersection.containsCoordinate(currentCoordinate))){
-				Coordinate lower = regionToInitialize.getCanonicalLowerCoordinate();
-				int xIndexInBuffer = (int)((circularOffsetX + currentCoordinate.getX() - lower.getX()) % sizeX);
-				int yIndexInBuffer = (int)((circularOffsetY + currentCoordinate.getY() - lower.getY()) % sizeY);
-				int zIndexInBuffer = (int)((circularOffsetZ + currentCoordinate.getZ() - lower.getZ()) % sizeZ);
-				a[xIndexInBuffer][yIndexInBuffer][zIndexInBuffer] = uninitializedObject;
-			}
-		}while (regionIteration.incrementCoordinateWithinCuboidAddress());
+		boolean hasEmptyIntersection = intersection.getVolume() == 0L;
+		if(sizeX > 0L && sizeY > 0L && sizeZ > 0L){
+			RegionIteration regionIteration = new RegionIteration(regionToInitialize.getCanonicalLowerCoordinate(), regionToInitialize);
+			do{
+				Coordinate currentCoordinate = regionIteration.getCurrentCoordinate();
+				if(hasEmptyIntersection || !intersection.containsCoordinate(currentCoordinate)){
+					Coordinate lower = regionToInitialize.getCanonicalLowerCoordinate();
+					int xIndexInBuffer = (int)((circularOffsetX + currentCoordinate.getX() - lower.getX()) % sizeX);
+					int yIndexInBuffer = (int)((circularOffsetY + currentCoordinate.getY() - lower.getY()) % sizeY);
+					int zIndexInBuffer = (int)((circularOffsetZ + currentCoordinate.getZ() - lower.getZ()) % sizeZ);
+					a[xIndexInBuffer][yIndexInBuffer][zIndexInBuffer] = uninitializedObject;
+				}
+			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
+		}
 	}
 
 	public void updateBufferRegion(CuboidAddress newCuboidAddress) throws Exception{
@@ -76,13 +83,12 @@ public class ThreeDimensionalCircularBuffer<T>{
 			throw new Exception("newCuboidAddress == null");
 		}
 
-		CuboidAddress intersectionAddress = this.cuboidAddress == null ? null : this.cuboidAddress.getIntersectionCuboidAddress(newCuboidAddress);
+		CuboidAddress intersectionAddress = this.cuboidAddress.getIntersectionCuboidAddress(newCuboidAddress);
 
 		Long newXSize = newCuboidAddress.getWidthForIndex(0L);
 		Long newYSize = newCuboidAddress.getWidthForIndex(1L);
 		Long newZSize = newCuboidAddress.getWidthForIndex(2L);
 		if(
-			intersectionAddress != null && 
 			newXSize.equals(this.cuboidAddress.getWidthForIndex(0L)) &&
 			newYSize.equals(this.cuboidAddress.getWidthForIndex(1L)) &&
 			newZSize.equals(this.cuboidAddress.getWidthForIndex(2L))
@@ -144,11 +150,11 @@ public class ThreeDimensionalCircularBuffer<T>{
 			Coordinate lower = this.cuboidAddress.getCanonicalLowerCoordinate();
 			Coordinate upper = this.cuboidAddress.getCanonicalUpperCoordinate();
 			Long lowerBoundX = lower.getX();
-			Long upperBoundX = upper.getX() + 1L;
+			Long upperBoundX = upper.getX();
 			Long lowerBoundY = lower.getY();
-			Long upperBoundY = upper.getY() + 1L;
+			Long upperBoundY = upper.getY();
 			Long lowerBoundZ = lower.getZ();
-			Long upperBoundZ = upper.getZ() + 1L;
+			Long upperBoundZ = upper.getZ();
 			if(
 				(c.getX() >= lowerBoundX && c.getX() < upperBoundX) &&
 				(c.getY() >= lowerBoundY && c.getY() < upperBoundY) &&
@@ -178,11 +184,11 @@ public class ThreeDimensionalCircularBuffer<T>{
 			Coordinate lower = this.cuboidAddress.getCanonicalLowerCoordinate();
 			Coordinate upper = this.cuboidAddress.getCanonicalUpperCoordinate();
 			Long lowerBoundX = lower.getX();
-			Long upperBoundX = upper.getX() + 1L;
+			Long upperBoundX = upper.getX();
 			Long lowerBoundY = lower.getY();
-			Long upperBoundY = upper.getY() + 1L;
+			Long upperBoundY = upper.getY();
 			Long lowerBoundZ = lower.getZ();
-			Long upperBoundZ = upper.getZ() + 1L;
+			Long upperBoundZ = upper.getZ();
 			if(
 				(c.getX() >= lowerBoundX && c.getX() < upperBoundX) &&
 				(c.getY() >= lowerBoundY && c.getY() < upperBoundY) &&

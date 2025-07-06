@@ -62,10 +62,10 @@ public class CuboidAddress implements Comparable<CuboidAddress>{
 		/*
 			Each hypercube will have 2^numDimensions corners, so we'll
 			need to canonicalize them for the purposes of doing other calculations.
-			The canonical lower coordinate is the coordinate that is inside the
+			The canonical lower coordinate is the coordinate that is included inside the
 			region being represented by the cube that has the lowest value for 
-			every coordinate.  The upper canonical coordinate is the same, but
-			it has the highest value for every position.
+			every coordinate.  The canonical upper coordinate is an exclusive coordinate for which
+			every value in the coordinate is less than that found in the canonical upper coordinate.
 		*/
 		List<Long> canonical = new ArrayList<Long>();
 		for(long i = 0L; i < a.getNumDimensions(); i++){
@@ -80,6 +80,13 @@ public class CuboidAddress implements Comparable<CuboidAddress>{
 			canonical.add(Math.max(a.getValueAtIndex(i), b.getValueAtIndex(i)));
 		}
 		return new Coordinate(canonical);
+	}
+
+	public CuboidAddress getSubDimensions(Long startDimension, Long endDimension) throws Exception{
+		return new CuboidAddress(
+			this.getCanonicalLowerCoordinate().getSubDimensions(startDimension, endDimension),
+			this.getCanonicalUpperCoordinate().getSubDimensions(startDimension, endDimension)
+		);
 	}
 
 	public Double getCentroidDistanceFromCoordinate(Coordinate c){
@@ -134,7 +141,7 @@ public class CuboidAddress implements Comparable<CuboidAddress>{
 			Coordinate aLower = this.getCanonicalLowerCoordinate();
 			Coordinate aUpper = this.getCanonicalUpperCoordinate();
 			for(long i = 0; i < this.getNumDimensions(); i++){
-				if(c.getValueAtIndex(i) >= aLower.getValueAtIndex(i) && c.getValueAtIndex(i) <= aUpper.getValueAtIndex(i)){
+				if(c.getValueAtIndex(i) >= aLower.getValueAtIndex(i) && c.getValueAtIndex(i) < aUpper.getValueAtIndex(i)){
 				}else{
 					return false;
 				}
@@ -174,13 +181,13 @@ public class CuboidAddress implements Comparable<CuboidAddress>{
 		if(l < chunkSize.getNumDimensions()){
 			long chunkDimensionWidth = chunkSize.getWidthForIndex(l);
 			long lowerValue = Math.floorDiv(regionLower.getValueAtIndex(l), chunkDimensionWidth) * chunkDimensionWidth; // Floor of coordinate divide by chunk 
-			long rounding = (regionUpper.getValueAtIndex(l) % chunkDimensionWidth) == 0L ? 0L : 1L;
-			long upperValue = (Math.floorDiv(regionUpper.getValueAtIndex(l), chunkDimensionWidth) * chunkDimensionWidth) + rounding;
+			long rounding = ((regionUpper.getValueAtIndex(l) -1L) % chunkDimensionWidth) == 0L ? 0L : 1L;
+			long upperValue = (Math.floorDiv(regionUpper.getValueAtIndex(l) -1L, chunkDimensionWidth) * chunkDimensionWidth) + rounding;
 			//logger.info("For dimension " + l + " chunkDimensionWidth=" + chunkDimensionWidth + " lowerValue=" + lowerValue + " upperValue=" + upperValue);
 
 			Set<CuboidAddress> rtn = new TreeSet<CuboidAddress>();
 			for(long p = lowerValue; p <= upperValue; p+= chunkDimensionWidth){
-				previousDimensionRanges.add(new Vector(Arrays.asList(p, p + chunkDimensionWidth -1L)));
+				previousDimensionRanges.add(new Vector(Arrays.asList(p, p + chunkDimensionWidth)));
 				rtn.addAll(getIntersectingChunkSet_h(chunkSize, regionLower, regionUpper, previousDimensionRanges, l + 1L));
 				previousDimensionRanges.remove(previousDimensionRanges.size() - 1);
 			}
@@ -220,10 +227,15 @@ public class CuboidAddress implements Comparable<CuboidAddress>{
 		return getIntersectingChunkSet_h(chunkSize, regionLower, regionUpper, new ArrayList<Vector>(), 0L);
 	}
 
-	public CuboidAddress getIntersectionCuboidAddress(CuboidAddress other) throws Exception {
+
+	public CuboidAddress getIntersectionCuboidAddress(CuboidAddress other, boolean returnNullOnEmptyIntersection) throws Exception {
 		List<Vector> dimensionalOverlapRanges = this.getDimensionalOverlapRangesWith(other);
 		//logger.info("Here are the the dimensional overlap ranges: " + dimensionalOverlapRanges + ".");
-		return CuboidAddress.calculateIntersectionCuboidAddressFromDimensionalOverlapRanges(dimensionalOverlapRanges);
+		return CuboidAddress.calculateIntersectionCuboidAddressFromDimensionalOverlapRanges(dimensionalOverlapRanges, returnNullOnEmptyIntersection);
+	}
+
+	public CuboidAddress getIntersectionCuboidAddress(CuboidAddress other) throws Exception {
+		return this.getIntersectionCuboidAddress(other, false);
 	}
 
 	@Override
@@ -275,7 +287,7 @@ public class CuboidAddress implements Comparable<CuboidAddress>{
 		Coordinate lower = this.getCanonicalLowerCoordinate();
 		Coordinate upper = this.getCanonicalUpperCoordinate();
 		for(long i = 0L; i < lower.getNumDimensions(); i++){
-			total *= ((upper.getValueAtIndex(i) - lower.getValueAtIndex(i))+1L);
+			total *= (upper.getValueAtIndex(i) - lower.getValueAtIndex(i));
 		}
 		return total;
 	}
@@ -283,7 +295,7 @@ public class CuboidAddress implements Comparable<CuboidAddress>{
 	public long getWidthForIndex(Long index) {
 		Coordinate lower = this.getCanonicalLowerCoordinate();
 		Coordinate upper = this.getCanonicalUpperCoordinate();
-		return (upper.getValueAtIndex(index) - lower.getValueAtIndex(index)) + 1L;
+		return upper.getValueAtIndex(index) - lower.getValueAtIndex(index);
 	}
 
 	public String toString(){
@@ -303,10 +315,14 @@ public class CuboidAddress implements Comparable<CuboidAddress>{
 		long bMin = Math.min(bStart, bEnd);
 		long bMax = Math.max(bStart, bEnd);
 
-		if(aMax < bMin){
+		if(aMax <= bMin){
+   			//  ex.                  *-bMin---------*-bMax
+			//  aMin-*----------aMax-*
 			return null; /*  No intersection */
 		}else{
-			if(aMin > bMax){
+			if(aMin >= bMax){
+				//  ex.             *-aMin------aMax-*
+				//  *-bMin-----bMax-*
 				return null; /*  No intersection */
 			}else{
 				//  Intersection starts at the highest 'low' coordinate:
@@ -345,14 +361,23 @@ public class CuboidAddress implements Comparable<CuboidAddress>{
 	}
 
 
-	public static CuboidAddress calculateIntersectionCuboidAddressFromDimensionalOverlapRanges(List<Vector> dimensionalOverlapRanges) throws Exception {
+	public static CuboidAddress calculateIntersectionCuboidAddressFromDimensionalOverlapRanges(List<Vector> dimensionalOverlapRanges, boolean returnNullOnEmptyIntersection) throws Exception {
 		List<Long> lowerValues = new ArrayList<Long>();
 		List<Long> upperValues = new ArrayList<Long>();
-		for(long l = 0L; l < dimensionalOverlapRanges.size(); l++){
+		Long numDimensions = (long)dimensionalOverlapRanges.size();
+		for(long l = 0L; l < numDimensions; l++){
 			Vector v = dimensionalOverlapRanges.get((int)l);
 			if(v == null){
-				/*  If the overlap range of any single dimension is empty, then there is not intersection at all. */
-				return null;
+				/*  If the overlap range of any single dimension is empty, then there is no intersection at all. */
+				if(returnNullOnEmptyIntersection){
+					return null;
+				}else{
+					//  By default, return an empty zero-sized region at the origin
+					return new CuboidAddress(
+						Coordinate.makeOriginCoordinate(numDimensions),
+						Coordinate.makeOriginCoordinate(numDimensions)
+					);
+				}
 			}else{
 				lowerValues.add(v.getValueAtIndex(0L)); /*  First value is range min */
 				upperValues.add(v.getValueAtIndex(1L)); /*  First value is range max */
@@ -370,7 +395,7 @@ public class CuboidAddress implements Comparable<CuboidAddress>{
 				if(chunkSizeLower.getValueAtIndex(i).equals(0L)){
 					Long startingCuboidOffset = Math.floorDiv(blockCoordinate.getValueAtIndex(i), chunkSize.getWidthForIndex(i)) * chunkSize.getWidthForIndex(i);
 					chunkCoordsLower.add(startingCuboidOffset);
-					chunkCoordsUpper.add(startingCuboidOffset + (chunkSize.getWidthForIndex(i) -1L));
+					chunkCoordsUpper.add(startingCuboidOffset + chunkSize.getWidthForIndex(i));
 				}else{
 					throw new Exception("Chunk size cuboid address was supposed to be at origin, but it's at " + chunkSizeLower);
 				}

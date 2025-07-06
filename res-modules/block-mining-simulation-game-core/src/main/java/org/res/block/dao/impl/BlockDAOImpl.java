@@ -199,7 +199,7 @@ public class BlockDAOImpl implements BlockDAO {
 
         	List<String> coordinateFiltersString = new ArrayList<String>();
         	for(long i = 0; i < cuboidAddress.getNumDimensions(); i++){
-        		coordinateFiltersString.add("(x" + String.valueOf(i) + " >= :x" + String.valueOf(i) + "_min AND x" + String.valueOf(i) + " <= :x" + String.valueOf(i) + "_max)");
+        		coordinateFiltersString.add("(x" + String.valueOf(i) + " >= :x" + String.valueOf(i) + "_min AND x" + String.valueOf(i) + " < :x" + String.valueOf(i) + "_max)");
         	}
 
         	List<String> orderBysString = new ArrayList<String>();

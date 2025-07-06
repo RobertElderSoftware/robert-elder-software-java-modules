@@ -43,6 +43,18 @@ public class Coordinate extends Vector{
 		super(v);
 	}
 
+	public static Coordinate makeDiagonalCoordinate(Long value, Long numDimensions){
+		return new Coordinate(Vector.makeDiagonalVector(value, numDimensions));
+	}
+
+	public static Coordinate makeOriginCoordinate(Long numDimensions){
+		return new Coordinate(Vector.makeOriginVector(numDimensions));
+	}
+
+	public static Coordinate makeUnitCoordinate(Long numDimensions){
+		return new Coordinate(Vector.makeUnitVector(numDimensions));
+	}
+
 	public Coordinate(List<Long> coordinateValues) {
 		super(coordinateValues);
 	}
@@ -57,6 +69,10 @@ public class Coordinate extends Vector{
 
 	public Long getZ() throws Exception {
 		return this.getValueAtIndex(2L);
+	}
+
+	public Coordinate getSubDimensions(Long startDimension, Long endDimension) throws Exception {
+		return new Coordinate(super.getSubDimensions(startDimension, endDimension));
 	}
 
 	public Coordinate changeX(Long v) throws Exception {
@@ -85,6 +101,10 @@ public class Coordinate extends Vector{
 
 	public Coordinate subtract(Coordinate other) throws Exception {
 		return new Coordinate(super.subtract(other));
+	}
+
+	public Coordinate add(Coordinate other) throws Exception {
+		return new Coordinate(super.add(other));
 	}
 
 	public Coordinate changeValueAtIndex(Long i, Long v) throws Exception {
@@ -118,14 +138,6 @@ public class Coordinate extends Vector{
 			}
 		}
 		return true;
-	}
-
-	public static Coordinate makeOriginCoordinate(Long numDimensions){
-		List<Long> values = new ArrayList<Long>();
-		for(long l = 0L; l < numDimensions; l++){
-			values.add(0L);
-		}
-		return new Coordinate(values);
 	}
 
 	public static Coordinate readCoordinate(BlockMessageBinaryBuffer buffer, long numDimensions){

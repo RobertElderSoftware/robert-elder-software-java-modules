@@ -199,7 +199,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			Coordinate bottomleftHandCorner = new Coordinate(Arrays.asList(bottomLeftHandX + playerPosition.getX(), playerPosition.getY() -1L, bottomLeftHandZ + playerPosition.getZ(), 0L));
 			Coordinate topRightHandCorner = new Coordinate(Arrays.asList(topRightHandX + playerPosition.getX(), playerPosition.getY(), topRightHandZ + playerPosition.getZ(), 0L));
 
-			CuboidAddress newMapArea = new CuboidAddress(bottomleftHandCorner, topRightHandCorner);
+			CuboidAddress newMapArea = new CuboidAddress(bottomleftHandCorner, topRightHandCorner.add(Coordinate.makeUnitCoordinate(4L)));
 			this.onMapAreaChange(newMapArea);
 
 		}else if(hasOtherFrameDimensionsChanged){
@@ -221,17 +221,16 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			Coordinate lower = this.mapAreaCuboidAddress.getCanonicalLowerCoordinate();
 			Coordinate upper = this.mapAreaCuboidAddress.getCanonicalUpperCoordinate();
 
-			CuboidAddress mapAreaBefore = this.mapAreaCuboidAddress.copy();
 			CuboidAddress mapAreaAfter = this.mapAreaCuboidAddress.copy();
 
 			if((deltaX < 0L) && (newPosition.getX() - lower.getValueAtIndex(0L) < this.edgeDistanceScreenX)){
-				Coordinate newLower = lower.changeValueAtIndex(0L, lower.getValueAtIndex(0L) - 1L);
-				Coordinate newUpper = upper.changeValueAtIndex(0L, upper.getValueAtIndex(0L) - 1L);
+				Coordinate newLower = lower.changeValueAtIndex(0L, lower.getValueAtIndex(0L) + deltaX);
+				Coordinate newUpper = upper.changeValueAtIndex(0L, upper.getValueAtIndex(0L) + deltaX);
 				mapAreaAfter = new CuboidAddress(newLower, newUpper);
 			}
-			if((deltaX > 0L) && (upper.getValueAtIndex(0L) - newPosition.getX() < this.edgeDistanceScreenX)){
-				Coordinate newLower = lower.changeValueAtIndex(0L, lower.getValueAtIndex(0L) + 1L);
-				Coordinate newUpper = upper.changeValueAtIndex(0L, upper.getValueAtIndex(0L) + 1L);
+			if((deltaX > 0L) && (upper.getValueAtIndex(0L) - 1L - newPosition.getX() < this.edgeDistanceScreenX)){
+				Coordinate newLower = lower.changeValueAtIndex(0L, lower.getValueAtIndex(0L) + deltaX);
+				Coordinate newUpper = upper.changeValueAtIndex(0L, upper.getValueAtIndex(0L) + deltaX);
 				mapAreaAfter = new CuboidAddress(newLower, newUpper);
 			}
 
@@ -242,14 +241,14 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			}
 
 			if((deltaZ < 0L) && (newPosition.getZ() - lower.getValueAtIndex(2L) < this.edgeDistanceScreenY)){
-				Coordinate newLower = lower.changeValueAtIndex(2L, lower.getValueAtIndex(2L) - 1L);
-				Coordinate newUpper = upper.changeValueAtIndex(2L, upper.getValueAtIndex(2L) - 1L);
+				Coordinate newLower = lower.changeValueAtIndex(2L, lower.getValueAtIndex(2L) + deltaZ);
+				Coordinate newUpper = upper.changeValueAtIndex(2L, upper.getValueAtIndex(2L) + deltaZ);
 				mapAreaAfter = new CuboidAddress(newLower, newUpper);
 			}
 
-			if((deltaZ > 0L) && (upper.getValueAtIndex(2L) - newPosition.getZ() < this.edgeDistanceScreenY)){
-				Coordinate newLower = lower.changeValueAtIndex(2L, lower.getValueAtIndex(2L) + 1L);
-				Coordinate newUpper = upper.changeValueAtIndex(2L, upper.getValueAtIndex(2L) + 1L);
+			if((deltaZ > 0L) && (upper.getValueAtIndex(2L) - 1L - newPosition.getZ() < this.edgeDistanceScreenY)){
+				Coordinate newLower = lower.changeValueAtIndex(2L, lower.getValueAtIndex(2L) + deltaZ);
+				Coordinate newUpper = upper.changeValueAtIndex(2L, upper.getValueAtIndex(2L) + deltaZ);
 				mapAreaAfter = new CuboidAddress(newLower, newUpper);
 			}
 			this.onMapAreaChange(mapAreaAfter);
@@ -270,10 +269,10 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		this.playerPosition = newPosition;
 
 		if(lastGameInterfacePosition != null && this.mapAreaCuboidAddress != null){
-			this.updatePlayerOverlay(new CuboidAddress(lastGameInterfacePosition, lastGameInterfacePosition), false);
+			this.updatePlayerOverlay(new CuboidAddress(lastGameInterfacePosition, lastGameInterfacePosition.add(Coordinate.makeUnitCoordinate(4L))), false);
 		}
 		if(newPosition != null && this.mapAreaCuboidAddress != null){
-			this.updatePlayerOverlay(new CuboidAddress(newPosition, newPosition), true);
+			this.updatePlayerOverlay(new CuboidAddress(newPosition, newPosition.add(Coordinate.makeUnitCoordinate(4L))), true);
 		}
 
 		this.reprintFrame();
@@ -284,9 +283,9 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		this.clientBlockModelContext.putWorkItem(new MapAreaChangeWorkItem(this.clientBlockModelContext, newMapArea), WorkItemPriority.PRIORITY_LOW);
 		CuboidAddress previousMapArea = this.mapAreaCuboidAddress;
 		this.mapAreaCuboidAddress = newMapArea;
-		this.updatePlayerOverlay(new CuboidAddress(this.playerPosition, this.playerPosition), true);
+		this.updatePlayerOverlay(new CuboidAddress(this.playerPosition, this.playerPosition.add(Coordinate.makeUnitCoordinate(4L))), true);
 
-		this.mapAreaBlocks.updateBufferRegion(newMapArea);
+		this.mapAreaBlocks.updateBufferRegion(newMapArea.getSubDimensions(0L, 3L));
 		this.loadMapAreaBlocksFromMemory(newMapArea, previousMapArea);
 		this.printMapAreaUpdates(newMapArea);
 	}

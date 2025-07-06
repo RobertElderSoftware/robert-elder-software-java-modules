@@ -42,6 +42,23 @@ public class Vector implements Comparable<Vector>{
 
 	private final int hashCode;
 
+	
+	public static Vector makeDiagonalVector(Long value, Long numDimensions){
+		List<Long> list = new ArrayList<>();
+		for(long l = 0L; l < numDimensions; l++){
+			list.add(value);
+		}
+		return new Vector(list);
+	}
+
+	public static Vector makeOriginVector(Long numDimensions){
+		return makeDiagonalVector(0L, numDimensions);
+	}
+
+	public static Vector makeUnitVector(Long numDimensions){
+		return makeDiagonalVector(1L, numDimensions);
+	}
+
 	public final int getHashCode(){
 		/*  Initialize hash code once so it doesn't have to be calculated again: */
 		int total  = this.getNumDimensions().intValue() + 1;
@@ -111,6 +128,21 @@ public class Vector implements Comparable<Vector>{
 		this.hashCode = getHashCode();
 	}
 
+	public Vector getSubDimensions(Long startDimension, Long endDimension) throws Exception {
+		if(
+			(startDimension > this.getNumDimensions()) ||
+			(endDimension > this.getNumDimensions())
+		){
+			throw new Exception("(startDimension > this.getNumDimensions()) || (endDimension > this.getNumDimensions())");
+		}else{
+			List<Long> newValues = new ArrayList<Long>();
+			for(long i = startDimension; i < endDimension; i++){
+				newValues.add(this.getValueAtIndex(i));
+			}
+			return new Vector(newValues);
+		}
+	}
+
 	//Don't allow access to coordinate values so that the list cannot be mutated.
 	//public List<Long> getCoordinateValues();
 
@@ -119,6 +151,18 @@ public class Vector implements Comparable<Vector>{
 			List<Long> newValues = new ArrayList<Long>();
 			for(long i = 0L; i < this.getNumDimensions(); i++){
 				newValues.add(this.getValueAtIndex(i) - other.getValueAtIndex(i));
+			}
+			return new Vector(newValues);
+		}else{
+			throw new Exception("Dimensions do not match: " + this.getNumDimensions() + " versus " + other.getNumDimensions());
+		}
+	}
+
+	public Vector add(Vector other) throws Exception{
+		if(this.getNumDimensions().equals(other.getNumDimensions())){
+			List<Long> newValues = new ArrayList<Long>();
+			for(long i = 0L; i < this.getNumDimensions(); i++){
+				newValues.add(this.getValueAtIndex(i) + other.getValueAtIndex(i));
 			}
 			return new Vector(newValues);
 		}else{
