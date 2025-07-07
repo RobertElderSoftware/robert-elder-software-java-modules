@@ -298,6 +298,14 @@ public class CuboidAddress implements Comparable<CuboidAddress>{
 		return upper.getValueAtIndex(index) - lower.getValueAtIndex(index);
 	}
 
+	public long getWidth() {
+		return this.getWidthForIndex(0L); //  Assume X
+	}
+
+	public long getHeight() {
+		return this.getWidthForIndex(1L); //  Assume Y
+	}
+
 	public String toString(){
 		return getCanonicalLowerCoordinate().toString() + " -> " + getCanonicalUpperCoordinate().toString();
 	}

@@ -59,32 +59,30 @@ public class FrameDimensions {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private Long frameCharacterWidth;
-	private Long frameWidth;
-	private Long frameHeight;
-	private Long frameOffsetX;
-	private Long frameOffsetY;
-	private Long terminalWidth;
-	private Long terminalHeight;
+	private CuboidAddress frame = new CuboidAddress(
+		Coordinate.makeDiagonalCoordinate(0L, 2L),
+		Coordinate.makeDiagonalCoordinate(0L, 2L)
+	);
+	private CuboidAddress terminal = new CuboidAddress(
+		Coordinate.makeDiagonalCoordinate(0L, 2L),
+		Coordinate.makeDiagonalCoordinate(0L, 2L)
+	);
 
-	public FrameDimensions(Long frameCharacterWidth, Long frameWidth, Long frameHeight, Long frameOffsetX, Long frameOffsetY, Long terminalWidth, Long terminalHeight) throws Exception {
+	public FrameDimensions() throws Exception {
+
+	}
+
+	public FrameDimensions(Long frameCharacterWidth, CuboidAddress frame, CuboidAddress terminal) throws Exception {
 		this.frameCharacterWidth = frameCharacterWidth;
-		this.frameWidth = frameWidth;
-		this.frameHeight = frameHeight;
-		this.frameOffsetX = frameOffsetX;
-		this.frameOffsetY = frameOffsetY;
-		this.terminalWidth = terminalWidth;
-		this.terminalHeight = terminalHeight;
+		this.frame = frame;
+		this.terminal = terminal;
 		this.sanityCheck();
 	}
 
 	public FrameDimensions(FrameDimensions f) throws Exception {
 		this.frameCharacterWidth = f.getFrameCharacterWidth();
-		this.frameWidth = f.getFrameWidth();
-		this.frameHeight = f.getFrameHeight();
-		this.frameOffsetX = f.getFrameOffsetX();
-		this.frameOffsetY = f.getFrameOffsetY();
-		this.terminalWidth = f.getTerminalWidth();
-		this.terminalHeight = f.getTerminalHeight();
+		this.frame = f.getFrame();
+		this.terminal = f.getTerminal();
 		this.sanityCheck();
 	}
 
@@ -92,23 +90,23 @@ public class FrameDimensions {
 		if(this.frameCharacterWidth < 0L){
 			throw new Exception("this.frameCharacterWidth < 0L");
 		}
-		if(this.frameWidth < 0L){
-			throw new Exception("this.frameWidth < 0L");
+		if(this.frame.getWidth() < 0L){
+			throw new Exception("this..getWidth() < 0L");
 		}
-		if(this.frameHeight < 0L){
-			throw new Exception("this.frameHeight < 0L");
+		if(this.frame.getHeight() < 0L){
+			throw new Exception("this.getHeight() < 0L");
 		}
-		if(this.frameOffsetX < 0L){
-			throw new Exception("this.frameOffsetX < 0L");
+		if(this.frame.getCanonicalLowerCoordinate().getX() < 0L){
+			throw new Exception("this.getCanonicalLowerCoordinate().getX() < 0L");
 		}
-		if(this.frameOffsetY < 0L){
-			throw new Exception("this.frameOffsetY < 0L");
+		if(this.frame.getCanonicalLowerCoordinate().getY() < 0L){
+			throw new Exception("this.getCanonicalLowerCoordinate().getY() < 0L");
 		}
-		if(this.terminalWidth < 0L){
-			throw new Exception("this.terminalWidth < 0L");
+		if(this.terminal.getWidth() < 0L){
+			throw new Exception("this.terminal.getWidth() < 0L");
 		}
-		if(this.terminalHeight < 0L){
-			throw new Exception("this.terminalHeight < 0L");
+		if(this.terminal.getHeight() < 0L){
+			throw new Exception("this.terminal.getHeight() < 0L");
 		}
 	}
 
@@ -116,28 +114,36 @@ public class FrameDimensions {
 		return this.frameCharacterWidth;
 	}
 
+	public CuboidAddress getFrame(){
+		return this.frame;
+	}
+
+	public CuboidAddress getTerminal(){
+		return this.terminal;
+	}
+
 	public Long getFrameWidth(){
-		return this.frameWidth;
+		return this.frame.getWidth();
 	}
 
 	public Long getFrameHeight(){
-		return this.frameHeight;
+		return this.frame.getHeight();
 	}
 
-	public Long getFrameOffsetX(){
-		return this.frameOffsetX;
+	public Long getFrameOffsetX() throws Exception{
+		return this.frame.getCanonicalLowerCoordinate().getX();
 	}
 
-	public Long getFrameOffsetY(){
-		return this.frameOffsetY;
+	public Long getFrameOffsetY() throws Exception{
+		return this.frame.getCanonicalLowerCoordinate().getY();
 	}
 
 	public Long getTerminalWidth(){
-		return this.terminalWidth;
+		return this.terminal.getWidth();
 	}
 
 	public Long getTerminalHeight(){
-		return this.terminalHeight;
+		return this.terminal.getHeight();
 	}
 
 	@Override
@@ -147,7 +153,7 @@ public class FrameDimensions {
 
 	@Override
 	public String toString(){
-		return "frameCharacterWidth=" + String.valueOf(this.frameCharacterWidth) + "frameWidth=" + String.valueOf(this.frameWidth) + "frameHeight=" + String.valueOf(this.frameHeight) + "frameOffsetX=" + String.valueOf(this.frameOffsetX) + "frameOffsetY=" + String.valueOf(this.frameOffsetY) + "terminalWidth=" + String.valueOf(this.terminalWidth) + "terminalHeight=" + String.valueOf(this.terminalHeight);
+		return "frameCharacterWidth=" + String.valueOf(this.frameCharacterWidth) + "frame=" + String.valueOf(this.frame) + "terminal=" + String.valueOf(this.terminal);
 	}
 
 	@Override
@@ -158,12 +164,8 @@ public class FrameDimensions {
 		}else{
 			return (
 				Objects.equals(o.getFrameCharacterWidth(), this.frameCharacterWidth) &&
-				Objects.equals(o.getFrameWidth(), this.frameWidth) &&
-				Objects.equals(o.getFrameHeight(), this.frameHeight) &&
-				Objects.equals(o.getFrameOffsetX(), this.frameOffsetX) &&
-				Objects.equals(o.getFrameOffsetY(), this.frameOffsetY) &&
-				Objects.equals(o.getTerminalWidth(), this.terminalWidth) &&
-				Objects.equals(o.getTerminalHeight(), this.terminalHeight)
+				Objects.equals(o.getFrame(), this.frame) &&
+				Objects.equals(o.getTerminal(), this.terminal)
 			);
 		}
 	}

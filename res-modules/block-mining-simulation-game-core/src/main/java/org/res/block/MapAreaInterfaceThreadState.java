@@ -63,7 +63,11 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	private Long mapAreaHeightInCells;
 	private Long mapAreaWidthInCells;
 	private Coordinate playerPosition;
-	private CuboidAddress mapAreaCuboidAddress;
+	private CuboidAddress mapAreaCuboidAddress = new CuboidAddress(
+		//  Initialize map to empty region at origin
+		Coordinate.makeDiagonalCoordinate(0L, 4L),
+		Coordinate.makeDiagonalCoordinate(0L, 4L)
+	);
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
 	private ClientBlockModelContext clientBlockModelContext;
@@ -179,7 +183,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
 		if(hasThisFrameDimensionsChanged){
 			this.clearFrame();
-			FrameDimensions currentFrameDimensions = this.getFrameDimensions() == null ? null : new FrameDimensions(this.getFrameDimensions());
+			FrameDimensions currentFrameDimensions = new FrameDimensions(this.getFrameDimensions());
 			Long totalXBorderSize = this.getTotalXBorderSize();
 			Long totalYBorderSize = this.getTotalYBorderSize();
 			Long printableInnerWidth = this.getFrameWidth() - totalXBorderSize;
@@ -268,10 +272,10 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		Coordinate lastGameInterfacePosition = this.playerPosition;
 		this.playerPosition = newPosition;
 
-		if(lastGameInterfacePosition != null && this.mapAreaCuboidAddress != null){
+		if(lastGameInterfacePosition != null){
 			this.updatePlayerOverlay(new CuboidAddress(lastGameInterfacePosition, lastGameInterfacePosition.add(Coordinate.makeUnitCoordinate(4L))), false);
 		}
-		if(newPosition != null && this.mapAreaCuboidAddress != null){
+		if(newPosition != null){
 			this.updatePlayerOverlay(new CuboidAddress(newPosition, newPosition.add(Coordinate.makeUnitCoordinate(4L))), true);
 		}
 
@@ -291,27 +295,21 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void loadMapAreaBlocksFromMemory(CuboidAddress areaToUpdate, CuboidAddress areaToExclude) throws Exception {
-		if(this.mapAreaCuboidAddress != null){
-			logger.info("Doing loadMapAreaBlocksFromMemory for area " + areaToUpdate + " with mapArea cuboid as " + this.mapAreaCuboidAddress + ".");
-		
-			RegionIteration regionIteration = new RegionIteration(areaToUpdate.getCanonicalLowerCoordinate(), areaToUpdate);
-			do{
-				Coordinate currentMapAreaCoordinate = regionIteration.getCurrentCoordinate();
-				if(
-					(areaToExclude == null || (!areaToExclude.containsCoordinate(currentMapAreaCoordinate))) &&
-					this.mapAreaCuboidAddress.containsCoordinate(currentMapAreaCoordinate)
-				){
-					IndividualBlock b = clientBlockModelContext.readBlockAtCoordinate(currentMapAreaCoordinate);
-					if(b != null){ /* Chunk not even loaded. */
-						this.mapAreaBlocks.setObjectAtCoordinate(currentMapAreaCoordinate, b);
-					}
+		logger.info("Doing loadMapAreaBlocksFromMemory for area " + areaToUpdate + " with mapArea cuboid as " + this.mapAreaCuboidAddress + ".");
+	
+		RegionIteration regionIteration = new RegionIteration(areaToUpdate.getCanonicalLowerCoordinate(), areaToUpdate);
+		do{
+			Coordinate currentMapAreaCoordinate = regionIteration.getCurrentCoordinate();
+			if(
+				(areaToExclude == null || (!areaToExclude.containsCoordinate(currentMapAreaCoordinate))) &&
+				this.mapAreaCuboidAddress.containsCoordinate(currentMapAreaCoordinate)
+			){
+				IndividualBlock b = clientBlockModelContext.readBlockAtCoordinate(currentMapAreaCoordinate);
+				if(b != null){ /* Chunk not even loaded. */
+					this.mapAreaBlocks.setObjectAtCoordinate(currentMapAreaCoordinate, b);
 				}
-			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
-			return;
-		}else{
-			logger.info("missing loadMapAreaBlocksFromMemory because this.mapAreaCuboidAddress was null.");
-			return;
-		}
+			}
+		}while (regionIteration.incrementCoordinateWithinCuboidAddress());
 	}
 
 	public void onUpdateMapAreaFlagsNotify(CuboidAddress areaToUpdate) throws Exception {
@@ -321,12 +319,10 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void reprintFrame() throws Exception {
-		if(this.mapAreaCuboidAddress != null){
-			this.drawBorders();
-			//  Player coordinate:
-			String playerCoordinateString = "X=" + this.getPlayerPosition().getX() + ", Y=" + this.getPlayerPosition().getY() + ", Z=" + this.getPlayerPosition().getZ();
-			this.printTextAtScreenXY(new ColouredTextFragment(playerCoordinateString, new int [] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}), 10L, 0L, true);
-		}
+		this.drawBorders();
+		//  Player coordinate:
+		String playerCoordinateString = "X=" + this.getPlayerPosition().getX() + ", Y=" + this.getPlayerPosition().getY() + ", Z=" + this.getPlayerPosition().getZ();
+		this.printTextAtScreenXY(new ColouredTextFragment(playerCoordinateString, new int [] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}), 10L, 0L, true);
 	}
 
 	public void updatePlayerOverlay(CuboidAddress playerPositionCA, boolean isPlayerLocation) throws Exception{
@@ -363,88 +359,85 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	}
 		
 	public void printMapAreaUpdates(CuboidAddress areaToUpdate) throws Exception {
-		if(this.mapAreaCuboidAddress != null){
-			logger.info("Doing printMapAreaUpdates with mapArea cuboid as " + this.mapAreaCuboidAddress + ".");
+		logger.info("Doing printMapAreaUpdates with mapArea cuboid as " + this.mapAreaCuboidAddress + ".");
 
-	
-			GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
-			boolean useASCII = mode.equals(GraphicsMode.ASCII);
-			Long areaToUpdateWidth = areaToUpdate.getWidthForIndex(0L);
-			Long areaToUpdateHeight = areaToUpdate.getWidthForIndex(2L);
-			Long mapAreaWidthInCells = this.mapAreaCuboidAddress.getWidthForIndex(0L);
-			Long mapAreaHeightInCells = this.mapAreaCuboidAddress.getWidthForIndex(2L);
-			String [][] updatedCellContents = new String [areaToUpdateWidth.intValue()][areaToUpdateHeight.intValue()];
-			int [][][] updatedBackgroundColours = new int [areaToUpdateWidth.intValue()][areaToUpdateHeight.intValue()][2];
 
-			//  Expand the 'areaToUpate' to include one y value above to update background colours for the loaded chunks in the layer below
-			Coordinate lowerAreaToUpdate = areaToUpdate.getCanonicalLowerCoordinate();
-			Coordinate upperAreaToUpdate = areaToUpdate.getCanonicalUpperCoordinate().changeByDeltaXYZ(0L, 1L, 0L);
-			CuboidAddress expandedAreaToUpdate = new CuboidAddress(lowerAreaToUpdate, upperAreaToUpdate);
-			//  The visible layer to iterate over is only the top of the 2 y layers:
-			Coordinate lowerVisibleLayer = this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().changeByDeltaXYZ(0L, 1L, 0L);
-			Coordinate upperVisibleLayer = this.mapAreaCuboidAddress.getCanonicalUpperCoordinate();
-			CuboidAddress visibleArea = new CuboidAddress(lowerVisibleLayer, upperVisibleLayer);
-			RegionIteration regionIteration = new RegionIteration(expandedAreaToUpdate.getCanonicalLowerCoordinate(), expandedAreaToUpdate);
-			do{
-				Coordinate currentMapAreaCoordinate = regionIteration.getCurrentCoordinate();
-				Coordinate underBlockCoordinate = currentMapAreaCoordinate.changeByDeltaXYZ(0L, -1L, 0L);
-				if(visibleArea.containsCoordinate(currentMapAreaCoordinate)){
-					Long xCellOffset = currentMapAreaCoordinate.getX() - this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getX();
-					Long yCellOffset = (this.mapAreaCuboidAddress.getWidthForIndex(2L) -1L) - (currentMapAreaCoordinate.getZ() - this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getZ());
+		GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
+		boolean useASCII = mode.equals(GraphicsMode.ASCII);
+		Long areaToUpdateWidth = areaToUpdate.getWidthForIndex(0L);
+		Long areaToUpdateHeight = areaToUpdate.getWidthForIndex(2L);
+		Long mapAreaWidthInCells = this.mapAreaCuboidAddress.getWidthForIndex(0L);
+		Long mapAreaHeightInCells = this.mapAreaCuboidAddress.getWidthForIndex(2L);
+		String [][] updatedCellContents = new String [areaToUpdateWidth.intValue()][areaToUpdateHeight.intValue()];
+		int [][][] updatedBackgroundColours = new int [areaToUpdateWidth.intValue()][areaToUpdateHeight.intValue()][2];
 
-					IndividualBlock currentMapAreaCell = this.mapAreaBlocks.getObjectAtCoordinate(currentMapAreaCoordinate);
-					IndividualBlock underBlock = this.mapAreaBlocks.getObjectAtCoordinate(underBlockCoordinate);
+		//  Expand the 'areaToUpate' to include one y value above to update background colours for the loaded chunks in the layer below
+		Coordinate lowerAreaToUpdate = areaToUpdate.getCanonicalLowerCoordinate();
+		Coordinate upperAreaToUpdate = areaToUpdate.getCanonicalUpperCoordinate().changeByDeltaXYZ(0L, 1L, 0L);
+		CuboidAddress expandedAreaToUpdate = new CuboidAddress(lowerAreaToUpdate, upperAreaToUpdate);
+		//  The visible layer to iterate over is only the top of the 2 y layers:
+		Coordinate lowerVisibleLayer = this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().changeByDeltaXYZ(0L, 1L, 0L);
+		Coordinate upperVisibleLayer = this.mapAreaCuboidAddress.getCanonicalUpperCoordinate();
+		CuboidAddress visibleArea = new CuboidAddress(lowerVisibleLayer, upperVisibleLayer);
+		RegionIteration regionIteration = new RegionIteration(expandedAreaToUpdate.getCanonicalLowerCoordinate(), expandedAreaToUpdate);
+		do{
+			Coordinate currentMapAreaCoordinate = regionIteration.getCurrentCoordinate();
+			Coordinate underBlockCoordinate = currentMapAreaCoordinate.changeByDeltaXYZ(0L, -1L, 0L);
+			if(visibleArea.containsCoordinate(currentMapAreaCoordinate)){
+				Long xCellOffset = currentMapAreaCoordinate.getX() - this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getX();
+				Long yCellOffset = (this.mapAreaCuboidAddress.getWidthForIndex(2L) -1L) - (currentMapAreaCoordinate.getZ() - this.mapAreaCuboidAddress.getCanonicalLowerCoordinate().getZ());
 
-					//logger.info("printMapAreaUpdates() for " + currentMapAreaCoordinate + " xCellOffset=" + xCellOffset + " yCellOffset=" + yCellOffset);
+				IndividualBlock currentMapAreaCell = this.mapAreaBlocks.getObjectAtCoordinate(currentMapAreaCoordinate);
+				IndividualBlock underBlock = this.mapAreaBlocks.getObjectAtCoordinate(underBlockCoordinate);
 
-					boolean overSolidBlock = !(
-						underBlock instanceof EmptyBlock ||
-						underBlock instanceof UninitializedBlock ||
-						underBlock instanceof PendingLoadBlock
-					);
-					boolean overExcitingBlock = overSolidBlock && !(
-						underBlock instanceof Rock
-					);
-					int underBlockColour = useASCII ? MAGENTA_BG_COLOR : GRAY_BG_COLOR;
-					int emptyBlockBGColour = useASCII ? BLACK_BG_COLOR : MAP_CELL_BG_COLOR2;
-					int loadingBlockBGColour = useASCII ? BLACK_BG_COLOR : MAP_CELL_BG_COLOR2;
-					int blockBGColour = overSolidBlock ? underBlockColour : emptyBlockBGColour;
-					blockBGColour = overExcitingBlock ? RED_BG_COLOR : blockBGColour;
+				//logger.info("printMapAreaUpdates() for " + currentMapAreaCoordinate + " xCellOffset=" + xCellOffset + " yCellOffset=" + yCellOffset);
 
-					String stringToWrite = BlockSkins.getPresentation(currentMapAreaCell.getClass(), useASCII);
-					if(
-						//  If the block underneath is loading, don't display the block on top of it, display the in progress block underneath:
-						underBlock instanceof UninitializedBlock ||
-						underBlock instanceof PendingLoadBlock
-					){
-						stringToWrite = BlockSkins.getPresentation(underBlock.getClass(), useASCII);
-						blockBGColour = loadingBlockBGColour;
-					}
+				boolean overSolidBlock = !(
+					underBlock instanceof EmptyBlock ||
+					underBlock instanceof UninitializedBlock ||
+					underBlock instanceof PendingLoadBlock
+				);
+				boolean overExcitingBlock = overSolidBlock && !(
+					underBlock instanceof Rock
+				);
+				int underBlockColour = useASCII ? MAGENTA_BG_COLOR : GRAY_BG_COLOR;
+				int emptyBlockBGColour = useASCII ? BLACK_BG_COLOR : MAP_CELL_BG_COLOR2;
+				int loadingBlockBGColour = useASCII ? BLACK_BG_COLOR : MAP_CELL_BG_COLOR2;
+				int blockBGColour = overSolidBlock ? underBlockColour : emptyBlockBGColour;
+				blockBGColour = overExcitingBlock ? RED_BG_COLOR : blockBGColour;
 
-					int backgroundColour = blockBGColour;
-					int textColour = useASCII ? YELLOW_FG_COLOR : DEFAULT_TEXT_FG_COLOR;
-
-					Long xCellOffsetInUpdateArea = currentMapAreaCoordinate.getX() - areaToUpdate.getCanonicalLowerCoordinate().getX();
-					Long yCellOffsetInUpdateArea = (areaToUpdateHeight -1L) -(currentMapAreaCoordinate.getZ() - areaToUpdate.getCanonicalLowerCoordinate().getZ());
-					updatedCellContents[xCellOffsetInUpdateArea.intValue()][yCellOffsetInUpdateArea.intValue()] = stringToWrite;
-					updatedBackgroundColours[xCellOffsetInUpdateArea.intValue()][yCellOffsetInUpdateArea.intValue()][0] = backgroundColour;
-					updatedBackgroundColours[xCellOffsetInUpdateArea.intValue()][yCellOffsetInUpdateArea.intValue()][1] = textColour;
+				String stringToWrite = BlockSkins.getPresentation(currentMapAreaCell.getClass(), useASCII);
+				if(
+					//  If the block underneath is loading, don't display the block on top of it, display the in progress block underneath:
+					underBlock instanceof UninitializedBlock ||
+					underBlock instanceof PendingLoadBlock
+				){
+					stringToWrite = BlockSkins.getPresentation(underBlock.getClass(), useASCII);
+					blockBGColour = loadingBlockBGColour;
 				}
-			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
 
-			Long screenDrawX = (this.getMapXOffsetInCells(areaToUpdate) * this.getMapAreaCellWidth()) + this.getFrameCharacterWidth();
-			Long screenDrawY = this.getMapYOffsetInCells(areaToUpdate) + this.getFrameCharacterHeight();
-		
-			this.sendCellUpdatesInScreenArea(
-				areaToUpdate,
-				updatedCellContents,
-				updatedBackgroundColours,
-				this.getMapXOffsetInScreenCoordinates(areaToUpdate),
-				this.getMapYOffsetInScreenCoordinates(areaToUpdate),
-				ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT
-			);
-		}else{
-		}
+				int backgroundColour = blockBGColour;
+				int textColour = useASCII ? YELLOW_FG_COLOR : DEFAULT_TEXT_FG_COLOR;
+
+				Long xCellOffsetInUpdateArea = currentMapAreaCoordinate.getX() - areaToUpdate.getCanonicalLowerCoordinate().getX();
+				Long yCellOffsetInUpdateArea = (areaToUpdateHeight -1L) -(currentMapAreaCoordinate.getZ() - areaToUpdate.getCanonicalLowerCoordinate().getZ());
+				updatedCellContents[xCellOffsetInUpdateArea.intValue()][yCellOffsetInUpdateArea.intValue()] = stringToWrite;
+				updatedBackgroundColours[xCellOffsetInUpdateArea.intValue()][yCellOffsetInUpdateArea.intValue()][0] = backgroundColour;
+				updatedBackgroundColours[xCellOffsetInUpdateArea.intValue()][yCellOffsetInUpdateArea.intValue()][1] = textColour;
+			}
+		}while (regionIteration.incrementCoordinateWithinCuboidAddress());
+
+		Long screenDrawX = (this.getMapXOffsetInCells(areaToUpdate) * this.getMapAreaCellWidth()) + this.getFrameCharacterWidth();
+		Long screenDrawY = this.getMapYOffsetInCells(areaToUpdate) + this.getFrameCharacterHeight();
+	
+		this.sendCellUpdatesInScreenArea(
+			areaToUpdate,
+			updatedCellContents,
+			updatedBackgroundColours,
+			this.getMapXOffsetInScreenCoordinates(areaToUpdate),
+			this.getMapYOffsetInScreenCoordinates(areaToUpdate),
+			ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT
+		);
 	}
 
 	private Coordinate getPlayerPosition(){

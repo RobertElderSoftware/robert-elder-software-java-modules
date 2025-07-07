@@ -388,16 +388,12 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		return wrappedInstructions;
 	}
 
-	protected FrameDimensions getFrameDimensions(){
-		if(this.currentFrameChangeWorkItemParams == null){
-			return null;
-		}else{
-			return this.currentFrameChangeWorkItemParams.getCurrentFrameDimensions();
-		}
+	protected FrameDimensions getFrameDimensions() throws Exception{
+		return this.currentFrameChangeWorkItemParams.getCurrentFrameDimensions();
 	}
 
-	protected Long getFrameWidth(){
-		return this.getFrameDimensions() == null ? null : this.getFrameDimensions().getFrameWidth();
+	protected Long getFrameWidth() throws Exception{
+		return this.getFrameDimensions().getFrameWidth();
 	}
 
 	protected Long getInnerFrameWidth() throws Exception{
@@ -409,24 +405,24 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		return getFrameHeight() - (hasTopBorder() ? 1L : 0L) - (hasBottomBorder() ? 1L : 0L);
 	}
 
-	protected Long getFrameHeight(){
-		return this.getFrameDimensions() == null ? null : this.getFrameDimensions().getFrameHeight();
+	protected Long getFrameHeight() throws Exception{
+		return this.getFrameDimensions().getFrameHeight();
 	}
 
-	protected Long getFrameOffsetX(){
-		return this.getFrameDimensions() == null ? null : this.getFrameDimensions().getFrameOffsetX();
+	protected Long getFrameOffsetX() throws Exception{
+		return this.getFrameDimensions().getFrameOffsetX();
 	}
 
-	protected Long getFrameOffsetY(){
-		return this.getFrameDimensions() == null ? null : this.getFrameDimensions().getFrameOffsetY();
+	protected Long getFrameOffsetY() throws Exception{
+		return this.getFrameDimensions().getFrameOffsetY();
 	}
 
-	protected Long getTerminalWidth(){
-		return this.getFrameDimensions() == null ? null : this.getFrameDimensions().getTerminalWidth();
+	protected Long getTerminalWidth() throws Exception{
+		return this.getFrameDimensions().getTerminalWidth();
 	}
 
-	protected Long getTerminalHeight(){
-		return this.getFrameDimensions() == null ? null : this.getFrameDimensions().getTerminalHeight();
+	protected Long getTerminalHeight() throws Exception{
+		return this.getFrameDimensions().getTerminalHeight();
 	}
 
 	public Long getMapAreaCellWidth() throws Exception{
@@ -452,7 +448,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 
-	protected boolean hasBottomBorder(){
+	protected boolean hasBottomBorder() throws Exception{
 		return this.getTerminalHeight().equals(this.getFrameOffsetY() + this.getFrameHeight());
 	}
 
@@ -958,6 +954,15 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		this.clientBlockModelContext = clientBlockModelContext;
 		this.frameId = seq.getAndIncrement();
 		this.usedScreenLayers = usedScreenLayers;
+
+		this.currentFrameChangeWorkItemParams = new FrameChangeWorkItemParams(
+			new FrameDimensions(),
+			new FrameDimensions(),
+			new FrameBordersDescription(new HashSet<Coordinate>()),
+			0L,
+			0L,
+			this.frameId
+		);
 
 		for(int i = 0; i < usedScreenLayers.length; i++){
 			this.bufferedScreenLayers[usedScreenLayers[i]] = new ScreenLayer(0,0);

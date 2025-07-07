@@ -80,14 +80,18 @@ public class UserInterfaceSplitVertical extends UserInterfaceSplitMulti {
 					throw new Exception("currentFrameWidth is negative: " + currentFrameWidth + " for i=" + i + " this.splitParts.size()=" + this.splitParts.size());
 				}
 
+				Long x1 = xOffsetSoFar + frameDimensions.getFrameOffsetX();
+				Long y1 = frameDimensions.getFrameOffsetY();
+				Long x2 = x1 + currentFrameWidth;
+				Long y2 = y1 + frameDimensions.getFrameHeight();
+
 				FrameDimensions subFrameDimensions = new FrameDimensions(
 					frameDimensions.getFrameCharacterWidth(),
-					currentFrameWidth,
-					frameDimensions.getFrameHeight(),
-					xOffsetSoFar + frameDimensions.getFrameOffsetX(),
-					frameDimensions.getFrameOffsetY(),
-					frameDimensions.getTerminalWidth(),
-					frameDimensions.getTerminalHeight()
+					new CuboidAddress(
+						new Coordinate(Arrays.asList(x1, y1)),
+						new Coordinate(Arrays.asList(x2, y2))
+					),
+					frameDimensions.getTerminal()
 				);
 				sumFrameDimensions.add(subFrameDimensions);
 				xOffsetSoFar += currentFrameWidth;

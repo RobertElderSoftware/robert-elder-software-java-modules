@@ -1104,7 +1104,17 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		if(this.focusedFrameId == null){
 			this.focusOnNextFrame();
 		}
-		this.currentTerminalFrameDimensions = new FrameDimensions(frameCharacterWidth, terminalWidth, terminalHeight, 0L, 0L, terminalWidth, terminalHeight);
+		this.currentTerminalFrameDimensions = new FrameDimensions(
+			frameCharacterWidth,
+			new CuboidAddress(
+				new Coordinate(Arrays.asList(0L, 0L)),
+				new Coordinate(Arrays.asList(0L + terminalWidth, 0L + terminalHeight))
+			),
+			new CuboidAddress(
+				new Coordinate(Arrays.asList(0L, 0L)),
+				new Coordinate(Arrays.asList(terminalWidth, terminalHeight))
+			)
+		);
 
 		//  When the terminal size changes, send a notify to all of the user interface frames to let them know about it
 		this.onFrameDimensionsChanged();
