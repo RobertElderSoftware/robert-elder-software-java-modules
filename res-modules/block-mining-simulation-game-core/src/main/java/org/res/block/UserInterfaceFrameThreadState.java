@@ -118,7 +118,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	public ScreenLayer[] previousBufferedScreenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
 	public ScreenLayer[] bufferedScreenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
 	public ScreenMask[] bufferedScreenMasks = new ScreenMask [ConsoleWriterThreadState.numScreenLayers];
-	public List<Set<ScreenRegion>> changedScreenRegions = new ArrayList<Set<ScreenRegion>>();
 
 	protected static List<String[]> splitStringByDelimiterPairs(String str, String delimiterRegex){
 		List<String[]> rtn = new ArrayList<String[]>();
@@ -343,7 +342,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int xSize = xDimSize;
 		int ySize = yDimSize;
 
-		ScreenRegion region = new ScreenRegion(xOffset, yOffset, xOffset + xDimSize, yOffset + yDimSize);
+		ScreenRegion region = new ScreenRegion(
+			ScreenRegion.makeScreenRegionCA(xOffset, yOffset, xOffset + xDimSize, yOffset + yDimSize)
+		);
 		this.writeToLocalFrameBuffer(changes, mask, region, fd, bufferIndex);
 	}
 
@@ -361,8 +362,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				int l = usedScreenLayers[i];
 				this.previousBufferedScreenLayers[l] = new ScreenLayer(this.bufferedScreenLayers[l]);
 				this.bufferedScreenMasks[l].initialize(false);
-				//  All these screen regions were successfully printed and are no longer needed:
-				this.changedScreenRegions.get(l).clear();
 			}
 			return true;
 		}
@@ -717,7 +716,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		endXConstrained = endXConstrained > frameWidth ? frameWidth : endXConstrained;
 		endYConstrained = endYConstrained > frameHeight ? frameHeight : endYConstrained;
 
-		ScreenRegion constrainedRegion = new ScreenRegion(startXConstrained, startYConstrained, endXConstrained, endYConstrained);
+		ScreenRegion constrainedRegion = new ScreenRegion(
+			ScreenRegion.makeScreenRegionCA(startXConstrained, startYConstrained, endXConstrained, endYConstrained)
+		);
 		//ScreenRegion constrainedRegion = new ScreenRegion(0, 0, frameWidth, frameHeight);
 		/*
 		if(
@@ -726,7 +727,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			(constrainedRegion.getStartY() == constrainedRegion.getEndY())
 		){
 		}*/
-		this.changedScreenRegions.get(bufferIndex).add(constrainedRegion);
+		this.bufferedScreenLayers[bufferIndex].addChangedRegion(constrainedRegion);
 	}
 
 	public boolean hasOtherFrameDimensionsChanged(FrameChangeWorkItemParams params){
@@ -771,8 +772,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			this.previousBufferedScreenLayers[l] = new ScreenLayer(width, height);
 			this.previousBufferedScreenLayers[l].initialize(0, null, new int [] {});
 			this.bufferedScreenMasks[l].initialize(width, height, true);
-			this.changedScreenRegions.get(l).clear();
-			this.changedScreenRegions.get(l).add(new ScreenRegion(0, 0, width, height));
+			this.bufferedScreenLayers[l].addChangedRegion(new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, width, height)));
 		}
 	}
 
@@ -784,22 +784,22 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			int height = this.getFrameDimensions().getFrameHeight().intValue();
 			for(int i = 0; i < this.usedScreenLayers.length; i++){
 				int l = usedScreenLayers[i];
-				this.changedScreenRegions.get(l).add(
-					new ScreenRegion(
+				this.bufferedScreenLayers[l].addChangedRegion(
+					new ScreenRegion(ScreenRegion.makeScreenRegionCA(
 						0,
 						0,
 						width,
 						height
-					)
+					))
 				);
 				this.bufferedScreenMasks[l].initialize(true);
 			}
 		}
 	}
 
-	public List<ScreenLayerPrintParameters> makeScreenPrintParameters(ScreenLayer l, ScreenMask m, Set<ScreenRegion> regions, int bufferIndex, boolean isActive) throws Exception{
+	public List<ScreenLayerPrintParameters> makeScreenPrintParameters(ScreenLayer l, ScreenMask m, int bufferIndex, boolean isActive) throws Exception{
 		List<ScreenLayerPrintParameters> rtn = new ArrayList<ScreenLayerPrintParameters>();
-		rtn.add(new ScreenLayerPrintParameters(l, m, regions, bufferIndex, isActive));
+		rtn.add(new ScreenLayerPrintParameters(l, m, bufferIndex, isActive));
 		return rtn;
 	}
 
@@ -833,7 +833,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 					makeScreenPrintParameters(
 						this.bufferedScreenLayers[l],
 						this.bufferedScreenMasks[l],
-						this.changedScreenRegions.get(l),
 						l,
 						this.pendingScreenLayerActiveStates[l]
 					)
@@ -912,7 +911,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int xSize = totalWidth;
 		int ySize = totalHeight;
 
-		ScreenRegion region = new ScreenRegion(xOffset, yOffset, xOffset + xSize, yOffset + ySize);
+		ScreenRegion region = new ScreenRegion(ScreenRegion.makeScreenRegionCA(xOffset, yOffset, xOffset + xSize, yOffset + ySize));
 		this.writeToLocalFrameBuffer(changes, mask, region, this.getFrameDimensions(), bufferIndex);
 	}
 
@@ -971,7 +970,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 
 		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
-			this.changedScreenRegions.add(new TreeSet<ScreenRegion>());
 			this.pendingScreenLayerActiveStates[i] = true;
 		}
 	}

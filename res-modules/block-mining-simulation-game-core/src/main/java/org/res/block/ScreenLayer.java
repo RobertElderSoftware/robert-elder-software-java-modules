@@ -61,6 +61,19 @@ public class ScreenLayer {
 	public int [][][] colourCodes = null;
 	public String [][] characters = null;
 	private int [] defaultColourCodes = new int [] {};
+	private Set<ScreenRegion> changedRegions = new HashSet<ScreenRegion>();
+
+	public void clearChangedRegions(){
+		this.changedRegions.clear();
+	}
+
+	public void addChangedRegion(ScreenRegion r){
+		this.changedRegions.add(r);
+	}
+
+	public Set<ScreenRegion> getChangedRegions(){
+		return this.changedRegions;
+	}
 
 	public ScreenLayer(int width, int height){
 		this.width = width;
@@ -106,7 +119,7 @@ public class ScreenLayer {
 	}
 
 	public void initialize(int chrWidth, String s, int [] colourCodes, String msg) throws Exception{
-		this.initializeInRegion(chrWidth, s, colourCodes, msg, new ScreenRegion(0,0, this.width, this.height));
+		this.initializeInRegion(chrWidth, s, colourCodes, msg, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0,0, this.width, this.height)));
 	}
 
 	public void initializeInRegion(int chrWidth, String s, int [] colourCodes, String msg, ScreenRegion region) throws Exception{

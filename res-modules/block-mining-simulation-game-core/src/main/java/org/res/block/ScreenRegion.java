@@ -55,81 +55,57 @@ import java.util.concurrent.LinkedBlockingDeque;
 
 public class ScreenRegion implements Comparable<ScreenRegion>{
 
-	public int startX;
-	public int startY;
-	public int endX;
-	public int endY;
+	private CuboidAddress region;
 
-	public ScreenRegion(int startX, int startY, int endX, int endY){
-		this.startX = startX;
-		this.startY = startY;
-		this.endX = endX;
-		this.endY = endY;
+	public static CuboidAddress makeScreenRegionCA(int startX, int startY, int endX, int endY) throws Exception{
+		return new CuboidAddress(
+			new Coordinate(Arrays.asList((long)startX, (long)startY)),
+			new Coordinate(Arrays.asList((long)endX, (long)endY))
+		);
 	}
 
-	public int getStartX(){
-		return this.startX;
+	public ScreenRegion(CuboidAddress region) throws Exception{
+		this.region = region;
 	}
 
-	public int getStartY(){
-		return this.startY;
+	public int getStartX() throws Exception{
+		return this.region.getCanonicalLowerCoordinate().getX().intValue();
 	}
 
-	public int getEndX(){
-		return this.endX;
+	public int getStartY()throws Exception{
+		return this.region.getCanonicalLowerCoordinate().getY().intValue();
 	}
 
-	public int getEndY(){
-		return this.endY;
+	public int getEndX()throws Exception{
+		return this.region.getCanonicalUpperCoordinate().getX().intValue();
+	}
+
+	public int getEndY()throws Exception{
+		return this.region.getCanonicalUpperCoordinate().getY().intValue();
+	}
+
+	public CuboidAddress getRegion(){
+		return this.region;
 	}
 
 	@Override
 	public String toString(){
-		return "startX=" + String.valueOf(this.startX) + ", startY=" + String.valueOf(this.startY) + ", endX=" + String.valueOf(this.endX) + ", endY=" + String.valueOf(this.endY);
+		return "region=" + this.getRegion().toString();
 	}
 
 	@Override
 	public int compareTo(ScreenRegion other) {
-		if(this.startX < other.getStartX()){
-			return -1;
-		}else if(this.startX > other.getStartX()){
-			return 1;
-		}else{
-			if(this.startY < other.getStartY()){
-				return -1;
-			}else if(this.startY > other.getStartY()){
-				return 1;
-			}else{
-				if(this.endX < other.getEndX()){
-					return -1;
-				}else if(this.endX > other.getEndX()){
-					return 1;
-				}else{
-					if(this.endY < other.getEndY()){
-						return -1;
-					}else if(this.endY > other.getEndY()){
-						return 1;
-					}else{
-						return 0;
-					}
-				}
-			}
-		}
+		return this.region.compareTo(other.getRegion());
 	}
 
 	@Override
 	public final int hashCode(){
-		return this.startX;
+		return this.getRegion().hashCode();
 	}
 
 	@Override
 	public boolean equals(Object o){
 		ScreenRegion r = (ScreenRegion)o;
-		return (
-			this.startX == r.getStartX() &&
-			this.startY == r.getStartY() &&
-			this.endX == r.getEndX() &&
-			this.endY == r.getEndY()
-		);
+		return r.getRegion().equals(this.region);
 	}
 }

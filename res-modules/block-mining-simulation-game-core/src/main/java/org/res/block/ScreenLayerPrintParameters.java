@@ -45,14 +45,12 @@ public class ScreenLayerPrintParameters {
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private ScreenLayer screenLayer;
 	private ScreenMask screenMask;
-	private Set<ScreenRegion> regions;
 	private int bufferIndex;
 	private boolean isActive;
 
-	public ScreenLayerPrintParameters(ScreenLayer screenLayer, ScreenMask screenMask, Set<ScreenRegion> regions, int bufferIndex, boolean isActive){
+	public ScreenLayerPrintParameters(ScreenLayer screenLayer, ScreenMask screenMask, int bufferIndex, boolean isActive){
 		this.screenLayer = screenLayer;
 		this.screenMask = screenMask;
-		this.regions = regions;
 	       	this.bufferIndex = bufferIndex;
 	       	this.isActive = isActive;
 	}
@@ -63,10 +61,6 @@ public class ScreenLayerPrintParameters {
 
 	public ScreenMask getScreenMask(){
 		return this.screenMask;
-	}
-
-	public Set<ScreenRegion> getScreenRegions(){
-		return this.regions;
 	}
 
 	public int getBufferIndex(){
