@@ -86,7 +86,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private boolean [] screenLayerActiveStates = new boolean [ConsoleWriterThreadState.numScreenLayers];
 	private ScreenLayer [] screenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
 	private ScreenMask [] screenMasks = new ScreenMask [ConsoleWriterThreadState.numScreenLayers];
-	private Set<ScreenRegion> mergedRegionsToUpdate = new HashSet<ScreenRegion>();
 
 	//  Final output that's suppoused to be printed to screen
         //  after all layers have been merged:
@@ -856,7 +855,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		return new EmptyWorkItemResult();
 	}
 
-	public static void mergeNonNullCharactersDown(ScreenLayer topLayer, ScreenMask topMask, ScreenLayer outputLayer, ScreenMask outputMask, Set<ScreenRegion> regions) throws Exception{
+	public static void mergeNonNullCharactersDown(ScreenLayer topLayer, ScreenMask topMask, ScreenLayer outputLayer, ScreenMask outputMask) throws Exception{
+		Set<ScreenRegion> regions = topLayer.getChangedRegions();
+		regions.addAll(outputLayer.getChangedRegions());
 		for(ScreenRegion region : regions){
 			int startX = region.getStartX();
 			int startY = region.getStartY();
@@ -878,9 +879,13 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				}
 			}
 		}
+		outputLayer.addChangedRegions(regions);
 	}
 
-	public static void mergeChangedCharactersDown(ScreenLayer topLayer, ScreenMask topMask, ScreenLayer outputLayer, ScreenMask outputMask, Set<ScreenRegion> regions) throws Exception{
+	public static void mergeChangedCharactersDown(ScreenLayer topLayer, ScreenMask topMask, ScreenLayer outputLayer, ScreenMask outputMask) throws Exception{
+		Set<ScreenRegion> regions = topLayer.getChangedRegions();
+		regions.addAll(outputLayer.getChangedRegions());
+
 		for(ScreenRegion region : regions){
 			int startX = region.getStartX();
 			int startY = region.getStartY();
@@ -911,6 +916,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				}
 			}
 		}
+		outputLayer.addChangedRegions(regions);
 	}
 
 	public void mergeActiveLayers() throws Exception{
@@ -919,7 +925,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		tmpMergedMasks.initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue(), false);
 
 		//  Initialize any previously pending unprinted regions
-		for(ScreenRegion region : this.mergedRegionsToUpdate){
+		for(ScreenRegion region : this.mergedFinalScreenLayer.getChangedRegions()){
 			tmpMergedLayers.initializeInRegion(0, null, new int [] {}, null, region);
 		}
 		//  Initialize new pending unprinted regions
@@ -930,17 +936,15 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 		//  If any layer has a change in a given region, re-calculate the merge down for all layers in that region:
 		for(ScreenLayer screenLayer : this.screenLayers){
-			this.mergedRegionsToUpdate.addAll(screenLayer.getChangedRegions());
+			tmpMergedLayers.addChangedRegions(screenLayer.getChangedRegions());
 		}
-
 		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
 			if(this.screenLayerActiveStates[i]){
 				ConsoleWriterThreadState.mergeNonNullCharactersDown(
 					this.screenLayers[i],
 					this.screenMasks[i],
 					tmpMergedLayers,
-					tmpMergedMasks,
-					this.mergedRegionsToUpdate
+					tmpMergedMasks
 				);
 			}
 
@@ -955,8 +959,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			tmpMergedLayers,
 			tmpMergedMasks,
 			this.mergedFinalScreenLayer,
-			this.mergedFinalScreenMask,
-			this.mergedRegionsToUpdate
+			this.mergedFinalScreenMask
 		);
 	}
 
@@ -965,7 +968,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		boolean useRightToLeftPrint = this.blockManagerThreadCollection.getRightToLeftPrint();
 		int loopUpdate = useRightToLeftPrint ? -1 : 1;
 		boolean resetState = useRightToLeftPrint ? true : true; // TODO:  Optimize this in the future.
-		for(ScreenRegion region : this.mergedRegionsToUpdate){
+		for(ScreenRegion region : this.mergedFinalScreenLayer.getChangedRegions()){
 			int startX = region.getStartX();
 			int startY = region.getStartY();
 			int endX = region.getEndX();
@@ -1012,7 +1015,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				}
 			}
 		}
-		this.mergedRegionsToUpdate.clear();
+		this.mergedFinalScreenLayer.clearChangedRegions();
 		if(resetCursorPosition){
 			this.stringBuilder.append("\033[0;0H"); //  Move cursor to 0,0 after every print.
 		}
@@ -1041,11 +1044,11 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	public FrameDimensions getFocusedFrameDimensions() throws Exception{
 		if(this.focusedFrameId == null){
-			return null;
+			return new FrameDimensions();
 		}else{
 			FrameDimensions fd = currentFrameDimensionsCollection.get(this.focusedFrameId);
 			if(fd == null){
-				return null;
+				return new FrameDimensions();
 			}else{
 				return new FrameDimensions(fd);
 			}
@@ -1054,7 +1057,11 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	public FrameDimensions getFrameDimensionsForFrameId(Long frameId) throws Exception{
 		FrameDimensions f = this.currentFrameDimensionsCollection.get(frameId);
-		return f == null ? null : new FrameDimensions(f);
+		if(f == null){
+			return new FrameDimensions();
+		}else{
+			return new FrameDimensions(f);
+		}
 	}
 
 	public FrameBordersDescription getFrameBordersDescription() throws Exception{

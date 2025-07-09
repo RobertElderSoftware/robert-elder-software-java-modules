@@ -71,6 +71,10 @@ public class ScreenLayer {
 		this.changedRegions.add(r);
 	}
 
+	public void addChangedRegions(Set<ScreenRegion> regions){
+		this.changedRegions.addAll(regions);
+	}
+
 	public Set<ScreenRegion> getChangedRegions(){
 		return this.changedRegions;
 	}
