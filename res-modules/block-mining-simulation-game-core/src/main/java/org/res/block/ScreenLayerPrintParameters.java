@@ -46,13 +46,11 @@ public class ScreenLayerPrintParameters {
 	private ScreenLayer screenLayer;
 	private ScreenMask screenMask;
 	private int bufferIndex;
-	private boolean isActive;
 
-	public ScreenLayerPrintParameters(ScreenLayer screenLayer, ScreenMask screenMask, int bufferIndex, boolean isActive){
+	public ScreenLayerPrintParameters(ScreenLayer screenLayer, ScreenMask screenMask, int bufferIndex){
 		this.screenLayer = screenLayer;
 		this.screenMask = screenMask;
 	       	this.bufferIndex = bufferIndex;
-	       	this.isActive = isActive;
 	}
 
 	public ScreenLayer getScreenLayer(){
@@ -65,9 +63,5 @@ public class ScreenLayerPrintParameters {
 
 	public int getBufferIndex(){
 		return this.bufferIndex;
-	}
-
-	public boolean getIsActive(){
-		return this.isActive;
 	}
 }

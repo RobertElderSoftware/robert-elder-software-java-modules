@@ -55,6 +55,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 
 public class ScreenLayer {
 
+	private boolean isActive = true;
 	public int width;
 	public int height;
 	public int [][] characterWidths = null;
@@ -62,6 +63,24 @@ public class ScreenLayer {
 	public String [][] characters = null;
 	private int [] defaultColourCodes = new int [] {};
 	private Set<ScreenRegion> changedRegions = new HashSet<ScreenRegion>();
+
+	public boolean getIsActive(){
+		return this.isActive;
+	}
+
+	public void setIsActive(boolean isActive) throws Exception{
+		if(this.isActive != isActive){
+			this.isActive = isActive;
+			this.addChangedRegion(
+				new ScreenRegion(ScreenRegion.makeScreenRegionCA(
+					0,
+					0,
+					this.width,
+					this.height
+				))
+			);
+		}
+	}
 
 	public void clearChangedRegions(){
 		this.changedRegions.clear();
@@ -127,6 +146,7 @@ public class ScreenLayer {
 	}
 
 	public void initializeInRegion(int chrWidth, String s, int [] colourCodes, String msg, ScreenRegion region) throws Exception{
+		this.addChangedRegion(region);
 		int startX = region.getStartX();
 		int startY = region.getStartY();
 		int endX = region.getEndX();

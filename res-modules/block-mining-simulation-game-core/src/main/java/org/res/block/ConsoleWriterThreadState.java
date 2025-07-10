@@ -83,7 +83,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public static final int BUFFER_INDEX_DEFAULT = 0;
 	public static final int BUFFER_INDEX_OVERLAY = 1;
 	public static final int BUFFER_INDEX_MENU = 2;
-	private boolean [] screenLayerActiveStates = new boolean [ConsoleWriterThreadState.numScreenLayers];
 	private ScreenLayer [] screenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
 	private ScreenMask [] screenMasks = new ScreenMask [ConsoleWriterThreadState.numScreenLayers];
 
@@ -112,8 +111,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
 			this.screenLayers[i] = new ScreenLayer(0, 0);
+			this.screenLayers[i].setIsActive(true);
 			this.screenMasks[i] = new ScreenMask();
-			this.screenLayerActiveStates[i] = true;
 		}
 		this.initializeConsole(80L, 24L); // Early setup is necessary so we can do text width calculations before drawing frame
 
@@ -850,7 +849,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 					))
 				);
 			}
-			this.onScreenLayerStateChange(bufferIndex, param.getIsActive());
+			this.onScreenLayerStateChange(bufferIndex, param.getScreenLayer().getIsActive());
 		}
 		return new EmptyWorkItemResult();
 	}
@@ -858,23 +857,25 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public static void mergeNonNullCharactersDown(ScreenLayer topLayer, ScreenMask topMask, ScreenLayer outputLayer, ScreenMask outputMask) throws Exception{
 		Set<ScreenRegion> regions = topLayer.getChangedRegions();
 		regions.addAll(outputLayer.getChangedRegions());
-		for(ScreenRegion region : regions){
-			int startX = region.getStartX();
-			int startY = region.getStartY();
-			int endX = region.getEndX();
-			int endY = region.getEndY();
-			for(int i = startX; i < endX; i++){
-				for(int j = startY; j < endY; j++){
-					if(topLayer.characters[i][j] == null){
-						outputLayer.characterWidths[i][j] = outputLayer.characterWidths[i][j];
-						outputLayer.colourCodes[i][j] = outputLayer.colourCodes[i][j];
-						outputLayer.characters[i][j] = outputLayer.characters[i][j];
-						outputMask.flags[i][j] = outputMask.flags[i][j] || topMask.flags[i][j];
-					}else{
-						outputLayer.characterWidths[i][j] = topLayer.characterWidths[i][j];
-						outputLayer.colourCodes[i][j] = topLayer.colourCodes[i][j];
-						outputLayer.characters[i][j] = topLayer.characters[i][j];
-						outputMask.flags[i][j] = topMask.flags[i][j];
+		if(topLayer.getIsActive()){
+			for(ScreenRegion region : regions){
+				int startX = region.getStartX();
+				int startY = region.getStartY();
+				int endX = region.getEndX();
+				int endY = region.getEndY();
+				for(int i = startX; i < endX; i++){
+					for(int j = startY; j < endY; j++){
+						if(topLayer.characters[i][j] == null){
+							outputLayer.characterWidths[i][j] = outputLayer.characterWidths[i][j];
+							outputLayer.colourCodes[i][j] = outputLayer.colourCodes[i][j];
+							outputLayer.characters[i][j] = outputLayer.characters[i][j];
+							outputMask.flags[i][j] = outputMask.flags[i][j] || topMask.flags[i][j];
+						}else{
+							outputLayer.characterWidths[i][j] = topLayer.characterWidths[i][j];
+							outputLayer.colourCodes[i][j] = topLayer.colourCodes[i][j];
+							outputLayer.characters[i][j] = topLayer.characters[i][j];
+							outputMask.flags[i][j] = topMask.flags[i][j];
+						}
 					}
 				}
 			}
@@ -934,19 +935,13 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				tmpMergedLayers.initializeInRegion(0, null, new int [] {}, null, region);
 			}
 		}
-		//  If any layer has a change in a given region, re-calculate the merge down for all layers in that region:
-		for(ScreenLayer screenLayer : this.screenLayers){
-			tmpMergedLayers.addChangedRegions(screenLayer.getChangedRegions());
-		}
 		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
-			if(this.screenLayerActiveStates[i]){
-				ConsoleWriterThreadState.mergeNonNullCharactersDown(
-					this.screenLayers[i],
-					this.screenMasks[i],
-					tmpMergedLayers,
-					tmpMergedMasks
-				);
-			}
+			ConsoleWriterThreadState.mergeNonNullCharactersDown(
+				this.screenLayers[i],
+				this.screenMasks[i],
+				tmpMergedLayers,
+				tmpMergedMasks
+			);
 
 			//  After layer is merged, remove change signals for layer:
 			this.screenMasks[i].initialize(this.terminalWidth.intValue(), this.terminalHeight.intValue(), false);
@@ -1188,8 +1183,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public void onScreenLayerStateChange(int bufferIndex, boolean activeState) throws Exception{
-		this.screenLayerActiveStates[bufferIndex] = activeState;
-
+		this.screenLayers[bufferIndex].setIsActive(activeState);
 	}
 
 	public EmptyWorkItemResult setScreenAreaChangeStates(int startX, int startY, int endX, int endY, int bufferIndex, boolean state) throws Exception{
