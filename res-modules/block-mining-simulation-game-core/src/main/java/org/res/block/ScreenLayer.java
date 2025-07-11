@@ -56,11 +56,11 @@ import java.util.concurrent.LinkedBlockingDeque;
 public class ScreenLayer {
 
 	private boolean isActive = true;
-	public int width;
-	public int height;
+	private CuboidAddress dimensions;
 	public int [][] characterWidths = null;
 	public int [][][] colourCodes = null;
 	public String [][] characters = null;
+	public boolean [][] flags = null;
 	private int [] defaultColourCodes = new int [] {};
 	private Set<ScreenRegion> changedRegions = new HashSet<ScreenRegion>();
 
@@ -68,18 +68,36 @@ public class ScreenLayer {
 		return this.isActive;
 	}
 
+	public static CuboidAddress makeDimensionsCA(int startX, int startY, int endX, int endY) throws Exception{
+		return new CuboidAddress(
+			new Coordinate(Arrays.asList((long)startX, (long)startY)),
+			new Coordinate(Arrays.asList((long)endX, (long)endY))
+		);
+	}
+
 	public void setIsActive(boolean isActive) throws Exception{
 		if(this.isActive != isActive){
 			this.isActive = isActive;
-			this.addChangedRegion(
-				new ScreenRegion(ScreenRegion.makeScreenRegionCA(
-					0,
-					0,
-					this.width,
-					this.height
-				))
-			);
+			this.addChangedRegion(new ScreenRegion(this.getDimensions()));
 		}
+	}
+
+	public void initializeFlags(boolean defaultFlag){
+		for(boolean [] a : this.flags){
+			Arrays.fill(a, defaultFlag);
+		}
+	}
+
+	public int getWidth(){
+		return (int)this.dimensions.getWidth();
+	}
+
+	public int getHeight(){
+		return (int)this.dimensions.getHeight();
+	}
+
+	public CuboidAddress getDimensions(){
+		return this.dimensions;
 	}
 
 	public void clearChangedRegions(){
@@ -98,26 +116,27 @@ public class ScreenLayer {
 		return this.changedRegions;
 	}
 
-	public ScreenLayer(int width, int height){
-		this.width = width;
-		this.height = height;
+	public ScreenLayer(int width, int height) throws Exception{
 		this.characterWidths = new int [width][height];
 		this.colourCodes = new int [width][height][];
 		this.characters = new String [width][height];
+		this.flags = new boolean [width][height];
+		this.dimensions = ScreenLayer.makeDimensionsCA(0, 0, width, height);
 	}
 
 	public ScreenLayer(ScreenLayer l){
-		this.width = l.width;
-		this.height = l.height;
+		this.dimensions = l.getDimensions();
+		int width = l.getWidth();
+		int height = l.getHeight();
 		this.characterWidths = new int [width][height];
-		for(int i = 0; i < l.width; i++){
-			for(int j = 0; j < l.height; j++){
+		for(int i = 0; i < width; i++){
+			for(int j = 0; j < height; j++){
 				this.characterWidths[i][j] = l.characterWidths[i][j];
 			}
 		}
 		this.colourCodes = new int [width][height][];
-		for(int i = 0; i < l.width; i++){
-			for(int j = 0; j < l.height; j++){
+		for(int i = 0; i < width; i++){
+			for(int j = 0; j < height; j++){
 				this.colourCodes[i][j] = new int [l.colourCodes[i][j].length];
 				for(int k = 0; k < l.colourCodes[i][j].length; k++){
 					this.colourCodes[i][j][k] = l.colourCodes[i][j][k];
@@ -125,9 +144,15 @@ public class ScreenLayer {
 			}
 		}
 		this.characters = new String [width][height];
-		for(int i = 0; i < l.width; i++){
-			for(int j = 0; j < l.height; j++){
+		for(int i = 0; i < width; i++){
+			for(int j = 0; j < height; j++){
 				this.characters[i][j] = l.characters[i][j];
+			}
+		}
+		this.flags = new boolean [width][height];
+		for(int i = 0; i < width; i++){
+			for(int j = 0; j < height; j++){
+				this.flags[i][j] = l.flags[i][j];
 			}
 		}
 	}
@@ -142,10 +167,10 @@ public class ScreenLayer {
 	}
 
 	public void initialize(int chrWidth, String s, int [] colourCodes, String msg) throws Exception{
-		this.initializeInRegion(chrWidth, s, colourCodes, msg, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0,0, this.width, this.height)));
+		this.initializeInRegion(chrWidth, s, colourCodes, msg, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0,0, getWidth(), getHeight())), true);
 	}
 
-	public void initializeInRegion(int chrWidth, String s, int [] colourCodes, String msg, ScreenRegion region) throws Exception{
+	public void initializeInRegion(int chrWidth, String s, int [] colourCodes, String msg, ScreenRegion region, boolean defaultMaskState) throws Exception{
 		this.addChangedRegion(region);
 		int startX = region.getStartX();
 		int startY = region.getStartY();
@@ -158,6 +183,7 @@ public class ScreenLayer {
 				this.characterWidths[i][j] = chrWidth;
 				this.colourCodes[i][j] = colourCodes;
 				this.characters[i][j] = s;
+				this.flags[i][j] = defaultMaskState;
 			}
 		}
 		if(msg != null){
@@ -168,11 +194,11 @@ public class ScreenLayer {
 				throw new Exception("s == null");
 			}
 			int messageLength = msg.length();
-			int xOffset = messageLength > this.width ? 0 : ((this.width - messageLength) / 2);
-			int yOffset = this.height / 2;
+			int xOffset = messageLength > getWidth() ? 0 : ((getWidth() - messageLength) / 2);
+			int yOffset = getHeight() / 2;
 
 			for(int i = 0; i < msg.length(); i++){
-				if(((xOffset + i)) < this.width){
+				if(((xOffset + i)) < getWidth()){
 					this.characters[xOffset + i][yOffset] = String.valueOf(msg.charAt(i));
 				}
 			}

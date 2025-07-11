@@ -44,21 +44,15 @@ public class ScreenLayerPrintParameters {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private ScreenLayer screenLayer;
-	private ScreenMask screenMask;
 	private int bufferIndex;
 
-	public ScreenLayerPrintParameters(ScreenLayer screenLayer, ScreenMask screenMask, int bufferIndex){
+	public ScreenLayerPrintParameters(ScreenLayer screenLayer, int bufferIndex){
 		this.screenLayer = screenLayer;
-		this.screenMask = screenMask;
 	       	this.bufferIndex = bufferIndex;
 	}
 
 	public ScreenLayer getScreenLayer(){
 		return this.screenLayer;
-	}
-
-	public ScreenMask getScreenMask(){
-		return this.screenMask;
 	}
 
 	public int getBufferIndex(){

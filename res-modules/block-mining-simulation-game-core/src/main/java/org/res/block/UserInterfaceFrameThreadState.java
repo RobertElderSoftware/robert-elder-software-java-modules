@@ -116,7 +116,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	public ScreenLayer[] previousBufferedScreenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
 	public ScreenLayer[] bufferedScreenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
-	public ScreenMask[] bufferedScreenMasks = new ScreenMask [ConsoleWriterThreadState.numScreenLayers];
 
 	protected static List<String[]> splitStringByDelimiterPairs(String str, String delimiterRegex){
 		List<String[]> rtn = new ArrayList<String[]>();
@@ -305,9 +304,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int yDimSize = xDirection ? 1 : totalWidth;
 
 		ScreenLayer changes = new ScreenLayer(xDimSize, yDimSize);
-
-		ScreenMask mask = new ScreenMask();
-		mask.initialize(xDimSize, yDimSize, false);
+		changes.initializeFlags(false);
 
 		int currentOffset = 0;
 		for(int i = 0; i < charactersToPrint.size(); i++){
@@ -318,7 +315,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			changes.colourCodes[xIndex][yIndex] = newColourCodes[i];
 			changes.characters[xIndex][yIndex] = s;
 			changes.characterWidths[xIndex][yIndex] = chrWidth;
-			mask.flags[xIndex][yIndex] = true;
+			changes.flags[xIndex][yIndex] = true;
 			if(xDirection){
 				currentOffset++;
 				//  For multi-column characters in 'x' direction, reset any of the 'covered'
@@ -327,7 +324,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 					changes.colourCodes[currentOffset][yIndex] = new int [] {};
 					changes.characters[currentOffset][yIndex] = null;
 					changes.characterWidths[currentOffset][yIndex] = 0;
-					mask.flags[currentOffset][yIndex] = true;
+					changes.flags[currentOffset][yIndex] = true;
 					currentOffset++;
 				}
 			}else{
@@ -344,7 +341,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		ScreenRegion region = new ScreenRegion(
 			ScreenRegion.makeScreenRegionCA(xOffset, yOffset, xOffset + xDimSize, yOffset + yDimSize)
 		);
-		this.writeToLocalFrameBuffer(changes, mask, region, fd, bufferIndex);
+		this.writeToLocalFrameBuffer(changes, region, fd, bufferIndex);
 	}
 
 	public boolean sendConsolePrintMessage(List<ScreenLayerPrintParameters> params, FrameDimensions fd) throws Exception{
@@ -360,7 +357,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			for(int i = 0; i < this.usedScreenLayers.length; i++){
 				int l = usedScreenLayers[i];
 				this.previousBufferedScreenLayers[l] = new ScreenLayer(this.bufferedScreenLayers[l]);
-				this.bufferedScreenMasks[l].initialize(false);
+				this.bufferedScreenLayers[l].initializeFlags(false);
 			}
 			return true;
 		}
@@ -667,7 +664,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 	}
 
-	public void writeToLocalFrameBuffer(ScreenLayer changes, ScreenMask mask, ScreenRegion region, FrameDimensions frameDimensions, int bufferIndex) throws Exception{
+	public void writeToLocalFrameBuffer(ScreenLayer changes, ScreenRegion region, FrameDimensions frameDimensions, int bufferIndex) throws Exception{
 		int frameWidth = frameDimensions.getFrameWidth().intValue();
 		int frameHeight = frameDimensions.getFrameHeight().intValue();
 		int startX = region.getStartX();
@@ -678,7 +675,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			for(int y = startY; y < endY; y++){
 				int i = x - startX;
 				int j = y - startY;
-				if(mask.flags[i][j]){
+				if(changes.flags[i][j]){
 					if(
 						//  This function allows frames to try and write off the edge of the screen,
 						//  but safely clips the writes to only occur inside the frame buffer.
@@ -770,33 +767,32 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			this.bufferedScreenLayers[l].initialize(chrWidth, s, colours);
 			this.previousBufferedScreenLayers[l] = new ScreenLayer(width, height);
 			this.previousBufferedScreenLayers[l].initialize(0, null, new int [] {});
-			this.bufferedScreenMasks[l].initialize(width, height, true);
-			this.bufferedScreenLayers[l].addChangedRegion(new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, width, height)));
+			this.bufferedScreenLayers[l].initializeFlags(true);
 		}
 	}
 
 	public void setScreenLayerState(int bufferIndex, boolean isActive) throws Exception{
 		if(!(this.bufferedScreenLayers[bufferIndex].getIsActive() == isActive)){
 			this.bufferedScreenLayers[bufferIndex].setIsActive(isActive);
-			this.bufferedScreenMasks[bufferIndex].initialize(true);
+			this.bufferedScreenLayers[bufferIndex].initializeFlags(true);
 		}
 	}
 
-	public List<ScreenLayerPrintParameters> makeScreenPrintParameters(ScreenLayer l, ScreenMask m, int bufferIndex) throws Exception{
+	public List<ScreenLayerPrintParameters> makeScreenPrintParameters(ScreenLayer l, int bufferIndex) throws Exception{
 		List<ScreenLayerPrintParameters> rtn = new ArrayList<ScreenLayerPrintParameters>();
-		rtn.add(new ScreenLayerPrintParameters(l, m, bufferIndex));
+		rtn.add(new ScreenLayerPrintParameters(l, bufferIndex));
 		return rtn;
 	}
 
-	public void computeFrameDifferences(ScreenLayer previous, ScreenLayer current, ScreenMask mask, int bufferIndex){
-		for(int i = 0; i < current.width; i++){
-			for(int j = 0; j < current.height; j++){
+	public void computeFrameDifferences(ScreenLayer previous, ScreenLayer current, int bufferIndex){
+		for(int i = 0; i < current.getWidth(); i++){
+			for(int j = 0; j < current.getHeight(); j++){
 				boolean hasChanged = !(
 						(current.characterWidths[i][j] == previous.characterWidths[i][j]) &&
 								Arrays.equals(current.colourCodes[i][j], previous.colourCodes[i][j]) &&
 								Objects.equals(current.characters[i][j], previous.characters[i][j])
-				) || mask.flags[i][j];
-				mask.flags[i][j] = hasChanged;
+				) || current.flags[i][j];
+				current.flags[i][j] = hasChanged;
 			}
 		}
 	}
@@ -813,11 +809,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				int width = this.getFrameDimensions().getFrameWidth().intValue();
 				int height = this.getFrameDimensions().getFrameHeight().intValue();
 
-				this.computeFrameDifferences(this.previousBufferedScreenLayers[l], this.bufferedScreenLayers[l], this.bufferedScreenMasks[l], l);
+				this.computeFrameDifferences(this.previousBufferedScreenLayers[l], this.bufferedScreenLayers[l], l);
 				params.addAll(
 					makeScreenPrintParameters(
 						this.bufferedScreenLayers[l],
-						this.bufferedScreenMasks[l],
 						l
 					)
 				);
@@ -835,9 +830,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int totalHeight = areaCellHeight;
 
 		ScreenLayer changes = new ScreenLayer(totalWidth, totalHeight);
-
-		ScreenMask mask = new ScreenMask();
-		mask.initialize(totalWidth, totalHeight, false);
+		changes.initializeFlags(false);
 
 		for(int j = 0; j < areaCellHeight; j++){
 			int currentOffset = 0;
@@ -848,7 +841,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 						changes.colourCodes[currentOffset][j] = new int [] {};
 						changes.characters[currentOffset][j] = null;
 						changes.characterWidths[currentOffset][j] = 0;
-						mask.flags[currentOffset][j] = true;
+						changes.flags[currentOffset][j] = true;
 						currentOffset += 1;
 						paddedWidthSoFar += 1;
 					}
@@ -858,7 +851,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 					changes.colourCodes[currentOffset][j] = updatedColourCodes[i][j];
 					changes.characters[currentOffset][j] = updatedCellContents[i][j];
 					changes.characterWidths[currentOffset][j] = chrWidth;
-					mask.flags[currentOffset][j] = true;
+					changes.flags[currentOffset][j] = true;
 					currentOffset += (chrWidth > 0) ? 1 : 0;
 
 					//  For multi-column characters, reset any of the 'covered'
@@ -867,7 +860,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 						changes.colourCodes[currentOffset][j] = new int [] {};
 						changes.characters[currentOffset][j] = null;
 						changes.characterWidths[currentOffset][j] = 0;
-						mask.flags[currentOffset][j] = true;
+						changes.flags[currentOffset][j] = true;
 						currentOffset++;
 					}
 
@@ -879,7 +872,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 						changes.colourCodes[currentOffset][j] = updatedColourCodes[i][j];
 						changes.characters[currentOffset][j] = space;
 						changes.characterWidths[currentOffset][j] = spaceWidth;
-						mask.flags[currentOffset][j] = true;
+						changes.flags[currentOffset][j] = true;
 						currentOffset += spaceWidth;
 						paddedWidthSoFar += spaceWidth;
 					}
@@ -896,7 +889,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int ySize = totalHeight;
 
 		ScreenRegion region = new ScreenRegion(ScreenRegion.makeScreenRegionCA(xOffset, yOffset, xOffset + xSize, yOffset + ySize));
-		this.writeToLocalFrameBuffer(changes, mask, region, this.getFrameDimensions(), bufferIndex);
+		this.writeToLocalFrameBuffer(changes, region, this.getFrameDimensions(), bufferIndex);
 	}
 
 	public String whitespacePad(String presentedText, Long paddedWidth) throws Exception{
@@ -950,7 +943,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		for(int i = 0; i < usedScreenLayers.length; i++){
 			this.bufferedScreenLayers[usedScreenLayers[i]] = new ScreenLayer(0,0);
 			this.previousBufferedScreenLayers[usedScreenLayers[i]] = new ScreenLayer(0,0);
-			this.bufferedScreenMasks[usedScreenLayers[i]] = new ScreenMask();
 		}
 	}
 
