@@ -82,12 +82,6 @@ public class ScreenLayer {
 		}
 	}
 
-	public void initializeFlags(boolean defaultFlag){
-		for(boolean [] a : this.flags){
-			Arrays.fill(a, defaultFlag);
-		}
-	}
-
 	public int getWidth(){
 		return (int)this.dimensions.getWidth();
 	}
@@ -122,6 +116,16 @@ public class ScreenLayer {
 		this.characters = new String [width][height];
 		this.flags = new boolean [width][height];
 		this.dimensions = ScreenLayer.makeDimensionsCA(0, 0, width, height);
+	}
+
+	public void clearFlags(){
+		int width = this.getWidth();
+		int height = this.getHeight();
+		for(int i = 0; i < width; i++){
+			for(int j = 0; j < height; j++){
+				this.flags[i][j] = false;
+			}
+		}
 	}
 
 	public ScreenLayer(ScreenLayer l){

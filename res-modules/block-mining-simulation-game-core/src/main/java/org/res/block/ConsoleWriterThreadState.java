@@ -641,9 +641,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			int bufferIndex = ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT;
 			this.screenLayers[bufferIndex] = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
 			this.screenLayers[bufferIndex].initialize(1, " ", new int [] {}, msg);
-			this.screenLayers[bufferIndex].initializeFlags(true);
 			this.mergedFinalScreenLayer = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
-			this.mergedFinalScreenLayer.initializeFlags(false);
 			this.printTerminalTextChanges(false);
 		}
 	}
@@ -842,6 +840,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	public static void mergeNonNullCharactersDown(ScreenLayer topLayer, ScreenLayer outputLayer) throws Exception{
 		Set<ScreenRegion> regions = topLayer.getChangedRegions();
+		topLayer.clearChangedRegions();
 		regions.addAll(outputLayer.getChangedRegions());
 		if(topLayer.getIsActive()){
 			for(ScreenRegion region : regions){
@@ -862,6 +861,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 							outputLayer.characters[i][j] = topLayer.characters[i][j];
 							outputLayer.flags[i][j] = topLayer.flags[i][j];
 						}
+						topLayer.flags[i][j] = false;
 					}
 				}
 			}
@@ -908,7 +908,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	public void mergeActiveLayers() throws Exception{
 		ScreenLayer tmpMergedLayers = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
-		tmpMergedLayers.initializeFlags(false);
 
 		//  Initialize any previously pending unprinted regions
 		for(ScreenRegion region : this.mergedFinalScreenLayer.getChangedRegions()){
@@ -925,12 +924,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				this.screenLayers[i],
 				tmpMergedLayers
 			);
-
-			//  After layer is merged, remove change signals for layer:
-			this.screenLayers[i].initializeFlags(false);
-		}
-		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
-			this.screenLayers[i].clearChangedRegions();
 		}
 
 		ConsoleWriterThreadState.mergeChangedCharactersDown(
@@ -1005,12 +998,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
 			this.screenLayers[i] = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
 			this.screenLayers[i].initialize();
-			this.screenLayers[i].initializeFlags(false);
 		}
 
 		this.mergedFinalScreenLayer = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
 		this.mergedFinalScreenLayer.initialize();
-		this.mergedFinalScreenLayer.initializeFlags(false);
 	}
 
 	public UserInterfaceFrameThreadState getFocusedFrame() throws Exception{

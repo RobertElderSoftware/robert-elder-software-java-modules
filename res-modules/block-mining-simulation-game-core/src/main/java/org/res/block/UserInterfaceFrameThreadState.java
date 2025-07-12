@@ -304,7 +304,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int yDimSize = xDirection ? 1 : totalWidth;
 
 		ScreenLayer changes = new ScreenLayer(xDimSize, yDimSize);
-		changes.initializeFlags(false);
+		changes.clearFlags();
 
 		int currentOffset = 0;
 		for(int i = 0; i < charactersToPrint.size(); i++){
@@ -357,7 +357,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			for(int i = 0; i < this.usedScreenLayers.length; i++){
 				int l = usedScreenLayers[i];
 				this.previousBufferedScreenLayers[l] = new ScreenLayer(this.bufferedScreenLayers[l]);
-				this.bufferedScreenLayers[l].initializeFlags(false);
+				this.bufferedScreenLayers[l].clearFlags();
 			}
 			return true;
 		}
@@ -767,15 +767,11 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			this.bufferedScreenLayers[l].initialize(chrWidth, s, colours);
 			this.previousBufferedScreenLayers[l] = new ScreenLayer(width, height);
 			this.previousBufferedScreenLayers[l].initialize(0, null, new int [] {});
-			this.bufferedScreenLayers[l].initializeFlags(true);
 		}
 	}
 
 	public void setScreenLayerState(int bufferIndex, boolean isActive) throws Exception{
-		if(!(this.bufferedScreenLayers[bufferIndex].getIsActive() == isActive)){
-			this.bufferedScreenLayers[bufferIndex].setIsActive(isActive);
-			this.bufferedScreenLayers[bufferIndex].initializeFlags(true);
-		}
+		this.bufferedScreenLayers[bufferIndex].setIsActive(isActive);
 	}
 
 	public List<ScreenLayerPrintParameters> makeScreenPrintParameters(ScreenLayer l, int bufferIndex) throws Exception{
@@ -788,10 +784,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		for(int i = 0; i < current.getWidth(); i++){
 			for(int j = 0; j < current.getHeight(); j++){
 				boolean hasChanged = !(
-						(current.characterWidths[i][j] == previous.characterWidths[i][j]) &&
-								Arrays.equals(current.colourCodes[i][j], previous.colourCodes[i][j]) &&
-								Objects.equals(current.characters[i][j], previous.characters[i][j])
-				) || current.flags[i][j];
+					(current.characterWidths[i][j] == previous.characterWidths[i][j]) &&
+					Arrays.equals(current.colourCodes[i][j], previous.colourCodes[i][j]) &&
+					Objects.equals(current.characters[i][j], previous.characters[i][j])
+				) || current.flags[i][j]; //  In case multiple writes happened since last commit
 				current.flags[i][j] = hasChanged;
 			}
 		}
@@ -829,8 +825,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int totalWidth = (int)(this.getMapAreaCellWidth() * areaCellWidth);
 		int totalHeight = areaCellHeight;
 
-		ScreenLayer changes = new ScreenLayer(totalWidth, totalHeight);
-		changes.initializeFlags(false);
+		ScreenLayer changes = new ScreenLayer(totalWidth, totalHeight); // TODO:  To optimize: This can often be smaller than the entire map area
+		changes.clearFlags();
 
 		for(int j = 0; j < areaCellHeight; j++){
 			int currentOffset = 0;

@@ -430,7 +430,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		int menuHeight = instructions.size() + this.helpMenu.getDisplayedHelpMenuOptions().size() + 1;
 
 		ScreenLayer changes = new ScreenLayer(terminalWidth, terminalHeight);
-		changes.initializeFlags(false);
+		changes.clearFlags();
 
 		int yOffset = (terminalHeight / 2) - (menuHeight / 2);
 		for(int i = 0; i < terminalWidth; i++){
