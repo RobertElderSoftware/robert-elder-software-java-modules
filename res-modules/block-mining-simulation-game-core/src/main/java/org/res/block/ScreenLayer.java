@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Objects;
 
 import java.util.Set;
 import java.util.HashSet;
@@ -208,4 +209,157 @@ public class ScreenLayer {
 			}
 		}
 	}
+
+	public void mergeNonNullChangesDownOnto(ScreenLayer outputLayer) throws Exception{
+		Set<ScreenRegion> regions = this.getChangedRegions();
+		this.clearChangedRegions();
+		regions.addAll(outputLayer.getChangedRegions());
+		if(this.getIsActive()){
+			for(ScreenRegion region : regions){
+				int startX = region.getStartX();
+				int startY = region.getStartY();
+				int endX = region.getEndX();
+				int endY = region.getEndY();
+				for(int i = startX; i < endX; i++){
+					for(int j = startY; j < endY; j++){
+						if(this.characters[i][j] == null){
+							outputLayer.characterWidths[i][j] = outputLayer.characterWidths[i][j];
+							outputLayer.colourCodes[i][j] = outputLayer.colourCodes[i][j];
+							outputLayer.characters[i][j] = outputLayer.characters[i][j];
+							outputLayer.flags[i][j] = outputLayer.flags[i][j] || this.flags[i][j];
+						}else{
+							outputLayer.characterWidths[i][j] = this.characterWidths[i][j];
+							outputLayer.colourCodes[i][j] = this.colourCodes[i][j];
+							outputLayer.characters[i][j] = this.characters[i][j];
+							outputLayer.flags[i][j] = this.flags[i][j];
+						}
+						this.flags[i][j] = false;
+					}
+				}
+			}
+		}
+		outputLayer.addChangedRegions(regions);
+	}
+
+	public void mergeChangedCharactersDownOnto(ScreenLayer outputLayer) throws Exception{
+		Set<ScreenRegion> regions = this.getChangedRegions();
+		regions.addAll(outputLayer.getChangedRegions());
+
+		for(ScreenRegion region : regions){
+			int startX = region.getStartX();
+			int startY = region.getStartY();
+			int endX = region.getEndX();
+			int endY = region.getEndY();
+			for(int j = startY; j < endY; j++){
+				int i = startX;
+				while(i < endX){
+					if(!(
+						(Objects.equals(outputLayer.characters[i][j], this.characters[i][j])) &&
+						(Objects.equals(outputLayer.characterWidths[i][j], this.characterWidths[i][j])) &&
+						(Arrays.equals(outputLayer.colourCodes[i][j], this.colourCodes[i][j]))
+					) || this.flags[i][j]){
+						outputLayer.characterWidths[i][j] = this.characterWidths[i][j];
+						outputLayer.colourCodes[i][j] = this.colourCodes[i][j];
+						outputLayer.characters[i][j] = this.characters[i][j];
+						outputLayer.flags[i][j] = true;
+					}
+					//  For multi-column characters, explicitly initialize any 'covered' characters as null to resolve printing glitches:
+					int currentChrWidth = outputLayer.characterWidths[i][j];
+					for(int k = 1; (k < currentChrWidth) && (k+i) < endX; k++){
+						outputLayer.characterWidths[i+k][j] = 0;
+						outputLayer.colourCodes[i+k][j] = outputLayer.colourCodes[i][j];
+						outputLayer.characters[i+k][j] = null;
+						outputLayer.flags[i+k][j] = outputLayer.flags[i][j];
+					}
+					i += (currentChrWidth < 1) ? 1 : currentChrWidth; 
+				}
+			}
+		}
+		outputLayer.addChangedRegions(regions);
+	}
+
+	public void mergeChangesFromUIThread(ScreenLayer changes, FrameDimensions frameDimensions, boolean isLocalFrameChange) throws Exception{
+		Set<ScreenRegion> regions = changes.getChangedRegions();
+		for(ScreenRegion region : regions){
+			int startX = region.getStartX();
+			int startY = region.getStartY();
+			int endX = region.getEndX();
+			int endY = region.getEndY();
+			for(int j = startY; j < endY; j++){
+				for(int i = startX; i < endX; i++){
+					int x = isLocalFrameChange ? i : frameDimensions.getFrameOffsetX().intValue() + i;
+					int y = isLocalFrameChange ? j : frameDimensions.getFrameOffsetY().intValue() + j;
+					int xF = isLocalFrameChange ? x - startX : i;
+					int yF = isLocalFrameChange ? y - startY : j;
+
+					if(changes.flags[xF][yF]){
+						if(
+							//  Don't write beyond current terminal dimenions
+							//  Individual frames should be inside terminal area.
+							//  This check should always be true:
+							x < frameDimensions.getTerminalWidth() &&
+							y < frameDimensions.getTerminalHeight() &&
+							x >= 0 &&
+							y >= 0 &&
+							//  Only allow a frame to write inside it's own borders:
+							(
+								isLocalFrameChange ? (
+									//  Only allow a frame to write inside it's own borders:
+									x < frameDimensions.getFrameWidth().intValue() &&
+									y < frameDimensions.getFrameHeight().intValue()
+								) : (
+									//  Frame sending updates to console writer thread
+									x < (frameDimensions.getFrameOffsetX() + frameDimensions.getFrameWidth()) &&
+									y < (frameDimensions.getFrameOffsetY() + frameDimensions.getFrameHeight()) &&
+									x >= frameDimensions.getFrameOffsetX() &&
+									y >= frameDimensions.getFrameOffsetY()
+								)
+							)
+						){
+							//  If it's changing in this update, or there is a change that hasn't been printed yet.
+							boolean hasChanged = !(
+								this.characterWidths[x][y] == changes.characterWidths[xF][yF] &&
+								Arrays.equals(this.colourCodes[x][y], changes.colourCodes[xF][yF]) &&
+								Objects.equals(this.characters[x][y], changes.characters[xF][yF])
+							) || this.flags[x][y]; //  If there's a change, or an existing un-printed change
+							this.characterWidths[x][y] = changes.characterWidths[xF][yF];
+							this.colourCodes[x][y] = changes.colourCodes[xF][yF];
+							this.characters[x][y] = changes.characters[xF][yF];
+							this.flags[x][y] = hasChanged;
+						}else{
+							if(!isLocalFrameChange){
+								throw new Exception("Error character '" + changes.characters[xF][yF] + "' because if was out of bounds at x=" + x + ", y=" + y);
+							}
+						}
+					}
+				}
+			}
+			if(isLocalFrameChange){
+				int startXConstrained = startX < 0 ? 0 : startX;
+				int startYConstrained = startY < 0 ? 0 : startY;
+				int endXConstrained = endX < 0 ? 0 : endX;
+				int endYConstrained = endY < 0 ? 0 : endY;
+				startXConstrained = startXConstrained > frameDimensions.getFrameWidth().intValue() ? frameDimensions.getFrameWidth().intValue() : startXConstrained;
+				startYConstrained = startYConstrained > frameDimensions.getFrameHeight().intValue() ? frameDimensions.getFrameHeight().intValue() : startYConstrained;
+				endXConstrained = endXConstrained > frameDimensions.getFrameWidth().intValue() ? frameDimensions.getFrameWidth().intValue() : endXConstrained;
+				endYConstrained = endYConstrained > frameDimensions.getFrameHeight().intValue() ? frameDimensions.getFrameHeight().intValue() : endYConstrained;
+
+				ScreenRegion constrainedRegion = new ScreenRegion(
+					ScreenRegion.makeScreenRegionCA(startXConstrained, startYConstrained, endXConstrained, endYConstrained)
+				);
+				this.addChangedRegion(constrainedRegion);
+			}else{
+				this.addChangedRegion(
+					new ScreenRegion(ScreenRegion.makeScreenRegionCA(
+						startX + frameDimensions.getFrameOffsetX().intValue(),
+						startY + frameDimensions.getFrameOffsetY().intValue(),
+						endX + frameDimensions.getFrameOffsetX().intValue(),
+						endY + frameDimensions.getFrameOffsetY().intValue()
+					))
+				);
+			}
+		}
+		this.setIsActive(changes.getIsActive());
+	}
 }
+

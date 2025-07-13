@@ -775,135 +775,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		UserInterfaceFrameThreadState frame = this.getFrameStateById(frameChangeParams.getFrameId());
 		for(ScreenLayerPrintParameters param : params){
 			ScreenLayer changes = param.getScreenLayer();
-			Set<ScreenRegion> regions = param.getScreenLayer().getChangedRegions();
 			int bufferIndex = param.getBufferIndex();
-			int frameOffsetX = frame.getFrameOffsetX().intValue();
-			int frameOffsetY = frame.getFrameOffsetY().intValue();
-
-			for(ScreenRegion region : regions){
-				int startX = region.getStartX();
-				int startY = region.getStartY();
-				int endX = region.getEndX();
-				int endY = region.getEndY();
-				for(int j = startY; j < endY; j++){
-					for(int i = startX; i < endX; i++){
-						int x = frameOffsetX + i;
-						int y = frameOffsetY + j;
-						int xF = i;
-						int yF = j;
-						if(changes.flags[xF][yF]){
-							if(
-								//  Don't write beyond current terminal dimenions
-								//  Individual frames should be inside terminal area.
-								//  This check should always be true:
-								x < terminalWidth &&
-								y < terminalHeight &&
-								x >= 0 &&
-								y >= 0 &&
-								//  Only allow a frame to write inside it's own borders:
-								x < (frameDimensions.getFrameOffsetX() + frameDimensions.getFrameWidth()) &&
-								y < (frameDimensions.getFrameOffsetY() + frameDimensions.getFrameHeight()) &&
-								x >= frameDimensions.getFrameOffsetX() &&
-								y >= frameDimensions.getFrameOffsetY()
-							){
-								//  If it's changing in this update, or there is a change that hasn't been printed yet.
-								boolean hasChanged = !(
-									this.screenLayers[bufferIndex].characterWidths[x][y] == changes.characterWidths[xF][yF] &&
-									Arrays.equals(this.screenLayers[bufferIndex].colourCodes[x][y], changes.colourCodes[xF][yF]) &&
-									Objects.equals(this.screenLayers[bufferIndex].characters[x][y], changes.characters[xF][yF])
-								) || this.screenLayers[bufferIndex].flags[x][y]; //  If there's a change, or an existing un-printed change
-								this.screenLayers[bufferIndex].characterWidths[x][y] = changes.characterWidths[xF][yF];
-								this.screenLayers[bufferIndex].colourCodes[x][y] = changes.colourCodes[xF][yF];
-								this.screenLayers[bufferIndex].characters[x][y] = changes.characters[xF][yF];
-								this.screenLayers[bufferIndex].flags[x][y] = hasChanged;
-
-
-							}else{
-								throw new Exception("Error character '" + changes.characters[xF][yF] + "' because if was out of bounds at x=" + x + ", y=" + y);
-							}
-						}
-					}
-				}
-				this.screenLayers[bufferIndex].addChangedRegion(
-					new ScreenRegion(ScreenRegion.makeScreenRegionCA(
-						startX + frameOffsetX,
-						startY + frameOffsetY,
-						endX + frameOffsetX,
-						endY + frameOffsetY
-					))
-				);
-			}
-			this.onScreenLayerStateChange(bufferIndex, param.getScreenLayer().getIsActive());
+			this.screenLayers[bufferIndex].mergeChangesFromUIThread(changes, frame.getFrameDimensions(), false);
 		}
 		return new EmptyWorkItemResult();
-	}
-
-	public static void mergeNonNullCharactersDown(ScreenLayer topLayer, ScreenLayer outputLayer) throws Exception{
-		Set<ScreenRegion> regions = topLayer.getChangedRegions();
-		topLayer.clearChangedRegions();
-		regions.addAll(outputLayer.getChangedRegions());
-		if(topLayer.getIsActive()){
-			for(ScreenRegion region : regions){
-				int startX = region.getStartX();
-				int startY = region.getStartY();
-				int endX = region.getEndX();
-				int endY = region.getEndY();
-				for(int i = startX; i < endX; i++){
-					for(int j = startY; j < endY; j++){
-						if(topLayer.characters[i][j] == null){
-							outputLayer.characterWidths[i][j] = outputLayer.characterWidths[i][j];
-							outputLayer.colourCodes[i][j] = outputLayer.colourCodes[i][j];
-							outputLayer.characters[i][j] = outputLayer.characters[i][j];
-							outputLayer.flags[i][j] = outputLayer.flags[i][j] || topLayer.flags[i][j];
-						}else{
-							outputLayer.characterWidths[i][j] = topLayer.characterWidths[i][j];
-							outputLayer.colourCodes[i][j] = topLayer.colourCodes[i][j];
-							outputLayer.characters[i][j] = topLayer.characters[i][j];
-							outputLayer.flags[i][j] = topLayer.flags[i][j];
-						}
-						topLayer.flags[i][j] = false;
-					}
-				}
-			}
-		}
-		outputLayer.addChangedRegions(regions);
-	}
-
-	public static void mergeChangedCharactersDown(ScreenLayer topLayer, ScreenLayer outputLayer) throws Exception{
-		Set<ScreenRegion> regions = topLayer.getChangedRegions();
-		regions.addAll(outputLayer.getChangedRegions());
-
-		for(ScreenRegion region : regions){
-			int startX = region.getStartX();
-			int startY = region.getStartY();
-			int endX = region.getEndX();
-			int endY = region.getEndY();
-			for(int j = startY; j < endY; j++){
-				int i = startX;
-				while(i < endX){
-					if(!(
-						(Objects.equals(outputLayer.characters[i][j], topLayer.characters[i][j])) &&
-						(Objects.equals(outputLayer.characterWidths[i][j], topLayer.characterWidths[i][j])) &&
-						(Arrays.equals(outputLayer.colourCodes[i][j], topLayer.colourCodes[i][j]))
-					) || topLayer.flags[i][j]){
-						outputLayer.characterWidths[i][j] = topLayer.characterWidths[i][j];
-						outputLayer.colourCodes[i][j] = topLayer.colourCodes[i][j];
-						outputLayer.characters[i][j] = topLayer.characters[i][j];
-						outputLayer.flags[i][j] = true;
-					}
-					//  For multi-column characters, explicitly initialize any 'covered' characters as null to resolve printing glitches:
-					int currentChrWidth = outputLayer.characterWidths[i][j];
-					for(int k = 1; (k < currentChrWidth) && (k+i) < endX; k++){
-						outputLayer.characterWidths[i+k][j] = 0;
-						outputLayer.colourCodes[i+k][j] = outputLayer.colourCodes[i][j];
-						outputLayer.characters[i+k][j] = null;
-						outputLayer.flags[i+k][j] = outputLayer.flags[i][j];
-					}
-					i += (currentChrWidth < 1) ? 1 : currentChrWidth; 
-				}
-			}
-		}
-		outputLayer.addChangedRegions(regions);
 	}
 
 	public void mergeActiveLayers() throws Exception{
@@ -920,16 +795,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			}
 		}
 		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
-			ConsoleWriterThreadState.mergeNonNullCharactersDown(
-				this.screenLayers[i],
-				tmpMergedLayers
-			);
+			this.screenLayers[i].mergeNonNullChangesDownOnto(tmpMergedLayers);
 		}
 
-		ConsoleWriterThreadState.mergeChangedCharactersDown(
-			tmpMergedLayers,
-			this.mergedFinalScreenLayer
-		);
+		tmpMergedLayers.mergeChangedCharactersDownOnto(this.mergedFinalScreenLayer);
 	}
 
 	public void printTerminalTextChanges(boolean resetCursorPosition) throws Exception{
@@ -1151,10 +1020,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	public void putWorkItem(ConsoleWriterWorkItem workItem, WorkItemPriority priority) throws Exception{
 		this.workItemQueue.putWorkItem(workItem, priority);
-	}
-
-	public void onScreenLayerStateChange(int bufferIndex, boolean activeState) throws Exception{
-		this.screenLayers[bufferIndex].setIsActive(activeState);
 	}
 
 	public EmptyWorkItemResult setScreenAreaChangeStates(int startX, int startY, int endX, int endY, int bufferIndex, boolean state) throws Exception{

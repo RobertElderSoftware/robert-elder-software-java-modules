@@ -341,7 +341,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		ScreenRegion region = new ScreenRegion(
 			ScreenRegion.makeScreenRegionCA(xOffset, yOffset, xOffset + xDimSize, yOffset + yDimSize)
 		);
-		this.writeToLocalFrameBuffer(changes, region, fd, bufferIndex);
+		changes.addChangedRegion(region);
+		this.writeToLocalFrameBuffer(changes, fd, bufferIndex);
 	}
 
 	public boolean sendConsolePrintMessage(List<ScreenLayerPrintParameters> params, FrameDimensions fd) throws Exception{
@@ -664,66 +665,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 	}
 
-	public void writeToLocalFrameBuffer(ScreenLayer changes, ScreenRegion region, FrameDimensions frameDimensions, int bufferIndex) throws Exception{
-		int frameWidth = frameDimensions.getFrameWidth().intValue();
-		int frameHeight = frameDimensions.getFrameHeight().intValue();
-		int startX = region.getStartX();
-		int startY = region.getStartY();
-		int endX = region.getEndX();
-		int endY = region.getEndY();
-		for(int x = startX; x < endX; x++){
-			for(int y = startY; y < endY; y++){
-				int i = x - startX;
-				int j = y - startY;
-				if(changes.flags[i][j]){
-					if(
-						//  This function allows frames to try and write off the edge of the screen,
-						//  but safely clips the writes to only occur inside the frame buffer.
-						//  Don't write beyond current terminal dimenions
-						//  Individual frames should be inside terminal area
-						//  but terminal resize events means there could
-						//  be a temporary inconsistency that makes this check
-						//  necessary:
-						x < this.getFrameDimensions().getTerminalWidth() &&
-						y < this.getFrameDimensions().getTerminalHeight() &&
-						x >= 0 &&
-						y >= 0 &&
-						//  Only allow a frame to write inside it's own borders:
-						x < frameWidth &&
-						y < frameHeight
-					){
-						this.bufferedScreenLayers[bufferIndex].characterWidths[x][y] = changes.characterWidths[i][j];
-						this.bufferedScreenLayers[bufferIndex].colourCodes[x][y] = changes.colourCodes[i][j];
-						this.bufferedScreenLayers[bufferIndex].characters[x][y] = changes.characters[i][j];
-					}else{
-						//logger.info("Discarding character '" + changes.characters[i][j] + "' because if was out of bounds at x=" + x + ", y=" + y);
-					}
-				}
-			}
-		}
-
-		//  Constrain update region into frame buffer:
-		int startXConstrained = startX < 0 ? 0 : startX;
-		int startYConstrained = startY < 0 ? 0 : startY;
-		int endXConstrained = endX < 0 ? 0 : endX;
-		int endYConstrained = endY < 0 ? 0 : endY;
-		startXConstrained = startXConstrained > frameWidth ? frameWidth : startXConstrained;
-		startYConstrained = startYConstrained > frameHeight ? frameHeight : startYConstrained;
-		endXConstrained = endXConstrained > frameWidth ? frameWidth : endXConstrained;
-		endYConstrained = endYConstrained > frameHeight ? frameHeight : endYConstrained;
-
-		ScreenRegion constrainedRegion = new ScreenRegion(
-			ScreenRegion.makeScreenRegionCA(startXConstrained, startYConstrained, endXConstrained, endYConstrained)
-		);
-		//ScreenRegion constrainedRegion = new ScreenRegion(0, 0, frameWidth, frameHeight);
-		/*
-		if(
-			//  If it's not a zero-sized region:
-			(constrainedRegion.getStartX() == constrainedRegion.getEndX()) ||
-			(constrainedRegion.getStartY() == constrainedRegion.getEndY())
-		){
-		}*/
-		this.bufferedScreenLayers[bufferIndex].addChangedRegion(constrainedRegion);
+	public void writeToLocalFrameBuffer(ScreenLayer changes, FrameDimensions frameDimensions, int bufferIndex) throws Exception{
+		this.bufferedScreenLayers[bufferIndex].mergeChangesFromUIThread(changes, frameDimensions, true);
 	}
 
 	public boolean hasOtherFrameDimensionsChanged(FrameChangeWorkItemParams params){
@@ -885,7 +828,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int ySize = totalHeight;
 
 		ScreenRegion region = new ScreenRegion(ScreenRegion.makeScreenRegionCA(xOffset, yOffset, xOffset + xSize, yOffset + ySize));
-		this.writeToLocalFrameBuffer(changes, region, this.getFrameDimensions(), bufferIndex);
+		changes.addChangedRegion(region);
+		this.writeToLocalFrameBuffer(changes, this.getFrameDimensions(), bufferIndex);
 	}
 
 	public String whitespacePad(String presentedText, Long paddedWidth) throws Exception{
