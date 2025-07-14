@@ -666,7 +666,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 	public void writeToLocalFrameBuffer(ScreenLayer changes, FrameDimensions frameDimensions, int bufferIndex) throws Exception{
-		this.bufferedScreenLayers[bufferIndex].mergeChangesFromUIThread(changes, frameDimensions, true);
+		this.bufferedScreenLayers[bufferIndex].mergeChangesFromUIThread(changes, frameDimensions, true, 0L, 0L);
 	}
 
 	public boolean hasOtherFrameDimensionsChanged(FrameChangeWorkItemParams params){
@@ -723,18 +723,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		return rtn;
 	}
 
-	public void computeFrameDifferences(ScreenLayer previous, ScreenLayer current, int bufferIndex){
-		for(int i = 0; i < current.getWidth(); i++){
-			for(int j = 0; j < current.getHeight(); j++){
-				boolean hasChanged = !(
-					(current.characterWidths[i][j] == previous.characterWidths[i][j]) &&
-					Arrays.equals(current.colourCodes[i][j], previous.colourCodes[i][j]) &&
-					Objects.equals(current.characters[i][j], previous.characters[i][j])
-				) || current.flags[i][j]; //  In case multiple writes happened since last commit
-				current.flags[i][j] = hasChanged;
-			}
-		}
-	}
 
 	public boolean onFinalizeFrame() throws Exception{
 		//  Send message with current frame contents.
@@ -742,13 +730,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			List<ScreenLayerPrintParameters> params = new ArrayList<ScreenLayerPrintParameters>();
 			for(int i = 0; i < this.usedScreenLayers.length; i++){
 				int l = usedScreenLayers[i];
-				int xOffset = 0;
-				int yOffset = 0;
+				this.bufferedScreenLayers[l].computeFrameDifferences(this.previousBufferedScreenLayers[l]);
 
-				int width = this.getFrameDimensions().getFrameWidth().intValue();
-				int height = this.getFrameDimensions().getFrameHeight().intValue();
-
-				this.computeFrameDifferences(this.previousBufferedScreenLayers[l], this.bufferedScreenLayers[l], l);
 				params.addAll(
 					makeScreenPrintParameters(
 						this.bufferedScreenLayers[l],

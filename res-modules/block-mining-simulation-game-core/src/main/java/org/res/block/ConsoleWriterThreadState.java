@@ -776,7 +776,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		for(ScreenLayerPrintParameters param : params){
 			ScreenLayer changes = param.getScreenLayer();
 			int bufferIndex = param.getBufferIndex();
-			this.screenLayers[bufferIndex].mergeChangesFromUIThread(changes, frame.getFrameDimensions(), false);
+			this.screenLayers[bufferIndex].mergeChangesFromUIThread(changes, frameDimensions, false, frameDimensions.getFrameOffsetX(), frameDimensions.getFrameOffsetY());
 		}
 		return new EmptyWorkItemResult();
 	}

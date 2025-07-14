@@ -278,7 +278,9 @@ public class ScreenLayer {
 		outputLayer.addChangedRegions(regions);
 	}
 
-	public void mergeChangesFromUIThread(ScreenLayer changes, FrameDimensions frameDimensions, boolean isLocalFrameChange) throws Exception{
+	public void mergeChangesFromUIThread(ScreenLayer changes, FrameDimensions frameDimensions, boolean isLocalFrameChange, Long mergeOffsetX, Long mergeOffsetY) throws Exception{
+		int mergeOffsetXInt = mergeOffsetX.intValue();
+		int mergeOffsetYInt = mergeOffsetY.intValue();
 		Set<ScreenRegion> regions = changes.getChangedRegions();
 		for(ScreenRegion region : regions){
 			int startX = region.getStartX();
@@ -287,8 +289,8 @@ public class ScreenLayer {
 			int endY = region.getEndY();
 			for(int j = startY; j < endY; j++){
 				for(int i = startX; i < endX; i++){
-					int x = isLocalFrameChange ? i : frameDimensions.getFrameOffsetX().intValue() + i;
-					int y = isLocalFrameChange ? j : frameDimensions.getFrameOffsetY().intValue() + j;
+					int x = mergeOffsetXInt + i;
+					int y = mergeOffsetYInt + j;
 					int xF = isLocalFrameChange ? x - startX : i;
 					int yF = isLocalFrameChange ? y - startY : j;
 
@@ -305,14 +307,14 @@ public class ScreenLayer {
 							(
 								isLocalFrameChange ? (
 									//  Only allow a frame to write inside it's own borders:
-									x < frameDimensions.getFrameWidth().intValue() &&
-									y < frameDimensions.getFrameHeight().intValue()
+									x < frameDimensions.getFrameWidth() &&
+									y < frameDimensions.getFrameHeight()
 								) : (
 									//  Frame sending updates to console writer thread
-									x < (frameDimensions.getFrameOffsetX() + frameDimensions.getFrameWidth()) &&
-									y < (frameDimensions.getFrameOffsetY() + frameDimensions.getFrameHeight()) &&
-									x >= frameDimensions.getFrameOffsetX() &&
-									y >= frameDimensions.getFrameOffsetY()
+									x < (mergeOffsetXInt + frameDimensions.getFrameWidth()) &&
+									y < (mergeOffsetYInt + frameDimensions.getFrameHeight()) &&
+									x >= mergeOffsetXInt &&
+									y >= mergeOffsetYInt
 								)
 							)
 						){
@@ -335,31 +337,39 @@ public class ScreenLayer {
 				}
 			}
 			if(isLocalFrameChange){
-				int startXConstrained = startX < 0 ? 0 : startX;
-				int startYConstrained = startY < 0 ? 0 : startY;
-				int endXConstrained = endX < 0 ? 0 : endX;
-				int endYConstrained = endY < 0 ? 0 : endY;
-				startXConstrained = startXConstrained > frameDimensions.getFrameWidth().intValue() ? frameDimensions.getFrameWidth().intValue() : startXConstrained;
-				startYConstrained = startYConstrained > frameDimensions.getFrameHeight().intValue() ? frameDimensions.getFrameHeight().intValue() : startYConstrained;
-				endXConstrained = endXConstrained > frameDimensions.getFrameWidth().intValue() ? frameDimensions.getFrameWidth().intValue() : endXConstrained;
-				endYConstrained = endYConstrained > frameDimensions.getFrameHeight().intValue() ? frameDimensions.getFrameHeight().intValue() : endYConstrained;
-
-				ScreenRegion constrainedRegion = new ScreenRegion(
-					ScreenRegion.makeScreenRegionCA(startXConstrained, startYConstrained, endXConstrained, endYConstrained)
+				CuboidAddress frameAddress = frameDimensions.getFrame();
+				CuboidAddress modifiedFrameAddress = new CuboidAddress(
+					frameAddress.getCanonicalLowerCoordinate().changeByDeltaXY(-frameDimensions.getFrameOffsetX(), -frameDimensions.getFrameOffsetY()),
+					frameAddress.getCanonicalUpperCoordinate().changeByDeltaXY(-frameDimensions.getFrameOffsetX(), -frameDimensions.getFrameOffsetY())
 				);
-				this.addChangedRegion(constrainedRegion);
+
+                                CuboidAddress inFrameRegion = region.getRegion().getIntersectionCuboidAddress(modifiedFrameAddress);
+				this.addChangedRegion(new ScreenRegion(inFrameRegion));
 			}else{
 				this.addChangedRegion(
 					new ScreenRegion(ScreenRegion.makeScreenRegionCA(
-						startX + frameDimensions.getFrameOffsetX().intValue(),
-						startY + frameDimensions.getFrameOffsetY().intValue(),
-						endX + frameDimensions.getFrameOffsetX().intValue(),
-						endY + frameDimensions.getFrameOffsetY().intValue()
+						startX + mergeOffsetXInt,
+						startY + mergeOffsetYInt,
+						endX + mergeOffsetXInt,
+						endY + mergeOffsetYInt
 					))
 				);
 			}
 		}
 		this.setIsActive(changes.getIsActive());
+	}
+
+	public void computeFrameDifferences(ScreenLayer previous){
+		for(int i = 0; i < this.getWidth(); i++){
+			for(int j = 0; j < this.getHeight(); j++){
+				boolean hasChanged = !(
+					(this.characterWidths[i][j] == previous.characterWidths[i][j]) &&
+					Arrays.equals(this.colourCodes[i][j], previous.colourCodes[i][j]) &&
+					Objects.equals(this.characters[i][j], previous.characters[i][j])
+				) || this.flags[i][j]; //  In case multiple writes happened since last commit
+				this.flags[i][j] = hasChanged;
+			}
+		}
 	}
 }
 
