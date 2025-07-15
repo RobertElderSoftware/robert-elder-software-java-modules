@@ -339,10 +339,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int ySize = yDimSize;
 
 		ScreenRegion region = new ScreenRegion(
-			ScreenRegion.makeScreenRegionCA(xOffset, yOffset, xOffset + xDimSize, yOffset + yDimSize)
+			ScreenRegion.makeScreenRegionCA(0, 0, xDimSize, yDimSize)
 		);
 		changes.addChangedRegion(region);
-		this.writeToLocalFrameBuffer(changes, fd, bufferIndex);
+		this.writeToLocalFrameBuffer(changes, bufferIndex, (long)xOffset, (long)yOffset);
 	}
 
 	public boolean sendConsolePrintMessage(List<ScreenLayerPrintParameters> params, FrameDimensions fd) throws Exception{
@@ -665,8 +665,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 	}
 
-	public void writeToLocalFrameBuffer(ScreenLayer changes, FrameDimensions frameDimensions, int bufferIndex) throws Exception{
-		this.bufferedScreenLayers[bufferIndex].mergeChangesFromUIThread(changes, frameDimensions, true, 0L, 0L);
+	public void writeToLocalFrameBuffer(ScreenLayer changes, int bufferIndex, Long xOffset, Long yOffset) throws Exception{
+		this.bufferedScreenLayers[bufferIndex].mergeChangesFromUIThread(changes, xOffset, yOffset);
 	}
 
 	public boolean hasOtherFrameDimensionsChanged(FrameChangeWorkItemParams params){
@@ -810,9 +810,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int xSize = totalWidth;
 		int ySize = totalHeight;
 
-		ScreenRegion region = new ScreenRegion(ScreenRegion.makeScreenRegionCA(xOffset, yOffset, xOffset + xSize, yOffset + ySize));
+		ScreenRegion region = new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, xSize, ySize));
 		changes.addChangedRegion(region);
-		this.writeToLocalFrameBuffer(changes, this.getFrameDimensions(), bufferIndex);
+		this.writeToLocalFrameBuffer(changes, bufferIndex, (long)xOffset, (long)yOffset);
 	}
 
 	public String whitespacePad(String presentedText, Long paddedWidth) throws Exception{

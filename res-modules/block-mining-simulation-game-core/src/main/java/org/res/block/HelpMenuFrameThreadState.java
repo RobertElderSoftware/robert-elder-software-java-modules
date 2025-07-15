@@ -448,7 +448,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 
 		ScreenRegion region = new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, terminalWidth, terminalHeight));
 		changes.addChangedRegion(region);
-		this.writeToLocalFrameBuffer(changes, this.getFrameDimensions(), ConsoleWriterThreadState.BUFFER_INDEX_MENU);
+		this.writeToLocalFrameBuffer(changes, ConsoleWriterThreadState.BUFFER_INDEX_MENU, (long)0, (long)0);
 
 		for(LinePrintingInstructionAtOffset instruction : instructions){
 			Long lineYOffset = instruction.getOffsetY() + yOffset;

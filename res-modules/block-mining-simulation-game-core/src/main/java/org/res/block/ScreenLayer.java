@@ -278,82 +278,49 @@ public class ScreenLayer {
 		outputLayer.addChangedRegions(regions);
 	}
 
-	public void mergeChangesFromUIThread(ScreenLayer changes, FrameDimensions frameDimensions, boolean isLocalFrameChange, Long mergeOffsetX, Long mergeOffsetY) throws Exception{
+	public void mergeChangesFromUIThread(ScreenLayer changes, Long mergeOffsetX, Long mergeOffsetY) throws Exception{
 		int mergeOffsetXInt = mergeOffsetX.intValue();
 		int mergeOffsetYInt = mergeOffsetY.intValue();
 		Set<ScreenRegion> regions = changes.getChangedRegions();
-		for(ScreenRegion region : regions){
+		for(ScreenRegion sourceRegion : regions){
+			//  Determine the subset of the change that's actually lands within the destination layer
+			CuboidAddress destinationRegionCA = ScreenRegion.makeScreenRegionCA(
+				sourceRegion.getStartX() + mergeOffsetXInt,
+				sourceRegion.getStartY() + mergeOffsetYInt,
+				sourceRegion.getEndX() + mergeOffsetXInt,
+				sourceRegion.getEndY() + mergeOffsetYInt
+			);
+
+			CuboidAddress consideredRegion = destinationRegionCA.getIntersectionCuboidAddress(this.getDimensions());
+			ScreenRegion region = new ScreenRegion(consideredRegion);
+
 			int startX = region.getStartX();
 			int startY = region.getStartY();
 			int endX = region.getEndX();
 			int endY = region.getEndY();
 			for(int j = startY; j < endY; j++){
 				for(int i = startX; i < endX; i++){
-					int x = mergeOffsetXInt + i;
-					int y = mergeOffsetYInt + j;
-					int xF = isLocalFrameChange ? x - startX : i;
-					int yF = isLocalFrameChange ? y - startY : j;
+					int x = i;
+					int y = j;
+					int xF = i - mergeOffsetXInt;
+					int yF = j - mergeOffsetYInt;
 
 					if(changes.flags[xF][yF]){
-						if(
-							//  Don't write beyond current terminal dimenions
-							//  Individual frames should be inside terminal area.
-							//  This check should always be true:
-							x < frameDimensions.getTerminalWidth() &&
-							y < frameDimensions.getTerminalHeight() &&
-							x >= 0 &&
-							y >= 0 &&
-							//  Only allow a frame to write inside it's own borders:
-							(
-								isLocalFrameChange ? (
-									//  Only allow a frame to write inside it's own borders:
-									x < frameDimensions.getFrameWidth() &&
-									y < frameDimensions.getFrameHeight()
-								) : (
-									//  Frame sending updates to console writer thread
-									x < (mergeOffsetXInt + frameDimensions.getFrameWidth()) &&
-									y < (mergeOffsetYInt + frameDimensions.getFrameHeight()) &&
-									x >= mergeOffsetXInt &&
-									y >= mergeOffsetYInt
-								)
-							)
-						){
-							//  If it's changing in this update, or there is a change that hasn't been printed yet.
-							boolean hasChanged = !(
-								this.characterWidths[x][y] == changes.characterWidths[xF][yF] &&
-								Arrays.equals(this.colourCodes[x][y], changes.colourCodes[xF][yF]) &&
-								Objects.equals(this.characters[x][y], changes.characters[xF][yF])
-							) || this.flags[x][y]; //  If there's a change, or an existing un-printed change
-							this.characterWidths[x][y] = changes.characterWidths[xF][yF];
-							this.colourCodes[x][y] = changes.colourCodes[xF][yF];
-							this.characters[x][y] = changes.characters[xF][yF];
-							this.flags[x][y] = hasChanged;
-						}else{
-							if(!isLocalFrameChange){
-								throw new Exception("Error character '" + changes.characters[xF][yF] + "' because if was out of bounds at x=" + x + ", y=" + y);
-							}
-						}
+						boolean hasChanged = !(
+							this.characterWidths[x][y] == changes.characterWidths[xF][yF] &&
+							Arrays.equals(this.colourCodes[x][y], changes.colourCodes[xF][yF]) &&
+							Objects.equals(this.characters[x][y], changes.characters[xF][yF])
+						) || this.flags[x][y]; //  If there's a change, or an existing un-printed change
+						this.characterWidths[x][y] = changes.characterWidths[xF][yF];
+						this.colourCodes[x][y] = changes.colourCodes[xF][yF];
+						this.characters[x][y] = changes.characters[xF][yF];
+						this.flags[x][y] = hasChanged;
 					}
 				}
 			}
-			if(isLocalFrameChange){
-				CuboidAddress frameAddress = frameDimensions.getFrame();
-				CuboidAddress modifiedFrameAddress = new CuboidAddress(
-					frameAddress.getCanonicalLowerCoordinate().changeByDeltaXY(-frameDimensions.getFrameOffsetX(), -frameDimensions.getFrameOffsetY()),
-					frameAddress.getCanonicalUpperCoordinate().changeByDeltaXY(-frameDimensions.getFrameOffsetX(), -frameDimensions.getFrameOffsetY())
-				);
 
-                                CuboidAddress inFrameRegion = region.getRegion().getIntersectionCuboidAddress(modifiedFrameAddress);
-				this.addChangedRegion(new ScreenRegion(inFrameRegion));
-			}else{
-				this.addChangedRegion(
-					new ScreenRegion(ScreenRegion.makeScreenRegionCA(
-						startX + mergeOffsetXInt,
-						startY + mergeOffsetYInt,
-						endX + mergeOffsetXInt,
-						endY + mergeOffsetYInt
-					))
-				);
+			if(region.getRegion().getVolume() > 0){
+				this.addChangedRegion(region);
 			}
 		}
 		this.setIsActive(changes.getIsActive());
