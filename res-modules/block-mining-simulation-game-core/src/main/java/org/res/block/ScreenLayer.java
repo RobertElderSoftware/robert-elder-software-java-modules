@@ -241,11 +241,22 @@ public class ScreenLayer {
 		outputLayer.addChangedRegions(regions);
 	}
 
-	public void mergeChangedCharactersDownOnto(ScreenLayer outputLayer) throws Exception{
-		Set<ScreenRegion> regions = this.getChangedRegions();
-		regions.addAll(outputLayer.getChangedRegions());
+	public void mergeChangedCharactersDownOnto(ScreenLayer changes) throws Exception{
+		Set<ScreenRegion> regions = changes.getChangedRegions();
+		int mergeOffsetXInt = 0;
+		int mergeOffsetYInt = 0;
+		for(ScreenRegion sourceRegion: regions){
+			//  Determine the subset of the change that's actually lands within the destination layer
+			CuboidAddress destinationRegionCA = ScreenRegion.makeScreenRegionCA(
+				sourceRegion.getStartX() + mergeOffsetXInt,
+				sourceRegion.getStartY() + mergeOffsetYInt,
+				sourceRegion.getEndX() + mergeOffsetXInt,
+				sourceRegion.getEndY() + mergeOffsetYInt
+			);
 
-		for(ScreenRegion region : regions){
+			CuboidAddress consideredRegion = destinationRegionCA.getIntersectionCuboidAddress(this.getDimensions());
+			ScreenRegion region = new ScreenRegion(consideredRegion);
+
 			int startX = region.getStartX();
 			int startY = region.getStartY();
 			int endX = region.getEndX();
@@ -253,29 +264,36 @@ public class ScreenLayer {
 			for(int j = startY; j < endY; j++){
 				int i = startX;
 				while(i < endX){
+					int x = i;
+					int y = j;
+					int xF = i - mergeOffsetXInt;
+					int yF = j - mergeOffsetYInt;
+
 					if(!(
-						(Objects.equals(outputLayer.characters[i][j], this.characters[i][j])) &&
-						(Objects.equals(outputLayer.characterWidths[i][j], this.characterWidths[i][j])) &&
-						(Arrays.equals(outputLayer.colourCodes[i][j], this.colourCodes[i][j]))
-					) || this.flags[i][j]){
-						outputLayer.characterWidths[i][j] = this.characterWidths[i][j];
-						outputLayer.colourCodes[i][j] = this.colourCodes[i][j];
-						outputLayer.characters[i][j] = this.characters[i][j];
-						outputLayer.flags[i][j] = true;
+						(Objects.equals(this.characters[x][y], changes.characters[xF][yF])) &&
+						(Objects.equals(this.characterWidths[x][y], changes.characterWidths[xF][yF])) &&
+						(Arrays.equals(this.colourCodes[x][y], changes.colourCodes[xF][yF]))
+					) || changes.flags[xF][yF]){
+						this.characterWidths[x][y] = changes.characterWidths[xF][yF];
+						this.colourCodes[x][y] = changes.colourCodes[xF][yF];
+						this.characters[x][y] = changes.characters[xF][yF];
+						this.flags[x][y] = true;
 					}
 					//  For multi-column characters, explicitly initialize any 'covered' characters as null to resolve printing glitches:
-					int currentChrWidth = outputLayer.characterWidths[i][j];
-					for(int k = 1; (k < currentChrWidth) && (k+i) < endX; k++){
-						outputLayer.characterWidths[i+k][j] = 0;
-						outputLayer.colourCodes[i+k][j] = outputLayer.colourCodes[i][j];
-						outputLayer.characters[i+k][j] = null;
-						outputLayer.flags[i+k][j] = outputLayer.flags[i][j];
+					int currentChrWidth = this.characterWidths[x][y];
+					for(int k = 1; (k < currentChrWidth) && (k+x) < endX; k++){
+						this.characterWidths[x+k][y] = 0;
+						this.colourCodes[x+k][y] = this.colourCodes[x][y];
+						this.characters[x+k][y] = null;
+						this.flags[x+k][y] = this.flags[x][y];
 					}
 					i += (currentChrWidth < 1) ? 1 : currentChrWidth; 
 				}
 			}
+			if(region.getRegion().getVolume() > 0){
+				this.addChangedRegion(region);
+			}
 		}
-		outputLayer.addChangedRegions(regions);
 	}
 
 	public void mergeChangesFromUIThread(ScreenLayer changes, Long mergeOffsetX, Long mergeOffsetY) throws Exception{
@@ -299,7 +317,8 @@ public class ScreenLayer {
 			int endX = region.getEndX();
 			int endY = region.getEndY();
 			for(int j = startY; j < endY; j++){
-				for(int i = startX; i < endX; i++){
+				int i = startX;
+				while(i < endX){
 					int x = i;
 					int y = j;
 					int xF = i - mergeOffsetXInt;
@@ -316,6 +335,7 @@ public class ScreenLayer {
 						this.characters[x][y] = changes.characters[xF][yF];
 						this.flags[x][y] = hasChanged;
 					}
+					i++;
 				}
 			}
 

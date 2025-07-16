@@ -82,7 +82,8 @@
 		{
 			"match_type": "byte_comparison",
 			"byte_pattern_base_64": "Qk1TRzoy",
-			"block_class": "org.res.block.StonePick"
+			"block_class": "org.res.block.StonePick",
+			"dedication": "Erik"
 		},
 		{
 			"match_type": "byte_comparison",

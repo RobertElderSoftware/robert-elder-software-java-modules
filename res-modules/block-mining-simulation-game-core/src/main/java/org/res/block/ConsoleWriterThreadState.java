@@ -798,7 +798,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			this.screenLayers[i].mergeNonNullChangesDownOnto(tmpMergedLayers);
 		}
 
-		tmpMergedLayers.mergeChangedCharactersDownOnto(this.mergedFinalScreenLayer);
+		this.mergedFinalScreenLayer.mergeChangedCharactersDownOnto(tmpMergedLayers);
 	}
 
 	public void printTerminalTextChanges(boolean resetCursorPosition) throws Exception{
@@ -833,7 +833,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 							this.stringBuilder.append(currentPositionSequence);
 							mustSetCursorPosition = resetState;
 						}
-						if(mustSetColourCodes && this.mergedFinalScreenLayer.characters[i][j] != null){
+						if(mustSetColourCodes){
 							List<String> codes = new ArrayList<String>();
 							for(int c : this.mergedFinalScreenLayer.colourCodes[i][j]){
 								codes.add(String.valueOf(c));
