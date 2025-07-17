@@ -321,7 +321,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				//  For multi-column characters in 'x' direction, reset any of the 'covered'
 				//  columns take up by the multi-column character:
 				for(int k = 1; k < chrWidth; k++){
-					changes.colourCodes[currentOffset][yIndex] = new int [] {};
+					changes.colourCodes[currentOffset][yIndex] = newColourCodes[i];
 					changes.characters[currentOffset][yIndex] = null;
 					changes.characterWidths[currentOffset][yIndex] = 0;
 					changes.flags[currentOffset][yIndex] = true;
@@ -666,7 +666,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 	public void writeToLocalFrameBuffer(ScreenLayer changes, int bufferIndex, Long xOffset, Long yOffset) throws Exception{
-		this.bufferedScreenLayers[bufferIndex].mergeChangesFromUIThread(changes, xOffset, yOffset);
+		this.bufferedScreenLayers[bufferIndex].mergeChanges(changes, xOffset, yOffset);
 	}
 
 	public boolean hasOtherFrameDimensionsChanged(FrameChangeWorkItemParams params){
@@ -730,8 +730,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			List<ScreenLayerPrintParameters> params = new ArrayList<ScreenLayerPrintParameters>();
 			for(int i = 0; i < this.usedScreenLayers.length; i++){
 				int l = usedScreenLayers[i];
-				this.bufferedScreenLayers[l].computeFrameDifferences(this.previousBufferedScreenLayers[l]);
-
 				params.addAll(
 					makeScreenPrintParameters(
 						this.bufferedScreenLayers[l],
@@ -760,7 +758,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				if(updatedCellContents[i][j] == null){
 					int paddedWidthSoFar = 0;
 					while(paddedWidthSoFar < this.getMapAreaCellWidth()){
-						changes.colourCodes[currentOffset][j] = new int [] {};
+						changes.colourCodes[currentOffset][j] = updatedColourCodes[i][j];
 						changes.characters[currentOffset][j] = null;
 						changes.characterWidths[currentOffset][j] = 0;
 						changes.flags[currentOffset][j] = true;
@@ -778,8 +776,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 					//  For multi-column characters, reset any of the 'covered'
 					//  columns take up by the multi-column character:
-					for(int k = 1; k < chrWidth; k++){
-						changes.colourCodes[currentOffset][j] = new int [] {};
+					for(int k = 1; k < chrWidth && currentOffset < totalWidth; k++){
+						changes.colourCodes[currentOffset][j] = updatedColourCodes[i][j];
 						changes.characters[currentOffset][j] = null;
 						changes.characterWidths[currentOffset][j] = 0;
 						changes.flags[currentOffset][j] = true;

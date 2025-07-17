@@ -326,8 +326,12 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void updatePlayerOverlay(CuboidAddress playerPositionCA, boolean isPlayerLocation) throws Exception{
+		GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
+		boolean useASCII = mode.equals(GraphicsMode.ASCII);
+
 		String [][] currentPositionContents = new String [1][1];
-		currentPositionContents[0][0] = isPlayerLocation ? "\uD83D\uDE0A" : null;
+		String playerIcon = useASCII ? "P" : "\uD83D\uDE0A";
+		currentPositionContents[0][0] = isPlayerLocation ? playerIcon : null;
 		int [][][] currentPositionColours = new int [1][1][0];
 		currentPositionColours[0][0] = isPlayerLocation ? new int [] {PLAYER_BG_COLOR} : new int [] {};
 

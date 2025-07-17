@@ -776,7 +776,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		for(ScreenLayerPrintParameters param : params){
 			ScreenLayer changes = param.getScreenLayer();
 			int bufferIndex = param.getBufferIndex();
-			this.screenLayers[bufferIndex].mergeChangesFromUIThread(changes, frameDimensions.getFrameOffsetX(), frameDimensions.getFrameOffsetY());
+
+			this.screenLayers[bufferIndex].mergeChanges(changes, frameDimensions.getFrameOffsetX(), frameDimensions.getFrameOffsetY());
 		}
 		return new EmptyWorkItemResult();
 	}
@@ -798,7 +799,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			this.screenLayers[i].mergeNonNullChangesDownOnto(tmpMergedLayers);
 		}
 
-		this.mergedFinalScreenLayer.mergeChangedCharactersDownOnto(tmpMergedLayers);
+		this.mergedFinalScreenLayer.mergeChanges(tmpMergedLayers, 0L, 0L);
 	}
 
 	public void printTerminalTextChanges(boolean resetCursorPosition) throws Exception{

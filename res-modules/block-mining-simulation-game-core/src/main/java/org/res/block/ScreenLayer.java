@@ -241,62 +241,7 @@ public class ScreenLayer {
 		outputLayer.addChangedRegions(regions);
 	}
 
-	public void mergeChangedCharactersDownOnto(ScreenLayer changes) throws Exception{
-		Set<ScreenRegion> regions = changes.getChangedRegions();
-		int mergeOffsetXInt = 0;
-		int mergeOffsetYInt = 0;
-		for(ScreenRegion sourceRegion: regions){
-			//  Determine the subset of the change that's actually lands within the destination layer
-			CuboidAddress destinationRegionCA = ScreenRegion.makeScreenRegionCA(
-				sourceRegion.getStartX() + mergeOffsetXInt,
-				sourceRegion.getStartY() + mergeOffsetYInt,
-				sourceRegion.getEndX() + mergeOffsetXInt,
-				sourceRegion.getEndY() + mergeOffsetYInt
-			);
-
-			CuboidAddress consideredRegion = destinationRegionCA.getIntersectionCuboidAddress(this.getDimensions());
-			ScreenRegion region = new ScreenRegion(consideredRegion);
-
-			int startX = region.getStartX();
-			int startY = region.getStartY();
-			int endX = region.getEndX();
-			int endY = region.getEndY();
-			for(int j = startY; j < endY; j++){
-				int i = startX;
-				while(i < endX){
-					int x = i;
-					int y = j;
-					int xF = i - mergeOffsetXInt;
-					int yF = j - mergeOffsetYInt;
-
-					if(!(
-						(Objects.equals(this.characters[x][y], changes.characters[xF][yF])) &&
-						(Objects.equals(this.characterWidths[x][y], changes.characterWidths[xF][yF])) &&
-						(Arrays.equals(this.colourCodes[x][y], changes.colourCodes[xF][yF]))
-					) || changes.flags[xF][yF]){
-						this.characterWidths[x][y] = changes.characterWidths[xF][yF];
-						this.colourCodes[x][y] = changes.colourCodes[xF][yF];
-						this.characters[x][y] = changes.characters[xF][yF];
-						this.flags[x][y] = true;
-					}
-					//  For multi-column characters, explicitly initialize any 'covered' characters as null to resolve printing glitches:
-					int currentChrWidth = this.characterWidths[x][y];
-					for(int k = 1; (k < currentChrWidth) && (k+x) < endX; k++){
-						this.characterWidths[x+k][y] = 0;
-						this.colourCodes[x+k][y] = this.colourCodes[x][y];
-						this.characters[x+k][y] = null;
-						this.flags[x+k][y] = this.flags[x][y];
-					}
-					i += (currentChrWidth < 1) ? 1 : currentChrWidth; 
-				}
-			}
-			if(region.getRegion().getVolume() > 0){
-				this.addChangedRegion(region);
-			}
-		}
-	}
-
-	public void mergeChangesFromUIThread(ScreenLayer changes, Long mergeOffsetX, Long mergeOffsetY) throws Exception{
+	public void mergeChanges(ScreenLayer changes, Long mergeOffsetX, Long mergeOffsetY) throws Exception{
 		int mergeOffsetXInt = mergeOffsetX.intValue();
 		int mergeOffsetYInt = mergeOffsetY.intValue();
 		Set<ScreenRegion> regions = changes.getChangedRegions();
@@ -324,18 +269,24 @@ public class ScreenLayer {
 					int xF = i - mergeOffsetXInt;
 					int yF = j - mergeOffsetYInt;
 
-					if(changes.flags[xF][yF]){
-						boolean hasChanged = !(
-							this.characterWidths[x][y] == changes.characterWidths[xF][yF] &&
-							Arrays.equals(this.colourCodes[x][y], changes.colourCodes[xF][yF]) &&
-							Objects.equals(this.characters[x][y], changes.characters[xF][yF])
-						) || this.flags[x][y]; //  If there's a change, or an existing un-printed change
-						this.characterWidths[x][y] = changes.characterWidths[xF][yF];
-						this.colourCodes[x][y] = changes.colourCodes[xF][yF];
-						this.characters[x][y] = changes.characters[xF][yF];
-						this.flags[x][y] = hasChanged;
+					boolean hasChanged = !(
+						(this.characterWidths[x][y] == changes.characterWidths[xF][yF]) &&
+						Arrays.equals(this.colourCodes[x][y], changes.colourCodes[xF][yF]) &&
+						Objects.equals(this.characters[x][y], changes.characters[xF][yF])
+					) || this.flags[x][y]; //  In case multiple writes happened since last commit
+					this.flags[x][y] = hasChanged;
+					this.characterWidths[x][y] = changes.characterWidths[xF][yF];
+					this.colourCodes[x][y] = changes.colourCodes[xF][yF];
+					this.characters[x][y] = changes.characters[xF][yF];
+					
+					//  For multi-column characters, explicitly initialize any 'covered' characters as null to resolve printing glitches:
+					for(int k = 1; (k < changes.characterWidths[xF][yF]) && (k+x) < endX; k++){
+						this.characterWidths[x+k][y] = 0;
+						this.colourCodes[x+k][y] = this.colourCodes[x][y];
+						this.characters[x+k][y] = null;
+						this.flags[x+k][y] = this.flags[x][y];
 					}
-					i++;
+					i += (changes.characterWidths[xF][yF] < 1) ? 1 : changes.characterWidths[xF][yF]; 
 				}
 			}
 
@@ -345,18 +296,4 @@ public class ScreenLayer {
 		}
 		this.setIsActive(changes.getIsActive());
 	}
-
-	public void computeFrameDifferences(ScreenLayer previous){
-		for(int i = 0; i < this.getWidth(); i++){
-			for(int j = 0; j < this.getHeight(); j++){
-				boolean hasChanged = !(
-					(this.characterWidths[i][j] == previous.characterWidths[i][j]) &&
-					Arrays.equals(this.colourCodes[i][j], previous.colourCodes[i][j]) &&
-					Objects.equals(this.characters[i][j], previous.characters[i][j])
-				) || this.flags[i][j]; //  In case multiple writes happened since last commit
-				this.flags[i][j] = hasChanged;
-			}
-		}
-	}
 }
-
