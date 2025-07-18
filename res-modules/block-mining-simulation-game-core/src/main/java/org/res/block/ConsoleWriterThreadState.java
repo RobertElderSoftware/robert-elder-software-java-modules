@@ -776,34 +776,13 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		for(ScreenLayerPrintParameters param : params){
 			ScreenLayer changes = param.getScreenLayer();
 			int bufferIndex = param.getBufferIndex();
-
 			this.screenLayers[bufferIndex].mergeChanges(changes, frameDimensions.getFrameOffsetX(), frameDimensions.getFrameOffsetY());
 		}
 		return new EmptyWorkItemResult();
 	}
 
-	public void mergeActiveLayers() throws Exception{
-		ScreenLayer tmpMergedLayers = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
-
-		//  Initialize any previously pending unprinted regions
-		for(ScreenRegion region : this.mergedFinalScreenLayer.getChangedRegions()){
-			tmpMergedLayers.initializeInRegion(0, null, new int [] {}, null, region, false);
-		}
-		//  Initialize new pending unprinted regions
-		for(ScreenLayer screenLayer : this.screenLayers){
-			for(ScreenRegion region : screenLayer.getChangedRegions()){
-				tmpMergedLayers.initializeInRegion(0, null, new int [] {}, null, region, false);
-			}
-		}
-		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
-			this.screenLayers[i].mergeNonNullChangesDownOnto(tmpMergedLayers);
-		}
-
-		this.mergedFinalScreenLayer.mergeChanges(tmpMergedLayers, 0L, 0L);
-	}
-
 	public void printTerminalTextChanges(boolean resetCursorPosition) throws Exception{
-		this.mergeActiveLayers();
+		this.mergedFinalScreenLayer.mergeNonNullChangesDownOnto(this.screenLayers);
 		boolean useRightToLeftPrint = this.blockManagerThreadCollection.getRightToLeftPrint();
 		int loopUpdate = useRightToLeftPrint ? -1 : 1;
 		boolean resetState = useRightToLeftPrint ? true : true; // TODO:  Optimize this in the future.

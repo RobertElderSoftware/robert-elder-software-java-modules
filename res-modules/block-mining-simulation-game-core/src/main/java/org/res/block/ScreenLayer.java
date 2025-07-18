@@ -80,6 +80,7 @@ public class ScreenLayer {
 		if(this.isActive != isActive){
 			this.isActive = isActive;
 			this.addChangedRegion(new ScreenRegion(this.getDimensions()));
+			this.setAllFlagStates(true);
 		}
 	}
 
@@ -119,14 +120,18 @@ public class ScreenLayer {
 		this.dimensions = ScreenLayer.makeDimensionsCA(0, 0, width, height);
 	}
 
-	public void clearFlags(){
+	public void setAllFlagStates(boolean state){
 		int width = this.getWidth();
 		int height = this.getHeight();
 		for(int i = 0; i < width; i++){
 			for(int j = 0; j < height; j++){
-				this.flags[i][j] = false;
+				this.flags[i][j] = state;
 			}
 		}
+	}
+
+	public void clearFlags(){
+		this.setAllFlagStates(false);
 	}
 
 	public ScreenLayer(ScreenLayer l){
@@ -210,35 +215,56 @@ public class ScreenLayer {
 		}
 	}
 
-	public void mergeNonNullChangesDownOnto(ScreenLayer outputLayer) throws Exception{
-		Set<ScreenRegion> regions = this.getChangedRegions();
-		this.clearChangedRegions();
-		regions.addAll(outputLayer.getChangedRegions());
-		if(this.getIsActive()){
-			for(ScreenRegion region : regions){
-				int startX = region.getStartX();
-				int startY = region.getStartY();
-				int endX = region.getEndX();
-				int endY = region.getEndY();
-				for(int i = startX; i < endX; i++){
-					for(int j = startY; j < endY; j++){
-						if(this.characters[i][j] == null){
-							outputLayer.characterWidths[i][j] = outputLayer.characterWidths[i][j];
-							outputLayer.colourCodes[i][j] = outputLayer.colourCodes[i][j];
-							outputLayer.characters[i][j] = outputLayer.characters[i][j];
-							outputLayer.flags[i][j] = outputLayer.flags[i][j] || this.flags[i][j];
+	public void mergeNonNullChangesDownOnto(ScreenLayer [] screenLayers) throws Exception{
+		Set<ScreenRegion> allRegions = new HashSet<ScreenRegion>();
+		allRegions.addAll(this.getChangedRegions());
+		for(int l = 0; l < ConsoleWriterThreadState.numScreenLayers; l++){
+			allRegions.addAll(screenLayers[l].getChangedRegions());
+			screenLayers[l].clearChangedRegions();
+		}
+		for(ScreenRegion region : allRegions){
+			int startX = region.getStartX();
+			int startY = region.getStartY();
+			int endX = region.getEndX();
+			int endY = region.getEndY();
+			for(int j = startY; j < endY; j++){
+				int i = startX;
+				while(i < endX){
+					int increment = 1;
+					for(int l = ConsoleWriterThreadState.numScreenLayers -1; l >= 0; l--){
+						ScreenLayer sl = screenLayers[l];
+						if(!sl.getIsActive() || sl.characters[i][j] == null){
+
+							//Continue down to next layer undeaneath
+							if(sl.flags[i][j]){ // If null/non-active character above has changed, need to keep changed signal to actually perform update to whatever is below:
+								this.flags[i][j] = true;
+							}
+
+							sl.flags[i][j] = false;
 						}else{
-							outputLayer.characterWidths[i][j] = this.characterWidths[i][j];
-							outputLayer.colourCodes[i][j] = this.colourCodes[i][j];
-							outputLayer.characters[i][j] = this.characters[i][j];
-							outputLayer.flags[i][j] = this.flags[i][j];
+							this.characterWidths[i][j] = sl.characterWidths[i][j];
+							this.colourCodes[i][j] = sl.colourCodes[i][j];
+							this.characters[i][j] = sl.characters[i][j];
+							this.flags[i][j] = sl.flags[i][j] || this.flags[i][j];
+							sl.flags[i][j] = false;
+
+							for(int k = 1; (k < sl.characterWidths[i][j]) && (k+i) < endX; k++){
+								this.characterWidths[i+k][j] = 0;
+								this.colourCodes[i+k][j] = this.colourCodes[i][j];
+								this.characters[i+k][j] = null;
+								this.flags[i+k][j] = this.flags[i][j];
+								sl.flags[i+k][j] = false;
+							}
+							increment = (this.characterWidths[i][j] < 1) ? 1 : this.characterWidths[i][j]; 
+							//  Solid character found, break out of loop
+							break;
 						}
-						this.flags[i][j] = false;
 					}
+					i += increment;
 				}
 			}
 		}
-		outputLayer.addChangedRegions(regions);
+		this.addChangedRegions(allRegions);
 	}
 
 	public void mergeChanges(ScreenLayer changes, Long mergeOffsetX, Long mergeOffsetY) throws Exception{
