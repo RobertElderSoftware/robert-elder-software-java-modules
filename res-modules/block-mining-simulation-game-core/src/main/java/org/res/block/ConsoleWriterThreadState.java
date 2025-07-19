@@ -94,9 +94,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private Map<Long, FrameDimensions> currentFrameDimensionsCollection = new HashMap<Long, FrameDimensions>();
 	private Map<Long, UserInterfaceSplit> userInterfaceSplits = new HashMap<Long, UserInterfaceSplit>();
 	private Long rootSplitId;
-	private final StringBuilder stringBuilder = new StringBuilder();
 
-	private int [] lastUsedColourCodes = new int [] {UserInterfaceFrameThreadState.RESET_BG_COLOR};
 
 	public ConsoleWriterThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception{
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
@@ -784,61 +782,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public void printTerminalTextChanges(boolean resetCursorPosition) throws Exception{
 		this.mergedFinalScreenLayer.mergeNonNullChangesDownOnto(this.screenLayers);
 		boolean useRightToLeftPrint = this.blockManagerThreadCollection.getRightToLeftPrint();
-		int loopUpdate = useRightToLeftPrint ? -1 : 1;
-		boolean resetState = useRightToLeftPrint ? true : true; // TODO:  Optimize this in the future.
-		for(ScreenRegion region : this.mergedFinalScreenLayer.getChangedRegions()){
-			int startX = region.getStartX();
-			int startY = region.getStartY();
-			int endX = region.getEndX();
-			int endY = region.getEndY();
-			int startColumn = useRightToLeftPrint ? endX -1 : startX;
-			int endColumn = useRightToLeftPrint ? startX -1 : endX;
-			for(int j = startY; j < endY; j++){
-				boolean mustSetCursorPosition = true;
-				boolean mustSetColourCodes = true;
-				for(int i = startColumn; i != endColumn; i += loopUpdate){
-					//  Try to intelligently issue as few ANSI escape sequences as possible:
-					if(!Arrays.equals(this.mergedFinalScreenLayer.colourCodes[i][j], lastUsedColourCodes)){
-						mustSetColourCodes = true;
-					}
-					//  These should always be initialized to empty array.
-					if(this.mergedFinalScreenLayer.colourCodes[i][j] == null){
-						throw new Exception("this.mergedFinalScreenLayer.colourCodes[i][j] == null");
-					}
-					if(
-						this.mergedFinalScreenLayer.flags[i][j]
-					){
-						if(mustSetCursorPosition){
-							String currentPositionSequence = "\033[" + (j+1) + ";" + (i+1) + "H";
-							this.stringBuilder.append(currentPositionSequence);
-							mustSetCursorPosition = resetState;
-						}
-						if(mustSetColourCodes){
-							List<String> codes = new ArrayList<String>();
-							for(int c : this.mergedFinalScreenLayer.colourCodes[i][j]){
-								codes.add(String.valueOf(c));
-							}
-							String currentColorSequence = "\033[0m\033[" + String.join(";", codes) + "m";
-							this.stringBuilder.append(currentColorSequence);
-							mustSetColourCodes = resetState;
-							lastUsedColourCodes = this.mergedFinalScreenLayer.colourCodes[i][j];
-						}
-						if(this.mergedFinalScreenLayer.characters[i][j] != null){
-							this.stringBuilder.append(this.mergedFinalScreenLayer.characters[i][j]);
-						}
-						this.mergedFinalScreenLayer.flags[i][j] = false;
-					}else{
-						mustSetCursorPosition = true;
-					}
-				}
-			}
-		}
-		this.mergedFinalScreenLayer.clearChangedRegions();
-		if(resetCursorPosition){
-			this.stringBuilder.append("\033[0;0H"); //  Move cursor to 0,0 after every print.
-		}
-		System.out.print(this.stringBuilder); //  Print accumulated output
-		this.stringBuilder.setLength(0);      //  clear buffer.
+		this.mergedFinalScreenLayer.printChanges(useRightToLeftPrint, resetCursorPosition, 0, 0);
 	}
 
 	public final void initializeConsole(Long terminalWidth, Long terminalHeight) throws Exception{

@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.List;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.ArrayList;
 
 import java.util.Random;
@@ -858,5 +859,89 @@ public class BlockManagerUnitTest {
 		}
 
 		System.out.println("Finished " + numTestIterations + " rounds of testing region intersections with up to " + maxNumDimensions + " dimensions each.");
+	}
+
+	public void verifyObject(Object observed, Object expected) throws Exception{
+		if(!Objects.equals(observed, expected)){
+			throw new Exception("Expected object was '" + String.valueOf(expected) + "', but saw '" + String.valueOf(observed) + "' instead.");
+		}
+	}
+
+	public void verifyArray(Object [] observed, Object [] expected) throws Exception{
+		if(!Arrays.equals(observed, expected)){
+			throw new Exception("Expected array was '" + String.valueOf(expected) + "', but saw '" + String.valueOf(observed) + "' instead.");
+		}
+	}
+
+	public void verifyArray(int [] observed, int [] expected) throws Exception{
+		if(!Arrays.equals(observed, expected)){
+			throw new Exception("Expected array was '" + String.valueOf(expected) + "', but saw '" + String.valueOf(observed) + "' instead.");
+		}
+	}
+
+	public void screenTest1() throws Exception{
+		//  Simple merge down test, should preserve all data
+		ScreenLayer t = new ScreenLayer(1, 1);
+		t.initialize();
+		t.characters[0][0] = "A";
+		t.characterWidths[0][0] = 1;
+		t.colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+		t.flags[0][0] = true;
+		t.addChangedRegion(new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, t.getWidth(), t.getHeight())));
+
+		ScreenLayer merged = new ScreenLayer(1, 1);
+		merged.initialize();
+		merged.mergeChanges(t, 0L, 0L);
+		this.verifyObject(merged.characters[0][0], "A");
+		this.verifyObject(merged.characterWidths[0][0], 1);
+		this.verifyArray(merged.colourCodes[0][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
+		this.verifyObject(merged.flags[0][0], true);
+	}
+
+	public void screenTest2() throws Exception{
+		//  Simple merge down test with no change flag set.  Should skip:
+		ScreenLayer t = new ScreenLayer(1, 1);
+		t.initialize();
+		t.characters[0][0] = "A";
+		t.characterWidths[0][0] = 1;
+		t.colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+		t.flags[0][0] = false;
+		t.addChangedRegion(new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, t.getWidth(), t.getHeight())));
+
+		ScreenLayer merged = new ScreenLayer(1, 1);
+		merged.initialize();
+		merged.mergeChanges(t, 0L, 0L);
+
+		this.verifyObject(merged.characters[0][0], null);
+		this.verifyObject(merged.characterWidths[0][0], 0);
+		this.verifyArray(merged.colourCodes[0][0], new int [] {});
+		this.verifyObject(merged.flags[0][0], true);
+	}
+
+	@Test
+	public void runScreenLayerTest() throws Exception {
+		System.out.println("Begin runScreenLayerTest:");
+
+		this.screenTest1();
+		this.screenTest2();
+
+		int layerSize = 10;
+		ScreenLayer l = new ScreenLayer(layerSize, layerSize);
+		for(int i = 0; i < layerSize; i++){
+			for(int j = 0; j < layerSize; j++){
+				l.characters[i][j] = "A";
+				l.characterWidths[i][j] = 1;
+				l.colourCodes[i][j] = new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR, UserInterfaceFrameThreadState.RED_FG_COLOR};
+				l.flags[i][j] = true;
+			}
+		}
+		l.addChangedRegion(new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, l.getWidth(), l.getHeight())));
+
+		ScreenLayer outputLayer = new ScreenLayer(layerSize, layerSize);
+		outputLayer.mergeChanges(l, 0L, 0L);
+
+		System.out.print("\033[2J");
+		outputLayer.printChanges(false, false, 10, 5);
+		System.out.print("\n");
 	}
 }

@@ -64,6 +64,7 @@ public class ScreenLayer {
 	public boolean [][] flags = null;
 	private int [] defaultColourCodes = new int [] {};
 	private Set<ScreenRegion> changedRegions = new HashSet<ScreenRegion>();
+	private final StringBuilder stringBuilder = new StringBuilder();
 
 	public boolean getIsActive(){
 		return this.isActive;
@@ -295,22 +296,24 @@ public class ScreenLayer {
 					int xF = i - mergeOffsetXInt;
 					int yF = j - mergeOffsetYInt;
 
-					boolean hasChanged = !(
-						(this.characterWidths[x][y] == changes.characterWidths[xF][yF]) &&
-						Arrays.equals(this.colourCodes[x][y], changes.colourCodes[xF][yF]) &&
-						Objects.equals(this.characters[x][y], changes.characters[xF][yF])
-					) || this.flags[x][y]; //  In case multiple writes happened since last commit
-					this.flags[x][y] = hasChanged;
-					this.characterWidths[x][y] = changes.characterWidths[xF][yF];
-					this.colourCodes[x][y] = changes.colourCodes[xF][yF];
-					this.characters[x][y] = changes.characters[xF][yF];
-					
-					//  For multi-column characters, explicitly initialize any 'covered' characters as null to resolve printing glitches:
-					for(int k = 1; (k < changes.characterWidths[xF][yF]) && (k+x) < endX; k++){
-						this.characterWidths[x+k][y] = 0;
-						this.colourCodes[x+k][y] = this.colourCodes[x][y];
-						this.characters[x+k][y] = null;
-						this.flags[x+k][y] = this.flags[x][y];
+					if(changes.flags[xF][yF]){
+						boolean hasChanged = !(
+							(this.characterWidths[x][y] == changes.characterWidths[xF][yF]) &&
+							Arrays.equals(this.colourCodes[x][y], changes.colourCodes[xF][yF]) &&
+							Objects.equals(this.characters[x][y], changes.characters[xF][yF])
+						) || this.flags[x][y]; //  In case multiple writes happened since last commit
+						this.flags[x][y] = hasChanged;
+						this.characterWidths[x][y] = changes.characterWidths[xF][yF];
+						this.colourCodes[x][y] = changes.colourCodes[xF][yF];
+						this.characters[x][y] = changes.characters[xF][yF];
+						
+						//  For multi-column characters, explicitly initialize any 'covered' characters as null to resolve printing glitches:
+						for(int k = 1; (k < changes.characterWidths[xF][yF]) && (k+x) < endX; k++){
+							this.characterWidths[x+k][y] = 0;
+							this.colourCodes[x+k][y] = this.colourCodes[x][y];
+							this.characters[x+k][y] = null;
+							this.flags[x+k][y] = this.flags[x][y];
+						}
 					}
 					i += (changes.characterWidths[xF][yF] < 1) ? 1 : changes.characterWidths[xF][yF]; 
 				}
@@ -321,5 +324,64 @@ public class ScreenLayer {
 			}
 		}
 		this.setIsActive(changes.getIsActive());
+	}
+
+	public void printChanges(boolean useRightToLeftPrint, boolean resetCursorPosition, int xOffset, int yOffset) throws Exception{
+		int loopUpdate = useRightToLeftPrint ? -1 : 1;
+		boolean resetState = useRightToLeftPrint ? true : true; // TODO:  Optimize this in the future.
+		int [] lastUsedColourCodes = null;
+		for(ScreenRegion region : this.getChangedRegions()){
+			int startX = region.getStartX();
+			int startY = region.getStartY();
+			int endX = region.getEndX();
+			int endY = region.getEndY();
+			int startColumn = useRightToLeftPrint ? endX -1 : startX;
+			int endColumn = useRightToLeftPrint ? startX -1 : endX;
+			for(int j = startY; j < endY; j++){
+				boolean mustSetCursorPosition = true;
+				boolean mustSetColourCodes = true;
+				for(int i = startColumn; i != endColumn; i += loopUpdate){
+					//  Try to intelligently issue as few ANSI escape sequences as possible:
+					if(!Arrays.equals(this.colourCodes[i][j], lastUsedColourCodes)){
+						mustSetColourCodes = true;
+					}
+					//  These should always be initialized to empty array.
+					if(this.colourCodes[i][j] == null){
+						throw new Exception("this.colourCodes[i][j] == null");
+					}
+					if(
+						this.flags[i][j]
+					){
+						if(mustSetCursorPosition){
+							String currentPositionSequence = "\033[" + (j+1+yOffset) + ";" + (i+1+xOffset) + "H";
+							this.stringBuilder.append(currentPositionSequence);
+							mustSetCursorPosition = resetState;
+						}
+						if(mustSetColourCodes){
+							List<String> codes = new ArrayList<String>();
+							for(int c : this.colourCodes[i][j]){
+								codes.add(String.valueOf(c));
+							}
+							String currentColorSequence = "\033[0m\033[" + String.join(";", codes) + "m";
+							this.stringBuilder.append(currentColorSequence);
+							mustSetColourCodes = resetState;
+							lastUsedColourCodes = this.colourCodes[i][j];
+						}
+						if(this.characters[i][j] != null){
+							this.stringBuilder.append(this.characters[i][j]);
+						}
+						this.flags[i][j] = false;
+					}else{
+						mustSetCursorPosition = true;
+					}
+				}
+			}
+		}
+		this.clearChangedRegions();
+		if(resetCursorPosition){
+			this.stringBuilder.append("\033[0;0H"); //  Move cursor to 0,0 after every print.
+		}
+		System.out.print(this.stringBuilder); //  Print accumulated output
+		this.stringBuilder.setLength(0);      //  clear buffer.
 	}
 }
