@@ -880,7 +880,7 @@ public class BlockManagerUnitTest {
 	}
 
 	public void screenTest1() throws Exception{
-		//  Simple merge down test, should preserve all data
+		//  Simple merge down test with a change.
 		ScreenLayer t = new ScreenLayer(1, 1);
 		t.initialize();
 		t.characters[0][0] = "A";
@@ -899,7 +899,7 @@ public class BlockManagerUnitTest {
 	}
 
 	public void screenTest2() throws Exception{
-		//  Simple merge down test with no change flag set.  Should skip:
+		//  Simple merge down test with no change flag set with region;  Should get ignored:
 		ScreenLayer t = new ScreenLayer(1, 1);
 		t.initialize();
 		t.characters[0][0] = "A";
@@ -918,12 +918,33 @@ public class BlockManagerUnitTest {
 		this.verifyObject(merged.flags[0][0], true);
 	}
 
+        public void screenTest3() throws Exception{
+                //  Simple merge down test with change flag set, but with no region;  Should get ignored:
+                ScreenLayer t = new ScreenLayer(1, 1);
+                t.initialize();
+                t.clearChangedRegions();
+                t.characters[0][0] = "A";
+                t.characterWidths[0][0] = 1;
+                t.colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+                t.flags[0][0] = true;
+
+                ScreenLayer merged = new ScreenLayer(1, 1);
+                merged.initialize();
+                merged.mergeChanges(t, 0L, 0L);
+
+                this.verifyObject(merged.characters[0][0], null);
+                this.verifyObject(merged.characterWidths[0][0], 0);
+                this.verifyArray(merged.colourCodes[0][0], new int [] {});
+                this.verifyObject(merged.flags[0][0], true);
+        }
+
 	@Test
 	public void runScreenLayerTest() throws Exception {
 		System.out.println("Begin runScreenLayerTest:");
 
 		this.screenTest1();
 		this.screenTest2();
+		this.screenTest3();
 
 		int layerSize = 10;
 		ScreenLayer l = new ScreenLayer(layerSize, layerSize);

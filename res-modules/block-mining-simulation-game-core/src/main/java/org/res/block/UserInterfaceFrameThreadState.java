@@ -824,7 +824,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 		while(presentedTextWidth < paddedWidth){
 			presentedText += " ";
-			presentedTextWidth += 1;
+			presentedTextWidth += this.clientBlockModelContext.measureTextLengthOnTerminal(" ").getDeltaX().intValue();
 		}
 
 		return presentedText;

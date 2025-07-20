@@ -315,6 +315,9 @@ public class BlockDAOImpl implements BlockDAO {
 					}
 				}
 
+				//  TODO:  I think this used to use parameterized statements, but at some point I think it
+				//  was re-written to use literals to improve performance.  TODO: Review whether it's practical
+				//  to go back to using parameterized statements again.
 				rowStrings.add("(" + String.join(",", coordinateParts) + ", " + getDatabaseHexLiteral(blockData) + ", 0)");
 			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
 
