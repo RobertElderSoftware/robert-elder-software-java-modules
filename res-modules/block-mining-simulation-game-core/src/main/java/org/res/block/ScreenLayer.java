@@ -295,27 +295,59 @@ public class ScreenLayer {
 					int y = j;
 					int xF = i - mergeOffsetXInt;
 					int yF = j - mergeOffsetYInt;
+					String newCharacter = changes.characters[xF][yF];
+					int newCharacterWidth = changes.characterWidths[xF][yF];
 
 					if(changes.flags[xF][yF]){
+						//  If a multi-column character is falling off the edge of the screen, just set it to null:
+						if(!((i+newCharacterWidth) <= endX)){
+							newCharacter = null;
+							newCharacterWidth = 0;
+						}
 						boolean hasChanged = !(
-							(this.characterWidths[x][y] == changes.characterWidths[xF][yF]) &&
+							(this.characterWidths[x][y] == newCharacterWidth) &&
 							Arrays.equals(this.colourCodes[x][y], changes.colourCodes[xF][yF]) &&
-							Objects.equals(this.characters[x][y], changes.characters[xF][yF])
+							Objects.equals(this.characters[x][y], newCharacter)
 						) || this.flags[x][y]; //  In case multiple writes happened since last commit
 						this.flags[x][y] = hasChanged;
-						this.characterWidths[x][y] = changes.characterWidths[xF][yF];
+						this.characterWidths[x][y] = newCharacterWidth;
 						this.colourCodes[x][y] = changes.colourCodes[xF][yF];
-						this.characters[x][y] = changes.characters[xF][yF];
+						this.characters[x][y] = newCharacter;
 						
 						//  For multi-column characters, explicitly initialize any 'covered' characters as null to resolve printing glitches:
-						for(int k = 1; (k < changes.characterWidths[xF][yF]) && (k+x) < endX; k++){
+						for(int k = 1; (k < newCharacterWidth) && (k+x) < endX; k++){
 							this.characterWidths[x+k][y] = 0;
 							this.colourCodes[x+k][y] = this.colourCodes[x][y];
 							this.characters[x+k][y] = null;
 							this.flags[x+k][y] = this.flags[x][y];
 						}
+						//  Look for any previous multi-column characters that would
+						//  overlap with the current character.  If they exist, 
+						//  overwrite them.
+						int backtrack = 1;
+						while((x - backtrack) >= 0){
+							if(this.characterWidths[x-backtrack][y] > 0){
+								int requiredCharacters = this.characterWidths[x-backtrack][y];
+								int availableCharacters = backtrack;
+								if(requiredCharacters > availableCharacters){
+									// No space for found character, overwrite.
+									for(int g = x - backtrack; g < x; g++){
+										this.characterWidths[g][y] = 0;
+										this.characters[g][y] = null;
+										this.flags[g][y] = true;
+									}
+									//  Continue in case there are multiple
+									//  multi-column characters that would
+									//  have overlapped.
+								}else{
+									// No overlap, do nothing
+									break;
+								}
+							}
+							backtrack++;
+						}
 					}
-					i += (changes.characterWidths[xF][yF] < 1) ? 1 : changes.characterWidths[xF][yF]; 
+					i += (newCharacterWidth < 1) ? 1 : newCharacterWidth; 
 				}
 			}
 

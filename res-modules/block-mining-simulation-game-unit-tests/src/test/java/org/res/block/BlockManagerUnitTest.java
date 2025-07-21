@@ -938,6 +938,98 @@ public class BlockManagerUnitTest {
                 this.verifyObject(merged.flags[0][0], true);
         }
 
+        public void screenTest4() throws Exception{
+                //  Merge down with two column character
+                ScreenLayer t = new ScreenLayer(2, 1);
+                t.initialize();
+                t.characters[0][0] = "A";
+                t.characterWidths[0][0] = 2;
+                t.colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+                t.flags[0][0] = true;
+
+                ScreenLayer merged = new ScreenLayer(2, 1);
+                merged.initialize();
+                merged.setAllFlagStates(false);
+                merged.mergeChanges(t, 0L, 0L);
+
+                this.verifyObject(merged.characters[0][0], "A");
+                this.verifyObject(merged.characterWidths[0][0], 2);
+                this.verifyArray(merged.colourCodes[0][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
+                this.verifyObject(merged.flags[0][0], true);
+
+                //  There should be an empty column after:
+                this.verifyObject(merged.characters[1][0], null);
+                this.verifyObject(merged.characterWidths[1][0], 0);
+                this.verifyArray(merged.colourCodes[1][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
+                this.verifyObject(merged.flags[1][0], true);
+        }
+
+        public void screenTest5() throws Exception{
+                //  Multi-column characters that don't fit in last column should just become null characters:
+                ScreenLayer t = new ScreenLayer(3, 1);
+                t.setAllFlagStates(false);
+                t.initialize();
+                t.characters[2][0] = "A";
+                t.characterWidths[2][0] = 2;
+                t.colourCodes[2][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+                t.flags[2][0] = true;
+
+                ScreenLayer merged = new ScreenLayer(3, 1);
+                merged.initialize();
+                merged.setAllFlagStates(false);
+                merged.mergeChanges(t, 0L, 0L);
+
+                this.verifyObject(merged.characters[0][0], null);
+                this.verifyObject(merged.characterWidths[0][0], 0);
+                this.verifyArray(merged.colourCodes[0][0], new int [] {});
+                this.verifyObject(merged.flags[0][0], false);
+
+                this.verifyObject(merged.characters[1][0], null);
+                this.verifyObject(merged.characterWidths[1][0], 0);
+                this.verifyArray(merged.colourCodes[1][0], new int [] {});
+                this.verifyObject(merged.flags[1][0], false);
+
+                //  There was not enough space to print the last multi-column character:
+                this.verifyObject(merged.characters[2][0], null);
+                this.verifyObject(merged.characterWidths[2][0], 0);
+                this.verifyArray(merged.colourCodes[2][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
+                this.verifyObject(merged.flags[2][0], true);
+        }
+
+        public void screenTest6() throws Exception{
+                //  Make sure 
+                ScreenLayer t = new ScreenLayer(3, 1);
+                t.setAllFlagStates(false);
+                t.initialize();
+                t.characters[0][0] = "A";
+                t.characterWidths[0][0] = 2;
+                t.colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+                t.flags[0][0] = true;
+
+                ScreenLayer merged = new ScreenLayer(3, 1);
+                merged.initialize();
+                merged.setAllFlagStates(false);
+                merged.mergeChanges(t, 2L, 0L); //  Merge in at end, should force character to null
+                merged.mergeChanges(t, 0L, 0L); //  Merge in at start, should be written correctly.
+                merged.mergeChanges(t, 1L, 0L); //  Should overwrite previous character due to multi-column overlap.
+
+                this.verifyObject(merged.characters[0][0], null);
+                this.verifyObject(merged.characterWidths[0][0], 0);
+                this.verifyArray(merged.colourCodes[0][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
+                this.verifyObject(merged.flags[0][0], true);
+
+                this.verifyObject(merged.characters[1][0], "A");
+                this.verifyObject(merged.characterWidths[1][0], 2);
+                this.verifyArray(merged.colourCodes[1][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
+                this.verifyObject(merged.flags[1][0], true);
+
+                //  There was not enough space to print the last multi-column character:
+                this.verifyObject(merged.characters[2][0], null);
+                this.verifyObject(merged.characterWidths[2][0], 0);
+                this.verifyArray(merged.colourCodes[2][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
+                this.verifyObject(merged.flags[2][0], true);
+        }
+
 	@Test
 	public void runScreenLayerTest() throws Exception {
 		System.out.println("Begin runScreenLayerTest:");
@@ -945,6 +1037,9 @@ public class BlockManagerUnitTest {
 		this.screenTest1();
 		this.screenTest2();
 		this.screenTest3();
+		this.screenTest4();
+		this.screenTest5();
+		this.screenTest6();
 
 		int layerSize = 10;
 		ScreenLayer l = new ScreenLayer(layerSize, layerSize);
