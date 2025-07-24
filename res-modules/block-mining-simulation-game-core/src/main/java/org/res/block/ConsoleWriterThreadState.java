@@ -640,6 +640,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			this.screenLayers[bufferIndex] = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
 			this.screenLayers[bufferIndex].initialize(1, " ", new int [] {}, msg);
 			this.mergedFinalScreenLayer = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
+			this.mergedFinalScreenLayer.initialize();
 			this.printTerminalTextChanges(false);
 		}
 	}

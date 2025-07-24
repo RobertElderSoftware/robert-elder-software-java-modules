@@ -219,7 +219,7 @@ public class ScreenLayer {
 	public void mergeNonNullChangesDownOnto(ScreenLayer [] screenLayers) throws Exception{
 		Set<ScreenRegion> allRegions = new HashSet<ScreenRegion>();
 		allRegions.addAll(this.getChangedRegions());
-		for(int l = 0; l < ConsoleWriterThreadState.numScreenLayers; l++){
+		for(int l = 0; l < screenLayers.length; l++){
 			allRegions.addAll(screenLayers[l].getChangedRegions());
 			screenLayers[l].clearChangedRegions();
 		}
@@ -230,21 +230,44 @@ public class ScreenLayer {
 			int endY = region.getEndY();
 			for(int j = startY; j < endY; j++){
 				int i = startX;
+				//  Initialize array that tracks characters covered by multi-column
+				//  characters in higher layers:
+				int [] numCharactersToSkip = new int [screenLayers.length];
+				for(int s = 0; s < screenLayers.length; s++){
+					numCharactersToSkip[s] = 0;
+				}
 				while(i < endX){
-					int increment = 1;
-					for(int l = ConsoleWriterThreadState.numScreenLayers -1; l >= 0; l--){
+					for(int l = screenLayers.length -1; l >= 0; l--){
 						ScreenLayer sl = screenLayers[l];
-						if(!sl.getIsActive() || sl.characters[i][j] == null){
+						boolean isCovered = numCharactersToSkip[l] > 0;
+						if(!sl.getIsActive() || sl.characters[i][j] == null || isCovered){
 
 							//Continue down to next layer undeaneath
 							if(sl.flags[i][j]){ // If null/non-active character above has changed, need to keep changed signal to actually perform update to whatever is below:
-								this.flags[i][j] = true;
+								this.flags[i][j] = sl.flags[i][j];
 							}
 
 							sl.flags[i][j] = false;
 						}else{
+							int [] newColourCodes = sl.colourCodes[i][j];
+							if(newColourCodes.length == 0){
+								//  Try to inherit colour from all layers below:
+								for(int ul = l-1; ul >= 0; ul--){
+									if(screenLayers[ul].colourCodes[i][j].length > 0){
+										newColourCodes = screenLayers[ul].colourCodes[i][j];
+										this.flags[i][j] = this.flags[i][j] || screenLayers[ul].flags[i][j];
+										break;
+									}
+								}
+								//  Or from already-merged in current layer:
+								if(newColourCodes.length == 0){
+									if(this.colourCodes[i][j].length > 0){
+										newColourCodes = this.colourCodes[i][j];
+									}
+								}
+							}
 							this.characterWidths[i][j] = sl.characterWidths[i][j];
-							this.colourCodes[i][j] = sl.colourCodes[i][j];
+							this.colourCodes[i][j] = newColourCodes;
 							this.characters[i][j] = sl.characters[i][j];
 							this.flags[i][j] = sl.flags[i][j] || this.flags[i][j];
 							sl.flags[i][j] = false;
@@ -256,16 +279,52 @@ public class ScreenLayer {
 								this.flags[i+k][j] = this.flags[i][j];
 								sl.flags[i+k][j] = false;
 							}
-							increment = (this.characterWidths[i][j] < 1) ? 1 : this.characterWidths[i][j]; 
+							this.nullifyPrecendingOverlappedCharacters(i, j);
+							
+							//  We just merged in a multi-column character,
+							//  For the width of this character, all characters in
+							//  layers below will be covered.
+							for(int covered = l -1; covered >= 0; covered--){
+								numCharactersToSkip[covered] = this.characterWidths[i][j] -1;
+							}
 							//  Solid character found, break out of loop
 							break;
 						}
+						numCharactersToSkip[l]--;
 					}
-					i += increment;
+					i++;
 				}
 			}
 		}
 		this.addChangedRegions(allRegions);
+	}
+
+	private void nullifyPrecendingOverlappedCharacters(int x, int y){
+		//  Look for any previous multi-column characters that would
+		//  overlap with the current character.  If they exist, 
+		//  overwrite them.
+		int backtrack = 1;
+		while((x - backtrack) >= 0){
+			if(this.characterWidths[x-backtrack][y] > 0){
+				int requiredCharacters = this.characterWidths[x-backtrack][y];
+				int availableCharacters = backtrack;
+				if(requiredCharacters > availableCharacters){
+					// No space for found character, overwrite.
+					for(int g = x - backtrack; g < x; g++){
+						this.characterWidths[g][y] = 1;
+						this.characters[g][y] = " ";
+						this.flags[g][y] = true;
+					}
+					//  Continue in case there are multiple
+					//  multi-column characters that would
+					//  have overlapped.
+				}else{
+					// No overlap, do nothing
+					break;
+				}
+			}
+			backtrack++;
+		}
 	}
 
 	public void mergeChanges(ScreenLayer changes, Long mergeOffsetX, Long mergeOffsetY) throws Exception{
@@ -301,8 +360,8 @@ public class ScreenLayer {
 					if(changes.flags[xF][yF]){
 						//  If a multi-column character is falling off the edge of the screen, just set it to null:
 						if(!((i+newCharacterWidth) <= endX)){
-							newCharacter = null;
-							newCharacterWidth = 0;
+							newCharacter = " ";
+							newCharacterWidth = 1;
 						}
 						boolean hasChanged = !(
 							(this.characterWidths[x][y] == newCharacterWidth) &&
@@ -321,31 +380,7 @@ public class ScreenLayer {
 							this.characters[x+k][y] = null;
 							this.flags[x+k][y] = this.flags[x][y];
 						}
-						//  Look for any previous multi-column characters that would
-						//  overlap with the current character.  If they exist, 
-						//  overwrite them.
-						int backtrack = 1;
-						while((x - backtrack) >= 0){
-							if(this.characterWidths[x-backtrack][y] > 0){
-								int requiredCharacters = this.characterWidths[x-backtrack][y];
-								int availableCharacters = backtrack;
-								if(requiredCharacters > availableCharacters){
-									// No space for found character, overwrite.
-									for(int g = x - backtrack; g < x; g++){
-										this.characterWidths[g][y] = 0;
-										this.characters[g][y] = null;
-										this.flags[g][y] = true;
-									}
-									//  Continue in case there are multiple
-									//  multi-column characters that would
-									//  have overlapped.
-								}else{
-									// No overlap, do nothing
-									break;
-								}
-							}
-							backtrack++;
-						}
+						this.nullifyPrecendingOverlappedCharacters(x, y);
 					}
 					i += (newCharacterWidth < 1) ? 1 : newCharacterWidth; 
 				}

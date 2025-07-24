@@ -331,9 +331,10 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 		String [][] currentPositionContents = new String [1][1];
 		String playerIcon = useASCII ? "P" : "\uD83D\uDE0A";
+		int [] playerColour = useASCII ? new int [] {PLAYER_BG_COLOR} : new int [] {};
 		currentPositionContents[0][0] = isPlayerLocation ? playerIcon : null;
 		int [][][] currentPositionColours = new int [1][1][0];
-		currentPositionColours[0][0] = isPlayerLocation ? new int [] {PLAYER_BG_COLOR} : new int [] {};
+		currentPositionColours[0][0] = isPlayerLocation ? playerColour : new int [] {};
 
 		this.sendCellUpdatesInScreenArea(
 			playerPositionCA,

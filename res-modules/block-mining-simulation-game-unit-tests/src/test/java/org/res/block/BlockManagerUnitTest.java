@@ -875,11 +875,11 @@ public class BlockManagerUnitTest {
 
 	public void verifyArray(int [] observed, int [] expected) throws Exception{
 		if(!Arrays.equals(observed, expected)){
-			throw new Exception("Expected array was '" + String.valueOf(expected) + "', but saw '" + String.valueOf(observed) + "' instead.");
+			throw new Exception("Expected array was '" + Arrays.toString(expected) + "', but saw '" + Arrays.toString(observed) + "' instead.");
 		}
 	}
 
-	public void screenTest1() throws Exception{
+	public void mergeChangesTest1() throws Exception{
 		//  Simple merge down test with a change.
 		ScreenLayer t = new ScreenLayer(1, 1);
 		t.initialize();
@@ -898,7 +898,7 @@ public class BlockManagerUnitTest {
 		this.verifyObject(merged.flags[0][0], true);
 	}
 
-	public void screenTest2() throws Exception{
+	public void mergeChangesTest2() throws Exception{
 		//  Simple merge down test with no change flag set with region;  Should get ignored:
 		ScreenLayer t = new ScreenLayer(1, 1);
 		t.initialize();
@@ -918,7 +918,7 @@ public class BlockManagerUnitTest {
 		this.verifyObject(merged.flags[0][0], true);
 	}
 
-        public void screenTest3() throws Exception{
+        public void mergeChangesTest3() throws Exception{
                 //  Simple merge down test with change flag set, but with no region;  Should get ignored:
                 ScreenLayer t = new ScreenLayer(1, 1);
                 t.initialize();
@@ -938,7 +938,7 @@ public class BlockManagerUnitTest {
                 this.verifyObject(merged.flags[0][0], true);
         }
 
-        public void screenTest4() throws Exception{
+        public void mergeChangesTest4() throws Exception{
                 //  Merge down with two column character
                 ScreenLayer t = new ScreenLayer(2, 1);
                 t.initialize();
@@ -964,7 +964,7 @@ public class BlockManagerUnitTest {
                 this.verifyObject(merged.flags[1][0], true);
         }
 
-        public void screenTest5() throws Exception{
+        public void mergeChangesTest5() throws Exception{
                 //  Multi-column characters that don't fit in last column should just become null characters:
                 ScreenLayer t = new ScreenLayer(3, 1);
                 t.setAllFlagStates(false);
@@ -990,13 +990,13 @@ public class BlockManagerUnitTest {
                 this.verifyObject(merged.flags[1][0], false);
 
                 //  There was not enough space to print the last multi-column character:
-                this.verifyObject(merged.characters[2][0], null);
-                this.verifyObject(merged.characterWidths[2][0], 0);
+                this.verifyObject(merged.characters[2][0], " ");
+                this.verifyObject(merged.characterWidths[2][0], 1);
                 this.verifyArray(merged.colourCodes[2][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
                 this.verifyObject(merged.flags[2][0], true);
         }
 
-        public void screenTest6() throws Exception{
+        public void mergeChangesTest6() throws Exception{
                 //  Make sure 
                 ScreenLayer t = new ScreenLayer(3, 1);
                 t.setAllFlagStates(false);
@@ -1013,8 +1013,8 @@ public class BlockManagerUnitTest {
                 merged.mergeChanges(t, 0L, 0L); //  Merge in at start, should be written correctly.
                 merged.mergeChanges(t, 1L, 0L); //  Should overwrite previous character due to multi-column overlap.
 
-                this.verifyObject(merged.characters[0][0], null);
-                this.verifyObject(merged.characterWidths[0][0], 0);
+                this.verifyObject(merged.characters[0][0], " ");
+                this.verifyObject(merged.characterWidths[0][0], 1);
                 this.verifyArray(merged.colourCodes[0][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
                 this.verifyObject(merged.flags[0][0], true);
 
@@ -1030,16 +1030,250 @@ public class BlockManagerUnitTest {
                 this.verifyObject(merged.flags[2][0], true);
         }
 
+        public void mergeNonNullCharactersTest1() throws Exception{
+                //  Simplest test of merge together two layers for multi-column character
+                ScreenLayer [] layers = new ScreenLayer [1];
+		layers[0] = new ScreenLayer(3, 1);
+                layers[0].initialize();
+                layers[0].setAllFlagStates(false);
+                layers[0].characters[0][0] = "A";
+                layers[0].characterWidths[0][0] = 2;
+                layers[0].colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+                layers[0].flags[0][0] = true;
+
+                ScreenLayer merged = new ScreenLayer(3, 1);
+                merged.initialize();
+                merged.setAllFlagStates(false);
+                merged.mergeNonNullChangesDownOnto(layers);
+
+                this.verifyObject(merged.characters[0][0], "A");
+                this.verifyObject(merged.characterWidths[0][0], 2);
+                this.verifyArray(merged.colourCodes[0][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
+                this.verifyObject(merged.flags[0][0], true);
+
+                this.verifyObject(merged.characters[1][0], null);
+                this.verifyObject(merged.characterWidths[1][0], 0);
+                this.verifyArray(merged.colourCodes[1][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
+                this.verifyObject(merged.flags[1][0], true);
+
+                this.verifyObject(merged.characters[2][0], null);
+                this.verifyObject(merged.characterWidths[2][0], 0);
+                this.verifyArray(merged.colourCodes[2][0], new int [] {});
+                this.verifyObject(merged.flags[2][0], false);
+        }
+
+        public void mergeNonNullCharactersTest2() throws Exception{
+		//  Cascading overlap of multi-column characters
+		ScreenLayer [] layers = new ScreenLayer [3];
+		layers[0] = new ScreenLayer(4, 1);
+		layers[0].initialize();
+		layers[0].setAllFlagStates(false);
+		layers[0].characters[0][0] = "A";
+		layers[0].characterWidths[0][0] = 2;
+		layers[0].colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+		layers[0].flags[0][0] = true;
+
+		layers[1] = new ScreenLayer(4, 1);
+		layers[1].initialize();
+		layers[1].setAllFlagStates(false);
+		layers[1].characters[1][0] = "A"; //  Overlaps first "A"
+		layers[1].characterWidths[1][0] = 2;
+		layers[1].colourCodes[1][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+		layers[1].flags[1][0] = true;
+
+		layers[2] = new ScreenLayer(4, 1);
+		layers[2].initialize();
+		layers[2].setAllFlagStates(false);
+		layers[2].characters[2][0] = "A"; //  Overlaps second "A"
+		layers[2].characterWidths[2][0] = 2;
+		layers[2].colourCodes[2][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+		layers[2].flags[2][0] = true;
+
+		ScreenLayer merged = new ScreenLayer(4, 1);
+		merged.initialize();
+		merged.setAllFlagStates(false);
+		merged.mergeNonNullChangesDownOnto(layers);
+
+		this.verifyObject(merged.characters[0][0], " ");
+		this.verifyObject(merged.characterWidths[0][0], 1);
+		this.verifyArray(merged.colourCodes[0][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
+		this.verifyObject(merged.flags[0][0], true);
+
+		this.verifyObject(merged.characters[1][0], " ");
+		this.verifyObject(merged.characterWidths[1][0], 1);
+		this.verifyArray(merged.colourCodes[1][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
+		this.verifyObject(merged.flags[1][0], true);
+
+		this.verifyObject(merged.characters[2][0], "A");
+		this.verifyObject(merged.characterWidths[2][0], 2);
+		this.verifyArray(merged.colourCodes[2][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
+		this.verifyObject(merged.flags[2][0], true);
+
+		this.verifyObject(merged.characters[3][0], null);
+		this.verifyObject(merged.characterWidths[3][0], 0);
+		this.verifyArray(merged.colourCodes[3][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
+		this.verifyObject(merged.flags[3][0], true);
+        }
+
+        public void mergeNonNullCharactersTest3() throws Exception{
+		//  Test to ensure that characters in layers under multi-column characters
+		//  are properly obscured:
+		ScreenLayer [] layers = new ScreenLayer [3];
+		layers[0] = new ScreenLayer(4, 1);
+		layers[0].initialize();
+		layers[0].setAllFlagStates(false);
+		layers[0].characters[1][0] = " ";
+		layers[0].characterWidths[1][0] = 1; //  Bottom Layer
+		layers[0].colourCodes[1][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+		layers[0].flags[1][0] = true;
+
+		layers[1] = new ScreenLayer(4, 1);
+		layers[1].initialize();
+		layers[1].setAllFlagStates(false);
+		layers[1].characters[0][0] = "A"; //  Middle layer
+		layers[1].characterWidths[0][0] = 2;
+		layers[1].colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+		layers[1].flags[0][0] = true;
+
+		layers[2] = new ScreenLayer(4, 1);
+		layers[2].initialize();
+		layers[2].setAllFlagStates(false); //  Top layer, all nulls
+
+		ScreenLayer merged = new ScreenLayer(4, 1);
+		merged.initialize();
+		merged.setAllFlagStates(false);
+		merged.mergeNonNullChangesDownOnto(layers);
+
+		this.verifyObject(merged.characters[0][0], "A");
+		this.verifyObject(merged.characterWidths[0][0], 2);
+		this.verifyArray(merged.colourCodes[0][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
+		this.verifyObject(merged.flags[0][0], true);
+
+		this.verifyObject(merged.characters[1][0], null);
+		this.verifyObject(merged.characterWidths[1][0], 0);
+		this.verifyArray(merged.colourCodes[1][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
+		this.verifyObject(merged.flags[1][0], true);
+
+		this.verifyObject(merged.characters[2][0], null);
+		this.verifyObject(merged.characterWidths[2][0], 0);
+		this.verifyArray(merged.colourCodes[2][0], new int [] {});
+		this.verifyObject(merged.flags[2][0], false);
+
+		this.verifyObject(merged.characters[3][0], null);
+		this.verifyObject(merged.characterWidths[3][0], 0);
+		this.verifyArray(merged.colourCodes[3][0], new int [] {});
+		this.verifyObject(merged.flags[3][0], false);
+        }
+
+        public void mergeNonNullCharactersTest4() throws Exception{
+                //  Test merging to inherit whatever background colour is used by layer underneath.
+                ScreenLayer [] layers = new ScreenLayer [1];
+		layers[0] = new ScreenLayer(3, 1);
+                layers[0].initialize();
+                layers[0].setAllFlagStates(false);
+                layers[0].characters[0][0] = "A";
+                layers[0].characterWidths[0][0] = 2;
+                layers[0].colourCodes[0][0] = new int [] {};
+                layers[0].flags[0][0] = true;
+
+                ScreenLayer merged = new ScreenLayer(3, 1);
+                merged.initialize();
+                merged.setAllFlagStates(false);
+                merged.characters[0][0] = " ";
+                merged.characterWidths[0][0] = 1;
+                merged.colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.BLUE_BG_COLOR};
+                merged.characters[1][0] = null;
+                merged.characterWidths[1][0] = 0;
+                merged.colourCodes[1][0] = new int [] {UserInterfaceFrameThreadState.BLUE_BG_COLOR};
+
+                merged.mergeNonNullChangesDownOnto(layers);
+
+                this.verifyObject(merged.characters[0][0], "A");
+                this.verifyObject(merged.characterWidths[0][0], 2);
+                this.verifyArray(merged.colourCodes[0][0], new int [] {UserInterfaceFrameThreadState.BLUE_BG_COLOR});
+                this.verifyObject(merged.flags[0][0], true);
+
+                this.verifyObject(merged.characters[1][0], null);
+                this.verifyObject(merged.characterWidths[1][0], 0);
+                this.verifyArray(merged.colourCodes[1][0], new int [] {UserInterfaceFrameThreadState.BLUE_BG_COLOR});
+                this.verifyObject(merged.flags[1][0], true);
+
+                this.verifyObject(merged.characters[2][0], null);
+                this.verifyObject(merged.characterWidths[2][0], 0);
+                this.verifyArray(merged.colourCodes[2][0], new int [] {});
+                this.verifyObject(merged.flags[2][0], false);
+        }
+
+        public void mergeNonNullCharactersTest5() throws Exception{
+		//  Test for disappearing background colours on layers underneath
+		//  are properly obscured:
+		ScreenLayer [] layers = new ScreenLayer [3];
+		layers[0] = new ScreenLayer(4, 1);
+		layers[0].initialize();
+		layers[0].setAllFlagStates(false);
+		layers[0].characters[0][0] = " ";
+		layers[0].characterWidths[0][0] = 1; //  Bottom Layer
+		layers[0].colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR};
+		layers[0].flags[0][0] = true;
+		layers[0].characters[1][0] = " ";
+		layers[0].characterWidths[1][0] = 1; 
+		layers[0].colourCodes[1][0] = new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR};
+		layers[0].flags[1][0] = true;
+
+		layers[1] = new ScreenLayer(4, 1);
+		layers[1].initialize();
+		layers[1].setAllFlagStates(false);
+		layers[1].characters[0][0] = "A"; //  Middle layer, should merge down and inherit bottom layer's BG colour
+		layers[1].characterWidths[0][0] = 2;
+		layers[1].colourCodes[0][0] = new int [] {};
+		layers[1].flags[0][0] = false;
+
+		layers[2] = new ScreenLayer(4, 1);
+		layers[2].initialize();
+		layers[2].setAllFlagStates(false); //  Top layer, all nulls
+
+		ScreenLayer merged = new ScreenLayer(4, 1);
+		merged.initialize();
+		merged.setAllFlagStates(false);
+		merged.mergeNonNullChangesDownOnto(layers);
+
+		this.verifyObject(merged.characters[0][0], "A");
+		this.verifyObject(merged.characterWidths[0][0], 2);
+		this.verifyArray(merged.colourCodes[0][0], new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
+		this.verifyObject(merged.flags[0][0], true);
+
+		this.verifyObject(merged.characters[1][0], null);
+		this.verifyObject(merged.characterWidths[1][0], 0);
+		this.verifyArray(merged.colourCodes[1][0], new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
+		this.verifyObject(merged.flags[1][0], true);
+
+		this.verifyObject(merged.characters[2][0], null);
+		this.verifyObject(merged.characterWidths[2][0], 0);
+		this.verifyArray(merged.colourCodes[2][0], new int [] {});
+		this.verifyObject(merged.flags[2][0], false);
+
+		this.verifyObject(merged.characters[3][0], null);
+		this.verifyObject(merged.characterWidths[3][0], 0);
+		this.verifyArray(merged.colourCodes[3][0], new int [] {});
+		this.verifyObject(merged.flags[3][0], false);
+        }
+
 	@Test
 	public void runScreenLayerTest() throws Exception {
 		System.out.println("Begin runScreenLayerTest:");
 
-		this.screenTest1();
-		this.screenTest2();
-		this.screenTest3();
-		this.screenTest4();
-		this.screenTest5();
-		this.screenTest6();
+		this.mergeChangesTest1();
+		this.mergeChangesTest2();
+		this.mergeChangesTest3();
+		this.mergeChangesTest4();
+		this.mergeChangesTest5();
+		this.mergeChangesTest6();
+
+		this.mergeNonNullCharactersTest1();
+		this.mergeNonNullCharactersTest2();
+		this.mergeNonNullCharactersTest3();
+		this.mergeNonNullCharactersTest4();
+		this.mergeNonNullCharactersTest5();
 
 		int layerSize = 10;
 		ScreenLayer l = new ScreenLayer(layerSize, layerSize);
