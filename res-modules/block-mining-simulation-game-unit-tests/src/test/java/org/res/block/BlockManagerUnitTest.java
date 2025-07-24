@@ -1258,6 +1258,60 @@ public class BlockManagerUnitTest {
 		this.verifyObject(merged.flags[3][0], false);
         }
 
+        public void mergeNonNullCharactersTest6() throws Exception{
+		//  Test for disappearing background colours for partially covered characters
+		//  on the right edge.
+		ScreenLayer [] layers = new ScreenLayer [3];
+		layers[0] = new ScreenLayer(4, 1);
+		layers[0].initialize();
+		layers[0].setAllFlagStates(false);
+		layers[0].characters[0][0] = "A";
+		layers[0].characterWidths[0][0] = 2; //  Bottom Layer
+		layers[0].colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR};
+		layers[0].flags[0][0] = true;
+		layers[0].characters[1][0] = null;
+		layers[0].characterWidths[1][0] = 0; 
+		layers[0].colourCodes[1][0] = new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR};
+		layers[0].flags[1][0] = true;
+
+		layers[1] = new ScreenLayer(4, 1);
+		layers[1].initialize();
+		layers[1].setAllFlagStates(false);
+		layers[1].characters[0][0] = " "; //  Middle layer,
+		layers[1].characterWidths[0][0] = 1;
+		layers[1].colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR};
+		layers[1].flags[0][0] = true;
+
+		layers[2] = new ScreenLayer(4, 1);
+		layers[2].initialize();
+		layers[2].setAllFlagStates(false); //  Top layer, all nulls
+
+		ScreenLayer merged = new ScreenLayer(4, 1);
+		merged.initialize();
+		merged.setAllFlagStates(false);
+		merged.mergeNonNullChangesDownOnto(layers);
+
+		this.verifyObject(merged.characters[0][0], " ");
+		this.verifyObject(merged.characterWidths[0][0], 1);
+		this.verifyArray(merged.colourCodes[0][0], new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR});
+		this.verifyObject(merged.flags[0][0], true);
+
+		this.verifyObject(merged.characters[1][0], " ");
+		this.verifyObject(merged.characterWidths[1][0], 0);
+		this.verifyArray(merged.colourCodes[1][0], new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
+		this.verifyObject(merged.flags[1][0], true);
+
+		this.verifyObject(merged.characters[2][0], null);
+		this.verifyObject(merged.characterWidths[2][0], 0);
+		this.verifyArray(merged.colourCodes[2][0], new int [] {});
+		this.verifyObject(merged.flags[2][0], false);
+
+		this.verifyObject(merged.characters[3][0], null);
+		this.verifyObject(merged.characterWidths[3][0], 0);
+		this.verifyArray(merged.colourCodes[3][0], new int [] {});
+		this.verifyObject(merged.flags[3][0], false);
+        }
+
 	@Test
 	public void runScreenLayerTest() throws Exception {
 		System.out.println("Begin runScreenLayerTest:");
@@ -1274,6 +1328,7 @@ public class BlockManagerUnitTest {
 		this.mergeNonNullCharactersTest3();
 		this.mergeNonNullCharactersTest4();
 		this.mergeNonNullCharactersTest5();
+		this.mergeNonNullCharactersTest6();
 
 		int layerSize = 10;
 		ScreenLayer l = new ScreenLayer(layerSize, layerSize);
