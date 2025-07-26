@@ -1031,35 +1031,39 @@ public class BlockManagerUnitTest {
         }
 
         public void mergeNonNullCharactersTest1() throws Exception{
-                //  Simplest test of merge together two layers for multi-column character
-                ScreenLayer [] layers = new ScreenLayer [1];
-		layers[0] = new ScreenLayer(3, 1);
-                layers[0].initialize();
-                layers[0].setAllFlagStates(false);
-                layers[0].characters[0][0] = "A";
-                layers[0].characterWidths[0][0] = 2;
-                layers[0].colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
-                layers[0].flags[0][0] = true;
+			//  Simplest test of merge together two layers for multi-column character
+			ScreenLayer [] layers = new ScreenLayer [1];
+			layers[0] = new ScreenLayer(3, 1);
+			layers[0].initialize();
+			layers[0].setAllFlagStates(false);
+			layers[0].characters[0][0] = "A";
+			layers[0].characterWidths[0][0] = 2;
+			layers[0].colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+			layers[0].flags[0][0] = true;
+			layers[0].characters[1][0] = null;
+			layers[0].characterWidths[1][0] = 0;
+			layers[0].colourCodes[1][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+			layers[0].flags[1][0] = true;
+			
+			ScreenLayer merged = new ScreenLayer(3, 1);
+			merged.initialize();
+			merged.setAllFlagStates(false);
+			merged.mergeNonNullChangesDownOnto(layers);
 
-                ScreenLayer merged = new ScreenLayer(3, 1);
-                merged.initialize();
-                merged.setAllFlagStates(false);
-                merged.mergeNonNullChangesDownOnto(layers);
+			this.verifyObject(merged.characters[0][0], "A");
+			this.verifyObject(merged.characterWidths[0][0], 2);
+			this.verifyArray(merged.colourCodes[0][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
+			this.verifyObject(merged.flags[0][0], true);
 
-                this.verifyObject(merged.characters[0][0], "A");
-                this.verifyObject(merged.characterWidths[0][0], 2);
-                this.verifyArray(merged.colourCodes[0][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-                this.verifyObject(merged.flags[0][0], true);
+			this.verifyObject(merged.characters[1][0], null);
+			this.verifyObject(merged.characterWidths[1][0], 0);
+			this.verifyArray(merged.colourCodes[1][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
+			this.verifyObject(merged.flags[1][0], true);
 
-                this.verifyObject(merged.characters[1][0], null);
-                this.verifyObject(merged.characterWidths[1][0], 0);
-                this.verifyArray(merged.colourCodes[1][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-                this.verifyObject(merged.flags[1][0], true);
-
-                this.verifyObject(merged.characters[2][0], null);
-                this.verifyObject(merged.characterWidths[2][0], 0);
-                this.verifyArray(merged.colourCodes[2][0], new int [] {});
-                this.verifyObject(merged.flags[2][0], false);
+			this.verifyObject(merged.characters[2][0], null);
+			this.verifyObject(merged.characterWidths[2][0], 0);
+			this.verifyArray(merged.colourCodes[2][0], new int [] {});
+			this.verifyObject(merged.flags[2][0], false);
         }
 
         public void mergeNonNullCharactersTest2() throws Exception{
@@ -1072,6 +1076,10 @@ public class BlockManagerUnitTest {
 		layers[0].characterWidths[0][0] = 2;
 		layers[0].colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
 		layers[0].flags[0][0] = true;
+		layers[0].characters[1][0] = null;
+		layers[0].characterWidths[1][0] = 0;
+		layers[0].colourCodes[1][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+		layers[0].flags[1][0] = true;
 
 		layers[1] = new ScreenLayer(4, 1);
 		layers[1].initialize();
@@ -1080,14 +1088,22 @@ public class BlockManagerUnitTest {
 		layers[1].characterWidths[1][0] = 2;
 		layers[1].colourCodes[1][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
 		layers[1].flags[1][0] = true;
+		layers[1].characters[2][0] = null;
+		layers[1].characterWidths[2][0] = 0;
+		layers[1].colourCodes[2][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+		layers[1].flags[2][0] = true;
 
 		layers[2] = new ScreenLayer(4, 1);
 		layers[2].initialize();
 		layers[2].setAllFlagStates(false);
-		layers[2].characters[2][0] = "A"; //  Overlaps second "A"
+		layers[2].characters[2][0] = "A";
 		layers[2].characterWidths[2][0] = 2;
 		layers[2].colourCodes[2][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
 		layers[2].flags[2][0] = true;
+		layers[2].characters[3][0] = null;
+		layers[2].characterWidths[3][0] = 0;
+		layers[2].colourCodes[3][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+		layers[2].flags[3][0] = true;
 
 		ScreenLayer merged = new ScreenLayer(4, 1);
 		merged.initialize();
@@ -1134,6 +1150,10 @@ public class BlockManagerUnitTest {
 		layers[1].characterWidths[0][0] = 2;
 		layers[1].colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
 		layers[1].flags[0][0] = true;
+		layers[1].characters[1][0] = null; //  Middle layer
+		layers[1].characterWidths[1][0] = 0;
+		layers[1].colourCodes[1][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+		layers[1].flags[1][0] = true;
 
 		layers[2] = new ScreenLayer(4, 1);
 		layers[2].initialize();
@@ -1175,6 +1195,10 @@ public class BlockManagerUnitTest {
                 layers[0].characterWidths[0][0] = 2;
                 layers[0].colourCodes[0][0] = new int [] {};
                 layers[0].flags[0][0] = true;
+                layers[0].characters[1][0] = null;
+                layers[0].characterWidths[1][0] = 0;
+                layers[0].colourCodes[1][0] = new int [] {};
+                layers[0].flags[1][0] = true;
 
                 ScreenLayer merged = new ScreenLayer(3, 1);
                 merged.initialize();
@@ -1227,6 +1251,10 @@ public class BlockManagerUnitTest {
 		layers[1].characterWidths[0][0] = 2;
 		layers[1].colourCodes[0][0] = new int [] {};
 		layers[1].flags[0][0] = false;
+		layers[1].characters[1][0] = null;
+		layers[1].characterWidths[1][0] = 0;
+		layers[1].colourCodes[1][0] = new int [] {};
+		layers[1].flags[1][0] = false;
 
 		layers[2] = new ScreenLayer(4, 1);
 		layers[2].initialize();

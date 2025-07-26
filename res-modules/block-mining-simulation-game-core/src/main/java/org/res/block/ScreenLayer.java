@@ -216,7 +216,13 @@ public class ScreenLayer {
 		}
 	}
 
-	public void mergeNonNullChangesDownOnto(ScreenLayer [] screenLayers) throws Exception{
+	public void mergeNonNullChangesDownOnto(ScreenLayer [] aboveLayers) throws Exception{
+		ScreenLayer [] screenLayers = new ScreenLayer [aboveLayers.length +1];
+		screenLayers[0] = this;
+		for(int a = 0; a < aboveLayers.length; a++){
+			screenLayers[a+1] = aboveLayers[a];
+		}
+		
 		Set<ScreenRegion> allRegions = new HashSet<ScreenRegion>();
 		allRegions.addAll(this.getChangedRegions());
 		for(int l = 0; l < screenLayers.length; l++){
@@ -229,70 +235,173 @@ public class ScreenLayer {
 			int endX = region.getEndX();
 			int endY = region.getEndY();
 			for(int j = startY; j < endY; j++){
-				int i = startX;
-				//  Initialize array that tracks characters covered by multi-column
-				//  characters in higher layers:
-				int [] numCharactersToSkip = new int [screenLayers.length];
-				for(int s = 0; s < screenLayers.length; s++){
-					numCharactersToSkip[s] = 0;
+				int [] columnsRemaining = new int [screenLayers.length];
+				int [] currentCharacterWidths = new int [screenLayers.length];
+				for(int s = screenLayers.length -1; s >= 0; s--){
+					columnsRemaining[s] = 0;
 				}
-				while(i < endX){
-					for(int l = screenLayers.length -1; l >= 0; l--){
-						ScreenLayer sl = screenLayers[l];
-						boolean isCovered = numCharactersToSkip[l] > 0;
-						if(!sl.getIsActive() || sl.characters[i][j] == null || isCovered){
+				int xWidth = endX - startX;
+				boolean [] changeFlags = new boolean [xWidth];
+				int [] rightwardOcclusions = new int [xWidth];
+				int [] leftwardOcclusions = new int [xWidth];
+				int activeCharacterLayer = -1; //  The layer number of what we think the top chr is
+				for(int i = startX; i < endX; i++){
+					//  For any characters that start in this position,
+					//  start tracking them:
+					changeFlags[i-startX] = false;
+					for(int s = screenLayers.length -1; s >= 0; s--){
+						if(screenLayers[s].flags[i][j]){
+							changeFlags[i-startX] = true; //  Check all layers, just in case a layer underneath has a change of BG colour.
+						}
+						currentCharacterWidths[s] = screenLayers[s].characterWidths[i][j];
+					}
 
-							//Continue down to next layer undeaneath
-							if(sl.flags[i][j]){ // If null/non-active character above has changed, need to keep changed signal to actually perform update to whatever is below:
-								this.flags[i][j] = sl.flags[i][j];
-							}
+					for(int s = screenLayers.length -1; s >= 0; s--){
+						if(currentCharacterWidths[s] > 0 && screenLayers[s].getIsActive()){
+							columnsRemaining[s] = currentCharacterWidths[s];
+						}
+					}
 
-							sl.flags[i][j] = false;
-						}else{
-							int [] newColourCodes = sl.colourCodes[i][j];
-							if(newColourCodes.length == 0){
-								//  Try to inherit colour from all layers below:
-								for(int ul = l-1; ul >= 0; ul--){
-									if(screenLayers[ul].colourCodes[i][j].length > 0){
-										newColourCodes = screenLayers[ul].colourCodes[i][j];
-										this.flags[i][j] = this.flags[i][j] || screenLayers[ul].flags[i][j];
-										break;
-									}
-								}
-								//  Or from already-merged in current layer:
-								if(newColourCodes.length == 0){
-									if(this.colourCodes[i][j].length > 0){
-										newColourCodes = this.colourCodes[i][j];
-									}
-								}
+					int firstSolidLayer = -1;
+					//  Find the layer of the top solid character:
+					for(int s = screenLayers.length -1; s >= 0; s--){
+						if(columnsRemaining[s] > 0){ //  If there is a char here
+							firstSolidLayer = s;
+							//  If the char starts at this position:
+							if(currentCharacterWidths[s] > 0){
+								activeCharacterLayer = s;
 							}
-							this.characterWidths[i][j] = sl.characterWidths[i][j];
-							this.colourCodes[i][j] = newColourCodes;
-							this.characters[i][j] = sl.characters[i][j];
-							this.flags[i][j] = sl.flags[i][j] || this.flags[i][j];
-							sl.flags[i][j] = false;
-
-							for(int k = 1; (k < sl.characterWidths[i][j]) && (k+i) < endX; k++){
-								this.characterWidths[i+k][j] = 0;
-								this.colourCodes[i+k][j] = this.colourCodes[i][j];
-								this.characters[i+k][j] = null;
-								this.flags[i+k][j] = this.flags[i][j];
-								sl.flags[i+k][j] = false;
-							}
-							this.nullifyPrecendingOverlappedCharacters(i, j);
-							
-							//  We just merged in a multi-column character,
-							//  For the width of this character, all characters in
-							//  layers below will be covered.
-							for(int covered = l -1; covered >= 0; covered--){
-								numCharactersToSkip[covered] = this.characterWidths[i][j] -1;
-							}
-							//  Solid character found, break out of loop
 							break;
 						}
-						numCharactersToSkip[l]--;
 					}
-					i++;
+
+					if(firstSolidLayer == -1){  
+						rightwardOcclusions[i-startX] = -2; // No Character Found.
+					}else if(firstSolidLayer == activeCharacterLayer){
+						//  This character is included in left to right pass
+						rightwardOcclusions[i-startX] = activeCharacterLayer;
+					}else if(firstSolidLayer >=0){
+						rightwardOcclusions[i-startX] = -1; // Ocluded character
+					}else{
+						throw new Exception("Not expected.");
+					}
+
+					for(int s = screenLayers.length -1; s >= 0; s--){
+						columnsRemaining[s]--;
+						if(activeCharacterLayer != -1 && columnsRemaining[activeCharacterLayer] <= 0 && screenLayers[s].getIsActive()){
+							activeCharacterLayer = -1;
+						}
+					}
+				}
+
+				for(int i = endX -1; i >= startX; i--){
+					//  For any characters that start in this position,
+					//  start tracking them:
+					for(int s = screenLayers.length -1; s >= 0; s--){
+						int backtrack = 0;
+						boolean found = false;
+						while(((i-startX-backtrack) >=0) && screenLayers[s].characterWidths[i-startX-backtrack][j] == 0){
+							backtrack++;
+						}
+						if((i-startX-backtrack) >=0){
+							int expectedWidth = backtrack + 1;
+							currentCharacterWidths[s] = screenLayers[s].characterWidths[i-startX-backtrack][j] == expectedWidth ? expectedWidth : 0;
+						}else{
+							currentCharacterWidths[s] = 0;
+						}
+					}
+
+					for(int s = screenLayers.length -1; s >= 0; s--){
+						if(currentCharacterWidths[s] > 0 && screenLayers[s].getIsActive()){
+							columnsRemaining[s] = currentCharacterWidths[s];
+						}
+					}
+
+					int firstSolidLayer = -1;
+					//  Find the layer of the top solid character:
+					for(int s = screenLayers.length -1; s >= 0; s--){
+						if(columnsRemaining[s] > 0){ //  If there is a char here
+							firstSolidLayer = s;
+							//  If the char starts at this position:
+							if(currentCharacterWidths[s] > 0){
+								activeCharacterLayer = s;
+							}
+							break;
+						}
+					}
+
+					if(firstSolidLayer == -1){  
+						leftwardOcclusions[i-startX] = -2; // No Character Found.
+					}else if(firstSolidLayer == activeCharacterLayer){
+						//  This character is included in left to right pass
+						leftwardOcclusions[i-startX] = activeCharacterLayer;
+					}else if(firstSolidLayer >=0){
+						leftwardOcclusions[i-startX] = -1; // Ocluded character
+					}else{
+						throw new Exception("Not expected.");
+					}
+
+					for(int s = screenLayers.length -1; s >= 0; s--){
+						columnsRemaining[s]--;
+						if(activeCharacterLayer != -1 && columnsRemaining[activeCharacterLayer] <= 0 && screenLayers[s].getIsActive()){
+							activeCharacterLayer = -1;
+						}
+					}
+				}
+
+				for(int i = startX; i < endX; i++){
+					int rightward = rightwardOcclusions[i-startX];
+					int leftward = leftwardOcclusions[i-startX];
+					if(rightward >=0 || leftward >= 0){
+						if(rightward == leftward){
+							if(changeFlags[i-startX]){
+								this.characters[i][j] = screenLayers[rightward].characters[i][j];
+								this.characterWidths[i][j] = screenLayers[rightward].characterWidths[i][j];
+								this.flags[i][j] = this.flags[i][j] || changeFlags[i-startX];
+							}
+						}else if(rightward >= 0){
+							if(changeFlags[i-startX]){
+								this.characters[i][j] = " ";
+								this.characterWidths[i][j] = 1;
+								this.flags[i][j] = this.flags[i][j] || changeFlags[i-startX];
+							}
+						}else if(leftward >= 0){
+							if(changeFlags[i-startX]){
+								this.characters[i][j] = " ";
+								this.characterWidths[i][j] = 1;
+								this.flags[i][j] = this.flags[i][j] || changeFlags[i-startX];
+							}
+						}
+					}else if(rightward == -1 && leftward == -1){
+						throw new Exception("not expected");
+					}else if(rightward == -2 && leftward == -1){
+						throw new Exception("not expected");
+					}else if(rightward == -1 && leftward == -2){
+						throw new Exception("not expected");
+					}else if(rightward == -2 && leftward == -2){
+						if(changeFlags[i-startX]){
+							this.characters[i][j] = null;
+							this.characterWidths[i][j] = 0;
+							this.flags[i][j] = true;
+						}
+					}else{
+						throw new Exception("not expected");
+					}
+
+					//  Colour codes come from top most coloured character:
+					if(changeFlags[i-startX]){
+						int [] colours = new int []{};
+						for(int s = screenLayers.length -1; s >= 0; s--){
+							if(screenLayers[s].colourCodes[i][j].length > 0 && screenLayers[s].getIsActive()){
+								colours = screenLayers[s].colourCodes[i][j];
+								break;
+							}
+						}
+						if(!Arrays.equals(this.colourCodes[i][j], colours)){
+							this.colourCodes[i][j] = colours;
+							this.flags[i][j] = true;
+						}
+					}
 				}
 			}
 		}
