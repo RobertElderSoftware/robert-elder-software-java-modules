@@ -230,10 +230,17 @@ public class ScreenLayer {
 			int endY = region.getEndY();
 			for(int j = startY; j < endY; j++){
 				int i = startX;
+				//  Initialize array that tracks characters covered by multi-column
+				//  characters in higher layers:
+				int [] numCharactersToSkip = new int [screenLayers.length];
+				for(int s = 0; s < screenLayers.length; s++){
+					numCharactersToSkip[s] = 0;
+				}
 				while(i < endX){
 					for(int l = screenLayers.length -1; l >= 0; l--){
 						ScreenLayer sl = screenLayers[l];
-						if(!sl.getIsActive() || sl.characters[i][j] == null){
+						boolean isCovered = numCharactersToSkip[l] > 0;
+						if(!sl.getIsActive() || sl.characters[i][j] == null || isCovered){
 
 							//Continue down to next layer undeaneath
 							if(sl.flags[i][j]){ // If null/non-active character above has changed, need to keep changed signal to actually perform update to whatever is below:
@@ -241,7 +248,6 @@ public class ScreenLayer {
 							}
 
 							sl.flags[i][j] = false;
-
 						}else{
 							int [] newColourCodes = sl.colourCodes[i][j];
 							if(newColourCodes.length == 0){
@@ -273,51 +279,24 @@ public class ScreenLayer {
 								this.flags[i+k][j] = this.flags[i][j];
 								sl.flags[i+k][j] = false;
 							}
-							this.nullifyOverlappedCharacters2(l, screenLayers, sl.characterWidths[i][j], i, j);
+							this.nullifyPrecendingOverlappedCharacters(i, j);
+							
+							//  We just merged in a multi-column character,
+							//  For the width of this character, all characters in
+							//  layers below will be covered.
+							for(int covered = l -1; covered >= 0; covered--){
+								numCharactersToSkip[covered] = this.characterWidths[i][j] -1;
+							}
+							//  Solid character found, break out of loop
 							break;
 						}
+						numCharactersToSkip[l]--;
 					}
 					i++;
 				}
 			}
 		}
 		this.addChangedRegions(allRegions);
-	}
-
-	private void nullifyOverlappedCharacters2(int layerIndex, ScreenLayer [] screenLayers, int currentCharWidth, int x, int y){
-		//  Look for any previous multi-column characters that would
-		//  overlap with the current character.  If they exist, 
-		//  overwrite them.
-		int backtrack = 1;
-		int endClearIndex = x;
-		int startClearIndex = x;
-		layerIndex--;
-		while(layerIndex >= 0){
-			while((startClearIndex - backtrack) >= 0){
-				if(screenLayers[layerIndex].characterWidths[startClearIndex-backtrack][y] > 0){
-					int requiredCharacters = screenLayers[layerIndex].characterWidths[startClearIndex-backtrack][y];
-					int availableCharacters = backtrack;
-					if(requiredCharacters > availableCharacters){
-						//  Continue in case there are multiple
-						//  multi-column characters that would
-						//  have overlapped.
-						startClearIndex = x - backtrack;
-					}else{
-						// No overlap, do nothing
-						break;
-					}
-				}
-				backtrack++;
-			}
-			layerIndex--;
-		}
-
-		// Clear space before 
-		for(int i = startClearIndex; i < endClearIndex; i++){
-			this.characterWidths[i][y] = 1;
-			this.characters[i][y] = " ";
-			this.flags[i][y] = true;
-		}
 	}
 
 	private void nullifyPrecendingOverlappedCharacters(int x, int y){

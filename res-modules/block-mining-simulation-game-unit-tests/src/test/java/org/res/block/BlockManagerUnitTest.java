@@ -1297,7 +1297,7 @@ public class BlockManagerUnitTest {
 		this.verifyObject(merged.flags[0][0], true);
 
 		this.verifyObject(merged.characters[1][0], " ");
-		this.verifyObject(merged.characterWidths[1][0], 0);
+		this.verifyObject(merged.characterWidths[1][0], 1);
 		this.verifyArray(merged.colourCodes[1][0], new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
 		this.verifyObject(merged.flags[1][0], true);
 
