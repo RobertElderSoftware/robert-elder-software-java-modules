@@ -714,7 +714,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 	public void setScreenLayerState(int bufferIndex, boolean isActive) throws Exception{
-		this.bufferedScreenLayers[bufferIndex].setIsActive(isActive);
+		this.bufferedScreenLayers[bufferIndex].setIsLayerActive(isActive);
 	}
 
 	public List<ScreenLayerPrintParameters> makeScreenPrintParameters(ScreenLayer l, int bufferIndex) throws Exception{
