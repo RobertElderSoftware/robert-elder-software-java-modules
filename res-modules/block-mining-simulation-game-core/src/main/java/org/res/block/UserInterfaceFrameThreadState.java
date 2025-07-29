@@ -315,7 +315,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			changes.colourCodes[xIndex][yIndex] = newColourCodes[i];
 			changes.characters[xIndex][yIndex] = s;
 			changes.characterWidths[xIndex][yIndex] = chrWidth;
-			changes.flags[xIndex][yIndex] = true;
+			changes.changed[xIndex][yIndex] = true;
+			changes.active[xIndex][yIndex] = true;
 			if(xDirection){
 				currentOffset++;
 				//  For multi-column characters in 'x' direction, reset any of the 'covered'
@@ -324,7 +325,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 					changes.colourCodes[currentOffset][yIndex] = newColourCodes[i];
 					changes.characters[currentOffset][yIndex] = null;
 					changes.characterWidths[currentOffset][yIndex] = 0;
-					changes.flags[currentOffset][yIndex] = true;
+					changes.changed[currentOffset][yIndex] = true;
+					changes.active[currentOffset][yIndex] = true;
 					currentOffset++;
 				}
 			}else{
@@ -761,7 +763,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 						changes.colourCodes[currentOffset][j] = updatedColourCodes[i][j];
 						changes.characters[currentOffset][j] = null;
 						changes.characterWidths[currentOffset][j] = 0;
-						changes.flags[currentOffset][j] = true;
+						changes.changed[currentOffset][j] = true;
+						changes.active[currentOffset][j] = true;
 						currentOffset += 1;
 						paddedWidthSoFar += 1;
 					}
@@ -771,7 +774,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 					changes.colourCodes[currentOffset][j] = updatedColourCodes[i][j];
 					changes.characters[currentOffset][j] = updatedCellContents[i][j];
 					changes.characterWidths[currentOffset][j] = chrWidth;
-					changes.flags[currentOffset][j] = true;
+					changes.changed[currentOffset][j] = true;
+					changes.active[currentOffset][j] = true;
 					currentOffset += (chrWidth > 0) ? 1 : 0;
 
 					//  For multi-column characters, reset any of the 'covered'
@@ -780,7 +784,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 						changes.colourCodes[currentOffset][j] = updatedColourCodes[i][j];
 						changes.characters[currentOffset][j] = null;
 						changes.characterWidths[currentOffset][j] = 0;
-						changes.flags[currentOffset][j] = true;
+						changes.changed[currentOffset][j] = true;
+						changes.active[currentOffset][j] = true;
 						currentOffset++;
 					}
 
@@ -792,7 +797,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 						changes.colourCodes[currentOffset][j] = updatedColourCodes[i][j];
 						changes.characters[currentOffset][j] = space;
 						changes.characterWidths[currentOffset][j] = spaceWidth;
-						changes.flags[currentOffset][j] = true;
+						changes.changed[currentOffset][j] = true;
+						changes.active[currentOffset][j] = true;
 						currentOffset += spaceWidth;
 						paddedWidthSoFar += spaceWidth;
 					}

@@ -781,7 +781,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public void printTerminalTextChanges(boolean resetCursorPosition) throws Exception{
-		this.mergedFinalScreenLayer.mergeNonNullChangesDownOnto(this.screenLayers);
+		this.mergedFinalScreenLayer.mergeNonNullChangesDownOnto(this.screenLayers, true);
 		boolean useRightToLeftPrint = this.blockManagerThreadCollection.getRightToLeftPrint();
 		this.mergedFinalScreenLayer.printChanges(useRightToLeftPrint, resetCursorPosition, 0, 0);
 	}
@@ -950,22 +950,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public EmptyWorkItemResult setScreenAreaChangeStates(int startX, int startY, int endX, int endY, int bufferIndex, boolean state) throws Exception{
 		//  Invalidate a sub-area of screen so that the characters are that location will 
 		//  be printed on the next print attempt.
-		int width = endX - startX;
-		int height = endY - startY;
-		
-		for(int i = 0; i < width; i++){
-			for(int j = 0; j < height; j++){
-				this.screenLayers[bufferIndex].flags[i + startX][j + startY] = state;
-			}
-		}
-		this.screenLayers[bufferIndex].addChangedRegion(
-			new ScreenRegion(ScreenRegion.makeScreenRegionCA(
-				startX,
-				startY,
-				endX,
-				endY
-			))
-		);
+		this.screenLayers[bufferIndex].setScreenAreaChangeStates(startX, startY, endX, endY, state);
 		return new EmptyWorkItemResult();
 	}
 

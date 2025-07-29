@@ -442,7 +442,8 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 				changes.characterWidths[i][j] = characterWidth;
 				changes.colourCodes[i][j] = colours;
 				changes.characters[i][j] = character;
-				changes.flags[i][j] = true;
+				changes.changed[i][j] = true;
+				changes.active[i][j] = true;
 			}
 		}
 
