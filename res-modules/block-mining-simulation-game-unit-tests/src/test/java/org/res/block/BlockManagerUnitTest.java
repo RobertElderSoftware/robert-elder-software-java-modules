@@ -69,6 +69,7 @@ import java.lang.ProcessBuilder.Redirect;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.TreeMap;
 
 import java.awt.Container;
@@ -98,7 +99,7 @@ public class BlockManagerUnitTest {
 		Coordinate lower = ca.getCanonicalLowerCoordinate();
 		Coordinate upper = ca.getCanonicalUpperCoordinate();
 		for(long i = 0; i < numDimensions; i++){
-			l.add(getRandBetweenRange(rand, lower.getValueAtIndex(i), upper.getValueAtIndex(i) + 1L));
+			l.add(getRandBetweenRange(rand, lower.getValueAtIndex(i), upper.getValueAtIndex(i)));
 		}
 		return new Coordinate(l);
 	}
@@ -1404,6 +1405,7 @@ public class BlockManagerUnitTest {
                 this.verifyObject(output.characterWidths[1][0], 0);
                 this.verifyArray(output.colourCodes[1][0], new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
                 this.verifyObject(output.changed[1][0], false);
+                System.out.println("\033[0m"); //  Reset background colour for following tests.
         }
 
         public void testInheritBackgroundBelow() throws Exception{
@@ -1574,6 +1576,84 @@ public class BlockManagerUnitTest {
 		this.verifyObject(merged.changed[3][0], false);
         }
 
+        public void printRandomCharactersTest() throws Exception{
+		Random rand = new Random(1234);
+		int numTestCharacters = 1000;
+		int numLayers = 1;
+		int layerWidth = 80;
+		int layerHeight = 30;
+
+		ScreenLayer [] layers = new ScreenLayer [numLayers];
+		List<Map<Coordinate, TestScreenCharacter>> layerCharacters = new ArrayList<Map<Coordinate, TestScreenCharacter>>();
+
+		CuboidAddress layerRegionAddress = new CuboidAddress(
+			new Coordinate(Arrays.asList(0L,0L)),
+			new Coordinate(Arrays.asList((long)layerWidth, (long)layerHeight))
+		);
+
+		for(int l = 0; l < numLayers; l++){
+			layerCharacters.add(new HashMap<Coordinate, TestScreenCharacter>());
+			layers[l] = new ScreenLayer(layerWidth, layerHeight);
+			layers[l].initialize();
+			layers[l].setAllFlagStates(false);
+			for(int n = 0; n < numTestCharacters; n++){
+				Coordinate randomCoordinate = getRandomCoordinate(rand, layerRegionAddress);
+				int x = randomCoordinate.getX().intValue();
+				int y = randomCoordinate.getY().intValue();
+				int randomCodePoint = (int)getRandBetweenRange(rand, 97L, 113L);
+				String currentCharacters = Character.toString(randomCodePoint);
+				int currentCharacterWidths = 1;
+				int [] currentColourCodes = new int [] {};
+				boolean currentChanged = true;
+				boolean currentActive = true;
+				layers[l].characters[x][y] = currentCharacters;
+				layers[l].characterWidths[x][y] = currentCharacterWidths;
+				layers[l].colourCodes[x][y] = currentColourCodes;
+				layers[l].changed[x][y] = currentChanged;
+				layers[l].active[x][y] = currentActive;
+
+				TestScreenCharacter cc = new TestScreenCharacter(currentCharacters, currentCharacterWidths, currentColourCodes, currentChanged, currentActive);
+				layerCharacters.get(l).put(randomCoordinate, cc);
+			}
+		}
+
+		ScreenLayer merged = new ScreenLayer(layerWidth, layerHeight);
+		merged.initialize();
+		merged.setAllFlagStates(false);
+		merged.mergeNonNullChangesDownOnto(layers, true);
+
+		for(int l = 0; l < numLayers; l++){
+			for(int n = 0; n < numTestCharacters; n++){
+				RegionIteration regionIteration = new RegionIteration(layerRegionAddress.getCanonicalLowerCoordinate(), layerRegionAddress);
+				if(layerRegionAddress.getVolume() > 0L){
+					do{
+						Coordinate currentCoordinate = regionIteration.getCurrentCoordinate();
+						int x = currentCoordinate.getX().intValue();
+						int y = currentCoordinate.getY().intValue();
+						if(layerCharacters.get(l).containsKey(currentCoordinate)){
+							TestScreenCharacter cc = layerCharacters.get(l).get(currentCoordinate);
+							this.verifyObject(merged.characters[x][y], cc.characters);
+							this.verifyObject(merged.characterWidths[x][y], cc.characterWidths);
+							this.verifyArray(merged.colourCodes[x][y], cc.colourCodes);
+							this.verifyObject(merged.changed[x][y], cc.changed);
+							this.verifyObject(merged.active[x][y], cc.active);
+						}else{
+							this.verifyObject(merged.characters[x][y], null);
+							this.verifyObject(merged.characterWidths[x][y], 0);
+							this.verifyArray(merged.colourCodes[x][y], new int []{});
+							this.verifyObject(merged.changed[x][y], false);
+							this.verifyObject(merged.active[x][y], true);
+						}
+					}while (regionIteration.incrementCoordinateWithinCuboidAddress());
+				}
+			}
+		}
+
+		System.out.print("\033[2J");
+		merged.printChanges(false, false, 0, 0);
+		System.out.print("\n");
+        }
+
 	@Test
 	public void runScreenLayerTest() throws Exception {
 		System.out.println("Begin runScreenLayerTest:");
@@ -1594,25 +1674,6 @@ public class BlockManagerUnitTest {
 		this.testInheritBackgroundBelow();
 		this.testIgnoreBackgroundFlaggedFalse();
 		this.testPartiallyCoveredCharacterBackground();
-
-		int layerSize = 10;
-		ScreenLayer l = new ScreenLayer(layerSize, layerSize);
-		for(int i = 0; i < layerSize; i++){
-			for(int j = 0; j < layerSize; j++){
-				l.characters[i][j] = "A";
-				l.characterWidths[i][j] = 1;
-				l.colourCodes[i][j] = new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR, UserInterfaceFrameThreadState.RED_FG_COLOR};
-				l.changed[i][j] = true;
-				l.active[i][j] = true;
-			}
-		}
-		l.addChangedRegion(new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, l.getWidth(), l.getHeight())));
-
-		ScreenLayer outputLayer = new ScreenLayer(layerSize, layerSize);
-		outputLayer.mergeChanges(l, 0L, 0L);
-
-		System.out.print("\033[2J");
-		outputLayer.printChanges(false, false, 10, 5);
-		System.out.print("\n");
+		this.printRandomCharactersTest();
 	}
 }
