@@ -303,7 +303,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int xDimSize = xDirection ? totalWidth : 1;
 		int yDimSize = xDirection ? 1 : totalWidth;
 
-		ScreenLayer changes = new ScreenLayer(xDimSize, yDimSize);
+		Coordinate drawOffset = new Coordinate(Arrays.asList(drawOffsetX, drawOffsetY));
+		ScreenLayer changes = new ScreenLayer(drawOffset, ScreenLayer.makeDimensionsCA(0, 0, xDimSize, yDimSize));
 		changes.clearFlags();
 
 		int currentOffset = 0;
@@ -335,8 +336,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			}
 		}
 
-		int xOffset = drawOffsetX.intValue();
-		int yOffset = drawOffsetY.intValue();
 		int xSize = xDimSize;
 		int ySize = yDimSize;
 
@@ -344,7 +343,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			ScreenRegion.makeScreenRegionCA(0, 0, xDimSize, yDimSize)
 		);
 		changes.addChangedRegion(region);
-		this.writeToLocalFrameBuffer(changes, bufferIndex, (long)xOffset, (long)yOffset);
+		this.writeToLocalFrameBuffer(changes, bufferIndex);
 	}
 
 	public boolean sendConsolePrintMessage(List<ScreenLayerPrintParameters> params, FrameDimensions fd) throws Exception{
@@ -667,8 +666,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 	}
 
-	public void writeToLocalFrameBuffer(ScreenLayer changes, int bufferIndex, Long xOffset, Long yOffset) throws Exception{
-		this.bufferedScreenLayers[bufferIndex].mergeChanges(changes, xOffset, yOffset);
+	public void writeToLocalFrameBuffer(ScreenLayer changes, int bufferIndex) throws Exception{
+		this.bufferedScreenLayers[bufferIndex].mergeChanges(changes);
 	}
 
 	public boolean hasOtherFrameDimensionsChanged(FrameChangeWorkItemParams params){
@@ -704,14 +703,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		//  After every resize event, clear the frame buffer and start with a blank background:
 		for(int i = 0; i < this.usedScreenLayers.length; i++){
 			int l = usedScreenLayers[i];
-			int chrWidth = 0;
-			String s = null;
-			int [] colours = new int[] {};
-
-			this.bufferedScreenLayers[l] = new ScreenLayer(width, height);
-			this.bufferedScreenLayers[l].initialize(chrWidth, s, colours);
-			this.previousBufferedScreenLayers[l] = new ScreenLayer(width, height);
-			this.previousBufferedScreenLayers[l].initialize(0, null, new int [] {});
+			Coordinate placementOffset = new Coordinate(Arrays.asList(this.getFrameDimensions().getFrameOffsetX(), this.getFrameDimensions().getFrameOffsetY()));
+			this.bufferedScreenLayers[l] = new ScreenLayer(placementOffset, ScreenLayer.makeDimensionsCA(0, 0, width, height));
+			this.bufferedScreenLayers[l].initialize(0, null, new int [] {});
+			this.previousBufferedScreenLayers[l] = new ScreenLayer(placementOffset, ScreenLayer.makeDimensionsCA(0, 0, width, height));
 		}
 	}
 
@@ -751,7 +746,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		int totalWidth = (int)(this.getMapAreaCellWidth() * areaCellWidth);
 		int totalHeight = areaCellHeight;
 
-		ScreenLayer changes = new ScreenLayer(totalWidth, totalHeight); // TODO:  To optimize: This can often be smaller than the entire map area
+		Coordinate screenOffset = new Coordinate(Arrays.asList(drawOffsetX, drawOffsetY));
+		CuboidAddress screenDimensions = ScreenLayer.makeDimensionsCA(0, 0, totalWidth, totalHeight);
+		ScreenLayer changes = new ScreenLayer(screenOffset, screenDimensions);
 		changes.clearFlags();
 
 		for(int j = 0; j < areaCellHeight; j++){
@@ -809,14 +806,12 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			}
 		}
 
-		int xOffset = drawOffsetX.intValue();
-		int yOffset = drawOffsetY.intValue();
 		int xSize = totalWidth;
 		int ySize = totalHeight;
 
 		ScreenRegion region = new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, xSize, ySize));
 		changes.addChangedRegion(region);
-		this.writeToLocalFrameBuffer(changes, bufferIndex, (long)xOffset, (long)yOffset);
+		this.writeToLocalFrameBuffer(changes, bufferIndex);
 	}
 
 	public String whitespacePad(String presentedText, Long paddedWidth) throws Exception{
@@ -868,8 +863,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		);
 
 		for(int i = 0; i < usedScreenLayers.length; i++){
-			this.bufferedScreenLayers[usedScreenLayers[i]] = new ScreenLayer(0,0);
-			this.previousBufferedScreenLayers[usedScreenLayers[i]] = new ScreenLayer(0,0);
+			this.bufferedScreenLayers[usedScreenLayers[i]] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 0,0));
+			this.previousBufferedScreenLayers[usedScreenLayers[i]] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 0,0));
 		}
 	}
 

@@ -57,6 +57,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 public class ScreenLayer {
 
 	private boolean isLayerActive = true;
+	private Coordinate placementOffset;  //  The offset of where the layer should end up once it's merged in.
 	private CuboidAddress dimensions;
 	public int [][] characterWidths = null;
 	public int [][][] colourCodes = null;
@@ -94,6 +95,14 @@ public class ScreenLayer {
 		return (int)this.dimensions.getHeight();
 	}
 
+	public void setPlacementOffset(Coordinate placementOffset){
+		this.placementOffset = placementOffset;
+	}
+
+	public Coordinate getPlacementOffset(){
+		return this.placementOffset;
+	}
+
 	public CuboidAddress getDimensions(){
 		return this.dimensions;
 	}
@@ -114,13 +123,16 @@ public class ScreenLayer {
 		return this.changedRegions;
 	}
 
-	public ScreenLayer(int width, int height) throws Exception{
+	public ScreenLayer(Coordinate placementOffset, CuboidAddress dimensions) throws Exception{
+		int width = (int)dimensions.getWidth();
+		int height = (int)dimensions.getHeight();
 		this.characterWidths = new int [width][height];
 		this.colourCodes = new int [width][height][];
 		this.characters = new String [width][height];
 		this.changed = new boolean [width][height];
 		this.active = new boolean [width][height];
-		this.dimensions = ScreenLayer.makeDimensionsCA(0, 0, width, height);
+		this.dimensions = dimensions;
+		this.placementOffset = placementOffset;
 	}
 
 	public void setAllFlagStates(boolean state){
@@ -138,6 +150,7 @@ public class ScreenLayer {
 	}
 
 	public ScreenLayer(ScreenLayer l){
+		this.placementOffset = l.getPlacementOffset();
 		this.dimensions = l.getDimensions();
 		int width = l.getWidth();
 		int height = l.getHeight();
@@ -476,17 +489,17 @@ public class ScreenLayer {
 		}
 	}
 
-	public void mergeChanges(ScreenLayer changes, Long mergeOffsetX, Long mergeOffsetY) throws Exception{
-		int mergeOffsetXInt = mergeOffsetX.intValue();
-		int mergeOffsetYInt = mergeOffsetY.intValue();
+	public void mergeChanges(ScreenLayer changes) throws Exception{
 		Set<ScreenRegion> regions = changes.getChangedRegions();
+		int xOffset = changes.getPlacementOffset().getX().intValue();
+		int yOffset = changes.getPlacementOffset().getY().intValue();
 		for(ScreenRegion sourceRegion : regions){
 			//  Determine the subset of the change that's actually lands within the destination layer
 			CuboidAddress destinationRegionCA = ScreenRegion.makeScreenRegionCA(
-				sourceRegion.getStartX() + mergeOffsetXInt,
-				sourceRegion.getStartY() + mergeOffsetYInt,
-				sourceRegion.getEndX() + mergeOffsetXInt,
-				sourceRegion.getEndY() + mergeOffsetYInt
+				sourceRegion.getStartX() + xOffset,
+				sourceRegion.getStartY() + yOffset,
+				sourceRegion.getEndX() + xOffset,
+				sourceRegion.getEndY() + yOffset
 			);
 
 			CuboidAddress consideredRegion = destinationRegionCA.getIntersectionCuboidAddress(this.getDimensions());
@@ -501,8 +514,8 @@ public class ScreenLayer {
 				while(i < endX){
 					int x = i;
 					int y = j;
-					int xF = i - mergeOffsetXInt;
-					int yF = j - mergeOffsetYInt;
+					int xF = i - xOffset;
+					int yF = j - yOffset;
 					String newCharacter = changes.characters[xF][yF];
 					int newCharacterWidth = changes.characterWidths[xF][yF];
 

@@ -106,7 +106,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.helpMenuFrameThreadState = (HelpMenuFrameThreadState)this.getFrameStateById(helpMenuFrameId);
 
 		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
-			this.screenLayers[i] = new ScreenLayer(0, 0);
+			this.screenLayers[i] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 0, 0));
 			this.screenLayers[i].setIsLayerActive(true);
 		}
 		this.initializeConsole(80L, 24L); // Early setup is necessary so we can do text width calculations before drawing frame
@@ -637,9 +637,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			//  If there are no active frames, there is no UI frame to clear what was there before:
 			String msg = "All frames have been closed!  Press 'ESC' to open one.";
 			int bufferIndex = ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT;
-			this.screenLayers[bufferIndex] = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
+			this.screenLayers[bufferIndex] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, this.terminalWidth.intValue(), this.terminalHeight.intValue()));
 			this.screenLayers[bufferIndex].initialize(1, " ", new int [] {}, msg);
-			this.mergedFinalScreenLayer = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
+			this.mergedFinalScreenLayer = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, this.terminalWidth.intValue(), this.terminalHeight.intValue()));
 			this.mergedFinalScreenLayer.initialize();
 			this.printTerminalTextChanges(false);
 		}
@@ -775,7 +775,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		for(ScreenLayerPrintParameters param : params){
 			ScreenLayer changes = param.getScreenLayer();
 			int bufferIndex = param.getBufferIndex();
-			this.screenLayers[bufferIndex].mergeChanges(changes, frameDimensions.getFrameOffsetX(), frameDimensions.getFrameOffsetY());
+			this.screenLayers[bufferIndex].mergeChanges(changes);
 		}
 		return new EmptyWorkItemResult();
 	}
@@ -790,11 +790,11 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.terminalWidth = terminalWidth;
 		this.terminalHeight = terminalHeight;
 		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
-			this.screenLayers[i] = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
+			this.screenLayers[i] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, this.terminalWidth.intValue(), this.terminalHeight.intValue()));
 			this.screenLayers[i].initialize();
 		}
 
-		this.mergedFinalScreenLayer = new ScreenLayer(this.terminalWidth.intValue(), this.terminalHeight.intValue());
+		this.mergedFinalScreenLayer = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, this.terminalWidth.intValue(), this.terminalHeight.intValue()));
 		this.mergedFinalScreenLayer.initialize();
 	}
 

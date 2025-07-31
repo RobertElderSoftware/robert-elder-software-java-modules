@@ -429,7 +429,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 
 		int menuHeight = instructions.size() + this.helpMenu.getDisplayedHelpMenuOptions().size() + 1;
 
-		ScreenLayer changes = new ScreenLayer(terminalWidth, terminalHeight);
+		ScreenLayer changes = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, terminalWidth, terminalHeight));
 		changes.clearFlags();
 
 		int yOffset = (terminalHeight / 2) - (menuHeight / 2);
@@ -449,7 +449,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 
 		ScreenRegion region = new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, terminalWidth, terminalHeight));
 		changes.addChangedRegion(region);
-		this.writeToLocalFrameBuffer(changes, ConsoleWriterThreadState.BUFFER_INDEX_MENU, (long)0, (long)0);
+		this.writeToLocalFrameBuffer(changes, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
 
 		for(LinePrintingInstructionAtOffset instruction : instructions){
 			Long lineYOffset = instruction.getOffsetY() + yOffset;

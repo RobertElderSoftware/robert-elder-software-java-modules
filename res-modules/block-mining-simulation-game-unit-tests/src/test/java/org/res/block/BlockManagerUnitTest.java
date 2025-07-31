@@ -882,7 +882,7 @@ public class BlockManagerUnitTest {
 
 	public void mergeChangesTest1() throws Exception{
 		//  Simple merge down test with a change.
-		ScreenLayer t = new ScreenLayer(1, 1);
+		ScreenLayer t = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
 		t.initialize();
 		t.characters[0][0] = "A";
 		t.characterWidths[0][0] = 1;
@@ -891,9 +891,9 @@ public class BlockManagerUnitTest {
 		t.active[0][0] = true;
 		t.addChangedRegion(new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, t.getWidth(), t.getHeight())));
 
-		ScreenLayer merged = new ScreenLayer(1, 1);
+		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
 		merged.initialize();
-		merged.mergeChanges(t, 0L, 0L);
+		merged.mergeChanges(t);
 		this.verifyObject(merged.characters[0][0], "A");
 		this.verifyObject(merged.characterWidths[0][0], 1);
 		this.verifyArray(merged.colourCodes[0][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
@@ -902,7 +902,7 @@ public class BlockManagerUnitTest {
 
 	public void mergeChangesTest2() throws Exception{
 		//  Simple merge down test with no change flag set with region;  Should get ignored:
-		ScreenLayer t = new ScreenLayer(1, 1);
+		ScreenLayer t = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
 		t.initialize();
 		t.characters[0][0] = "A";
 		t.characterWidths[0][0] = 1;
@@ -911,9 +911,9 @@ public class BlockManagerUnitTest {
 		t.active[0][0] = false;
 		t.addChangedRegion(new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, t.getWidth(), t.getHeight())));
 
-		ScreenLayer merged = new ScreenLayer(1, 1);
+		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
 		merged.initialize();
-		merged.mergeChanges(t, 0L, 0L);
+		merged.mergeChanges(t);
 
 		this.verifyObject(merged.characters[0][0], null);
 		this.verifyObject(merged.characterWidths[0][0], 0);
@@ -923,7 +923,7 @@ public class BlockManagerUnitTest {
 
         public void mergeChangesTest3() throws Exception{
                 //  Simple merge down test with change flag set, but with no region;  Should get ignored:
-                ScreenLayer t = new ScreenLayer(1, 1);
+                ScreenLayer t = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
                 t.initialize();
                 t.clearChangedRegions();
                 t.characters[0][0] = "A";
@@ -932,9 +932,9 @@ public class BlockManagerUnitTest {
                 t.changed[0][0] = true;
                 t.active[0][0] = true;
 
-                ScreenLayer merged = new ScreenLayer(1, 1);
+                ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
                 merged.initialize();
-                merged.mergeChanges(t, 0L, 0L);
+                merged.mergeChanges(t);
 
                 this.verifyObject(merged.characters[0][0], null);
                 this.verifyObject(merged.characterWidths[0][0], 0);
@@ -944,7 +944,7 @@ public class BlockManagerUnitTest {
 
         public void mergeChangesTest4() throws Exception{
                 //  Merge down with two column character
-                ScreenLayer t = new ScreenLayer(2, 1);
+                ScreenLayer t = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 2, 1));
                 t.initialize();
                 t.characters[0][0] = "A";
                 t.characterWidths[0][0] = 2;
@@ -952,10 +952,10 @@ public class BlockManagerUnitTest {
                 t.changed[0][0] = true;
                 t.active[0][0] = true;
 
-                ScreenLayer merged = new ScreenLayer(2, 1);
+                ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 2, 1));
                 merged.initialize();
                 merged.setAllFlagStates(false);
-                merged.mergeChanges(t, 0L, 0L);
+                merged.mergeChanges(t);
 
                 this.verifyObject(merged.characters[0][0], "A");
                 this.verifyObject(merged.characterWidths[0][0], 2);
@@ -971,7 +971,7 @@ public class BlockManagerUnitTest {
 
         public void mergeChangesTest5() throws Exception{
                 //  Multi-column characters that don't fit in last column should just become null characters:
-                ScreenLayer t = new ScreenLayer(3, 1);
+                ScreenLayer t = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
                 t.setAllFlagStates(false);
                 t.initialize();
                 t.characters[2][0] = "A";
@@ -980,10 +980,10 @@ public class BlockManagerUnitTest {
                 t.changed[2][0] = true;
                 t.active[2][0] = true;
 
-                ScreenLayer merged = new ScreenLayer(3, 1);
+                ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
                 merged.initialize();
                 merged.setAllFlagStates(false);
-                merged.mergeChanges(t, 0L, 0L);
+                merged.mergeChanges(t);
 
                 this.verifyObject(merged.characters[0][0], null);
                 this.verifyObject(merged.characterWidths[0][0], 0);
@@ -1004,7 +1004,7 @@ public class BlockManagerUnitTest {
 
         public void mergeChangesTest6() throws Exception{
                 //  Make sure 
-                ScreenLayer t = new ScreenLayer(3, 1);
+                ScreenLayer t = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
                 t.setAllFlagStates(false);
                 t.initialize();
                 t.characters[0][0] = "A";
@@ -1013,12 +1013,15 @@ public class BlockManagerUnitTest {
                 t.changed[0][0] = true;
                 t.active[0][0] = true;
 
-                ScreenLayer merged = new ScreenLayer(3, 1);
+                ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
                 merged.initialize();
                 merged.setAllFlagStates(false);
-                merged.mergeChanges(t, 2L, 0L); //  Merge in at end, should force character to null
-                merged.mergeChanges(t, 0L, 0L); //  Merge in at start, should be written correctly.
-                merged.mergeChanges(t, 1L, 0L); //  Should overwrite previous character due to multi-column overlap.
+                t.setPlacementOffset(new Coordinate(Arrays.asList(2L,0L)));
+                merged.mergeChanges(t); //  Merge in at end, should force character to null
+                t.setPlacementOffset(new Coordinate(Arrays.asList(0L,0L)));
+                merged.mergeChanges(t); //  Merge in at start, should be written correctly.
+                t.setPlacementOffset(new Coordinate(Arrays.asList(1L,0L)));
+                merged.mergeChanges(t); //  Should overwrite previous character due to multi-column overlap.
 
                 this.verifyObject(merged.characters[0][0], " ");
                 this.verifyObject(merged.characterWidths[0][0], 1);
@@ -1040,7 +1043,7 @@ public class BlockManagerUnitTest {
         public void testSimpleTwoColumn() throws Exception{
 		//  Simplest test of merge together two layers for multi-column character
 		ScreenLayer [] layers = new ScreenLayer [1];
-		layers[0] = new ScreenLayer(3, 1);
+		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
 		layers[0].initialize();
 		layers[0].setAllFlagStates(false);
 		layers[0].characters[0][0] = "A";
@@ -1054,7 +1057,7 @@ public class BlockManagerUnitTest {
 		layers[0].changed[1][0] = true;
 		layers[0].active[1][0] = true;
 
-		ScreenLayer merged = new ScreenLayer(3, 1);
+		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
 		merged.initialize();
 		merged.setAllFlagStates(false);
 		merged.mergeNonNullChangesDownOnto(layers, true);
@@ -1078,7 +1081,7 @@ public class BlockManagerUnitTest {
         public void testAscendingMultiColumn() throws Exception{
 		//  Ascending overlap of multi-column characters
 		ScreenLayer [] layers = new ScreenLayer [3];
-		layers[0] = new ScreenLayer(4, 1);
+		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[0].initialize();
 		layers[0].setAllFlagStates(false);
 		layers[0].characters[0][0] = "A";
@@ -1092,7 +1095,7 @@ public class BlockManagerUnitTest {
 		layers[0].changed[1][0] = true;
 		layers[0].active[1][0] = true;
 
-		layers[1] = new ScreenLayer(4, 1);
+		layers[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[1].initialize();
 		layers[1].setAllFlagStates(false);
 		layers[1].characters[1][0] = "A"; //  Overlaps first "A"
@@ -1106,7 +1109,7 @@ public class BlockManagerUnitTest {
 		layers[1].changed[2][0] = true;
 		layers[1].active[2][0] = true;
 
-		layers[2] = new ScreenLayer(4, 1);
+		layers[2] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[2].initialize();
 		layers[2].setAllFlagStates(false);
 		layers[2].characters[2][0] = "A";
@@ -1120,7 +1123,7 @@ public class BlockManagerUnitTest {
 		layers[2].changed[3][0] = true;
 		layers[2].active[3][0] = true;
 
-		ScreenLayer merged = new ScreenLayer(4, 1);
+		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		merged.initialize();
 		merged.setAllFlagStates(false);
 		merged.mergeNonNullChangesDownOnto(layers, true);
@@ -1150,7 +1153,7 @@ public class BlockManagerUnitTest {
 		//  Descending overlap of multi-column characters
 		ScreenLayer [] layers = new ScreenLayer [3];
 
-		layers[0] = new ScreenLayer(4, 1);
+		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[0].initialize();
 		layers[0].setAllFlagStates(false);
 		layers[0].characters[2][0] = "A";
@@ -1164,7 +1167,7 @@ public class BlockManagerUnitTest {
 		layers[0].changed[3][0] = true;
 		layers[0].active[3][0] = true;
 
-		layers[1] = new ScreenLayer(4, 1);
+		layers[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[1].initialize();
 		layers[1].setAllFlagStates(false);
 		layers[1].characters[1][0] = "A";
@@ -1178,7 +1181,7 @@ public class BlockManagerUnitTest {
 		layers[1].changed[2][0] = true;
 		layers[1].active[2][0] = true;
 
-		layers[2] = new ScreenLayer(4, 1);
+		layers[2] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[2].initialize();
 		layers[2].setAllFlagStates(false);
 		layers[2].characters[0][0] = "A";
@@ -1192,7 +1195,7 @@ public class BlockManagerUnitTest {
 		layers[2].changed[1][0] = true;
 		layers[2].active[1][0] = true;
 
-		ScreenLayer merged = new ScreenLayer(4, 1);
+		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		merged.initialize();
 		merged.setAllFlagStates(false);
 		merged.mergeNonNullChangesDownOnto(layers, true);
@@ -1222,7 +1225,7 @@ public class BlockManagerUnitTest {
 		//  Test to ensure that characters in layers under multi-column characters
 		//  are properly obscured:
 		ScreenLayer [] layers = new ScreenLayer [3];
-		layers[0] = new ScreenLayer(4, 1);
+		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[0].initialize();
 		layers[0].setAllFlagStates(false);
 		layers[0].characters[1][0] = " ";
@@ -1231,7 +1234,7 @@ public class BlockManagerUnitTest {
 		layers[0].changed[1][0] = true;
 		layers[0].active[1][0] = true;
 
-		layers[1] = new ScreenLayer(4, 1);
+		layers[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[1].initialize();
 		layers[1].setAllFlagStates(false);
 		layers[1].characters[0][0] = "A"; //  Middle layer
@@ -1245,11 +1248,11 @@ public class BlockManagerUnitTest {
 		layers[1].changed[1][0] = true;
 		layers[1].active[1][0] = true;
 
-		layers[2] = new ScreenLayer(4, 1);
+		layers[2] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[2].initialize();
 		layers[2].setAllFlagStates(false); //  Top layer, all nulls
 
-		ScreenLayer merged = new ScreenLayer(4, 1);
+		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		merged.initialize();
 		merged.setAllFlagStates(false);
 		merged.mergeNonNullChangesDownOnto(layers, true);
@@ -1278,7 +1281,7 @@ public class BlockManagerUnitTest {
 
         public void testMergeDownNoNeedToPrint() throws Exception{
                 ScreenLayer [] layers = new ScreenLayer [1];
-		layers[0] = new ScreenLayer(1, 1);
+		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
                 layers[0].initialize();
                 layers[0].setAllFlagStates(false);
                 layers[0].characters[0][0] = "M";
@@ -1287,7 +1290,7 @@ public class BlockManagerUnitTest {
                 layers[0].changed[0][0] = true;
                 layers[0].active[0][0] = true;
 
-                ScreenLayer merged = new ScreenLayer(1, 1);
+                ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
                 merged.initialize();
                 merged.setAllFlagStates(false);
                 merged.characters[0][0] = "M";
@@ -1306,7 +1309,7 @@ public class BlockManagerUnitTest {
 
         public void writeBorderTwiceNoChange() throws Exception{
                 ScreenLayer [] layers = new ScreenLayer [1];
-		layers[0] = new ScreenLayer(2, 1);
+		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 2, 1));
                 layers[0].initialize();
                 layers[0].setAllFlagStates(false);
                 layers[0].characters[0][0] = "=";
@@ -1320,7 +1323,7 @@ public class BlockManagerUnitTest {
                 layers[0].changed[1][0] = true;
                 layers[0].active[1][0] = true;
 
-                ScreenLayer merged = new ScreenLayer(2, 1);
+                ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 2, 1));
                 merged.initialize();
                 merged.setAllFlagStates(false);
                 merged.characters[0][0] = null;
@@ -1349,7 +1352,7 @@ public class BlockManagerUnitTest {
                 this.verifyArray(merged.colourCodes[1][0], new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
                 this.verifyObject(merged.changed[1][0], true);
 
-                ScreenLayer output = new ScreenLayer(2, 1);
+                ScreenLayer output = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 2, 1));
                 output.initialize();
                 output.setAllFlagStates(false);
                 output.characters[0][0] = null;
@@ -1358,7 +1361,7 @@ public class BlockManagerUnitTest {
                 output.changed[0][0] = false;
                 output.active[0][0] = true;
 
-                output.mergeChanges(merged, 0L, 0L);
+                output.mergeChanges(merged);
                 //  Merging in the layer is supposed to clear the changed flags:
                 this.verifyObject(merged.changed[0][0], false);
                 this.verifyObject(merged.changed[1][0], false);
@@ -1395,7 +1398,7 @@ public class BlockManagerUnitTest {
                 this.verifyArray(merged.colourCodes[1][0], new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
                 this.verifyObject(merged.changed[1][0], false);
 
-                output.mergeChanges(merged, 0L, 0L);
+                output.mergeChanges(merged);
 
                 this.verifyObject(output.characters[0][0], "=");
                 this.verifyObject(output.characterWidths[0][0], 2);
@@ -1411,7 +1414,7 @@ public class BlockManagerUnitTest {
         public void testInheritBackgroundBelow() throws Exception{
                 //  Test merging to inherit whatever background colour is used by layer underneath.
                 ScreenLayer [] layers = new ScreenLayer [1];
-		layers[0] = new ScreenLayer(3, 1);
+		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
                 layers[0].initialize();
                 layers[0].setAllFlagStates(false);
                 layers[0].characters[0][0] = "A";
@@ -1425,7 +1428,7 @@ public class BlockManagerUnitTest {
                 layers[0].changed[1][0] = true;
                 layers[0].active[1][0] = true;
 
-                ScreenLayer merged = new ScreenLayer(3, 1);
+                ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
                 merged.initialize();
                 merged.setAllFlagStates(false);
                 merged.characters[0][0] = " ";
@@ -1461,7 +1464,7 @@ public class BlockManagerUnitTest {
 		//  Test for disappearing background colours on layers underneath
 		//  are properly obscured:
 		ScreenLayer [] layers = new ScreenLayer [3];
-		layers[0] = new ScreenLayer(4, 1);
+		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[0].initialize();
 		layers[0].setAllFlagStates(false);
 		layers[0].characters[0][0] = " ";
@@ -1475,7 +1478,7 @@ public class BlockManagerUnitTest {
 		layers[0].changed[1][0] = true;
 		layers[0].active[1][0] = true;
 
-		layers[1] = new ScreenLayer(4, 1);
+		layers[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[1].initialize();
 		layers[1].setAllFlagStates(false);
 		layers[1].characters[0][0] = "A"; //  Middle layer, should merge down and inherit bottom layer's BG colour
@@ -1489,11 +1492,11 @@ public class BlockManagerUnitTest {
 		layers[1].changed[1][0] = false;
 		layers[1].active[1][0] = true;
 
-		layers[2] = new ScreenLayer(4, 1);
+		layers[2] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[2].initialize();
 		layers[2].setAllFlagStates(false); //  Top layer, all nulls
 
-		ScreenLayer merged = new ScreenLayer(4, 1);
+		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		merged.initialize();
 		merged.setAllFlagStates(false);
 		merged.mergeNonNullChangesDownOnto(layers, true);
@@ -1523,7 +1526,7 @@ public class BlockManagerUnitTest {
 		//  Test for disappearing background colours for partially covered characters
 		//  on the right edge.
 		ScreenLayer [] layers = new ScreenLayer [3];
-		layers[0] = new ScreenLayer(4, 1);
+		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[0].initialize();
 		layers[0].setAllFlagStates(false);
 		layers[0].characters[0][0] = "A";
@@ -1537,7 +1540,7 @@ public class BlockManagerUnitTest {
 		layers[0].changed[1][0] = true;
 		layers[0].active[1][0] = true;
 
-		layers[1] = new ScreenLayer(4, 1);
+		layers[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[1].initialize();
 		layers[1].setAllFlagStates(false);
 		layers[1].characters[0][0] = " "; //  Middle layer,
@@ -1546,11 +1549,11 @@ public class BlockManagerUnitTest {
 		layers[1].changed[0][0] = true;
 		layers[1].active[0][0] = true;
 
-		layers[2] = new ScreenLayer(4, 1);
+		layers[2] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[2].initialize();
 		layers[2].setAllFlagStates(false); //  Top layer, all nulls
 
-		ScreenLayer merged = new ScreenLayer(4, 1);
+		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		merged.initialize();
 		merged.setAllFlagStates(false);
 		merged.mergeNonNullChangesDownOnto(layers, true);
@@ -1576,24 +1579,79 @@ public class BlockManagerUnitTest {
 		this.verifyObject(merged.changed[3][0], false);
         }
 
+	public TestScreenCharacter getExpectedTestCharacter(ScreenLayer [] layers, List<Map<Coordinate, TestScreenCharacter>> layerCharacters, int l, Coordinate currentCoordinate){
+		TestScreenCharacter topCharacter = null;
+		int [] topColourCodes = new int [] {};
+		int topMostLayer = layers.length -1;
+		while(topMostLayer >= 0){
+			if(layerCharacters.get(topMostLayer).containsKey(currentCoordinate)){
+				topCharacter = layerCharacters.get(topMostLayer).get(currentCoordinate);
+				break;
+			}
+			topMostLayer--;
+		}
+		topMostLayer = layers.length -1;
+		//  Get topmost non-empty colour codes:
+		while(topMostLayer >= 0){
+			if(layerCharacters.get(topMostLayer).containsKey(currentCoordinate)){
+				TestScreenCharacter c = layerCharacters.get(topMostLayer).get(currentCoordinate);
+				if(c.colourCodes.length > 0){
+					topColourCodes = c.colourCodes;
+					break;
+				}
+			}
+			topMostLayer--;
+		}
+		if(topCharacter == null){
+			return new TestScreenCharacter(
+				null,
+				0,
+				new int []{},
+				true,
+				false
+			);
+		}else{
+			return new TestScreenCharacter(
+				topCharacter.characters,
+				topCharacter.characterWidths,
+				topColourCodes,
+				topCharacter.active,
+				topCharacter.changed
+			);
+		}
+	}
+
+	public int [] makeRandomColourCodes(Random rand){
+		int numColours = (int)getRandBetweenRange(rand, 0L, 2L);
+		int [] rtn = new int [numColours];
+		for(int i = 0; i < numColours; i++){
+			rtn[i] = (int)getRandBetweenRange(rand, 40L, 48L);
+			
+		}
+		return rtn;
+	}
+
         public void printRandomCharactersTest() throws Exception{
 		Random rand = new Random(1234);
-		int numTestCharacters = 1000;
-		int numLayers = 1;
-		int layerWidth = 80;
-		int layerHeight = 30;
+		int numTestCharacters = 200;
+		int numLayers = 5;
+		int layerWidth = 50;
+		int layerHeight = 20;
 
 		ScreenLayer [] layers = new ScreenLayer [numLayers];
 		List<Map<Coordinate, TestScreenCharacter>> layerCharacters = new ArrayList<Map<Coordinate, TestScreenCharacter>>();
 
-		CuboidAddress layerRegionAddress = new CuboidAddress(
-			new Coordinate(Arrays.asList(0L,0L)),
-			new Coordinate(Arrays.asList((long)layerWidth, (long)layerHeight))
-		);
-
 		for(int l = 0; l < numLayers; l++){
 			layerCharacters.add(new HashMap<Coordinate, TestScreenCharacter>());
-			layers[l] = new ScreenLayer(layerWidth, layerHeight);
+
+			Coordinate layerPlacementOffset = new Coordinate(Arrays.asList(0L,0L));
+
+			CuboidAddress layerRegionAddress = new CuboidAddress(
+				new Coordinate(Arrays.asList(0L,0L)),
+				new Coordinate(Arrays.asList((long)layerWidth, (long)layerHeight))
+			);
+
+			layers[l] = new ScreenLayer(layerPlacementOffset, layerRegionAddress);
 			layers[l].initialize();
 			layers[l].setAllFlagStates(false);
 			for(int n = 0; n < numTestCharacters; n++){
@@ -1603,47 +1661,40 @@ public class BlockManagerUnitTest {
 				int randomCodePoint = (int)getRandBetweenRange(rand, 97L, 113L);
 				String currentCharacters = Character.toString(randomCodePoint);
 				int currentCharacterWidths = 1;
-				int [] currentColourCodes = new int [] {};
+				int [] currentColourCodes = this.makeRandomColourCodes(rand);
 				boolean currentChanged = true;
 				boolean currentActive = true;
 				layers[l].characters[x][y] = currentCharacters;
 				layers[l].characterWidths[x][y] = currentCharacterWidths;
 				layers[l].colourCodes[x][y] = currentColourCodes;
-				layers[l].changed[x][y] = currentChanged;
 				layers[l].active[x][y] = currentActive;
+				layers[l].changed[x][y] = currentChanged;
 
 				TestScreenCharacter cc = new TestScreenCharacter(currentCharacters, currentCharacterWidths, currentColourCodes, currentChanged, currentActive);
 				layerCharacters.get(l).put(randomCoordinate, cc);
 			}
 		}
 
-		ScreenLayer merged = new ScreenLayer(layerWidth, layerHeight);
+		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, layerWidth, layerHeight));
 		merged.initialize();
 		merged.setAllFlagStates(false);
 		merged.mergeNonNullChangesDownOnto(layers, true);
 
 		for(int l = 0; l < numLayers; l++){
 			for(int n = 0; n < numTestCharacters; n++){
+				CuboidAddress layerRegionAddress = layers[l].getDimensions();
 				RegionIteration regionIteration = new RegionIteration(layerRegionAddress.getCanonicalLowerCoordinate(), layerRegionAddress);
 				if(layerRegionAddress.getVolume() > 0L){
 					do{
 						Coordinate currentCoordinate = regionIteration.getCurrentCoordinate();
 						int x = currentCoordinate.getX().intValue();
 						int y = currentCoordinate.getY().intValue();
-						if(layerCharacters.get(l).containsKey(currentCoordinate)){
-							TestScreenCharacter cc = layerCharacters.get(l).get(currentCoordinate);
-							this.verifyObject(merged.characters[x][y], cc.characters);
-							this.verifyObject(merged.characterWidths[x][y], cc.characterWidths);
-							this.verifyArray(merged.colourCodes[x][y], cc.colourCodes);
-							this.verifyObject(merged.changed[x][y], cc.changed);
-							this.verifyObject(merged.active[x][y], cc.active);
-						}else{
-							this.verifyObject(merged.characters[x][y], null);
-							this.verifyObject(merged.characterWidths[x][y], 0);
-							this.verifyArray(merged.colourCodes[x][y], new int []{});
-							this.verifyObject(merged.changed[x][y], false);
-							this.verifyObject(merged.active[x][y], true);
-						}
+						TestScreenCharacter cc = this.getExpectedTestCharacter(layers, layerCharacters, l, currentCoordinate);
+						this.verifyObject(merged.characters[x][y], cc.characters);
+						this.verifyObject(merged.characterWidths[x][y], cc.characterWidths);
+						this.verifyArray(merged.colourCodes[x][y], cc.colourCodes);
+						this.verifyObject(merged.changed[x][y], cc.changed);
+						this.verifyObject(merged.active[x][y], cc.active);
 					}while (regionIteration.incrementCoordinateWithinCuboidAddress());
 				}
 			}
