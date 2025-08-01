@@ -558,7 +558,7 @@ public class ScreenLayer {
 		this.setIsLayerActive(changes.getIsLayerActive());
 	}
 
-	public void printChanges(boolean useRightToLeftPrint, boolean resetCursorPosition, int xOffset, int yOffset) throws Exception{
+	public void printChanges(boolean useRightToLeftPrint, boolean resetCursorPosition, int xOffset, int yOffset, boolean debugPrint) throws Exception{
 		int loopUpdate = useRightToLeftPrint ? -1 : 1;
 		boolean resetState = useRightToLeftPrint ? true : true; // TODO:  Optimize this in the future.
 		int [] lastUsedColourCodes = null;
@@ -585,7 +585,7 @@ public class ScreenLayer {
 						this.changed[i][j]
 					){
 						if(mustSetCursorPosition){
-							String currentPositionSequence = "\033[" + (j+1+yOffset) + ";" + (i+1+xOffset) + "H";
+							String currentPositionSequence = debugPrint ? "\033[" + (i+1+xOffset) + "G" : "\033[" + (j+1+yOffset) + ";" + (i+1+xOffset) + "H";
 							this.stringBuilder.append(currentPositionSequence);
 							mustSetCursorPosition = resetState;
 						}
@@ -602,16 +602,47 @@ public class ScreenLayer {
 						if(this.characters[i][j] != null){
 							this.stringBuilder.append(this.characters[i][j]);
 						}
-						this.changed[i][j] = false;
+						if(!debugPrint){
+							this.changed[i][j] = false;
+						}
 					}else{
 						mustSetCursorPosition = true;
 					}
 				}
+				if(debugPrint){
+					this.stringBuilder.append("\033[0m\n");
+				}
 			}
 		}
-		this.clearChangedRegions();
+		if(!debugPrint){
+			this.clearChangedRegions();
+		}
 		if(resetCursorPosition){
 			this.stringBuilder.append("\033[0;0H"); //  Move cursor to 0,0 after every print.
+		}
+		System.out.print(this.stringBuilder); //  Print accumulated output
+		this.stringBuilder.setLength(0);      //  clear buffer.
+	}
+
+	public void printDebugActiveStates(int xOffset, int yOffset) throws Exception{
+		for(ScreenRegion region : this.getChangedRegions()){
+			int startX = region.getStartX();
+			int startY = region.getStartY();
+			int endX = region.getEndX();
+			int endY = region.getEndY();
+			int startColumn = startX;
+			int endColumn = endX;
+			for(int j = startY; j < endY; j++){
+				for(int i = startX; i < endX; i++){
+					String colourCode = "\033[40m";
+					if(this.active[i][j]){
+						colourCode = "\033[41m";
+					}
+					String currentPositionSequence = "\033[" + (i+1+xOffset) + "G ";
+					this.stringBuilder.append(colourCode + currentPositionSequence);
+				}
+				this.stringBuilder.append("\033[0m\n");
+			}
 		}
 		System.out.print(this.stringBuilder); //  Print accumulated output
 		this.stringBuilder.setLength(0);      //  clear buffer.
