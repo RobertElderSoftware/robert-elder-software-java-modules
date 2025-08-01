@@ -1,0 +1,50 @@
+# Security Vulnerability Report
+
+This report summarizes the security vulnerabilities found in the project's dependencies.
+
+## 1. com.google.code.gson:gson:2.8.1
+
+*   **Vulnerability:** Deserialization of Untrusted Data
+*   **Snyk ID:** [SNYK-JAVA-COMGOOGLECODEGSON-1730327](https://security.snyk.io/vuln/SNYK-JAVA-COMGOOGLECODEGSON-1730327)
+*   **Severity:** Medium
+*   **Fixed in:** 2.8.9
+*   **Recommendation:** Upgrade to version 2.8.9 or later.
+
+## 2. org.apache.poi:poi-ooxml:3.15
+
+*   **Vulnerability:** XML External Entity (XXE) Injection
+*   **Snyk IDs:**
+    *   [SNYK-JAVA-ORGAPACHEPOI-31438](https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHEPOI-31438)
+    *   [SNYK-JAVA-ORGAPACHEPOI-30027](https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHEPOI-30027)
+    *   [SNYK-JAVA-ORGAPACHEPOI-30026](https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHEPOI-30026)
+*   **Severity:** Medium
+*   **Fixed in:** 4.1.0
+*   **Recommendation:** Upgrade to version 4.1.0 or later.
+
+## 3. org.apache.commons:commons-lang3:3.0
+
+*   **Vulnerability:** Uncontrolled Recursion
+*   **Snyk ID:** [SNYK-JAVA-ORGAPACHECOMMONS-10734078](https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHECOMMONS-10734078)
+*   **Severity:** High
+*   **Fixed in:** 3.18.0
+*   **Recommendation:** Upgrade to version 3.18.0 or later.
+
+## 4. org.apache.commons:commons-compress:1.21
+
+*   **Vulnerability:** Multiple Denial of Service (DoS) and Allocation of Resources Without Limits or Throttling vulnerabilities.
+*   **Snyk IDs:**
+    *   [SNYK-JAVA-ORGAPACHECOMMONS-6254297](https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHECOMMONS-6254297) (Medium)
+    *   [SNYK-JAVA-ORGAPACHECOMMONS-1316641](https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHECOMMONS-1316641) (High)
+    *   [SNYK-JAVA-ORGAPACHECOMMONS-1316639](https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHECOMMONS-1316639) (Medium)
+    *   [SNYK-JAVA-ORGAPACHECOMMONS-1316640](https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHECOMMONS-1316640) (Medium)
+    *   [SNYK-JAVA-ORGAPACHECOMMONS-1316638](https://security.snyk.io/vuln/SNYK-JAVA-ORGAPACHECOMMONS-1316638) (Medium)
+*   **Fixed in:** 1.22
+*   **Recommendation:** Upgrade to version 1.22 or later.
+
+## Code Analysis
+
+A brief manual review of the `LinuxBlockJNIInterface.java` file did not reveal any major security vulnerabilities. The use of `File.createTempFile` makes it difficult to exploit the temporary file creation.
+
+## Summary
+
+The project has several high and medium severity vulnerabilities in its dependencies. It is highly recommended to upgrade the dependencies to the fixed versions.

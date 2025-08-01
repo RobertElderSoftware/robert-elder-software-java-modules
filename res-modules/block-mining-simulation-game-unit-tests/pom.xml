@@ -33,6 +33,16 @@
 
   <build>
     <finalName>block-mining-simulation-game-unit-tests-${revision}</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.owasp</groupId>
+        <artifactId>dependency-check-maven</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
   </build>
 
 </project>
