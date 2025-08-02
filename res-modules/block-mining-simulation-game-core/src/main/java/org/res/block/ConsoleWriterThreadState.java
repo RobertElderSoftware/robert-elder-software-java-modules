@@ -783,7 +783,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public void printTerminalTextChanges(boolean resetCursorPosition) throws Exception{
 		this.mergedFinalScreenLayer.mergeNonNullChangesDownOnto(this.screenLayers, true);
 		boolean useRightToLeftPrint = this.blockManagerThreadCollection.getRightToLeftPrint();
-		this.mergedFinalScreenLayer.printChanges(useRightToLeftPrint, resetCursorPosition, 0, 0, false);
+		this.mergedFinalScreenLayer.printChanges(useRightToLeftPrint, resetCursorPosition, 0, 0);
 	}
 
 	public final void initializeConsole(Long terminalWidth, Long terminalHeight) throws Exception{

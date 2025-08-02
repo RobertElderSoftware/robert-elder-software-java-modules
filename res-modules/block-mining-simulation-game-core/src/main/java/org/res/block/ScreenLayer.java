@@ -259,35 +259,113 @@ public class ScreenLayer {
 		);
 	}
 
+	public void calculateOcclusions(boolean isLeftToRight, int j, int startX, int endX, ScreenLayer [] screenLayers, boolean [] changeFlags, int [] occlusions, boolean [][] activeStates) throws Exception{
+		//  Number of columns remaining in the current active, top character:
+		int [] columnsRemaining = new int [screenLayers.length];
+		//  The width of a character that we're starting on (in left to right pass)
+		//  or ending on (in right to left pass):
+		int [] currentCharacterWidths = new int [screenLayers.length];
+		for(int s = screenLayers.length -1; s >= 0; s--){
+			columnsRemaining[s] = 0;
+		}
+		int activeCharacterLayer = -1; //  The layer number of what we think the top chr is
+
+		int loopStart = isLeftToRight ? startX : endX - 1;
+		int loopEnd = isLeftToRight ? endX : startX - 1;
+		int loopChange = isLeftToRight ? 1 : -1;
+		for(int i = loopStart; i != loopEnd; i += loopChange){
+			if(isLeftToRight){
+				//  For any characters that start in this position,
+				//  start tracking them:
+				changeFlags[i-startX] = false;
+				for(int s = screenLayers.length -1; s >= 0; s--){
+					if(screenLayers[s].changed[i][j] && activeStates[s][i-startX]){
+						changeFlags[i-startX] = true; //  Check all layers, just in case a layer underneath has a change of BG colour.
+						screenLayers[s].changed[i][j] = false; // Clear the pending changed flag for this layer.
+					}
+					currentCharacterWidths[s] = screenLayers[s].characterWidths[i][j];
+				}
+			}else{
+				//  For any characters that start in this position,
+				//  start tracking them:
+				for(int s = screenLayers.length -1; s >= 0; s--){
+					int backtrack = 0;
+					boolean found = false;
+					while(((i-startX-backtrack) >=0) && screenLayers[s].characterWidths[i-startX-backtrack][j] == 0){
+						backtrack++;
+					}
+					if((i-startX-backtrack) >=0 && activeStates[s][i-startX]){
+						int expectedWidth = backtrack + 1;
+						currentCharacterWidths[s] = screenLayers[s].characterWidths[i-startX-backtrack][j] == expectedWidth ? expectedWidth : 0;
+					}else{
+						currentCharacterWidths[s] = 0;
+					}
+				}
+			}
+
+			for(int s = screenLayers.length -1; s >= 0; s--){
+				if(currentCharacterWidths[s] > 0 && activeStates[s][i-startX]){
+					columnsRemaining[s] = currentCharacterWidths[s];
+				}
+			}
+
+			int firstSolidLayer = -1;
+			//  Find the layer of the top solid character:
+			for(int s = screenLayers.length -1; s >= 0; s--){
+				if(columnsRemaining[s] > 0 && activeStates[s][i-startX]){ //  If there is a char here
+					firstSolidLayer = s;
+					//  If the char starts at this position:
+					if(currentCharacterWidths[s] > 0){
+						activeCharacterLayer = s;
+					}
+					break;
+				}
+			}
+
+			if(firstSolidLayer == -1){  
+				occlusions[i-startX] = -2; // No Character Found.
+			}else if(firstSolidLayer == activeCharacterLayer){
+				//  This character is included in left to right pass
+				occlusions[i-startX] = activeCharacterLayer;
+			}else if(firstSolidLayer >=0){
+				occlusions[i-startX] = -1; // Ocluded character
+			}else{
+				throw new Exception("Not expected.");
+			}
+
+			for(int s = screenLayers.length -1; s >= 0; s--){
+				columnsRemaining[s]--;
+				if(activeCharacterLayer != -1 && columnsRemaining[activeCharacterLayer] <= 0 && activeStates[s][i-startX]){
+					activeCharacterLayer = -1;
+				}
+			}
+		}
+	}
+
 	public void mergeNonNullChangesDownOnto(ScreenLayer [] aboveLayers, boolean trustChangedFlags) throws Exception{
 		ScreenLayer [] screenLayers = new ScreenLayer [aboveLayers.length +1];
-		screenLayers[0] = this;
+		screenLayers[0] = this;  //  Bottom layer should be current layer.
 		for(int a = 0; a < aboveLayers.length; a++){
-			screenLayers[a+1] = aboveLayers[a];
+			screenLayers[a+1] = aboveLayers[a];  //  All the layers above to merge down
 		}
 		
-		Set<ScreenRegion> allRegions = new HashSet<ScreenRegion>();
-		allRegions.addAll(this.getChangedRegions());
-		for(int l = 0; l < screenLayers.length; l++){
-			allRegions.addAll(screenLayers[l].getChangedRegions());
-			screenLayers[l].clearChangedRegions();
+		Set<ScreenRegion> aboveRegions = new HashSet<ScreenRegion>();
+		aboveRegions.addAll(this.getChangedRegions());
+		for(int l = 0; l < aboveLayers.length; l++){
+			aboveRegions.addAll(aboveLayers[l].getChangedRegions());
+			aboveLayers[l].clearChangedRegions();
 		}
-		for(ScreenRegion region : allRegions){
+		for(ScreenRegion region : aboveRegions){
 			int startX = region.getStartX();
 			int startY = region.getStartY();
 			int endX = region.getEndX();
 			int endY = region.getEndY();
 			for(int j = startY; j < endY; j++){
-				int [] columnsRemaining = new int [screenLayers.length];
-				int [] currentCharacterWidths = new int [screenLayers.length];
-				for(int s = screenLayers.length -1; s >= 0; s--){
-					columnsRemaining[s] = 0;
-				}
 				int xWidth = endX - startX;
 				boolean [] changeFlags = new boolean [xWidth];
 				int [] rightwardOcclusions = new int [xWidth];
 				int [] leftwardOcclusions = new int [xWidth];
-				int activeCharacterLayer = -1; //  The layer number of what we think the top chr is
+				//  Pre-calculate the active states for all layers in the entire current horizontal strip:
 				boolean [][] activeStates = new boolean [screenLayers.length][xWidth];
 				for(int s = screenLayers.length -1; s >= 0; s--){
 					boolean layerActive = screenLayers[s].getIsLayerActive();
@@ -295,110 +373,9 @@ public class ScreenLayer {
 						activeStates[s][i-startX] = layerActive && screenLayers[s].active[i-startX][j];
 					}
 				}
-				for(int i = startX; i < endX; i++){
-					//  For any characters that start in this position,
-					//  start tracking them:
-					changeFlags[i-startX] = false;
-					for(int s = screenLayers.length -1; s >= 0; s--){
-						if(screenLayers[s].changed[i][j]){
-							changeFlags[i-startX] = true; //  Check all layers, just in case a layer underneath has a change of BG colour.
-							screenLayers[s].changed[i][j] = false; // Clear the pending changed flag for this layer.
-						}
-						currentCharacterWidths[s] = screenLayers[s].characterWidths[i][j];
-					}
 
-					for(int s = screenLayers.length -1; s >= 0; s--){
-						if(currentCharacterWidths[s] > 0 && activeStates[s][i-startX]){
-							columnsRemaining[s] = currentCharacterWidths[s];
-						}
-					}
-
-					int firstSolidLayer = -1;
-					//  Find the layer of the top solid character:
-					for(int s = screenLayers.length -1; s >= 0; s--){
-						if(columnsRemaining[s] > 0){ //  If there is a char here
-							firstSolidLayer = s;
-							//  If the char starts at this position:
-							if(currentCharacterWidths[s] > 0){
-								activeCharacterLayer = s;
-							}
-							break;
-						}
-					}
-
-					if(firstSolidLayer == -1){  
-						rightwardOcclusions[i-startX] = -2; // No Character Found.
-					}else if(firstSolidLayer == activeCharacterLayer){
-						//  This character is included in left to right pass
-						rightwardOcclusions[i-startX] = activeCharacterLayer;
-					}else if(firstSolidLayer >=0){
-						rightwardOcclusions[i-startX] = -1; // Ocluded character
-					}else{
-						throw new Exception("Not expected.");
-					}
-
-					for(int s = screenLayers.length -1; s >= 0; s--){
-						columnsRemaining[s]--;
-						if(activeCharacterLayer != -1 && columnsRemaining[activeCharacterLayer] <= 0 && activeStates[s][i-startX]){
-							activeCharacterLayer = -1;
-						}
-					}
-				}
-
-				for(int i = endX -1; i >= startX; i--){
-					//  For any characters that start in this position,
-					//  start tracking them:
-					for(int s = screenLayers.length -1; s >= 0; s--){
-						int backtrack = 0;
-						boolean found = false;
-						while(((i-startX-backtrack) >=0) && screenLayers[s].characterWidths[i-startX-backtrack][j] == 0){
-							backtrack++;
-						}
-						if((i-startX-backtrack) >=0){
-							int expectedWidth = backtrack + 1;
-							currentCharacterWidths[s] = screenLayers[s].characterWidths[i-startX-backtrack][j] == expectedWidth ? expectedWidth : 0;
-						}else{
-							currentCharacterWidths[s] = 0;
-						}
-					}
-
-					for(int s = screenLayers.length -1; s >= 0; s--){
-						if(currentCharacterWidths[s] > 0 && activeStates[s][i-startX]){
-							columnsRemaining[s] = currentCharacterWidths[s];
-						}
-					}
-
-					int firstSolidLayer = -1;
-					//  Find the layer of the top solid character:
-					for(int s = screenLayers.length -1; s >= 0; s--){
-						if(columnsRemaining[s] > 0){ //  If there is a char here
-							firstSolidLayer = s;
-							//  If the char starts at this position:
-							if(currentCharacterWidths[s] > 0){
-								activeCharacterLayer = s;
-							}
-							break;
-						}
-					}
-
-					if(firstSolidLayer == -1){  
-						leftwardOcclusions[i-startX] = -2; // No Character Found.
-					}else if(firstSolidLayer == activeCharacterLayer){
-						//  This character is included in left to right pass
-						leftwardOcclusions[i-startX] = activeCharacterLayer;
-					}else if(firstSolidLayer >=0){
-						leftwardOcclusions[i-startX] = -1; // Ocluded character
-					}else{
-						throw new Exception("Not expected.");
-					}
-
-					for(int s = screenLayers.length -1; s >= 0; s--){
-						columnsRemaining[s]--;
-						if(activeCharacterLayer != -1 && columnsRemaining[activeCharacterLayer] <= 0 && activeStates[s][i-startX]){
-							activeCharacterLayer = -1;
-						}
-					}
-				}
+				this.calculateOcclusions(true, j, startX, endX, screenLayers, changeFlags, rightwardOcclusions, activeStates);
+				this.calculateOcclusions(false, j, startX, endX, screenLayers, changeFlags, leftwardOcclusions, activeStates);
 
 				for(int i = startX; i < endX; i++){
 					String outputCharacters = null;
@@ -458,7 +435,7 @@ public class ScreenLayer {
 				}
 			}
 		}
-		this.addChangedRegions(allRegions);
+		this.addChangedRegions(aboveRegions);
 	}
 
 	private void nullifyPrecendingOverlappedCharacters(int x, int y){
@@ -558,7 +535,7 @@ public class ScreenLayer {
 		this.setIsLayerActive(changes.getIsLayerActive());
 	}
 
-	public void printChanges(boolean useRightToLeftPrint, boolean resetCursorPosition, int xOffset, int yOffset, boolean debugPrint) throws Exception{
+	public void printChanges(boolean useRightToLeftPrint, boolean resetCursorPosition, int xOffset, int yOffset) throws Exception{
 		int loopUpdate = useRightToLeftPrint ? -1 : 1;
 		boolean resetState = useRightToLeftPrint ? true : true; // TODO:  Optimize this in the future.
 		int [] lastUsedColourCodes = null;
@@ -585,7 +562,7 @@ public class ScreenLayer {
 						this.changed[i][j]
 					){
 						if(mustSetCursorPosition){
-							String currentPositionSequence = debugPrint ? "\033[" + (i+1+xOffset) + "G" : "\033[" + (j+1+yOffset) + ";" + (i+1+xOffset) + "H";
+							String currentPositionSequence = "\033[" + (j+1+yOffset) + ";" + (i+1+xOffset) + "H";
 							this.stringBuilder.append(currentPositionSequence);
 							mustSetCursorPosition = resetState;
 						}
@@ -602,21 +579,14 @@ public class ScreenLayer {
 						if(this.characters[i][j] != null){
 							this.stringBuilder.append(this.characters[i][j]);
 						}
-						if(!debugPrint){
-							this.changed[i][j] = false;
-						}
+						this.changed[i][j] = false;
 					}else{
 						mustSetCursorPosition = true;
 					}
 				}
-				if(debugPrint){
-					this.stringBuilder.append("\033[0m\n");
-				}
 			}
 		}
-		if(!debugPrint){
-			this.clearChangedRegions();
-		}
+		this.clearChangedRegions();
 		if(resetCursorPosition){
 			this.stringBuilder.append("\033[0;0H"); //  Move cursor to 0,0 after every print.
 		}
@@ -624,26 +594,66 @@ public class ScreenLayer {
 		this.stringBuilder.setLength(0);      //  clear buffer.
 	}
 
-	public void printDebugActiveStates(int xOffset, int yOffset) throws Exception{
-		for(ScreenRegion region : this.getChangedRegions()){
-			int startX = region.getStartX();
-			int startY = region.getStartY();
-			int endX = region.getEndX();
-			int endY = region.getEndY();
-			int startColumn = startX;
-			int endColumn = endX;
-			for(int j = startY; j < endY; j++){
-				for(int i = startX; i < endX; i++){
-					String colourCode = "\033[40m";
-					if(this.active[i][j]){
-						colourCode = "\033[41m";
-					}
-					String currentPositionSequence = "\033[" + (i+1+xOffset) + "G ";
-					this.stringBuilder.append(colourCode + currentPositionSequence);
-				}
-				this.stringBuilder.append("\033[0m\n");
+	public static boolean isInChangedRegion(int x, int y, Set<ScreenRegion> changedRegions) throws Exception{
+		for(ScreenRegion r : changedRegions){
+			if(r.getRegion().containsCoordinate(new Coordinate(Arrays.asList((long)x, (long)y)))){
+				return true;
 			}
 		}
+		return false;
+	}
+
+	public void printDebugStates(int xOffset, int yOffset, String debugType) throws Exception{
+		for(int j = 0; j < this.getHeight(); j++){
+			for(int i = 0; i < this.getWidth(); i++){
+				int [] colourCodes = new int []{UserInterfaceFrameThreadState.RESET_BG_COLOR};
+				String characters = " ";
+				boolean isInChangedRegion = ScreenLayer.isInChangedRegion(i, j, this.changedRegions);
+				if(debugType.equals("characters")){
+					if(this.characters[i][j] != null){
+						if(this.colourCodes[i][j] != null){
+							colourCodes = this.colourCodes[i][j];
+						}else{
+							colourCodes = new int []{UserInterfaceFrameThreadState.RED_BG_COLOR};
+						}
+						characters = this.characters[i][j];
+					}
+				}else if(debugType.equals("active")){
+					if(this.active[i][j] && this.getIsLayerActive()){
+						colourCodes = new int []{UserInterfaceFrameThreadState.GREEN_BG_COLOR};
+					}else if(this.active[i][j] && !this.getIsLayerActive()){
+						colourCodes = new int []{UserInterfaceFrameThreadState.YELLOW_BG_COLOR};
+					}else if(!this.active[i][j] && this.getIsLayerActive()){
+						colourCodes = new int []{UserInterfaceFrameThreadState.BLACK_BG_COLOR};
+					}else if(!this.active[i][j] && !this.getIsLayerActive()){
+						colourCodes = new int []{UserInterfaceFrameThreadState.RED_BG_COLOR};
+					}
+				}else if(debugType.equals("changed")){
+					if(this.changed[i][j]){
+						colourCodes = new int []{UserInterfaceFrameThreadState.RED_BG_COLOR};
+					}else{
+						colourCodes = new int []{UserInterfaceFrameThreadState.BLACK_BG_COLOR};
+					}
+				}else if(debugType.equals("in_changed_region")){
+					if(isInChangedRegion){
+						colourCodes = new int []{UserInterfaceFrameThreadState.GREEN_BG_COLOR};
+					}else{
+						colourCodes = new int []{UserInterfaceFrameThreadState.BLACK_BG_COLOR};
+					}
+				}else{
+					throw new Exception("Not expected.");
+				}
+				List<String> codes = new ArrayList<String>();
+				for(int c : colourCodes){
+					codes.add(String.valueOf(c));
+				}
+				String currentColorSequence = "\033[0m\033[" + String.join(";", codes) + "m";
+				String currentPositionSequence = "\033[" + (i+1+xOffset) + "G" + characters;
+				this.stringBuilder.append(currentColorSequence + currentPositionSequence);
+			}
+			this.stringBuilder.append("\033[0m\n");
+		}
+		this.stringBuilder.append("\033[0m");
 		System.out.print(this.stringBuilder); //  Print accumulated output
 		this.stringBuilder.setLength(0);      //  clear buffer.
 	}

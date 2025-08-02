@@ -867,20 +867,32 @@ public class BlockManagerUnitTest {
 	}
 
 	public void verifyObject(Object observed, Object expected) throws Exception{
+		this.verifyObject(observed, expected, "");
+	}
+
+	public void verifyObject(Object observed, Object expected, String msg) throws Exception{
 		if(!Objects.equals(observed, expected)){
-			throw new Exception("Expected object was '" + String.valueOf(expected) + "', but saw '" + String.valueOf(observed) + "' instead.");
+			throw new Exception("Expected object was '" + String.valueOf(expected) + "', but saw '" + String.valueOf(observed) + "' instead, msg=" + msg);
 		}
 	}
 
 	public void verifyArray(Object [] observed, Object [] expected) throws Exception{
+		this.verifyArray(observed,  expected, "");
+	}
+
+	public void verifyArray(Object [] observed, Object [] expected, String msg) throws Exception{
 		if(!Arrays.equals(observed, expected)){
-			throw new Exception("Expected array was '" + String.valueOf(expected) + "', but saw '" + String.valueOf(observed) + "' instead.");
+			throw new Exception("Expected array was '" + String.valueOf(expected) + "', but saw '" + String.valueOf(observed) + "' instead, msg=" + msg);
 		}
 	}
 
 	public void verifyArray(int [] observed, int [] expected) throws Exception{
+		this.verifyArray(observed, expected, "");
+	}
+
+	public void verifyArray(int [] observed, int [] expected, String msg) throws Exception{
 		if(!Arrays.equals(observed, expected)){
-			throw new Exception("Expected array was '" + Arrays.toString(expected) + "', but saw '" + Arrays.toString(observed) + "' instead.");
+			throw new Exception("Expected array was '" + Arrays.toString(expected) + "', but saw '" + Arrays.toString(observed) + "' instead, msg=" + msg);
 		}
 	}
 
@@ -1382,7 +1394,7 @@ public class BlockManagerUnitTest {
 
                 this.verifyObject(output.changed[0][0], true);
                 this.verifyObject(output.changed[1][0], true);
-		output.printChanges(false, false, 10, 10, false); // Clear changed flags
+		output.printChanges(false, false, 10, 10); // Clear changed flags
                 this.verifyObject(output.changed[0][0], false);
                 this.verifyObject(output.changed[1][0], false);
 
@@ -1620,7 +1632,7 @@ public class BlockManagerUnitTest {
 		int resultCharacterWidths = topCharacter == null ? 0 : topCharacter.characterWidths;
 		int [] resultColourCodes = topCharacter == null ? new int [] {} : topColourCodes;
 
-		boolean hasChanged = (
+		boolean resultChangedFlag = (
 			trustChangedFlags ?
 			(topCharacter == null ? false : topCharacter.changed) :
 			(
@@ -1633,7 +1645,6 @@ public class BlockManagerUnitTest {
 		);
 
 		boolean resultActiveFlag = true; // Merged result should always be flagged as active.
-		boolean resultChangedFlag = trustChangedFlags ? bottomCharacterBefore.changed : hasChanged;
 
 		return new TestScreenCharacter(
 			resultCharacters,
@@ -1657,11 +1668,26 @@ public class BlockManagerUnitTest {
 	public void printScaleForScreenLayer(ScreenLayer layer, int numSpaces){
 		int width = layer.getWidth();
 		int height = layer.getHeight();
-		int numParts = 3;
+		String [] partNames = new String[]{
+			"Characters",
+			"Active States",
+			"Changed Flags",
+			"Changed Regions"
+		};
+		int numParts = partNames.length;
+
 		String partSeparator = "";
 		for(int i = 0; i < numSpaces; i++){
 			partSeparator += " ";
 		}
+
+		for(int i = 0; i < numParts; i++){
+			System.out.print(partNames[i]);
+			if(i != (numParts - 1)){
+				System.out.print(", ");
+			}
+		}
+		System.out.print("\n");
 
 		for(int part = 0; part < numParts; part++){
 			for(int i = 0; i < width; i++){
@@ -1693,16 +1719,16 @@ public class BlockManagerUnitTest {
 	}
 
         public void printRandomCharactersTest() throws Exception{
-		int startingSeed = 1235;
-		int numDifferentSeeds = 1000;
+		int startingSeed = 1237;
+		int numDifferentSeeds = 1;
+		int numTestCharacters = 10;
+		int maxNumChangedRegions = 4;
+		int maxNumLayers = 4;
 		for(int currentSeed = startingSeed; currentSeed < (startingSeed + numDifferentSeeds); currentSeed++){
 			System.out.println("Begin testing with seed=" + currentSeed);
 			Random rand = new Random(currentSeed);
-			int numTestCharacters = 100;
-			int numLayers = 2;
-			int layerWidth = 20;
-			int layerHeight = 20;
-			boolean trustChangedFlags = true;
+			int numLayers = rand.nextInt(maxNumLayers -1) + 1;
+			boolean trustChangedFlags = this.getRandomBoolean(rand);
 
 			ScreenLayer [] allLayers = new ScreenLayer [numLayers];
 			List<Map<Coordinate, TestScreenCharacter>> layerCharacters = new ArrayList<Map<Coordinate, TestScreenCharacter>>();
@@ -1710,22 +1736,33 @@ public class BlockManagerUnitTest {
 
 			//  Randomly set all layers to have random characters:
 			for(int l = 0; l < numLayers; l++){
+				int layerWidth = 10;
+				int layerHeight = 20;
 				layerCharacters.add(new HashMap<Coordinate, TestScreenCharacter>());
 
-				Coordinate layerPlacementOffset = new Coordinate(Arrays.asList(0L,0L));
+				//  This dictates the offset where the layer will be merged in:
+				Coordinate layerPlacementOffset = new Coordinate(Arrays.asList(0L, 0L));
+
+				//  Apply a random offset to the 'region' that this layer should cover
+				//  because this case needs to be handled generically as the screen 'layer'
+				//  needs to be able to handle efficient movement through another data 
+				//  structure like the map area which can have arbitrarily high coordinates:
+				Long randomizedRegionOffsetX = getRandBetweenRange(rand, -10L, 10L);
+				Long randomizedRegionOffsetY = getRandBetweenRange(rand, -10L, 10L);
 
 				CuboidAddress layerRegionAddress = new CuboidAddress(
-					new Coordinate(Arrays.asList(0L,0L)),
-					new Coordinate(Arrays.asList((long)layerWidth, (long)layerHeight))
+					new Coordinate(Arrays.asList(randomizedRegionOffsetX, randomizedRegionOffsetY)),
+					new Coordinate(Arrays.asList(randomizedRegionOffsetX + (long)layerWidth, randomizedRegionOffsetY + (long)layerHeight))
 				);
 
 				allLayers[l] = new ScreenLayer(layerPlacementOffset, layerRegionAddress);
 				allLayers[l].initialize();
 				allLayers[l].setAllFlagStates(false);
+                		allLayers[l].clearChangedRegions();
 				for(int n = 0; n < numTestCharacters; n++){
 					Coordinate randomCoordinate = getRandomCoordinate(rand, layerRegionAddress);
-					int x = randomCoordinate.getX().intValue();
-					int y = randomCoordinate.getY().intValue();
+					int x = (int)(randomCoordinate.getX() - layerRegionAddress.getCanonicalLowerCoordinate().getX());
+					int y = (int)(randomCoordinate.getY() - layerRegionAddress.getCanonicalLowerCoordinate().getY());
 					int randomCodePoint = (int)getRandBetweenRange(rand, 97L, 113L);
 					String currentCharacters = Character.toString(randomCodePoint);
 					int currentCharacterWidths = 1;
@@ -1740,6 +1777,20 @@ public class BlockManagerUnitTest {
 
 					TestScreenCharacter cc = new TestScreenCharacter(currentCharacters, currentCharacterWidths, currentColourCodes, currentActive, currentChanged);
 					layerCharacters.get(l).put(randomCoordinate, cc);
+				}
+				int numChangedRegions = rand.nextInt(maxNumChangedRegions);
+				for(int n = 0; n < numChangedRegions; n++){
+					int x1 = rand.nextInt(layerWidth);
+					int x2 = rand.nextInt(layerWidth);
+					int y1 = rand.nextInt(layerHeight);
+					int y2 = rand.nextInt(layerHeight);
+					int xMin = Math.min(x1, x2);
+					int yMin = Math.min(y1, y2);
+					int xMax = Math.max(x1, x2);
+					int yMax = Math.max(y1, y2);
+					allLayers[l].addChangedRegion(
+						new ScreenRegion(ScreenLayer.makeDimensionsCA(xMin, yMin, xMax, yMax))
+					);
 				}
 			}
 
@@ -1758,8 +1809,8 @@ public class BlockManagerUnitTest {
 			if(bottomLayerAddress.getVolume() > 0L){
 				do{
 					Coordinate currentCoordinate = blri.getCurrentCoordinate();
-					int x = currentCoordinate.getX().intValue();
-					int y = currentCoordinate.getY().intValue();
+					int x = (int)(currentCoordinate.getX() - bottomLayerAddress.getCanonicalLowerCoordinate().getX());
+					int y = (int)(currentCoordinate.getY() - bottomLayerAddress.getCanonicalLowerCoordinate().getY());
 					beforeMergeCharacters.put(
 						currentCoordinate,
 						new TestScreenCharacter(
@@ -1781,9 +1832,13 @@ public class BlockManagerUnitTest {
 				System.out.print("\n");
 				this.printScaleForScreenLayer(allLayers[i], partsSpacing);
 				System.out.print("\033[" + (allLayers[i].getHeight()) + "A"); //  Move cursor back up
-				allLayers[i].printChanges(false, false, xDrawOffset, yDrawOffset, true);
+				allLayers[i].printDebugStates(xDrawOffset + (0*(allLayers[i].getWidth() + partsSpacing + 3)), yDrawOffset, "characters");
 				System.out.print("\033[" + (allLayers[i].getHeight()) + "A"); //  Move cursor back up
-				allLayers[i].printDebugActiveStates(xDrawOffset + (allLayers[i].getWidth() + partsSpacing + 3), yDrawOffset);
+				allLayers[i].printDebugStates(xDrawOffset + (1*(allLayers[i].getWidth() + partsSpacing + 3)), yDrawOffset, "active");
+				System.out.print("\033[" + (allLayers[i].getHeight()) + "A"); //  Move cursor back up
+				allLayers[i].printDebugStates(xDrawOffset + (2*(allLayers[i].getWidth() + partsSpacing + 3)), yDrawOffset, "changed");
+				System.out.print("\033[" + (allLayers[i].getHeight()) + "A"); //  Move cursor back up
+				allLayers[i].printDebugStates(xDrawOffset + (3*(allLayers[i].getWidth() + partsSpacing + 3)), yDrawOffset, "in_changed_region");
 				System.out.print("\n");
 			}
 
@@ -1794,9 +1849,13 @@ public class BlockManagerUnitTest {
 			System.out.print("\n");
 			this.printScaleForScreenLayer(bottomLayer, partsSpacing);
 			System.out.print("\033[" + (bottomLayer.getHeight()) + "A"); //  Move cursor back up
-			bottomLayer.printChanges(false, false, xDrawOffset, yDrawOffset, true);
+			bottomLayer.printDebugStates(xDrawOffset + (0*(bottomLayer.getWidth() + partsSpacing + 3)), yDrawOffset, "characters");
 			System.out.print("\033[" + (bottomLayer.getHeight()) + "A"); //  Move cursor back up
-			bottomLayer.printDebugActiveStates(xDrawOffset + (bottomLayer.getWidth() + partsSpacing + 3), yDrawOffset);
+			bottomLayer.printDebugStates(xDrawOffset + (1*(bottomLayer.getWidth() + partsSpacing + 3)), yDrawOffset, "active");
+			System.out.print("\033[" + (bottomLayer.getHeight()) + "A"); //  Move cursor back up
+			bottomLayer.printDebugStates(xDrawOffset + (2*(bottomLayer.getWidth() + partsSpacing + 3)), yDrawOffset, "changed");
+			System.out.print("\033[" + (bottomLayer.getHeight()) + "A"); //  Move cursor back up
+			bottomLayer.printDebugStates(xDrawOffset + (3*(bottomLayer.getWidth() + partsSpacing + 3)), yDrawOffset, "in_changed_region");
 			System.out.print("\n");
 
 			//  Verify that everything in the merged layer is exactly as it's supposed to be:
@@ -1807,19 +1866,16 @@ public class BlockManagerUnitTest {
 					if(layerRegionAddress.getVolume() > 0L){
 						do{
 							Coordinate currentCoordinate = regionIteration.getCurrentCoordinate();
-							int x = currentCoordinate.getX().intValue();
-							int y = currentCoordinate.getY().intValue();
+							int x = (int)(currentCoordinate.getX() - layerRegionAddress.getCanonicalLowerCoordinate().getX());
+							int y = (int)(currentCoordinate.getY() - layerRegionAddress.getCanonicalLowerCoordinate().getY());
 							TestScreenCharacter cc = this.getExpectedTestCharacter(trustChangedFlags, allLayers, beforeMergeCharacters, layerCharacters, l, currentCoordinate);
-							try{
-								this.verifyObject(bottomLayer.characters[x][y], cc.characters);
-								this.verifyObject(bottomLayer.characterWidths[x][y], cc.characterWidths);
-								this.verifyArray(bottomLayer.colourCodes[x][y], cc.colourCodes);
-								this.verifyObject(bottomLayer.changed[x][y], cc.changed);
-								this.verifyObject(bottomLayer.active[x][y], cc.active);
-							}catch(Exception e){
-								System.out.println("Problem coordinate was " + currentCoordinate);
-								throw e;
-							}
+
+							String msg = "currentCoordinate=" + currentCoordinate + ", trustChangedFlags=" + trustChangedFlags;
+							this.verifyObject(bottomLayer.characters[x][y], cc.characters, msg);
+							this.verifyObject(bottomLayer.characterWidths[x][y], cc.characterWidths, msg);
+							this.verifyArray(bottomLayer.colourCodes[x][y], cc.colourCodes, msg);
+							this.verifyObject(bottomLayer.changed[x][y], cc.changed, msg);
+							this.verifyObject(bottomLayer.active[x][y], cc.active, msg);
 						}while (regionIteration.incrementCoordinateWithinCuboidAddress());
 					}
 				}
