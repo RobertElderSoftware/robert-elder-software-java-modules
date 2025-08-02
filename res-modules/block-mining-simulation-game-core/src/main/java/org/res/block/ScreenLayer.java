@@ -277,12 +277,7 @@ public class ScreenLayer {
 			if(isLeftToRight){
 				//  For any characters that start in this position,
 				//  start tracking them:
-				changeFlags[i-startX] = false;
 				for(int s = screenLayers.length -1; s >= 0; s--){
-					if(screenLayers[s].changed[i][j] && activeStates[s][i-startX]){
-						changeFlags[i-startX] = true; //  Check all layers, just in case a layer underneath has a change of BG colour.
-						screenLayers[s].changed[i][j] = false; // Clear the pending changed flag for this layer.
-					}
 					currentCharacterWidths[s] = screenLayers[s].characterWidths[i][j];
 				}
 			}else{
@@ -290,7 +285,6 @@ public class ScreenLayer {
 				//  start tracking them:
 				for(int s = screenLayers.length -1; s >= 0; s--){
 					int backtrack = 0;
-					boolean found = false;
 					while(((i-startX-backtrack) >=0) && screenLayers[s].characterWidths[i-startX-backtrack][j] == 0){
 						backtrack++;
 					}
@@ -367,10 +361,32 @@ public class ScreenLayer {
 				int [] leftwardOcclusions = new int [xWidth];
 				//  Pre-calculate the active states for all layers in the entire current horizontal strip:
 				boolean [][] activeStates = new boolean [screenLayers.length][xWidth];
+				boolean [] finalActiveStates = new boolean [xWidth];
+				for(int i = startX; i < endX; i++){
+					finalActiveStates[i-startX] = false;
+				}
+
 				for(int s = screenLayers.length -1; s >= 0; s--){
 					boolean layerActive = screenLayers[s].getIsLayerActive();
 					for(int i = startX; i < endX; i++){
 						activeStates[s][i-startX] = layerActive && screenLayers[s].active[i-startX][j];
+						finalActiveStates[i-startX] |= activeStates[s][i-startX];
+					}
+				}
+
+				for(int i = startX; i < endX; i++){
+					changeFlags[i-startX] = false;
+					for(int s = screenLayers.length -1; s >= 0; s--){
+						if(screenLayers[s].changed[i][j] && activeStates[s][i-startX]){
+							changeFlags[i-startX] = true; //  Check all layers, just in case a layer underneath has a change of BG colour.
+						}
+						//  For any layer above the final 'merged' result:
+						if(s > 0){
+							//  Only clear the changed flag if it's an active layer.
+							if(screenLayers[s].active[i-startX][j] && screenLayers[s].getIsLayerActive()){
+								screenLayers[s].changed[i][j] = false; // Clear the pending changed flag for this layer.
+							}
+						}
 					}
 				}
 
@@ -424,14 +440,14 @@ public class ScreenLayer {
 							(this.characterWidths[i][j] == outputCharacterWidths) &&
 							Arrays.equals(this.colourCodes[i][j], outputColourCodes) &&
 							Objects.equals(this.characters[i][j], outputCharacters)
-						)
+						) || this.changed[i][j] // if there is a pending changed flag that hasn't been printed yet.
 					);
 
 					this.characters[i][j] = outputCharacters;
 					this.characterWidths[i][j] = outputCharacterWidths;
 					this.colourCodes[i][j] = outputColourCodes;
 					this.changed[i][j] = hasChange;
-					this.active[i][j] = true;
+					this.active[i][j] = finalActiveStates[i-startX];
 				}
 			}
 		}
