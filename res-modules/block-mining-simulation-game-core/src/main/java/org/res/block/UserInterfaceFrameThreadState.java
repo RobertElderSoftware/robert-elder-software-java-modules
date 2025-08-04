@@ -83,6 +83,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	public static int RESET_BG_COLOR = 0;
 	public static int BOLD_COLOR = 1;
 	public static int UNDERLINE_COLOR = 4;
+	public static int CROSSED_OUT_COLOR = 9;
 
 	public static int BLACK_FG_COLOR = 30;
 	public static int RED_FG_COLOR = 31;

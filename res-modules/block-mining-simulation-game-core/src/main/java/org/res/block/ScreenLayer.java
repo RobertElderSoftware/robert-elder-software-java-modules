@@ -285,12 +285,12 @@ public class ScreenLayer {
 				//  start tracking them:
 				for(int s = screenLayers.length -1; s >= 0; s--){
 					int backtrack = 0;
-					while(((i-startX-backtrack) >=0) && screenLayers[s].characterWidths[i-startX-backtrack][j] == 0){
+					while(((i-backtrack) >=0) && screenLayers[s].characterWidths[i-backtrack][j] == 0){
 						backtrack++;
 					}
 					if((i-startX-backtrack) >=0 && activeStates[s][i-startX]){
 						int expectedWidth = backtrack + 1;
-						currentCharacterWidths[s] = screenLayers[s].characterWidths[i-startX-backtrack][j] == expectedWidth ? expectedWidth : 0;
+						currentCharacterWidths[s] = screenLayers[s].characterWidths[i-backtrack][j] == expectedWidth ? expectedWidth : 0;
 					}else{
 						currentCharacterWidths[s] = 0;
 					}
@@ -343,13 +343,14 @@ public class ScreenLayer {
 			screenLayers[a+1] = aboveLayers[a];  //  All the layers above to merge down
 		}
 		
-		Set<ScreenRegion> aboveRegions = new HashSet<ScreenRegion>();
-		aboveRegions.addAll(this.getChangedRegions());
-		for(int l = 0; l < aboveLayers.length; l++){
-			aboveRegions.addAll(aboveLayers[l].getChangedRegions());
-			aboveLayers[l].clearChangedRegions();
+		Set<ScreenRegion> allRegions = new HashSet<ScreenRegion>();
+		for(int l = 0; l < screenLayers.length; l++){
+			if(screenLayers[l].getIsLayerActive()){
+				allRegions.addAll(screenLayers[l].getChangedRegions());
+			}
+			screenLayers[l].clearChangedRegions();
 		}
-		for(ScreenRegion region : aboveRegions){
+		for(ScreenRegion region : allRegions){
 			int startX = region.getStartX();
 			int startY = region.getStartY();
 			int endX = region.getEndX();
@@ -369,7 +370,7 @@ public class ScreenLayer {
 				for(int s = screenLayers.length -1; s >= 0; s--){
 					boolean layerActive = screenLayers[s].getIsLayerActive();
 					for(int i = startX; i < endX; i++){
-						activeStates[s][i-startX] = layerActive && screenLayers[s].active[i-startX][j];
+						activeStates[s][i-startX] = layerActive && screenLayers[s].active[i][j];
 						finalActiveStates[i-startX] |= activeStates[s][i-startX];
 					}
 				}
@@ -383,7 +384,7 @@ public class ScreenLayer {
 						//  For any layer above the final 'merged' result:
 						if(s > 0){
 							//  Only clear the changed flag if it's an active layer.
-							if(screenLayers[s].active[i-startX][j] && screenLayers[s].getIsLayerActive()){
+							if(screenLayers[s].active[i][j] && screenLayers[s].getIsLayerActive()){
 								screenLayers[s].changed[i][j] = false; // Clear the pending changed flag for this layer.
 							}
 						}
@@ -451,7 +452,7 @@ public class ScreenLayer {
 				}
 			}
 		}
-		this.addChangedRegions(aboveRegions);
+		this.addChangedRegions(allRegions);
 	}
 
 	private void nullifyPrecendingOverlappedCharacters(int x, int y){
@@ -623,32 +624,44 @@ public class ScreenLayer {
 		for(int j = 0; j < this.getHeight(); j++){
 			for(int i = 0; i < this.getWidth(); i++){
 				int [] colourCodes = new int []{UserInterfaceFrameThreadState.RESET_BG_COLOR};
-				String characters = " ";
+				String characters = null;
 				boolean isInChangedRegion = ScreenLayer.isInChangedRegion(i, j, this.changedRegions);
 				if(debugType.equals("characters")){
 					if(this.characters[i][j] != null){
 						if(this.colourCodes[i][j] != null){
 							colourCodes = this.colourCodes[i][j];
 						}else{
-							colourCodes = new int []{UserInterfaceFrameThreadState.RED_BG_COLOR};
+							colourCodes = new int []{UserInterfaceFrameThreadState.CROSSED_OUT_COLOR};
 						}
 						characters = this.characters[i][j];
+					}else{
+						characters = " ";
 					}
 				}else if(debugType.equals("active")){
 					if(this.active[i][j] && this.getIsLayerActive()){
 						colourCodes = new int []{UserInterfaceFrameThreadState.GREEN_BG_COLOR};
 					}else if(this.active[i][j] && !this.getIsLayerActive()){
-						colourCodes = new int []{UserInterfaceFrameThreadState.YELLOW_BG_COLOR};
+						colourCodes = new int []{UserInterfaceFrameThreadState.YELLOW_BG_COLOR, UserInterfaceFrameThreadState.CROSSED_OUT_COLOR};
 					}else if(!this.active[i][j] && this.getIsLayerActive()){
 						colourCodes = new int []{UserInterfaceFrameThreadState.BLACK_BG_COLOR};
 					}else if(!this.active[i][j] && !this.getIsLayerActive()){
 						colourCodes = new int []{UserInterfaceFrameThreadState.RED_BG_COLOR};
 					}
+					if(isInChangedRegion && this.active[i][j]){
+						characters = "*";
+					}else{
+						characters = " ";
+					}
 				}else if(debugType.equals("changed")){
 					if(this.changed[i][j]){
-						colourCodes = new int []{UserInterfaceFrameThreadState.RED_BG_COLOR};
+						colourCodes = new int []{UserInterfaceFrameThreadState.GREEN_BG_COLOR};
 					}else{
 						colourCodes = new int []{UserInterfaceFrameThreadState.BLACK_BG_COLOR};
+					}
+					if(isInChangedRegion && this.changed[i][j]){
+						characters = "*";
+					}else{
+						characters = " ";
 					}
 				}else if(debugType.equals("in_changed_region")){
 					if(isInChangedRegion){
@@ -656,6 +669,7 @@ public class ScreenLayer {
 					}else{
 						colourCodes = new int []{UserInterfaceFrameThreadState.BLACK_BG_COLOR};
 					}
+					characters = " ";
 				}else{
 					throw new Exception("Not expected.");
 				}

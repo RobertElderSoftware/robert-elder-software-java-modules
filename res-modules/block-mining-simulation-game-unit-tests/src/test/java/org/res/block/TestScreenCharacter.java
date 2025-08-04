@@ -30,6 +30,8 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.Set;
+
 public class TestScreenCharacter{
 
 	public String characters;

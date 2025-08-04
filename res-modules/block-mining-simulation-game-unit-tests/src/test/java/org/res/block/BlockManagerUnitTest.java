@@ -38,6 +38,7 @@ import java.io.IOException;
 
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.TreeSet;
 import java.util.List;
 import java.util.Arrays;
 import java.util.Objects;
@@ -1595,7 +1596,25 @@ public class BlockManagerUnitTest {
 		this.verifyObject(merged.changed[3][0], false);
         }
 
+	public Set<ScreenRegion> getAllActiveChangedRegions(ScreenLayer [] layers){
+		Set<ScreenRegion> allActiveChangedRegions = new TreeSet<ScreenRegion>();
+		for(int i = 0; i < layers.length; i++){
+			if(layers[i].getIsLayerActive()){
+				allActiveChangedRegions.addAll(layers[i].getChangedRegions());
+			}
+		}
+		return allActiveChangedRegions;
+	}
+
 	public TestScreenCharacter getExpectedTestCharacter(boolean trustChangedFlags, ScreenLayer [] layers, Map<Coordinate, TestScreenCharacter> beforeMergeCharacters, List<Map<Coordinate, TestScreenCharacter>> layerCharacters, int l, Coordinate currentCoordinate) throws Exception{
+
+		//  Check to see if the current point is inside a
+		//  changed region for at least one layer.  If so, return
+		//  the default character from the bottom 'merged' layer:
+		int topMostLayer = layers.length -1;
+		Set<ScreenRegion> allActiveChangedRegions = this.getAllActiveChangedRegions(layers);
+		boolean isInChangedRegion = ScreenLayer.isInChangedRegion(currentCoordinate.getX().intValue(), currentCoordinate.getY().intValue(), allActiveChangedRegions);
+
 		if(l > 0){
 			TestScreenCharacter rtn = layerCharacters.get(l).get(currentCoordinate);
 			if(rtn == null){
@@ -1608,33 +1627,23 @@ public class BlockManagerUnitTest {
 					false   //  Changed Initialized to false
 				);
 			}else{
-				return rtn;
+				//  Merging layers causes the changed flag to be unset:
+				boolean updatedChangedFlag = false;
+				if(!(layers[l].getIsLayerActive() && rtn.active && isInChangedRegion)){
+					//  but it stays the same if it's inactive or not in a 'changed' region
+					updatedChangedFlag = rtn.changed;
+				}
+				return new TestScreenCharacter(
+					rtn.characters, // Characters
+					rtn.characterWidths,    // Widths
+					rtn.colourCodes,  // ColourCodes
+					rtn.active,   //  Active
+					updatedChangedFlag   //  Changed
+				);
 			}
 		}else{
 			TestScreenCharacter bottomCharacterBefore = beforeMergeCharacters.get(currentCoordinate);
 			
-			//  Check to see if the current point is inside an active
-			//  changed region for at least one layer.  If so, return
-			//  the default character from the bottom 'merged' layer:
-			boolean isInActiveChangedRegion = false;
-			int topMostLayer = layers.length -1;
-			while(topMostLayer >= 0){
-				CuboidAddress dimensions = layers[topMostLayer].getDimensions();
-				int x = currentCoordinate.getX().intValue();
-				int y = currentCoordinate.getY().intValue();
-				boolean inThisLayerChangedRegion = ScreenLayer.isInChangedRegion(x, y, layers[topMostLayer].getChangedRegions());
-				if(
-					inThisLayerChangedRegion &&
-					layers[topMostLayer].getIsLayerActive() &&
-					layerCharacters.get(topMostLayer).get(currentCoordinate).active
-				){
-					isInActiveChangedRegion = true;
-					break;
-				}
-				topMostLayer--;
-			}
-
-
 			//  Get the topmost active character (regardless of whether it's in a changed region):
 			TestScreenCharacter topCharacter = null;
 			int [] topColourCodes = new int [] {};
@@ -1685,9 +1694,9 @@ public class BlockManagerUnitTest {
 				)
 			);
 
-			if(isInActiveChangedRegion){
+			if(isInChangedRegion){
 				//  Whatever the calculated merge was:
-				boolean resultActiveFlag = topCharacter == null ? true : topCharacter.active;
+				boolean resultActiveFlag = topCharacter == null ? false : topCharacter.active;
 				return new TestScreenCharacter(
 					resultCharacters,
 					resultCharacterWidths,
@@ -1696,7 +1705,9 @@ public class BlockManagerUnitTest {
 					resultChangedFlag
 				);
 			}else{
-				//  It's just the character was before, since the real merge algorithm we're testing is not even supposed to touch this area:
+				//  It's just the character was before, since the real merge
+				//  algorithm we're testing
+				//  is not even supposed to touch this area:
 				return bottomCharacterBefore;
 			}
 		}
@@ -1766,15 +1777,15 @@ public class BlockManagerUnitTest {
 	}
 
         public void printRandomCharactersTest() throws Exception{
-		int startingSeed = 1245;
-		int numDifferentSeeds = 1000;
+		int startingSeed = 1291;
+		int numDifferentSeeds = 10000;
 		int numTestCharacters = 1;
-		int maxNumChangedRegions = 2;
-		int maxNumLayers = 3;
+		int maxNumChangedRegions = 1;
+		int maxNumLayers = 2;
 		for(int currentSeed = startingSeed; currentSeed < (startingSeed + numDifferentSeeds); currentSeed++){
 			System.out.println("Begin testing with seed=" + currentSeed);
 			Random rand = new Random(currentSeed);
-			int numLayers = maxNumLayers == 1 ? 1 : rand.nextInt(maxNumLayers -1) + 1;
+			int numLayers = rand.nextInt(maxNumLayers) + 1;
 			boolean trustChangedFlags = this.getRandomBoolean(rand);
 
 			ScreenLayer [] allLayers = new ScreenLayer [numLayers];
@@ -1783,8 +1794,8 @@ public class BlockManagerUnitTest {
 
 			//  Randomly set all layers to have random characters:
 			for(int l = 0; l < numLayers; l++){
-				int layerWidth = 2;
-				int layerHeight = 2;
+				int layerWidth = 1;
+				int layerHeight = 1;
 				layerCharacters.add(new HashMap<Coordinate, TestScreenCharacter>());
 
 				//  This dictates the offset where the layer will be merged in:
@@ -1802,10 +1813,30 @@ public class BlockManagerUnitTest {
 					new Coordinate(Arrays.asList(randomizedRegionOffsetX + (long)layerWidth, randomizedRegionOffsetY + (long)layerHeight))
 				);
 
+				boolean isLayerActive = this.getRandomBoolean(rand);
 				allLayers[l] = new ScreenLayer(layerPlacementOffset, layerBackingAddress);
 				allLayers[l].initialize();
+                		allLayers[l].setIsLayerActive(isLayerActive);
 				allLayers[l].setAllFlagStates(false);
                 		allLayers[l].clearChangedRegions();
+
+				int numChangedRegions = rand.nextInt(maxNumChangedRegions + 1);
+				Set<ScreenRegion> changedRegionsToAdd = new TreeSet<ScreenRegion>();
+				for(int n = 0; n < numChangedRegions; n++){
+					int x1 = rand.nextInt(layerWidth + 1);
+					int x2 = rand.nextInt(layerWidth + 1);
+					int y1 = rand.nextInt(layerHeight + 1);
+					int y2 = rand.nextInt(layerHeight + 1);
+					int xMin = Math.min(x1, x2);
+					int yMin = Math.min(y1, y2);
+					int xMax = Math.max(x1, x2);
+					int yMax = Math.max(y1, y2);
+					changedRegionsToAdd.add(
+						new ScreenRegion(ScreenLayer.makeDimensionsCA(xMin, yMin, xMax, yMax))
+					);
+				}
+				allLayers[l].addChangedRegions(changedRegionsToAdd);
+
 				//  Put some random characters in the test region:
 				for(int n = 0; n < numTestCharacters; n++){
 					int x = (int)getRandBetweenRange(rand, 0L, (long)allLayers[l].getWidth());
@@ -1842,20 +1873,7 @@ public class BlockManagerUnitTest {
 						}
 					}
 				}
-				int numChangedRegions = rand.nextInt(maxNumChangedRegions);
-				for(int n = 0; n < numChangedRegions; n++){
-					int x1 = rand.nextInt(layerWidth);
-					int x2 = rand.nextInt(layerWidth);
-					int y1 = rand.nextInt(layerHeight);
-					int y2 = rand.nextInt(layerHeight);
-					int xMin = Math.min(x1, x2);
-					int yMin = Math.min(y1, y2);
-					int xMax = Math.max(x1, x2);
-					int yMax = Math.max(y1, y2);
-					allLayers[l].addChangedRegion(
-						new ScreenRegion(ScreenLayer.makeDimensionsCA(xMin, yMin, xMax, yMax))
-					);
-				}
+
 			}
 
 			// The topmost layers are the ones that will be merged down onto the bottom layer:
@@ -1871,8 +1889,9 @@ public class BlockManagerUnitTest {
 			CuboidAddress bottomLayerAddress = bottomLayer.getDimensions();
 			for(int x = 0; x < bottomLayer.getWidth(); x++){
 				for(int y = 0; y < bottomLayer.getHeight(); y++){
+					Coordinate coordinate = new Coordinate(Arrays.asList((long)x, (long)y));
 					beforeMergeCharacters.put(
-						new Coordinate(Arrays.asList((long)x, (long)y)),
+						coordinate,
 						new TestScreenCharacter(
 							bottomLayer.characters[x][y],
 							bottomLayer.characterWidths[x][y],
