@@ -259,7 +259,7 @@ public class ScreenLayer {
 		);
 	}
 
-	public void calculateOcclusions(boolean isLeftToRight, int j, int startX, int endX, ScreenLayer [] screenLayers, boolean [] changeFlags, int [] occlusions, boolean [][] activeStates) throws Exception{
+	public void calculateOcclusions(boolean isLeftToRight, int j, int startX, int endX, ScreenLayer [] screenLayers, int [] occlusions, boolean [][] activeStates, int [] xO, int [] yO) throws Exception{
 		//  Number of columns remaining in the current active, top character:
 		int [] columnsRemaining = new int [screenLayers.length];
 		//  The width of a character that we're starting on (in left to right pass)
@@ -278,19 +278,34 @@ public class ScreenLayer {
 				//  For any characters that start in this position,
 				//  start tracking them:
 				for(int s = screenLayers.length -1; s >= 0; s--){
-					currentCharacterWidths[s] = screenLayers[s].characterWidths[i][j];
+					if((i-xO[s]) >= 0 && (i-xO[s]) < screenLayers[s].getWidth() && (j-yO[s]) >= 0 && (j-yO[s]) < screenLayers[s].getHeight()){
+						currentCharacterWidths[s] = screenLayers[s].characterWidths[i-xO[s]][j-yO[s]];
+					}else{
+						currentCharacterWidths[s] = 0;
+					}
 				}
 			}else{
 				//  For any characters that start in this position,
 				//  start tracking them:
 				for(int s = screenLayers.length -1; s >= 0; s--){
 					int backtrack = 0;
-					while(((i-backtrack) >=0) && screenLayers[s].characterWidths[i-backtrack][j] == 0){
+					while(
+						(
+							(i-backtrack-xO[s]) >=0 &&
+							(i-backtrack-xO[s]) < screenLayers[s].getWidth() &&
+							j-yO[s] >=0 && 
+							(j-yO[s]) < screenLayers[s].getHeight()
+						) && screenLayers[s].characterWidths[i-backtrack-xO[s]][j-yO[s]] == 0
+					){
 						backtrack++;
 					}
 					if((i-startX-backtrack) >=0 && activeStates[s][i-startX]){
 						int expectedWidth = backtrack + 1;
-						currentCharacterWidths[s] = screenLayers[s].characterWidths[i-backtrack][j] == expectedWidth ? expectedWidth : 0;
+						if((i-xO[s]) >= 0 && (i-xO[s]) < screenLayers[s].getWidth() && (j-yO[s]) >= 0 && (j-yO[s]) < screenLayers[s].getHeight()){
+							currentCharacterWidths[s] = screenLayers[s].characterWidths[i-backtrack-xO[s]][j-yO[s]] == expectedWidth ? expectedWidth : 0;
+						}else{
+							currentCharacterWidths[s] = 0;
+						}
 					}else{
 						currentCharacterWidths[s] = 0;
 					}
@@ -337,30 +352,60 @@ public class ScreenLayer {
 	}
 
 	public void mergeNonNullChangesDownOnto(ScreenLayer [] aboveLayers, boolean trustChangedFlags) throws Exception{
+
 		ScreenLayer [] screenLayers = new ScreenLayer [aboveLayers.length +1];
+		int [] xO = new int [aboveLayers.length +1];
+		int [] yO = new int [aboveLayers.length +1];
 		screenLayers[0] = this;  //  Bottom layer should be current layer.
+		xO[0] = 0;
+		yO[0] = 0;  //  All of the 'placement offsets' are relative to the layer we're merging down onto.
 		for(int a = 0; a < aboveLayers.length; a++){
 			screenLayers[a+1] = aboveLayers[a];  //  All the layers above to merge down
+			xO[a+1] = aboveLayers[a].getPlacementOffset().getX().intValue();
+			yO[a+1] = aboveLayers[a].getPlacementOffset().getY().intValue();
 		}
+
+		//  Everything gets merged down into a coordinate system based on layer 0
+		CuboidAddress baseLayerCuboidAddress = ScreenRegion.makeScreenRegionCA(
+			0,
+			0,
+			this.getWidth(),
+			this.getHeight()
+		);
 		
-		Set<ScreenRegion> allRegions = new HashSet<ScreenRegion>();
+		Set<ScreenRegion> nonClippedRegions = new HashSet<ScreenRegion>();
+		Set<ScreenRegion> allTranslatedRegions = new HashSet<ScreenRegion>();
 		for(int l = 0; l < screenLayers.length; l++){
 			if(screenLayers[l].getIsLayerActive()){
-				allRegions.addAll(screenLayers[l].getChangedRegions());
+				for(ScreenRegion sourceRegion : screenLayers[l].getChangedRegions()){
+					CuboidAddress destinationRegionCA = ScreenRegion.makeScreenRegionCA(
+						sourceRegion.getStartX() + xO[l],
+						sourceRegion.getStartY() + yO[l],
+						sourceRegion.getEndX() + xO[l],
+						sourceRegion.getEndY() + yO[l]
+					);
+
+					nonClippedRegions.add(new ScreenRegion(destinationRegionCA));
+
+					CuboidAddress consideredRegion = destinationRegionCA.getIntersectionCuboidAddress(baseLayerCuboidAddress);
+					ScreenRegion region = new ScreenRegion(consideredRegion);
+					allTranslatedRegions.add(region);
+				}
 			}
 			screenLayers[l].clearChangedRegions();
 		}
-		for(ScreenRegion region : allRegions){
+
+		for(ScreenRegion region : allTranslatedRegions){
 			int startX = region.getStartX();
 			int startY = region.getStartY();
 			int endX = region.getEndX();
 			int endY = region.getEndY();
 			for(int j = startY; j < endY; j++){
 				int xWidth = endX - startX;
-				boolean [] changeFlags = new boolean [xWidth];
 				int [] rightwardOcclusions = new int [xWidth];
 				int [] leftwardOcclusions = new int [xWidth];
 				//  Pre-calculate the active states for all layers in the entire current horizontal strip:
+				boolean [][] changeFlags = new boolean [screenLayers.length][xWidth];
 				boolean [][] activeStates = new boolean [screenLayers.length][xWidth];
 				boolean [] finalActiveStates = new boolean [xWidth];
 				for(int i = startX; i < endX; i++){
@@ -370,29 +415,29 @@ public class ScreenLayer {
 				for(int s = screenLayers.length -1; s >= 0; s--){
 					boolean layerActive = screenLayers[s].getIsLayerActive();
 					for(int i = startX; i < endX; i++){
-						activeStates[s][i-startX] = layerActive && screenLayers[s].active[i][j];
+						if((i-xO[s]) >= 0 && (i-xO[s]) < screenLayers[s].getWidth() && (j-yO[s]) >= 0 && (j-yO[s]) < screenLayers[s].getHeight()){
+							activeStates[s][i-startX] = layerActive && screenLayers[s].active[i-xO[s]][j-yO[s]];
+						}else{
+							activeStates[s][i-startX] = false;
+						}
 						finalActiveStates[i-startX] |= activeStates[s][i-startX];
 					}
 				}
 
 				for(int i = startX; i < endX; i++){
-					changeFlags[i-startX] = false;
 					for(int s = screenLayers.length -1; s >= 0; s--){
-						if(screenLayers[s].changed[i][j] && activeStates[s][i-startX]){
-							changeFlags[i-startX] = true; //  Check all layers, just in case a layer underneath has a change of BG colour.
-						}
-						//  For any layer above the final 'merged' result:
-						if(s > 0){
-							//  Only clear the changed flag if it's an active layer.
-							if(screenLayers[s].active[i][j] && screenLayers[s].getIsLayerActive()){
-								screenLayers[s].changed[i][j] = false; // Clear the pending changed flag for this layer.
+						if((i-xO[s]) >= 0 && (i-xO[s]) < screenLayers[s].getWidth() && (j-yO[s]) >= 0 && (j-yO[s]) < screenLayers[s].getHeight()){
+							if(screenLayers[s].changed[i-xO[s]][j-yO[s]] && activeStates[s][i-startX]){
+								changeFlags[s][i-startX] = true; //  Check all layers, just in case a layer underneath has a change of BG colour.
+							}else{
+								changeFlags[s][i-startX] = false;
 							}
 						}
 					}
 				}
 
-				this.calculateOcclusions(true, j, startX, endX, screenLayers, changeFlags, rightwardOcclusions, activeStates);
-				this.calculateOcclusions(false, j, startX, endX, screenLayers, changeFlags, leftwardOcclusions, activeStates);
+				this.calculateOcclusions(true, j, startX, endX, screenLayers, rightwardOcclusions, activeStates, xO, yO);
+				this.calculateOcclusions(false, j, startX, endX, screenLayers, leftwardOcclusions, activeStates, xO, yO);
 
 				for(int i = startX; i < endX; i++){
 					String outputCharacters = null;
@@ -401,9 +446,11 @@ public class ScreenLayer {
 					//  Colour codes come from top most coloured character:
 					int [] colours = new int []{};
 					for(int s = screenLayers.length -1; s >= 0; s--){
-						if(screenLayers[s].colourCodes[i][j].length > 0 && activeStates[s][i-startX]){
-							colours = screenLayers[s].colourCodes[i][j];
-							break;
+						if((i-xO[s]) >= 0 && (i-xO[s]) < screenLayers[s].getWidth() && (j-yO[s]) >= 0 && (j-yO[s]) < screenLayers[s].getHeight()){
+							if(screenLayers[s].colourCodes[i-xO[s]][j-yO[s]].length > 0 && activeStates[s][i-startX]){
+								colours = screenLayers[s].colourCodes[i-xO[s]][j-yO[s]];
+								break;
+							}
 						}
 					}
 
@@ -413,16 +460,20 @@ public class ScreenLayer {
 
 					int rightward = rightwardOcclusions[i-startX];
 					int leftward = leftwardOcclusions[i-startX];
+					boolean finalChangedFlag = false;
 					if(rightward >=0 || leftward >= 0){
 						if(rightward == leftward){
-							outputCharacters = screenLayers[rightward].characters[i][j];
-							outputCharacterWidths = screenLayers[rightward].characterWidths[i][j];
+							outputCharacters = screenLayers[rightward].characters[i-xO[rightward]][j-yO[rightward]];
+							outputCharacterWidths = screenLayers[rightward].characterWidths[i-xO[rightward]][j-yO[rightward]];
+							finalChangedFlag = changeFlags[rightward][i-startX];
 						}else if(rightward >= 0){
 							outputCharacters = " ";
 							outputCharacterWidths = 1;
+							finalChangedFlag = true;
 						}else if(leftward >= 0){
 							outputCharacters = " ";
 							outputCharacterWidths = 1;
+							finalChangedFlag = true;
 						}
 					}else if(rightward == -1 && leftward == -1){
 						throw new Exception("not expected");
@@ -433,10 +484,11 @@ public class ScreenLayer {
 					}else if(rightward == -2 && leftward == -2){
 						outputCharacters = null;
 						outputCharacterWidths = 0;
+						finalChangedFlag = false;
 					}else{
 						throw new Exception("not expected");
 					}
-					boolean hasChange = trustChangedFlags ? changeFlags[i-startX] : (
+					boolean hasChange = trustChangedFlags ? finalChangedFlag : (
 						!(
 							(this.characterWidths[i][j] == outputCharacterWidths) &&
 							Arrays.equals(this.colourCodes[i][j], outputColourCodes) &&
@@ -452,7 +504,32 @@ public class ScreenLayer {
 				}
 			}
 		}
-		this.addChangedRegions(allRegions);
+		//  If some of the changed regions overlap, there is a case where
+		//  the calculated change flags can be incorrect due to them being
+		//  cleared by a previous overlapping changed region.
+		for(ScreenRegion region : nonClippedRegions){
+			int startX = region.getStartX();
+			int startY = region.getStartY();
+			int endX = region.getEndX();
+			int endY = region.getEndY();
+			for(int j = startY; j < endY; j++){
+				for(int i = startX; i < endX; i++){
+					for(int s = screenLayers.length -1; s >= 1; s--){
+						//  Clear the changed flag for any active layer other than the merged layer:
+						boolean isLayerActive = false;
+						if((i-xO[s]) >= 0 && (i-xO[s]) < screenLayers[s].getWidth() && (j-yO[s]) >= 0 && (j-yO[s]) < screenLayers[s].getHeight()){
+							isLayerActive = screenLayers[s].getIsLayerActive() && screenLayers[s].active[i-xO[s]][j-yO[s]];
+						}
+						if(isLayerActive){
+							if((i-xO[s]) >= 0 && (i-xO[s]) < screenLayers[s].getWidth() && (j-yO[s]) >= 0 && (j-yO[s]) < screenLayers[s].getHeight()){
+								screenLayers[s].changed[i-xO[s]][j-yO[s]] = false;
+							}
+						}
+					}
+				}
+			}
+		}
+		this.addChangedRegions(allTranslatedRegions);
 	}
 
 	private void nullifyPrecendingOverlappedCharacters(int x, int y){
@@ -641,7 +718,7 @@ public class ScreenLayer {
 					if(this.active[i][j] && this.getIsLayerActive()){
 						colourCodes = new int []{UserInterfaceFrameThreadState.GREEN_BG_COLOR};
 					}else if(this.active[i][j] && !this.getIsLayerActive()){
-						colourCodes = new int []{UserInterfaceFrameThreadState.YELLOW_BG_COLOR, UserInterfaceFrameThreadState.CROSSED_OUT_COLOR};
+						colourCodes = new int []{UserInterfaceFrameThreadState.BLUE_BG_COLOR, UserInterfaceFrameThreadState.CROSSED_OUT_COLOR, UserInterfaceFrameThreadState.RED_FG_COLOR};
 					}else if(!this.active[i][j] && this.getIsLayerActive()){
 						colourCodes = new int []{UserInterfaceFrameThreadState.BLACK_BG_COLOR};
 					}else if(!this.active[i][j] && !this.getIsLayerActive()){
