@@ -1799,7 +1799,7 @@ public class BlockManagerUnitTest {
 
         public void printRandomCharactersTest() throws Exception{
 		int startingSeed = 9045;
-		int numDifferentSeeds = 10000;
+		int numDifferentSeeds = 30000;
 		int numTestCharacters = 10;
 		int maxNumChangedRegions = 5;
 		int maxNumLayers = 5;
@@ -1815,8 +1815,8 @@ public class BlockManagerUnitTest {
 
 			//  Randomly set all layers to have random characters:
 			for(int l = 0; l < numLayers; l++){
-				int layerWidth = 5;
-				int layerHeight = 5;
+				int layerWidth = (int)getRandBetweenRange(rand, 0L, 10L);
+				int layerHeight = (int)getRandBetweenRange(rand, 0L, 10L);
 				layerCharacters.add(new HashMap<Coordinate, TestScreenCharacter>());
 
 				//  This dictates the offset where the layer will be merged in:
@@ -1836,7 +1836,8 @@ public class BlockManagerUnitTest {
 					new Coordinate(Arrays.asList(randomizedRegionOffsetX + (long)layerWidth, randomizedRegionOffsetY + (long)layerHeight))
 				);
 
-				boolean isLayerActive = this.getRandomBoolean(rand);
+				//  One in 5 chance of being inactive:
+				boolean isLayerActive = !(getRandBetweenRange(rand, 0L, 5L) == 0L);
 				allLayers[l] = new ScreenLayer(layerPlacementOffset, layerBackingAddress);
 				allLayers[l].initialize();
                 		allLayers[l].setIsLayerActive(isLayerActive);
@@ -1861,24 +1862,27 @@ public class BlockManagerUnitTest {
 				allLayers[l].addChangedRegions(changedRegionsToAdd);
 
 				//  Put some random characters in the test region:
-				for(int n = 0; n < numTestCharacters; n++){
-					int x = (int)getRandBetweenRange(rand, 0L, (long)allLayers[l].getWidth());
-					int y = (int)getRandBetweenRange(rand, 0L, (long)allLayers[l].getHeight());
-					Coordinate randomCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
-					int randomCodePoint = (int)getRandBetweenRange(rand, 97L, 113L);
-					String currentCharacters = Character.toString(randomCodePoint);
-					int currentCharacterWidths = 1;
-					int [] currentColourCodes = this.makeRandomColourCodes(rand);
-					boolean currentChanged = this.getRandomBoolean(rand);
-					boolean currentActive = this.getRandomBoolean(rand);
-					allLayers[l].characters[x][y] = currentCharacters;
-					allLayers[l].characterWidths[x][y] = currentCharacterWidths;
-					allLayers[l].colourCodes[x][y] = currentColourCodes;
-					allLayers[l].active[x][y] = currentActive;
-					allLayers[l].changed[x][y] = currentChanged;
+				if(allLayers[l].getWidth() > 0 && allLayers[l].getHeight() > 0){
+					for(int n = 0; n < numTestCharacters; n++){
+						int x = (int)getRandBetweenRange(rand, 0L, (long)allLayers[l].getWidth());
+						int y = (int)getRandBetweenRange(rand, 0L, (long)allLayers[l].getHeight());
+						Coordinate randomCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
+						int randomCodePoint = (int)getRandBetweenRange(rand, 97L, 113L);
+						String currentCharacters = Character.toString(randomCodePoint);
+						int currentCharacterWidths = 1;
+						int [] currentColourCodes = this.makeRandomColourCodes(rand);
+						boolean currentChanged = this.getRandomBoolean(rand);
+						//  One in 3 chance of being inactive:
+						boolean currentActive = !(getRandBetweenRange(rand, 0L, 3L) == 0L);
+						allLayers[l].characters[x][y] = currentCharacters;
+						allLayers[l].characterWidths[x][y] = currentCharacterWidths;
+						allLayers[l].colourCodes[x][y] = currentColourCodes;
+						allLayers[l].active[x][y] = currentActive;
+						allLayers[l].changed[x][y] = currentChanged;
 
-					TestScreenCharacter cc = new TestScreenCharacter(currentCharacters, currentCharacterWidths, currentColourCodes, currentActive, currentChanged);
-					layerCharacters.get(l).put(randomCoordinate, cc);
+						TestScreenCharacter cc = new TestScreenCharacter(currentCharacters, currentCharacterWidths, currentColourCodes, currentActive, currentChanged);
+						layerCharacters.get(l).put(randomCoordinate, cc);
+					}
 				}
 				//  Fill up any blank spots where there are no characters:
 				for(int x = 0; x < allLayers[l].getWidth(); x++){
