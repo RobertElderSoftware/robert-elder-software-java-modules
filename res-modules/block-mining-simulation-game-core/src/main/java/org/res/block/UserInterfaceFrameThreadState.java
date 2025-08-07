@@ -726,8 +726,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		//  Send message with current frame contents.
 		if(this.getFrameDimensions() != null){
 			List<ScreenLayerPrintParameters> params = new ArrayList<ScreenLayerPrintParameters>();
+			int totalChangedRegions = 0;
 			for(int i = 0; i < this.usedScreenLayers.length; i++){
 				int l = usedScreenLayers[i];
+				totalChangedRegions += this.bufferedScreenLayers[l].getChangedRegions().size();
 				params.addAll(
 					makeScreenPrintParameters(
 						this.bufferedScreenLayers[l],
@@ -735,7 +737,11 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 					)
 				);
 			}
-			return this.sendConsolePrintMessage(params, this.getFrameDimensions());
+			if(totalChangedRegions > 0){
+				return this.sendConsolePrintMessage(params, this.getFrameDimensions());
+			}else{
+				return true; //  Do nothing.  0 Changed regions, it would be a wasted message.
+			}
 		}
 		return false;
 	}

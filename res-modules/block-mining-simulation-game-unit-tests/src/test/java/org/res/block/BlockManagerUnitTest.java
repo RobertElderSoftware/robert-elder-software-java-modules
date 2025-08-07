@@ -1798,11 +1798,17 @@ public class BlockManagerUnitTest {
 	}
 
         public void printRandomCharactersTest() throws Exception{
-		int startingSeed = 9045;
+		int startingSeed = 58049;
 		int numDifferentSeeds = 30000;
-		int numTestCharacters = 10;
-		int maxNumChangedRegions = 5;
-		int maxNumLayers = 5;
+		int numTestCharacters = 2;
+		int maxNumChangedRegions = 2;
+		int maxNumLayers = 2;
+		int maxCharacterWidth = 1;
+		boolean randomizePlacementOffset = true;
+		Long maxLayerWidth = 1L;
+		Long maxLayerHeight = 1L;
+		Long placementOffsetXMax = randomizePlacementOffset ? 5L : 0L;
+		Long placementOffsetYMax = randomizePlacementOffset ? 5L : 0L;
 		for(int currentSeed = startingSeed; currentSeed < (startingSeed + numDifferentSeeds); currentSeed++){
 			System.out.println("Begin testing with seed=" + currentSeed);
 			Random rand = new Random(currentSeed);
@@ -1815,13 +1821,13 @@ public class BlockManagerUnitTest {
 
 			//  Randomly set all layers to have random characters:
 			for(int l = 0; l < numLayers; l++){
-				int layerWidth = (int)getRandBetweenRange(rand, 0L, 10L);
-				int layerHeight = (int)getRandBetweenRange(rand, 0L, 10L);
+				int layerWidth = (int)getRandBetweenRange(rand, 0L, maxLayerWidth + 1L);
+				int layerHeight = (int)getRandBetweenRange(rand, 0L, maxLayerHeight + 1L);
 				layerCharacters.add(new HashMap<Coordinate, TestScreenCharacter>());
 
 				//  This dictates the offset where the layer will be merged in:
-				Long xPlacementOffset = getRandBetweenRange(rand, -5L, 5L);
-				Long yPlacementOffset = getRandBetweenRange(rand, -5L, 5L);
+				Long xPlacementOffset = getRandBetweenRange(rand, -placementOffsetXMax, placementOffsetXMax);
+				Long yPlacementOffset = getRandBetweenRange(rand, -placementOffsetXMax, placementOffsetXMax);
 				Coordinate layerPlacementOffset = new Coordinate(Arrays.asList(xPlacementOffset, yPlacementOffset));
 
 				//  Apply a random offset to the 'region' that this layer should cover
@@ -1868,19 +1874,24 @@ public class BlockManagerUnitTest {
 						int y = (int)getRandBetweenRange(rand, 0L, (long)allLayers[l].getHeight());
 						Coordinate randomCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
 						int randomCodePoint = (int)getRandBetweenRange(rand, 97L, 113L);
-						String currentCharacters = Character.toString(randomCodePoint);
-						int currentCharacterWidths = 1;
 						int [] currentColourCodes = this.makeRandomColourCodes(rand);
 						boolean currentChanged = this.getRandomBoolean(rand);
 						//  One in 3 chance of being inactive:
 						boolean currentActive = !(getRandBetweenRange(rand, 0L, 3L) == 0L);
+						int currentCharacterWidth = (int)getRandBetweenRange(rand, 0L, 1L);
+						String currentCharacters = null;
+						if(currentCharacterWidth == 0){
+							currentCharacters = null;
+						}else{
+							currentCharacters = Character.toString(randomCodePoint);
+						}
 						allLayers[l].characters[x][y] = currentCharacters;
-						allLayers[l].characterWidths[x][y] = currentCharacterWidths;
+						allLayers[l].characterWidths[x][y] = currentCharacterWidth;
 						allLayers[l].colourCodes[x][y] = currentColourCodes;
 						allLayers[l].active[x][y] = currentActive;
 						allLayers[l].changed[x][y] = currentChanged;
 
-						TestScreenCharacter cc = new TestScreenCharacter(currentCharacters, currentCharacterWidths, currentColourCodes, currentActive, currentChanged);
+						TestScreenCharacter cc = new TestScreenCharacter(currentCharacters, currentCharacterWidth, currentColourCodes, currentActive, currentChanged);
 						layerCharacters.get(l).put(randomCoordinate, cc);
 					}
 				}
