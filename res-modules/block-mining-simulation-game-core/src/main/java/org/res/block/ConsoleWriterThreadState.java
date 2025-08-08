@@ -772,10 +772,24 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 
 		UserInterfaceFrameThreadState frame = this.getFrameStateById(frameChangeParams.getFrameId());
+		boolean activeLayerStateChange = false;
 		for(ScreenLayerPrintParameters param : params){
 			ScreenLayer changes = param.getScreenLayer();
 			int bufferIndex = param.getBufferIndex();
-			this.screenLayers[bufferIndex].mergeChanges(changes);
+			activeLayerStateChange |= this.screenLayers[bufferIndex].mergeChanges(changes);
+		}
+		//  If one of the layers had an active change state, invalidate and
+		//  re-evaluate all layers from scratch.
+		//  This is not really a great approach, but right now it's necessary
+		//  because the current merging functions only evaluate changed areas 
+		//  in active layers/regions.
+		if(activeLayerStateChange){
+			for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
+				int width = this.screenLayers[i].getWidth();
+				int height = this.screenLayers[i].getHeight();
+				this.screenLayers[i].addChangedRegion(new ScreenRegion(ScreenRegion.makeScreenRegionCA(0,0, width, height)));
+				this.screenLayers[i].setAllChangedFlagStates(true);
+			}
 		}
 		return new EmptyWorkItemResult();
 	}

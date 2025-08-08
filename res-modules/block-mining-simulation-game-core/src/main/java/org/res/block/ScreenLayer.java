@@ -80,11 +80,14 @@ public class ScreenLayer {
 		);
 	}
 
-	public void setIsLayerActive(boolean isLayerActive) throws Exception{
+	public boolean setIsLayerActive(boolean isLayerActive) throws Exception{
 		if(this.isLayerActive != isLayerActive){
 			this.isLayerActive = isLayerActive;
-			this.addChangedRegion(new ScreenRegion(this.getDimensions()));
-			this.setAllFlagStates(true);
+			this.addChangedRegion(new ScreenRegion(ScreenRegion.makeScreenRegionCA(0,0, getWidth(), getHeight())));
+			this.setAllChangedFlagStates(true);
+			return true;
+		}else{
+			return false;
 		}
 	}
 
@@ -136,7 +139,7 @@ public class ScreenLayer {
 		this.placementOffset = placementOffset;
 	}
 
-	public void setAllFlagStates(boolean state){
+	public void setAllChangedFlagStates(boolean state){
 		int width = this.getWidth();
 		int height = this.getHeight();
 		for(int i = 0; i < width; i++){
@@ -147,7 +150,7 @@ public class ScreenLayer {
 	}
 
 	public void clearFlags(){
-		this.setAllFlagStates(false);
+		this.setAllChangedFlagStates(false);
 	}
 
 	public ScreenLayer(ScreenLayer l){
@@ -449,42 +452,37 @@ public class ScreenLayer {
 					int yR = j-startY;
 					String outputCharacters = null;
 					int outputCharacterWidths = 0;
-					int [] outputColourCodes = this.colourCodes[i][j];
+					int [] outputColourCodes = new int []{};
 					//  Colour codes come from top most coloured character:
-					int [] colours = new int []{};
 					for(int s = screenLayers.length -1; s >= 0; s--){
 						int xSrc = i-xO[s];
 						int ySrc = j-yO[s];
 						if(xSrc >= 0 && xSrc < screenLayers[s].getWidth() && ySrc >= 0 && ySrc < screenLayers[s].getHeight()){
 							if(screenLayers[s].colourCodes[xSrc][ySrc].length > 0 && activeStates[s][xR][yR]){
-								colours = screenLayers[s].colourCodes[xSrc][ySrc];
+								outputColourCodes = screenLayers[s].colourCodes[xSrc][ySrc];
 								break;
 							}
 						}
 					}
 
-					if(!Arrays.equals(this.colourCodes[i][j], colours)){
-						outputColourCodes = colours;
-					}
-
 					int rightward = rightwardOcclusions[0][xR][yR];
 					int leftward = leftwardOcclusions[0][xR][yR];
-					boolean finalChangedFlag = false;
+					boolean trustedChangeFlag = false;
 					if(rightward >=0 || leftward >= 0){
 						if(rightward == leftward){
 							int xSrc = i-xO[rightward];
 							int ySrc = j-yO[rightward];
 							outputCharacters = screenLayers[rightward].characters[xSrc][ySrc];
 							outputCharacterWidths = screenLayers[rightward].characterWidths[xSrc][ySrc];
-							finalChangedFlag = changeFlags[rightward][xR][yR];
+							trustedChangeFlag  = changeFlags[rightward][xR][yR];
 						}else if(rightward >= 0){
 							outputCharacters = " ";
 							outputCharacterWidths = 1;
-							finalChangedFlag = true;
+							trustedChangeFlag  = true;
 						}else if(leftward >= 0){
 							outputCharacters = " ";
 							outputCharacterWidths = 1;
-							finalChangedFlag = true;
+							trustedChangeFlag  = true;
 						}
 					}else if(rightward == -1 && leftward == -1){
 						throw new Exception("not expected");
@@ -495,14 +493,37 @@ public class ScreenLayer {
 					}else if(rightward == -2 && leftward == -2){
 						outputCharacters = null;
 						outputCharacterWidths = 0;
-						//  If it's a null character, look for any upper layer with an active change flag:
-						for(int s = screenLayers.length -1; s >= 0; s--){
-							finalChangedFlag |= changeFlags[s][xR][yR] && activeStates[s][xR][yR];
-						}
 					}else{
 						throw new Exception("not expected");
 					}
-					boolean hasChange = trustChangedFlags ? finalChangedFlag : (
+
+
+					//  Check for any changed flags down to the first solid character:
+					for(int s = screenLayers.length -1; s >= 0; s--){
+						if(activeStates[s][xR][yR]){
+							int xSrc = i-xO[s];
+							int ySrc = j-yO[s];
+							trustedChangeFlag |= changeFlags[s][xR][yR];
+							if(screenLayers[s].characters[xSrc][ySrc] != null){
+								//  Found solid character:
+								break;
+							}
+						}
+					}
+					//  Check for any changed flags down to the first non-empty colour code
+					for(int s = screenLayers.length -1; s >= 0; s--){
+						if(activeStates[s][xR][yR]){
+							int xSrc = i-xO[s];
+							int ySrc = j-yO[s];
+							trustedChangeFlag |= screenLayers[s].colourCodes[xSrc][ySrc].length > 0 && changeFlags[s][xR][yR];
+							if(screenLayers[s].colourCodes[xSrc][ySrc].length > 0){
+								//  Found colour codes
+								break;
+							}
+						}
+					}
+
+					boolean hasChange = trustChangedFlags ? trustedChangeFlag : (
 						!(
 							(this.characterWidths[i][j] == outputCharacterWidths) &&
 							Arrays.equals(this.colourCodes[i][j], outputColourCodes) &&
@@ -574,7 +595,7 @@ public class ScreenLayer {
 		}
 	}
 
-	public void mergeChanges(ScreenLayer changes) throws Exception{
+	public boolean mergeChanges(ScreenLayer changes) throws Exception{
 		Set<ScreenRegion> regions = changes.getChangedRegions();
 		int xOffset = changes.getPlacementOffset().getX().intValue();
 		int yOffset = changes.getPlacementOffset().getY().intValue();
@@ -644,7 +665,8 @@ public class ScreenLayer {
 				this.addChangedRegion(region);
 			}
 		}
-		this.setIsLayerActive(changes.getIsLayerActive());
+		changes.clearChangedRegions();
+		return this.setIsLayerActive(changes.getIsLayerActive());
 	}
 
 	public void printChanges(boolean useRightToLeftPrint, boolean resetCursorPosition, int xOffset, int yOffset) throws Exception{
@@ -723,14 +745,15 @@ public class ScreenLayer {
 				boolean isInChangedRegion = ScreenLayer.isInChangedRegion(i, j, this.changedRegions);
 				if(debugType.equals("characters")){
 					if(this.characters[i][j] != null){
-						if(this.colourCodes[i][j] != null){
-							colourCodes = this.colourCodes[i][j];
-						}else{
-							colourCodes = new int []{UserInterfaceFrameThreadState.CROSSED_OUT_COLOR};
-						}
+
 						characters = this.characters[i][j];
 					}else{
-						characters = " ";
+						characters = "#";
+					}
+					if(this.colourCodes[i][j] != null){
+						colourCodes = this.colourCodes[i][j];
+					}else{
+						colourCodes = new int []{UserInterfaceFrameThreadState.CROSSED_OUT_COLOR};
 					}
 				}else if(debugType.equals("active")){
 					if(this.active[i][j] && this.getIsLayerActive()){
