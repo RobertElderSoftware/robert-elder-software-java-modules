@@ -1989,13 +1989,24 @@ public class BlockManagerUnitTest {
 				System.out.print("\033[" + (allLayers[i].getHeight()) + "A"); //  Move cursor back up
 				allLayers[i].printDebugStates(xDrawOffset + (3*(allLayers[i].getWidth() + partsSpacing + 3)), yDrawOffset, "in_changed_region");
 				System.out.print("\n");
+
+				String error = allLayers[i].validate();
+				if(error != null){
+					throw new Exception("Validation above layer failed: " + error);
+				}
 			}
 
 			//  Save the set of changed regions because they will be wiped by the merge operation:
 			Set<ScreenRegion> allActiveTranslatedChangedRegions = this.getAllActiveTranslatedChangedRegions(allLayers);
 
 			//  Do the actual merge process:
+
 			bottomLayer.mergeNonNullChangesDownOnto(aboveLayers, trustChangedFlags);
+
+			String afterMergeError = bottomLayer.validate();
+			if(afterMergeError != null){
+				throw new Exception("Validation after merge failed: " + afterMergeError);
+			}
 
 			System.out.print("Here is the resulting merged layer:\n");
 			System.out.print("\n");
@@ -2055,5 +2066,101 @@ public class BlockManagerUnitTest {
 	public void runScreenLayerFuzzTest() throws Exception {
 		System.out.println("Begin runScreenLayerFuzzTest:");
 		this.printRandomCharactersTest();
+		System.out.println("End runScreenLayerFuzzTest:");
+	}
+
+	@Test
+	public void runScreenLayerValidationTest() throws Exception {
+		System.out.println("Begin runScreenLayerValidationTest:");
+		ScreenLayer [] passingLayers = new ScreenLayer [1];
+		passingLayers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
+		passingLayers[0].initialize();
+		passingLayers[0].setAllChangedFlagStates(false);
+		passingLayers[0].characters[0][0] = " ";
+		passingLayers[0].characterWidths[0][0] = 1;
+		passingLayers[0].colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR};
+		passingLayers[0].characters[1][0] = " ";
+		passingLayers[0].characterWidths[1][0] = 1;
+		passingLayers[0].colourCodes[1][0] = new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR};
+
+		for(int i = 0; i < passingLayers.length; i++){
+			if(!(passingLayers[i].validate() == null)){
+				throw new Exception("Test " + i + ", this layer should have validated: " + passingLayers[i].validate());
+			}else{
+				System.out.println("test " + i + " validated.");
+			}
+		}
+
+		ScreenLayer [] failingLayers = new ScreenLayer [5];
+		//  Test invalid widths
+		failingLayers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
+		failingLayers[0].initialize();
+		failingLayers[0].setAllChangedFlagStates(false);
+		failingLayers[0].characters[0][0] = " ";
+		failingLayers[0].characterWidths[0][0] = 2;
+		failingLayers[0].colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR};
+		failingLayers[0].characters[1][0] = null;
+		failingLayers[0].characterWidths[1][0] = 2;
+		failingLayers[0].colourCodes[1][0] = new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR};
+
+
+		//  Test inconsistent colour codes
+		failingLayers[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
+		failingLayers[1].initialize();
+		failingLayers[1].setAllChangedFlagStates(false);
+		failingLayers[1].characters[0][0] = " ";
+		failingLayers[1].characterWidths[0][0] = 2;
+		failingLayers[1].colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR};
+		failingLayers[1].characters[1][0] = null;
+		failingLayers[1].characterWidths[1][0] = 0;
+		failingLayers[1].colourCodes[1][0] = new int [] {};
+
+
+		//  Test non-null characters inside a multi-column character:
+		failingLayers[2] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
+		failingLayers[2].initialize();
+		failingLayers[2].setAllChangedFlagStates(false);
+		failingLayers[2].characters[0][0] = " ";
+		failingLayers[2].characterWidths[0][0] = 2;
+		failingLayers[2].colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR};
+		failingLayers[2].characters[1][0] = " ";
+		failingLayers[2].characterWidths[1][0] = 0;
+		failingLayers[2].colourCodes[1][0] = new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR};
+
+		//  Test inconsistent changed state
+		failingLayers[3] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
+		failingLayers[3].initialize();
+		failingLayers[3].setAllChangedFlagStates(false);
+		failingLayers[3].characters[0][0] = " ";
+		failingLayers[3].characterWidths[0][0] = 2;
+		failingLayers[3].colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR};
+		failingLayers[3].changed[0][0] = false;
+		failingLayers[3].characters[1][0] = null;
+		failingLayers[3].characterWidths[1][0] = 0;
+		failingLayers[3].colourCodes[1][0] = new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR};
+		failingLayers[3].changed[1][0] = true;
+
+		//  Test inconsistent active state
+		failingLayers[4] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
+		failingLayers[4].initialize();
+		failingLayers[4].setAllChangedFlagStates(false);
+		failingLayers[4].characters[0][0] = " ";
+		failingLayers[4].characterWidths[0][0] = 2;
+		failingLayers[4].colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR};
+		failingLayers[4].active[0][0] = false;
+		failingLayers[4].characters[1][0] = null;
+		failingLayers[4].characterWidths[1][0] = 0;
+		failingLayers[4].colourCodes[1][0] = new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR};
+		failingLayers[4].active[1][0] = true;
+
+		for(int i = 0; i < failingLayers.length; i++){
+			if(failingLayers[i].validate() != null){
+				System.out.println("Test " + i + ", this layer correctly failed validation: " + failingLayers[i].validate());
+			}else{
+				throw new Exception("test " + i + " validated when it should not have.");
+			}
+		}
+
+		System.out.println("End runScreenLayerValidationTest:");
 	}
 }

@@ -805,4 +805,52 @@ public class ScreenLayer {
 		System.out.print(this.stringBuilder); //  Print accumulated output
 		this.stringBuilder.setLength(0);      //  clear buffer.
 	}
+
+	public String validate() throws Exception{
+		//   Check for scenarios that should be impossible that
+		//   the layer merging algorithms don't account for.
+		int columnsRemaining = 0;
+		int [] currentColourCodes = new int [] {};
+		boolean currentActiveState = false;
+		boolean currentChangedState = false;
+		for(int j = 0; j < this.getHeight(); j++){
+			for(int i = 0; i < this.getWidth(); i++){
+				boolean insideMultiColumnCharacter = columnsRemaining > 0;
+				if(insideMultiColumnCharacter){
+					if(this.characterWidths[i][j] > 0){
+						return "Saw a non zero character width inside another character at x=" + i + ", j=" + j + ".";
+					}
+					if(!Arrays.equals(this.colourCodes[i][j], currentColourCodes)){
+						return "Saw an inconsistent colour code inside a multi-column character that did not match at x=" + i + ", j=" + j + ".";
+					}
+					if(!Objects.equals(this.active[i][j], currentActiveState)){
+						return "Saw an inconsistent active state inside a multi-column character that did not match at x=" + i + ", j=" + j + ".";
+					}
+					if(!Objects.equals(this.changed[i][j], currentChangedState)){
+						return "Saw an inconsistent changed state inside a multi-column character that did not match at x=" + i + ", j=" + j + ".";
+					}
+					if(this.characters[i][j] != null){
+						return "Saw non-null characters inside a multi-column character at x=" + i + ", j=" + j + ".";
+					}
+					columnsRemaining--;
+					if(columnsRemaining == 0){
+						// Reset colour codes for next character.
+						currentColourCodes = new int [] {};
+					}
+				}else{
+					if(this.characterWidths[i][j] > 0){ // Start of a new character
+						//  Started a new character
+						columnsRemaining = this.characterWidths[i][j] -1;
+						currentColourCodes = this.colourCodes[i][j];
+						currentChangedState = this.changed[i][j];
+						currentActiveState = this.active[i][j];
+					}else{
+						//  An empty null character.  This is a valid case
+						//  even if there are colour codes present.
+					}
+				}
+			}
+		}
+		return null; //  Successfully validated.
+	}
 }
