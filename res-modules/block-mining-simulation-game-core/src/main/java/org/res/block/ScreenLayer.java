@@ -815,6 +815,9 @@ public class ScreenLayer {
 		boolean currentChangedState = false;
 		for(int j = 0; j < this.getHeight(); j++){
 			for(int i = 0; i < this.getWidth(); i++){
+				if(this.colourCodes[i][j] == null){
+					return "Saw null colour codes at x=" + i + ", j=" + j + ".";
+				}
 				boolean insideMultiColumnCharacter = columnsRemaining > 0;
 				if(insideMultiColumnCharacter){
 					if(this.characterWidths[i][j] > 0){
