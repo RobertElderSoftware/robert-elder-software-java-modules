@@ -59,6 +59,7 @@ public class BlockSkins {
 		patternsTmp.put(StonePick.class.getName(),"\u26CF\uFE0F");
 		patternsTmp.put(IronPick.class.getName(),"\u26CF\uFE0F");
 		patternsTmp.put(TitaniumDioxide.class.getName(),"\u2B1C");
+		patternsTmp.put(SiliconDioxide.class.getName(),"\u2B1C");
 		patternsTmp.put(Ilmenite.class.getName(),"\u2B1B");
 		patternsTmp.put(Rock.class.getName(),"\uD83E\uDEA8");
 		patternsTmp.put(Bauxite.class.getName(),"\uD83D\uDFEB");
@@ -82,6 +83,7 @@ public class BlockSkins {
 		descriptionsTmp.put(StonePick.class.getName(),"A stone pick axe.  Capable of mining all blocks within a radius of 2 from the player.");
 		descriptionsTmp.put(IronPick.class.getName(),"An iron pick axe.  Capable of mining all blocks within a radius of 3 from the player.");
 		descriptionsTmp.put(TitaniumDioxide.class.getName(),"One cubic meter of titanium dioxide, chemical formula TiO₂");
+		descriptionsTmp.put(SiliconDioxide.class.getName(),"One cubic meter of silicon dioxide, chemical formula SiO₂");
 		descriptionsTmp.put(Ilmenite.class.getName(),"One cubic meter of ilmenite, chemical formula FeTiO₃");
 		descriptionsTmp.put(Rock.class.getName(),"One cubic meter of limestone rocks (calcium carbonate), chemical formula CaCO₃");
 		descriptionsTmp.put(Bauxite.class.getName(),"One cubic meter of bauxite (aluminum ore), chemical formula Al₂H₂O₄");

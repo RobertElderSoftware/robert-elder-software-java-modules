@@ -192,8 +192,10 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 
 		/*  Below Ground */
 		if(c.getY() < 0L){
-			if(noiseAtPixel <= 0.65){
+			if(noiseAtPixel <= 0.60){
 				return clientBlockModelContext.getBlockDataForClass(Rock.class);
+			}else if(noiseAtPixel <= 0.65){
+				return clientBlockModelContext.getBlockDataForClass(SiliconDioxide.class);
 			}else if(noiseAtPixel <= 0.70){
 				return clientBlockModelContext.getBlockDataForClass(Chrysoberyl.class);
 			}else if(noiseAtPixel <= 0.75){

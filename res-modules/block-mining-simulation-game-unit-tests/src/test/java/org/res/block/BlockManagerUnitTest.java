@@ -1620,7 +1620,7 @@ public class BlockManagerUnitTest {
 		return allActiveChangedRegions;
 	}
 
-	public TestScreenCharacter getExpectedTestCharacter(MergedScreenInfo msi, boolean trustChangedFlags, ScreenLayer [] layers, Map<Coordinate, TestScreenCharacter> beforeMergeCharacters, List<Map<Coordinate, TestScreenCharacter>> layerCharacters, int l, Coordinate currentCoordinate, Set<ScreenRegion> allActiveTranslatedChangedRegions) throws Exception{
+	public TestScreenCharacter getExpectedTestCharacter(MergedScreenInfo msi, boolean trustChangedFlags, ScreenLayer [] layers, List<Map<Coordinate, TestScreenCharacter>> layerCharacters, int l, Coordinate currentCoordinate, Set<ScreenRegion> allActiveTranslatedChangedRegions) throws Exception{
 
 		//  Check to see if the current point is inside a
 		//  changed region for at least one layer.  If so, return
@@ -1653,79 +1653,30 @@ public class BlockManagerUnitTest {
 			);
 		}else{
 			boolean isInChangedRegion = ScreenLayer.isInChangedRegion(currentCoordinate.getX().intValue(), currentCoordinate.getY().intValue(), allActiveTranslatedChangedRegions);
+
+			Map<Coordinate, TestScreenCharacter> beforeMergeCharacters = msi.getBeforeMergeCharacters();
 			TestScreenCharacter bottomCharacterBefore = beforeMergeCharacters.get(currentCoordinate);
 			
 			//  Get pre-calculated maps that describe the characters we expect to see:
 			List<Map<Coordinate, TestScreenCharacter>> bottomRelativeCharacters = msi.getBottomRelativeCharacters();
 			Map<Coordinate, Integer> topmostSolidColumnLayers = msi.getTopmostSolidColumnLayers();
+			Map<Coordinate, Boolean> hasAboveActiveChangedFlags = msi.getHasAboveActiveChangedFlags();
+			Map<Coordinate, Boolean> hasActiveFlags = msi.getHasActiveFlags();
+			Map<Coordinate, int []> allTopColourCodes = msi.getTopColourCodes();
 
-			//  Get the topmost active non-null character (regardless of whether it's in a changed region):
 			Integer topmostActiveColumnLayer = topmostSolidColumnLayers.get(currentCoordinate);
 			TestScreenCharacter topmostActiveColumn = topmostActiveColumnLayer == null ? null : bottomRelativeCharacters.get(topmostActiveColumnLayer).get(currentCoordinate);
 
-			//  Determine if any active characer in this column has a changed flag set.
-			//  Also, Determine if any character in this column is active
-			TestScreenCharacter anyChangedCharacter = null;
-			boolean hasAnyAboveActiveChangedFlag = false;
-			boolean hasAnyActiveCharacter = false;
-			topMostLayer = layers.length -1;
-			while(topMostLayer >= 0){
-				Long xOffset = topMostLayer == 0L ? 0L : -layers[topMostLayer].getPlacementOffset().getX();
-				Long yOffset = topMostLayer == 0L ? 0L : -layers[topMostLayer].getPlacementOffset().getY();
-				Coordinate translatedCoordinate = currentCoordinate.changeByDeltaXY(
-					xOffset,
-					yOffset
-				);
-				if(
-					layerCharacters.get(topMostLayer).containsKey(translatedCoordinate) &&
-					layerCharacters.get(topMostLayer).get(translatedCoordinate).active &&
-					layers[topMostLayer].getIsLayerActive()
-				){
-					hasAnyActiveCharacter = true;
-					anyChangedCharacter = layerCharacters.get(topMostLayer).get(translatedCoordinate);
-					if(anyChangedCharacter.changed){
-						hasAnyAboveActiveChangedFlag = true;
-					}
-					if(anyChangedCharacter.characters != null){
-						break;
-					}
-				}
-				topMostLayer--;
-			}
+			boolean hasAnyAboveActiveChangedFlag = hasAboveActiveChangedFlags.get(currentCoordinate);
+			boolean hasAnyActiveCharacter = hasActiveFlags.get(currentCoordinate);
+			int [] resultColourCodes = allTopColourCodes.get(currentCoordinate);
 
-			topMostLayer = layers.length -1;
-			TestScreenCharacter topColourCodesCharacter = null;
-			//  Get topmost non-empty colour codes:
-			int [] topColourCodes = new int [] {};
-			while(topMostLayer >= 0){
-				Long xOffset = topMostLayer == 0L ? 0L : -layers[topMostLayer].getPlacementOffset().getX();
-				Long yOffset = topMostLayer == 0L ? 0L : -layers[topMostLayer].getPlacementOffset().getY();
-				Coordinate translatedCoordinate = currentCoordinate.changeByDeltaXY(
-					xOffset,
-					yOffset
-				);
-				if(
-					layerCharacters.get(topMostLayer).containsKey(translatedCoordinate) &&
-					layerCharacters.get(topMostLayer).get(translatedCoordinate).active &&
-					layers[topMostLayer].getIsLayerActive()
-				){
-					TestScreenCharacter c = layerCharacters.get(topMostLayer).get(translatedCoordinate);
-					if(c.colourCodes.length > 0){
-						topColourCodesCharacter = c;
-						break;
-					}
-				}
-				topMostLayer--;
-			}
 
 			String resultCharacters = topmostActiveColumn == null ? null : topmostActiveColumn.characters;
 			int resultCharacterWidths = topmostActiveColumn == null ? 0 : topmostActiveColumn.characterWidths;
-			int [] resultColourCodes = topColourCodesCharacter == null ? new int [] {} : topColourCodesCharacter.colourCodes;
-			boolean colourCodesTrustedChangedFlag = topColourCodesCharacter == null ? false : topColourCodesCharacter.changed;
-
 			boolean resultChangedFlag = (
 				trustChangedFlags ?
-				(hasAnyAboveActiveChangedFlag || colourCodesTrustedChangedFlag) :
+				(hasAnyAboveActiveChangedFlag) :
 				(
 					!(  //  If there is an actual change in the before/after character:
 						(bottomCharacterBefore.characterWidths == resultCharacterWidths) &&
@@ -1747,7 +1698,7 @@ public class BlockManagerUnitTest {
 					resultChangedFlag
 				);
 			}else{
-				//  It's just the character was before, since the real merge
+				//  It's just the same character as before the merge, since the real merge
 				//  algorithm we're testing is not even supposed to touch
 				//  this area because it's outside a change region:
 				return bottomCharacterBefore;
@@ -1838,7 +1789,6 @@ public class BlockManagerUnitTest {
 
 			ScreenLayer [] allLayers = new ScreenLayer [numLayers];
 			List<Map<Coordinate, TestScreenCharacter>> layerCharacters = new ArrayList<Map<Coordinate, TestScreenCharacter>>();
-			Map<Coordinate, TestScreenCharacter> beforeMergeCharacters = new HashMap<Coordinate, TestScreenCharacter>();
 
 			//  Randomly set all layers to have random characters:
 			for(int l = 0; l < numLayers; l++){
@@ -1943,23 +1893,6 @@ public class BlockManagerUnitTest {
 			//  Pick out the result merged layer from our test cases:
 			ScreenLayer bottomLayer = allLayers[0];
 
-			//  Remember exactly what was in the bottom result later for later comparison
-			CuboidAddress bottomLayerAddress = bottomLayer.getDimensions();
-			for(int x = 0; x < bottomLayer.getWidth(); x++){
-				for(int y = 0; y < bottomLayer.getHeight(); y++){
-					Coordinate coordinate = new Coordinate(Arrays.asList((long)x, (long)y));
-					beforeMergeCharacters.put(
-						coordinate,
-						new TestScreenCharacter(
-							bottomLayer.characters[x][y],
-							bottomLayer.characterWidths[x][y],
-							bottomLayer.colourCodes[x][y],
-							bottomLayer.active[x][y],
-							bottomLayer.changed[x][y]
-						)
-					);
-				}
-			}
 
 			int xDrawOffset = 2;
 			int yDrawOffset = 2;
@@ -1987,6 +1920,8 @@ public class BlockManagerUnitTest {
 			//  Save the set of changed regions because they will be wiped by the merge operation:
 			Set<ScreenRegion> allActiveTranslatedChangedRegions = this.getAllActiveTranslatedChangedRegions(allLayers);
 
+			MergedScreenInfo msi = new MergedScreenInfo(allLayers, layerCharacters);
+			msi.init(); //  Initialize before merge to save a copy of before characters
 			//  Do the actual merge process:
 
 			bottomLayer.mergeNonNullChangesDownOnto(aboveLayers, trustChangedFlags);
@@ -2009,15 +1944,13 @@ public class BlockManagerUnitTest {
 			bottomLayer.printDebugStates(xDrawOffset + (3*(bottomLayer.getWidth() + partsSpacing + 3)), yDrawOffset, "in_changed_region");
 			System.out.print("\n");
 
-			MergedScreenInfo msi = new MergedScreenInfo(allLayers, layerCharacters);
-			msi.init();
 
 			//  Verify that everything in the merged layer is exactly as it's supposed to be:
 			for(int l = 0; l < numLayers; l++){
 				for(int x = 0; x < allLayers[l].getWidth(); x++){
 					for(int y = 0; y < allLayers[l].getHeight(); y++){
 						Coordinate currentCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
-						TestScreenCharacter cc = this.getExpectedTestCharacter(msi, trustChangedFlags, allLayers, beforeMergeCharacters, layerCharacters, l, currentCoordinate, allActiveTranslatedChangedRegions);
+						TestScreenCharacter cc = this.getExpectedTestCharacter(msi, trustChangedFlags, allLayers, layerCharacters, l, currentCoordinate, allActiveTranslatedChangedRegions);
 
 						String msg = "currentCoordinate=" + currentCoordinate + ", trustChangedFlags=" + trustChangedFlags + ", x=" + x + ", y=" + y + ", l="+l;
 						this.verifyObject(allLayers[l].characters[x][y], cc.characters, msg);

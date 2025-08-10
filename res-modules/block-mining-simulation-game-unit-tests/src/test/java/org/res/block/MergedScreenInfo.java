@@ -49,6 +49,15 @@ public class MergedScreenInfo{
 	//  Map of coordinate (in bottom layer coordinates) to layer number
         //  with solid column at that coordinate in final merged layer.
 	private Map<Coordinate, Integer> topmostSolidColumnLayers;
+	//  Map that indicates whether there is *any* active column with a changed
+	//  flag set that's located above the topmost solid character:
+	private Map<Coordinate, Boolean> hasAboveActiveChangedFlags;
+	//  Map that indicates if there is any solid character with an active flag.
+	private Map<Coordinate, Boolean> hasActiveFlags;
+	private Map<Coordinate, int []> topColourCodes;
+
+	//  Save a copy of bottom layer before merge:
+	private Map<Coordinate, TestScreenCharacter> beforeMergeCharacters;
 
 	public MergedScreenInfo(ScreenLayer [] allLayers, List<Map<Coordinate, TestScreenCharacter>> layerRelativeCharacters){
 		this.allLayers = allLayers;
@@ -58,6 +67,14 @@ public class MergedScreenInfo{
 	public void init() throws Exception{
 		this.bottomRelativeCharacters = this.calculateBottomRelativeCharacters();
 		this.topmostSolidColumnLayers = this.calculateTopmostSolidColumnLayers();
+		this.hasAboveActiveChangedFlags = this.calculateHasAboveActiveChangedFlags();
+		this.hasActiveFlags = this.calculateHasActiveFlags();
+		this.topColourCodes = this.calculateTopColourCodes();
+		this.beforeMergeCharacters = this.calculateBeforeMergeCharacters();
+	}
+
+	public Map<Coordinate, TestScreenCharacter> getBeforeMergeCharacters() throws Exception{
+		return this.beforeMergeCharacters;
 	}
 
 	public List<Map<Coordinate, TestScreenCharacter>> getBottomRelativeCharacters() throws Exception{
@@ -66,6 +83,39 @@ public class MergedScreenInfo{
 
 	public Map<Coordinate, Integer> getTopmostSolidColumnLayers() throws Exception{
 		return this.topmostSolidColumnLayers;
+	}
+
+	public Map<Coordinate, Boolean> getHasAboveActiveChangedFlags() throws Exception{
+		return this.hasAboveActiveChangedFlags;
+	}
+
+	public Map<Coordinate, Boolean> getHasActiveFlags() throws Exception{
+		return this.hasActiveFlags;
+	}
+
+	public Map<Coordinate, int []> getTopColourCodes() throws Exception{
+		return this.topColourCodes;
+	}
+
+	public Map<Coordinate, TestScreenCharacter> calculateBeforeMergeCharacters(){
+		Map<Coordinate, TestScreenCharacter> rtn = new HashMap<Coordinate, TestScreenCharacter>();
+		//  Remember exactly what was in the bottom result later for later comparison
+		for(int x = 0; x < allLayers[0].getWidth(); x++){
+			for(int y = 0; y < allLayers[0].getHeight(); y++){
+				Coordinate coordinate = new Coordinate(Arrays.asList((long)x, (long)y));
+				rtn.put(
+					coordinate,
+					new TestScreenCharacter(
+						allLayers[0].characters[x][y],
+						allLayers[0].characterWidths[x][y],
+						allLayers[0].colourCodes[x][y],
+						allLayers[0].active[x][y],
+						allLayers[0].changed[x][y]
+					)
+				);
+			}
+		}
+		return rtn;
 	}
 
 	private List<Map<Coordinate, TestScreenCharacter>> calculateBottomRelativeCharacters() throws Exception{
@@ -104,8 +154,6 @@ public class MergedScreenInfo{
 		for(int x = 0; x < allLayers[0].getWidth(); x++){
 			for(int y = 0; y < allLayers[0].getHeight(); y++){
 				Coordinate bottomLayerCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
-
-				TestScreenCharacter topCharacter = null;
 				int topMostLayer = allLayers.length -1;
 				while(topMostLayer >= 0){
 					if(
@@ -113,18 +161,126 @@ public class MergedScreenInfo{
 						bottomRelativeCharacters.get(topMostLayer).get(bottomLayerCoordinate).active &&
 						allLayers[topMostLayer].getIsLayerActive()
 					){
-						topCharacter = bottomRelativeCharacters.get(topMostLayer).get(bottomLayerCoordinate);
+						TestScreenCharacter c = bottomRelativeCharacters.get(topMostLayer).get(bottomLayerCoordinate);
 						// TODO:  Backtrack to look for start of character in multi-column case.
-						if(topCharacter.characters != null){
+						if(c.characters != null){
 							rtn.put(bottomLayerCoordinate, topMostLayer);
 							break;
 						}
 					}
 					topMostLayer--;
-					if(topMostLayer < 0){
-						//  No solid character:
-						rtn.put(bottomLayerCoordinate, null);
+				}
+				// Did not find any solid character
+				if(topMostLayer < 0){
+					//  No solid character:
+					rtn.put(bottomLayerCoordinate, null);
+				}
+			}
+		}
+		return rtn;
+	}
+
+	private Map<Coordinate, Boolean> calculateHasAboveActiveChangedFlags() throws Exception{
+		Map<Coordinate, Boolean> rtn = new HashMap<Coordinate, Boolean>();
+		for(int x = 0; x < allLayers[0].getWidth(); x++){
+			for(int y = 0; y < allLayers[0].getHeight(); y++){
+				Coordinate bottomLayerCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
+
+				int topMostLayer = allLayers.length -1;
+				boolean foundTopSolidCharacter = false;
+				boolean foundTopColourCodes = false;
+				while(topMostLayer >= 0){
+					if(
+						bottomRelativeCharacters.get(topMostLayer).containsKey(bottomLayerCoordinate) &&
+						bottomRelativeCharacters.get(topMostLayer).get(bottomLayerCoordinate).active &&
+						allLayers[topMostLayer].getIsLayerActive()
+					){
+						TestScreenCharacter c = bottomRelativeCharacters.get(topMostLayer).get(bottomLayerCoordinate);
+						if(c.changed && (!foundTopSolidCharacter)){
+							//  This case can happen if an empty null character
+							//  changes above a solid character column.
+							rtn.put(bottomLayerCoordinate, true);
+						}
+						if(c.characters != null && c.changed && !foundTopSolidCharacter){
+							//  Topmost visible character has changed
+							rtn.put(bottomLayerCoordinate, true);
+						}
+						if(c.colourCodes.length > 0 && c.changed && !foundTopColourCodes){
+							//  Topmost visible colour codes havechanged
+							rtn.put(bottomLayerCoordinate, true);
+						}
+						if(c.colourCodes.length > 0){
+							foundTopColourCodes = true;
+						}
+						if(c.characters != null){
+							foundTopSolidCharacter = true;
+						}
 					}
+					topMostLayer--;
+				}
+				if(!rtn.containsKey(bottomLayerCoordinate)){
+					//  No solid character:
+					rtn.put(bottomLayerCoordinate, false);
+				}
+			}
+		}
+		return rtn;
+	}
+
+	private Map<Coordinate, Boolean> calculateHasActiveFlags() throws Exception{
+		Map<Coordinate, Boolean> rtn = new HashMap<Coordinate, Boolean>();
+		for(int x = 0; x < allLayers[0].getWidth(); x++){
+			for(int y = 0; y < allLayers[0].getHeight(); y++){
+				Coordinate bottomLayerCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
+
+				int topMostLayer = allLayers.length -1;
+				while(topMostLayer >= 0){
+					if(
+						bottomRelativeCharacters.get(topMostLayer).containsKey(bottomLayerCoordinate) &&
+						bottomRelativeCharacters.get(topMostLayer).get(bottomLayerCoordinate).active &&
+						allLayers[topMostLayer].getIsLayerActive()
+					){
+						TestScreenCharacter c = bottomRelativeCharacters.get(topMostLayer).get(bottomLayerCoordinate);
+						rtn.put(bottomLayerCoordinate, true);
+						if(c.characters != null){
+							break;
+						}
+					}
+					topMostLayer--;
+				}
+				if(!rtn.containsKey(bottomLayerCoordinate)){
+					//  No solid character:
+					rtn.put(bottomLayerCoordinate, false);
+				}
+			}
+		}
+		return rtn;
+	}
+
+	private Map<Coordinate, int []> calculateTopColourCodes() throws Exception{
+		Map<Coordinate, int []> rtn = new HashMap<Coordinate, int []>();
+		for(int x = 0; x < allLayers[0].getWidth(); x++){
+			for(int y = 0; y < allLayers[0].getHeight(); y++){
+				Coordinate bottomLayerCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
+
+				int topMostLayer = allLayers.length -1;
+				while(topMostLayer >= 0){
+					if(
+						bottomRelativeCharacters.get(topMostLayer).containsKey(bottomLayerCoordinate) &&
+						bottomRelativeCharacters.get(topMostLayer).get(bottomLayerCoordinate).active &&
+						allLayers[topMostLayer].getIsLayerActive()
+					){
+						TestScreenCharacter c = bottomRelativeCharacters.get(topMostLayer).get(bottomLayerCoordinate);
+						if(c.colourCodes.length > 0){
+							rtn.put(bottomLayerCoordinate, c.colourCodes);
+							break;
+						}
+					}
+					topMostLayer--;
+				}
+				if(!rtn.containsKey(bottomLayerCoordinate)){
+					//  No solid character:
+					rtn.put(bottomLayerCoordinate, new int [] {});
 				}
 			}
 		}

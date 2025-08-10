@@ -100,7 +100,7 @@ public class BlockManagerThreadCollection {
 		String explicitBlockSchemaFile = this.getBlockSchemaFile();
 		String blockSchemaFileString = null;
 		if(explicitBlockSchemaFile == null){
-			blockSchemaFileString = this.loadJarResourceIntoString("/v4_block_schema.json");
+			blockSchemaFileString = this.loadJarResourceIntoString("/v5_block_schema.json");
 		}else{
 			blockSchemaFileString = new String(Files.readAllBytes(Paths.get(explicitBlockSchemaFile)), "UTF-8");
 		}
