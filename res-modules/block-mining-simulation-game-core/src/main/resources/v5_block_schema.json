@@ -116,7 +116,7 @@
 		},
 		{
 			"match_type": "byte_comparison",
-			"byte_pattern_base_64": "MTQ4MDgtNjAtNw==",
+			"byte_pattern_base_64": "Q0FTOjE0ODA4LTYwLTc=",
 			"block_class": "org.res.block.SiliconDioxide",
 			"dedication": "GameDevChad"
 		},

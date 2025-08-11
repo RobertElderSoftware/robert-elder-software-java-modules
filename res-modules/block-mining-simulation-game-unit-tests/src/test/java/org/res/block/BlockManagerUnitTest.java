@@ -2095,4 +2095,116 @@ public class BlockManagerUnitTest {
 
 		System.out.println("End runScreenLayerValidationTest:");
 	}
+
+	public int getNextCharacterStartToLeft(int startX, int currentY, ScreenLayer layer){
+		int currentX = startX;
+		while(
+			currentX >= 0 &&
+			currentX < layer.getWidth() &&
+			currentY >= 0 &&
+			currentY < layer.getHeight()
+		){
+			if(layer.characterWidths[currentX][currentY] > 0){
+				return startX - currentX;
+			}
+			currentX++;
+		}
+		return -1;
+	}
+
+	public int getExpandedRightCoordinate(int startX, int startY, int endY, int [] xO, int [] yO, ScreenLayer [] layers){
+		int s = 0;
+		//  Start at previous x character:
+		int currentX = startX - xO[s] -1;
+		int leftDistance = getNextCharacterStartToLeft(currentX, startY - yO[s], layers[s]);
+		if(leftDistance == -1){
+			return startX; //  No expansion necessary, there is no previous solid character
+		}else{
+			int characterWidth = layers[s].characterWidths[currentX - leftDistance][startY];
+			int diff = characterWidth - (leftDistance +1);
+			if(diff >= 0){
+				return startX + diff;
+			}else{
+				return startX; //  No expansion necessary
+			}
+		}
+	}
+
+	public ScreenRegion getNonCharacterCuttingChangedRegions(ScreenRegion inputRegion, ScreenLayer [] layers) throws Exception{
+
+		int [] xO = new int [layers.length];
+		int [] yO = new int [layers.length];
+		xO[0] = 0;
+		yO[0] = 0;  //  All of the 'placement offsets' are relative to the layer we're merging down onto.
+		for(int a = 1; a < layers.length -1; a++){
+			xO[a+1] = layers[a+1].getPlacementOffset().getX().intValue();
+			yO[a+1] = layers[a+1].getPlacementOffset().getY().intValue();
+		}
+		int initialStartX = inputRegion.getRegion().getCanonicalLowerCoordinate().getX().intValue();
+		int initialEndX = inputRegion.getRegion().getCanonicalUpperCoordinate().getX().intValue();
+
+		int initialStartY = inputRegion.getRegion().getCanonicalLowerCoordinate().getY().intValue();
+		int initialEndY = inputRegion.getRegion().getCanonicalUpperCoordinate().getY().intValue();
+
+		int expandedStartX = inputRegion.getRegion().getCanonicalLowerCoordinate().getX().intValue();
+		int expandedEndX = getExpandedRightCoordinate(initialEndX, initialStartY, initialEndY, xO, yO, layers);
+
+		return new ScreenRegion(
+			ScreenLayer.makeDimensionsCA(expandedStartX, initialStartY, expandedEndX, initialEndY)
+		);
+	}
+
+	public void expandChangeRegionTest() throws Exception{
+
+		List<ScreenLayer []>  layerCollections = new ArrayList<ScreenLayer []>();
+		List<ScreenRegion> inputRegions = new ArrayList<ScreenRegion>();
+		List<ScreenRegion> expectedOutputRegions = new ArrayList<ScreenRegion>();
+
+		ScreenLayer [] test1 = new ScreenLayer [1];
+		test1[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
+		test1[0].initialize();
+		test1[0].clearChangedRegions();
+		test1[0].characters[0][0] = " ";
+		test1[0].characterWidths[0][0] = 1;
+		test1[0].colourCodes[0][0] = new int [] {};
+
+		inputRegions.add(new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)));
+		layerCollections.add(test1);
+		expectedOutputRegions.add(new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)));
+
+
+		ScreenLayer [] test2 = new ScreenLayer [1];
+		test2[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 2, 1));
+		test2[0].initialize();
+		test2[0].clearChangedRegions();
+		test2[0].characters[0][0] = "A";
+		test2[0].characterWidths[0][0] = 2;
+		test2[0].colourCodes[0][0] = new int [] {};
+		test2[0].characters[1][0] = null;
+		test2[0].characterWidths[1][0] = 0;
+		test2[0].colourCodes[1][0] = new int [] {};
+
+		inputRegions.add(new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)));
+		layerCollections.add(test2);
+		expectedOutputRegions.add(new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 2, 1)));
+
+		for(int i = 0; i < expectedOutputRegions.size(); i++){
+			ScreenRegion expandedChangeRegion = this.getNonCharacterCuttingChangedRegions(inputRegions.get(i), layerCollections.get(i));
+
+			CuboidAddress observedRegion = expandedChangeRegion.getRegion();
+			CuboidAddress expectedRegion = expectedOutputRegions.get(i).getRegion();
+			if(!observedRegion.equals(expectedRegion)){
+				throw new Exception("Expected expanded region to be " + expectedRegion + " but it was " + observedRegion);
+			}else{
+				System.out.println("Correctly observed expanded region to be " + expectedRegion + " and it was " + observedRegion);
+			}
+		}
+	}
+
+	@Test
+	public void runExpandChangeRegionTest() throws Exception {
+		System.out.println("Start runExpandChangeRegionTest:");
+		this.expandChangeRegionTest();
+		System.out.println("End runExpandChangeRegionTest:");
+	}
 }
