@@ -2107,27 +2107,32 @@ public class BlockManagerUnitTest {
 			if(layer.characterWidths[currentX][currentY] > 0){
 				return startX - currentX;
 			}
-			currentX++;
+			currentX--;
 		}
 		return -1;
 	}
 
-	public int getExpandedRightCoordinate(int startX, int startY, int endY, int [] xO, int [] yO, ScreenLayer [] layers){
-		int s = 0;
-		//  Start at previous x character:
-		int currentX = startX - xO[s] -1;
-		int leftDistance = getNextCharacterStartToLeft(currentX, startY - yO[s], layers[s]);
-		if(leftDistance == -1){
-			return startX; //  No expansion necessary, there is no previous solid character
-		}else{
-			int characterWidth = layers[s].characterWidths[currentX - leftDistance][startY];
-			int diff = characterWidth - (leftDistance +1);
-			if(diff >= 0){
-				return startX + diff;
-			}else{
-				return startX; //  No expansion necessary
+	public int getExpansionForCoordinate(int startX, int startY, int endY, int [] xO, int [] yO, ScreenLayer [] layers){
+		for(int s = 0; s < layers.length; s++){
+			//  Start at previous x character:
+			int currentX = startX - xO[s] -1;
+			for(int currentY = startY - yO[s]; currentY < endY - yO[s]; currentY++){
+				int leftDistance = getNextCharacterStartToLeft(currentX, currentY, layers[s]);
+				if(leftDistance == -1){
+					//  No expansion necessary, there is no previous solid character
+				}else{
+					int characterWidth = layers[s].characterWidths[currentX - leftDistance][currentY];
+					int diff = characterWidth - (leftDistance + 1);
+					if(diff > 0){
+						//  Need to expand.  The found char overshoots the region boundary by 'diff' amount.
+						return diff;
+					}else{
+						//  No expansion necessary, there is space for the character.
+					}
+				}
 			}
 		}
+		return 0;
 	}
 
 	public ScreenRegion getNonCharacterCuttingChangedRegions(ScreenRegion inputRegion, ScreenLayer [] layers) throws Exception{
@@ -2136,9 +2141,9 @@ public class BlockManagerUnitTest {
 		int [] yO = new int [layers.length];
 		xO[0] = 0;
 		yO[0] = 0;  //  All of the 'placement offsets' are relative to the layer we're merging down onto.
-		for(int a = 1; a < layers.length -1; a++){
-			xO[a+1] = layers[a+1].getPlacementOffset().getX().intValue();
-			yO[a+1] = layers[a+1].getPlacementOffset().getY().intValue();
+		for(int a = 1; a < layers.length; a++){
+			xO[a] = layers[a].getPlacementOffset().getX().intValue();
+			yO[a] = layers[a].getPlacementOffset().getY().intValue();
 		}
 		int initialStartX = inputRegion.getRegion().getCanonicalLowerCoordinate().getX().intValue();
 		int initialEndX = inputRegion.getRegion().getCanonicalUpperCoordinate().getX().intValue();
@@ -2146,20 +2151,47 @@ public class BlockManagerUnitTest {
 		int initialStartY = inputRegion.getRegion().getCanonicalLowerCoordinate().getY().intValue();
 		int initialEndY = inputRegion.getRegion().getCanonicalUpperCoordinate().getY().intValue();
 
-		int expandedStartX = inputRegion.getRegion().getCanonicalLowerCoordinate().getX().intValue();
-		int expandedEndX = getExpandedRightCoordinate(initialEndX, initialStartY, initialEndY, xO, yO, layers);
+		int expandedStartX = initialStartX;
+		int expandedEndX = initialEndX;
 
+		int additionalStartExpansionX = 0;
+		do{
+			additionalStartExpansionX = getExpansionForCoordinate(expandedStartX, initialStartY, initialEndY, xO, yO, layers);
+			expandedStartX -= additionalStartExpansionX;
+		}while(additionalStartExpansionX > 0);
+
+		int additionalEndExpansionX = 0;
+		do{
+			additionalEndExpansionX = getExpansionForCoordinate(expandedEndX, initialStartY, initialEndY, xO, yO, layers);
+			expandedEndX += additionalEndExpansionX;
+		}while(additionalEndExpansionX > 0);
+
+		// Keep expanded region within the layer:
 		return new ScreenRegion(
-			ScreenLayer.makeDimensionsCA(expandedStartX, initialStartY, expandedEndX, initialEndY)
+			ScreenLayer.makeDimensionsCA(
+				Math.max(expandedStartX, 0),
+				initialStartY,
+				Math.min(expandedEndX, layers[0].getWidth()),
+				initialEndY
+			)
 		);
+	}
+
+	public void doRegionExpansionTest(ScreenLayer [] layers, ScreenRegion inputScreenRegion, ScreenRegion expectedScreenRegion, String message) throws Exception{
+		ScreenRegion expandedChangeRegion = this.getNonCharacterCuttingChangedRegions(inputScreenRegion, layers);
+
+		CuboidAddress observedRegion = expandedChangeRegion.getRegion();
+		CuboidAddress expectedRegion = expectedScreenRegion.getRegion();
+		if(!observedRegion.equals(expectedRegion)){
+			throw new Exception("Expected expanded region to be " + expectedRegion + " but it was " + observedRegion + " for test message \"" + message + "\".");
+		}else{
+			System.out.println("Correctly observed expanded region to be " + expectedRegion + " and it was " + observedRegion + " for test message \"" + message + "\".");
+		}
 	}
 
 	public void expandChangeRegionTest() throws Exception{
 
-		List<ScreenLayer []>  layerCollections = new ArrayList<ScreenLayer []>();
-		List<ScreenRegion> inputRegions = new ArrayList<ScreenRegion>();
-		List<ScreenRegion> expectedOutputRegions = new ArrayList<ScreenRegion>();
-
+		//  Test 1
 		ScreenLayer [] test1 = new ScreenLayer [1];
 		test1[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
 		test1[0].initialize();
@@ -2168,11 +2200,14 @@ public class BlockManagerUnitTest {
 		test1[0].characterWidths[0][0] = 1;
 		test1[0].colourCodes[0][0] = new int [] {};
 
-		inputRegions.add(new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)));
-		layerCollections.add(test1);
-		expectedOutputRegions.add(new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)));
+		doRegionExpansionTest(
+			test1,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)),
+			"Test for simplest case of no expansion necessary"
+		);
 
-
+		//  Test 2 
 		ScreenLayer [] test2 = new ScreenLayer [1];
 		test2[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 2, 1));
 		test2[0].initialize();
@@ -2184,21 +2219,238 @@ public class BlockManagerUnitTest {
 		test2[0].characterWidths[1][0] = 0;
 		test2[0].colourCodes[1][0] = new int [] {};
 
-		inputRegions.add(new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)));
-		layerCollections.add(test2);
-		expectedOutputRegions.add(new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 2, 1)));
+		doRegionExpansionTest(
+			test2,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 2, 1)),
+			"Test for simplest case of expansion necessary due to multi-column character"
+		);
 
-		for(int i = 0; i < expectedOutputRegions.size(); i++){
-			ScreenRegion expandedChangeRegion = this.getNonCharacterCuttingChangedRegions(inputRegions.get(i), layerCollections.get(i));
+		//  Test 3
+		ScreenLayer [] test3 = new ScreenLayer [2];
+		test3[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
+		test3[0].initialize();
+		test3[0].clearChangedRegions();
+		test3[0].characters[0][0] = "A";
+		test3[0].characterWidths[0][0] = 2;
+		test3[0].colourCodes[0][0] = new int [] {};
+		test3[0].characters[1][0] = null;
+		test3[0].characterWidths[1][0] = 0;
+		test3[0].colourCodes[1][0] = new int [] {};
 
-			CuboidAddress observedRegion = expandedChangeRegion.getRegion();
-			CuboidAddress expectedRegion = expectedOutputRegions.get(i).getRegion();
-			if(!observedRegion.equals(expectedRegion)){
-				throw new Exception("Expected expanded region to be " + expectedRegion + " but it was " + observedRegion);
-			}else{
-				System.out.println("Correctly observed expanded region to be " + expectedRegion + " and it was " + observedRegion);
-			}
-		}
+		test3[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
+		test3[1].initialize();
+		test3[1].clearChangedRegions();
+		test3[1].characters[1][0] = "A";
+		test3[1].characterWidths[1][0] = 2;
+		test3[1].colourCodes[1][0] = new int [] {};
+		test3[1].characters[2][0] = null;
+		test3[1].characterWidths[2][0] = 0;
+		test3[1].colourCodes[2][0] = new int [] {};
+
+		doRegionExpansionTest(
+			test3,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 3, 1)),
+			"Test for another expansion that is necessary on right edge due to char in same y line:"
+		);
+
+
+		//  Test 4
+		ScreenLayer [] test4 = new ScreenLayer [2];
+		test4[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 2, 1));
+		test4[0].initialize();
+		test4[0].clearChangedRegions();
+		test4[0].characters[0][0] = "A";
+		test4[0].characterWidths[0][0] = 2;
+		test4[0].colourCodes[0][0] = new int [] {};
+		test4[0].characters[1][0] = null;
+		test4[0].characterWidths[1][0] = 0;
+		test4[0].colourCodes[1][0] = new int [] {};
+
+		test4[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
+		test4[1].initialize();
+		test4[1].clearChangedRegions();
+		test4[1].characters[1][0] = "A";
+		test4[1].characterWidths[1][0] = 2;
+		test4[1].colourCodes[1][0] = new int [] {};
+		test4[1].characters[2][0] = null;
+		test4[1].characterWidths[2][0] = 0;
+		test4[1].colourCodes[2][0] = new int [] {};
+
+		doRegionExpansionTest(
+			test4,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)),
+			//  Region should be restriced to bottom layer boundary:
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 2, 1)),
+			"Test for another expansion that is necessary on right edge due to char in same y line, BUT the expansion is capped at the edge of the bottom layer due to the last character going off the edge."
+		);
+
+
+		//  Test 5
+		ScreenLayer [] test5 = new ScreenLayer [2];
+		test5[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 2));
+		test5[0].initialize();
+		test5[0].clearChangedRegions();
+		test5[0].characters[0][0] = "A";
+		test5[0].characterWidths[0][0] = 2;
+		test5[0].colourCodes[0][0] = new int [] {};
+		test5[0].characters[1][0] = null;
+		test5[0].characterWidths[1][0] = 0;
+		test5[0].colourCodes[1][0] = new int [] {};
+
+		test5[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 2));
+		test5[1].initialize();
+		test5[1].clearChangedRegions();
+		test5[1].characters[1][1] = "A";
+		test5[1].characterWidths[1][1] = 2;
+		test5[1].colourCodes[1][1] = new int [] {};
+		test5[1].characters[2][1] = null;
+		test5[1].characterWidths[2][1] = 0;
+		test5[1].colourCodes[2][1] = new int [] {};
+
+		doRegionExpansionTest(
+			test5,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 2)),
+			//  Region should be restriced to bottom layer boundary:
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 3, 2)),
+			"Test for second expansion caused by character a y line that is not the first."
+		);
+
+		//  Test 6
+		ScreenLayer [] test6 = new ScreenLayer [1];
+		test6[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 3));
+		test6[0].initialize();
+		test6[0].clearChangedRegions();
+		test6[0].characters[1][1] = " ";
+		test6[0].characterWidths[1][1] = 1;
+		test6[0].colourCodes[1][1] = new int [] {};
+
+		doRegionExpansionTest(
+			test6,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(1, 1, 2, 2)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(1, 1, 2, 2)),
+			"No expansion necessary, character in center of layer."
+		);
+
+		//  Test 7
+		ScreenLayer [] test7 = new ScreenLayer [1];
+		test7[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 3));
+		test7[0].initialize();
+		test7[0].clearChangedRegions();
+		test7[0].characters[1][1] = " ";
+		test7[0].characterWidths[1][1] = 1;
+		test7[0].colourCodes[1][1] = new int [] {};
+		test7[0].characters[0][2] = "A";
+		test7[0].characterWidths[0][2] = 2;
+		test7[0].colourCodes[0][2] = new int [] {};
+		test7[0].characters[1][2] = null;
+		test7[0].characterWidths[1][2] = 0;
+		test7[0].colourCodes[1][2] = new int [] {};
+
+		doRegionExpansionTest(
+			test7,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(1, 1, 2, 3)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 1, 2, 3)),
+			"Test left boundary expansion for character in same layer, next row."
+		);
+
+		//  Test 8
+		ScreenLayer [] test8 = new ScreenLayer [2];
+		test8[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 2));
+		test8[0].initialize();
+		test8[0].clearChangedRegions();
+		test8[0].characters[1][0] = "A";
+		test8[0].characterWidths[1][0] = 2;
+		test8[0].colourCodes[1][0] = new int [] {};
+		test8[0].characters[2][0] = null;
+		test8[0].characterWidths[2][0] = 0;
+		test8[0].colourCodes[2][0] = new int [] {};
+
+		test8[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 2));
+		test8[1].initialize();
+		test8[1].clearChangedRegions();
+		test8[1].characters[0][1] = "A";
+		test8[1].characterWidths[0][1] = 2;
+		test8[1].colourCodes[0][1] = new int [] {};
+		test8[1].characters[1][1] = null;
+		test8[1].characterWidths[1][1] = 0;
+		test8[1].colourCodes[1][1] = new int [] {};
+
+		doRegionExpansionTest(
+			test8,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(2, 0, 3, 2)),
+			//  Region should be restriced to bottom layer boundary:
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 3, 2)),
+			"Test for leftward second expansion caused by character a y line that is not the first."
+		);
+
+
+		//  Test 9
+		ScreenLayer [] test9 = new ScreenLayer [3];
+		test9[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 10, 3));
+		test9[0].initialize();
+		test9[0].clearChangedRegions();
+		test9[0].characters[0][0] = "A";
+		test9[0].characterWidths[0][0] = 2;
+		test9[0].colourCodes[0][0] = new int [] {};
+                test9[0].setPlacementOffset(new Coordinate(Arrays.asList(99L,99L))); //Should be ignored
+
+		test9[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 10, 3));
+		test9[1].initialize();
+		test9[1].clearChangedRegions();
+		test9[1].characters[0][0] = "A";
+		test9[1].characterWidths[0][0] = 5;
+		test9[1].colourCodes[0][0] = new int [] {};
+                test9[1].setPlacementOffset(new Coordinate(Arrays.asList(1L, 1L)));
+
+		test9[2] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 10, 3));
+		test9[2].initialize();
+		test9[2].clearChangedRegions();
+		test9[2].characters[1][0] = "A";
+		test9[2].characterWidths[1][0] = 4;
+		test9[2].colourCodes[1][0] = new int [] {};
+                test9[2].setPlacementOffset(new Coordinate(Arrays.asList(3L, 1L)));
+
+		doRegionExpansionTest(
+			test9,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(1, 0, 2, 2)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 8, 2)),
+			"Test expansion with placement offsets."
+		);
+
+		//  Test 10
+		ScreenLayer [] test10 = new ScreenLayer [3];
+		test10[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 10, 3));
+		test10[0].initialize();
+		test10[0].clearChangedRegions();
+		test10[0].characters[5][0] = "A";
+		test10[0].characterWidths[5][0] = 2;
+		test10[0].colourCodes[5][0] = new int [] {};
+                test10[0].setPlacementOffset(new Coordinate(Arrays.asList(88L,88L))); //Should be ignored
+
+		test10[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 10, 3));
+		test10[1].initialize();
+		test10[1].clearChangedRegions();
+		test10[1].characters[2][0] = "A";
+		test10[1].characterWidths[2][0] = 5;
+		test10[1].colourCodes[2][0] = new int [] {};
+                test10[1].setPlacementOffset(new Coordinate(Arrays.asList(1L, 1L)));
+
+		test10[2] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 10, 3));
+		test10[2].initialize();
+		test10[2].clearChangedRegions();
+		test10[2].characters[1][0] = "A";
+		test10[2].characterWidths[1][0] = 9;
+		test10[2].colourCodes[1][0] = new int [] {};
+                test10[2].setPlacementOffset(new Coordinate(Arrays.asList(-1L, 1L)));
+
+		doRegionExpansionTest(
+			test10,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(5, 0, 6, 2)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 9, 2)),
+			"Test expansion with placement offsets, and multiple layers."
+		);
 	}
 
 	@Test
