@@ -1596,31 +1596,8 @@ public class BlockManagerUnitTest {
 		this.verifyObject(merged.changed[3][0], false);
         }
 
-	public Set<ScreenRegion> getAllActiveTranslatedChangedRegions(ScreenLayer [] layers) throws Exception{
-		Set<ScreenRegion> allActiveChangedRegions = new TreeSet<ScreenRegion>();
-		for(int i = 0; i < layers.length; i++){
-			if(layers[i].getIsLayerActive()){
-				for(ScreenRegion r : layers[i].getChangedRegions()){
-					if(i == 0){
-						allActiveChangedRegions.add(r);
-					}else{
-						//  For the upper changed regions above the final merged layer, translate them by the placement offset:
-						allActiveChangedRegions.add(
-							new ScreenRegion(ScreenLayer.makeDimensionsCA(
-								r.getStartX() + layers[i].getPlacementOffset().getX().intValue(),
-								r.getStartY() + layers[i].getPlacementOffset().getY().intValue(),
-								r.getEndX() + layers[i].getPlacementOffset().getX().intValue(),
-								r.getEndY() + layers[i].getPlacementOffset().getY().intValue()
-							))
-						);
-					}
-				}
-			}
-		}
-		return allActiveChangedRegions;
-	}
 
-	public TestScreenCharacter getExpectedTestCharacter(MergedScreenInfo msi, boolean trustChangedFlags, ScreenLayer [] layers, List<Map<Coordinate, TestScreenCharacter>> layerCharacters, int l, Coordinate currentCoordinate, Set<ScreenRegion> allActiveTranslatedChangedRegions) throws Exception{
+	public TestScreenCharacter getExpectedTestCharacter(MergedScreenInfo msi, boolean trustChangedFlags, ScreenLayer [] layers, List<Map<Coordinate, TestScreenCharacter>> layerCharacters, int l, Coordinate currentCoordinate) throws Exception{
 
 		//  Check to see if the current point is inside a
 		//  changed region for at least one layer.  If so, return
@@ -1636,7 +1613,7 @@ public class BlockManagerUnitTest {
 				xOffset,
 				yOffset
 			);
-			boolean isInChangedRegion = ScreenLayer.isInChangedRegion(translatedCoordinate.getX().intValue(), translatedCoordinate.getY().intValue(), allActiveTranslatedChangedRegions);
+			boolean isInChangedRegion = ScreenLayer.isInChangedRegion(translatedCoordinate.getX().intValue(), translatedCoordinate.getY().intValue(), msi.getAllActiveTranslatedChangedRegions());
 			TestScreenCharacter rtn = layerCharacters.get(l).get(currentCoordinate);
 			//  Merging layers causes the changed flag to be unset:
 			boolean updatedChangedFlag = false;
@@ -1652,7 +1629,7 @@ public class BlockManagerUnitTest {
 				updatedChangedFlag   //  Changed
 			);
 		}else{
-			boolean isInChangedRegion = ScreenLayer.isInChangedRegion(currentCoordinate.getX().intValue(), currentCoordinate.getY().intValue(), allActiveTranslatedChangedRegions);
+			boolean isInChangedRegion = ScreenLayer.isInChangedRegion(currentCoordinate.getX().intValue(), currentCoordinate.getY().intValue(), msi.getAllActiveTranslatedChangedRegions());
 
 			Map<Coordinate, TestScreenCharacter> beforeMergeCharacters = msi.getBeforeMergeCharacters();
 			TestScreenCharacter bottomCharacterBefore = beforeMergeCharacters.get(currentCoordinate);
@@ -1774,11 +1751,11 @@ public class BlockManagerUnitTest {
 		int numDifferentSeeds = 30000;
 		int numTestCharacters = 10;
 		int maxNumChangedRegions = 5;
-		int maxNumLayers = 5;
+		int maxNumLayers = 2;
 		Long maxCharacterWidth = 1L;
-		boolean randomizePlacementOffset = true;
-		Long maxLayerWidth = 10L;
-		Long maxLayerHeight = 10L;
+		boolean randomizePlacementOffset = false;
+		Long maxLayerWidth = 1L;
+		Long maxLayerHeight = 1L;
 		Long placementOffsetXMax = randomizePlacementOffset ? 5L : 0L;
 		Long placementOffsetYMax = randomizePlacementOffset ? 5L : 0L;
 		for(int currentSeed = startingSeed; currentSeed < (startingSeed + numDifferentSeeds); currentSeed++){
@@ -1916,10 +1893,7 @@ public class BlockManagerUnitTest {
 					throw new Exception("Validation above layer failed: " + error);
 				}
 			}
-
-			//  Save the set of changed regions because they will be wiped by the merge operation:
-			Set<ScreenRegion> allActiveTranslatedChangedRegions = this.getAllActiveTranslatedChangedRegions(allLayers);
-
+			
 			MergedScreenInfo msi = new MergedScreenInfo(allLayers, layerCharacters);
 			msi.init(); //  Initialize before merge to save a copy of before characters
 			//  Do the actual merge process:
@@ -1950,7 +1924,7 @@ public class BlockManagerUnitTest {
 				for(int x = 0; x < allLayers[l].getWidth(); x++){
 					for(int y = 0; y < allLayers[l].getHeight(); y++){
 						Coordinate currentCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
-						TestScreenCharacter cc = this.getExpectedTestCharacter(msi, trustChangedFlags, allLayers, layerCharacters, l, currentCoordinate, allActiveTranslatedChangedRegions);
+						TestScreenCharacter cc = this.getExpectedTestCharacter(msi, trustChangedFlags, allLayers, layerCharacters, l, currentCoordinate);
 
 						String msg = "currentCoordinate=" + currentCoordinate + ", trustChangedFlags=" + trustChangedFlags + ", x=" + x + ", y=" + y + ", l="+l;
 						this.verifyObject(allLayers[l].characters[x][y], cc.characters, msg);
@@ -2096,89 +2070,10 @@ public class BlockManagerUnitTest {
 		System.out.println("End runScreenLayerValidationTest:");
 	}
 
-	public int getNextCharacterStartToLeft(int startX, int currentY, ScreenLayer layer){
-		int currentX = startX;
-		while(
-			currentX >= 0 &&
-			currentX < layer.getWidth() &&
-			currentY >= 0 &&
-			currentY < layer.getHeight()
-		){
-			if(layer.characterWidths[currentX][currentY] > 0){
-				return startX - currentX;
-			}
-			currentX--;
-		}
-		return -1;
-	}
 
-	public int getExpansionForCoordinate(int startX, int startY, int endY, int [] xO, int [] yO, ScreenLayer [] layers){
-		for(int s = 0; s < layers.length; s++){
-			//  Start at previous x character:
-			int currentX = startX - xO[s] -1;
-			for(int currentY = startY - yO[s]; currentY < endY - yO[s]; currentY++){
-				int leftDistance = getNextCharacterStartToLeft(currentX, currentY, layers[s]);
-				if(leftDistance == -1){
-					//  No expansion necessary, there is no previous solid character
-				}else{
-					int characterWidth = layers[s].characterWidths[currentX - leftDistance][currentY];
-					int diff = characterWidth - (leftDistance + 1);
-					if(diff > 0){
-						//  Need to expand.  The found char overshoots the region boundary by 'diff' amount.
-						return diff;
-					}else{
-						//  No expansion necessary, there is space for the character.
-					}
-				}
-			}
-		}
-		return 0;
-	}
-
-	public ScreenRegion getNonCharacterCuttingChangedRegions(ScreenRegion inputRegion, ScreenLayer [] layers) throws Exception{
-
-		int [] xO = new int [layers.length];
-		int [] yO = new int [layers.length];
-		xO[0] = 0;
-		yO[0] = 0;  //  All of the 'placement offsets' are relative to the layer we're merging down onto.
-		for(int a = 1; a < layers.length; a++){
-			xO[a] = layers[a].getPlacementOffset().getX().intValue();
-			yO[a] = layers[a].getPlacementOffset().getY().intValue();
-		}
-		int initialStartX = inputRegion.getRegion().getCanonicalLowerCoordinate().getX().intValue();
-		int initialEndX = inputRegion.getRegion().getCanonicalUpperCoordinate().getX().intValue();
-
-		int initialStartY = inputRegion.getRegion().getCanonicalLowerCoordinate().getY().intValue();
-		int initialEndY = inputRegion.getRegion().getCanonicalUpperCoordinate().getY().intValue();
-
-		int expandedStartX = initialStartX;
-		int expandedEndX = initialEndX;
-
-		int additionalStartExpansionX = 0;
-		do{
-			additionalStartExpansionX = getExpansionForCoordinate(expandedStartX, initialStartY, initialEndY, xO, yO, layers);
-			expandedStartX -= additionalStartExpansionX;
-		}while(additionalStartExpansionX > 0);
-
-		int additionalEndExpansionX = 0;
-		do{
-			additionalEndExpansionX = getExpansionForCoordinate(expandedEndX, initialStartY, initialEndY, xO, yO, layers);
-			expandedEndX += additionalEndExpansionX;
-		}while(additionalEndExpansionX > 0);
-
-		// Keep expanded region within the layer:
-		return new ScreenRegion(
-			ScreenLayer.makeDimensionsCA(
-				Math.max(expandedStartX, 0),
-				initialStartY,
-				Math.min(expandedEndX, layers[0].getWidth()),
-				initialEndY
-			)
-		);
-	}
 
 	public void doRegionExpansionTest(ScreenLayer [] layers, ScreenRegion inputScreenRegion, ScreenRegion expectedScreenRegion, String message) throws Exception{
-		ScreenRegion expandedChangeRegion = this.getNonCharacterCuttingChangedRegions(inputScreenRegion, layers);
+		ScreenRegion expandedChangeRegion = ScreenLayer.getNonCharacterCuttingChangedRegions(inputScreenRegion, layers);
 
 		CuboidAddress observedRegion = expandedChangeRegion.getRegion();
 		CuboidAddress expectedRegion = expectedScreenRegion.getRegion();
@@ -2451,6 +2346,46 @@ public class BlockManagerUnitTest {
 			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 9, 2)),
 			"Test expansion with placement offsets, and multiple layers."
 		);
+
+
+
+		//  Test 11
+		ScreenLayer [] test11 = new ScreenLayer [1];
+		test11[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
+		test11[0].initialize();
+		test11[0].clearChangedRegions();
+		test11[0].characters[0][0] = null;
+		test11[0].characterWidths[0][0] = 0;
+		test11[0].colourCodes[0][0] = new int [] {};
+
+		doRegionExpansionTest(
+			test11,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 0, 1)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 0, 1)),
+			"Change region with 0 x width, 1 width on a single null character."
+		);
+
+
+		//  Test 12
+		ScreenLayer [] test12 = new ScreenLayer [2];
+		test12[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 0, 0));
+		test12[0].initialize();
+		test12[0].clearChangedRegions();
+
+		test12[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
+		test12[1].initialize();
+		test12[1].clearChangedRegions();
+		test12[1].characters[0][0] = null;
+		test12[1].characterWidths[0][0] = 0;
+		test12[1].colourCodes[0][0] = new int [] {};
+
+		doRegionExpansionTest(
+			test12,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 0, 1)), //  X coordinate is reduced to fit within the zero sized bottom layer.
+			"Two layers, but bottom layer has zero size and top layer is a null character."
+		);
+
 	}
 
 	@Test

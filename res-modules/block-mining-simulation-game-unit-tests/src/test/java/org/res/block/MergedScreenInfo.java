@@ -33,7 +33,9 @@ package org.res.block;
 import java.util.Set;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,6 +58,8 @@ public class MergedScreenInfo{
 	private Map<Coordinate, Boolean> hasActiveFlags;
 	private Map<Coordinate, int []> topColourCodes;
 
+	private Set<ScreenRegion> allActiveTranslatedChangedRegions;
+
 	//  Save a copy of bottom layer before merge:
 	private Map<Coordinate, TestScreenCharacter> beforeMergeCharacters;
 
@@ -71,6 +75,7 @@ public class MergedScreenInfo{
 		this.hasActiveFlags = this.calculateHasActiveFlags();
 		this.topColourCodes = this.calculateTopColourCodes();
 		this.beforeMergeCharacters = this.calculateBeforeMergeCharacters();
+		this.allActiveTranslatedChangedRegions = this.computeAllActiveTranslatedChangedRegions();
 	}
 
 	public Map<Coordinate, TestScreenCharacter> getBeforeMergeCharacters() throws Exception{
@@ -95,6 +100,10 @@ public class MergedScreenInfo{
 
 	public Map<Coordinate, int []> getTopColourCodes() throws Exception{
 		return this.topColourCodes;
+	}
+
+	public Set<ScreenRegion> getAllActiveTranslatedChangedRegions(){
+		return this.allActiveTranslatedChangedRegions;
 	}
 
 	public Map<Coordinate, TestScreenCharacter> calculateBeforeMergeCharacters(){
@@ -285,5 +294,37 @@ public class MergedScreenInfo{
 			}
 		}
 		return rtn;
+	}
+
+	public Set<ScreenRegion> computeAllActiveTranslatedChangedRegions() throws Exception{
+		Set<ScreenRegion> allActiveChangedRegions = new TreeSet<ScreenRegion>();
+		for(int i = 0; i < allLayers.length; i++){
+			if(allLayers[i].getIsLayerActive()){
+				for(ScreenRegion r : allLayers[i].getChangedRegions()){
+					ScreenRegion translatedRegion = null;
+					if(i == 0){
+						translatedRegion = r;
+					}else{
+						//  For the upper changed regions above the final merged layer, translate them by the placement offset:
+						translatedRegion = new ScreenRegion(ScreenLayer.makeDimensionsCA(
+							r.getStartX() + allLayers[i].getPlacementOffset().getX().intValue(),
+							r.getStartY() + allLayers[i].getPlacementOffset().getY().intValue(),
+							r.getEndX() + allLayers[i].getPlacementOffset().getX().intValue(),
+							r.getEndY() + allLayers[i].getPlacementOffset().getY().intValue()
+						));
+					}
+
+					ScreenRegion expandedRegion = ScreenLayer.getNonCharacterCuttingChangedRegions(translatedRegion, allLayers);
+					if(!expandedRegion.getRegion().equals(translatedRegion.getRegion())){
+						ScreenRegion blah = ScreenLayer.getNonCharacterCuttingChangedRegions(translatedRegion, allLayers);
+						//For debugging:
+						throw new Exception("expandedRegion.getRegion()=" + expandedRegion.getRegion() + ", but translatedRegion.getRegion()=" + translatedRegion.getRegion());
+					}
+
+					allActiveChangedRegions.add(expandedRegion);
+				}
+			}
+		}
+		return allActiveChangedRegions;
 	}
 }

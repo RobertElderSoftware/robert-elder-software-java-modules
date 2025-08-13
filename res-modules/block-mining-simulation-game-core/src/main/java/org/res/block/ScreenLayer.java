@@ -388,7 +388,7 @@ public class ScreenLayer {
 		);
 		
 		Set<ScreenRegion> nonClippedRegions = new HashSet<ScreenRegion>();
-		Set<ScreenRegion> clippedTranslatedRegions = new HashSet<ScreenRegion>();
+		Set<ScreenRegion> translatedClippedExpandedRegions = new HashSet<ScreenRegion>();
 		for(int l = 0; l < screenLayers.length; l++){
 			if(screenLayers[l].getIsLayerActive()){
 				for(ScreenRegion sourceRegion : screenLayers[l].getChangedRegions()){
@@ -402,14 +402,22 @@ public class ScreenLayer {
 					nonClippedRegions.add(new ScreenRegion(destinationRegionCA));
 
 					CuboidAddress consideredRegion = destinationRegionCA.getIntersectionCuboidAddress(baseLayerCuboidAddress);
-					ScreenRegion region = new ScreenRegion(consideredRegion);
-					clippedTranslatedRegions.add(region);
+					ScreenRegion clippedRegion = new ScreenRegion(consideredRegion);
+
+
+					ScreenRegion expandedRegion = ScreenLayer.getNonCharacterCuttingChangedRegions(clippedRegion, screenLayers);
+					if(!expandedRegion.getRegion().equals(clippedRegion.getRegion())){
+						//For debugging:
+						//throw new Exception("!expanded.getRegion().equals(region.getRegion())");
+					}
+
+					translatedClippedExpandedRegions.add(expandedRegion);
 				}
 			}
 			screenLayers[l].clearChangedRegions();
 		}
 
-		for(ScreenRegion region : clippedTranslatedRegions){
+		for(ScreenRegion region : translatedClippedExpandedRegions){
 			int startX = region.getStartX();
 			int startY = region.getStartY();
 			int endX = region.getEndX();
@@ -564,7 +572,7 @@ public class ScreenLayer {
 				}
 			}
 		}
-		this.addChangedRegions(clippedTranslatedRegions);
+		this.addChangedRegions(translatedClippedExpandedRegions);
 	}
 
 	private void nullifyPrecendingOverlappedCharacters(int x, int y){
@@ -855,5 +863,86 @@ public class ScreenLayer {
 			}
 		}
 		return null; //  Successfully validated.
+	}
+
+	public static int getNextCharacterStartToLeft(int startX, int currentY, ScreenLayer layer){
+		int currentX = startX;
+		while(
+			currentX >= 0 &&
+			currentX < layer.getWidth() &&
+			currentY >= 0 &&
+			currentY < layer.getHeight()
+		){
+			if(layer.characterWidths[currentX][currentY] > 0){
+				return startX - currentX;
+			}
+			currentX--;
+		}
+		return -1;
+	}
+
+	public static int getExpansionForCoordinate(int startX, int startY, int endY, int [] xO, int [] yO, ScreenLayer [] layers){
+		for(int s = 0; s < layers.length; s++){
+			//  Start at previous x character:
+			int currentX = startX - xO[s] -1;
+			for(int currentY = startY - yO[s]; currentY < endY - yO[s]; currentY++){
+				int leftDistance = getNextCharacterStartToLeft(currentX, currentY, layers[s]);
+				if(leftDistance == -1){
+					//  No expansion necessary, there is no previous solid character
+				}else{
+					int characterWidth = layers[s].characterWidths[currentX - leftDistance][currentY];
+					int diff = characterWidth - (leftDistance + 1);
+					if(diff > 0){
+						//  Need to expand.  The found char overshoots the region boundary by 'diff' amount.
+						return diff;
+					}else{
+						//  No expansion necessary, there is space for the character.
+					}
+				}
+			}
+		}
+		return 0;
+	}
+
+	public static ScreenRegion getNonCharacterCuttingChangedRegions(ScreenRegion inputRegion, ScreenLayer [] layers) throws Exception{
+
+		int [] xO = new int [layers.length];
+		int [] yO = new int [layers.length];
+		xO[0] = 0;
+		yO[0] = 0;  //  All of the 'placement offsets' are relative to the layer we're merging down onto.
+		for(int a = 1; a < layers.length; a++){
+			xO[a] = layers[a].getPlacementOffset().getX().intValue();
+			yO[a] = layers[a].getPlacementOffset().getY().intValue();
+		}
+		int initialStartX = inputRegion.getRegion().getCanonicalLowerCoordinate().getX().intValue();
+		int initialEndX = inputRegion.getRegion().getCanonicalUpperCoordinate().getX().intValue();
+
+		int initialStartY = inputRegion.getRegion().getCanonicalLowerCoordinate().getY().intValue();
+		int initialEndY = inputRegion.getRegion().getCanonicalUpperCoordinate().getY().intValue();
+
+		int expandedStartX = initialStartX;
+		int expandedEndX = initialEndX;
+
+		int additionalStartExpansionX = 0;
+		do{
+			additionalStartExpansionX = getExpansionForCoordinate(expandedStartX, initialStartY, initialEndY, xO, yO, layers);
+			expandedStartX -= additionalStartExpansionX;
+		}while(additionalStartExpansionX > 0);
+
+		int additionalEndExpansionX = 0;
+		do{
+			additionalEndExpansionX = getExpansionForCoordinate(expandedEndX, initialStartY, initialEndY, xO, yO, layers);
+			expandedEndX += additionalEndExpansionX;
+		}while(additionalEndExpansionX > 0);
+
+		// Keep expanded region within the layer:
+		return new ScreenRegion(
+			ScreenLayer.makeDimensionsCA(
+				Math.max(expandedStartX, 0),
+				initialStartY,
+				Math.min(expandedEndX, layers[0].getWidth()),
+				initialEndY
+			)
+		);
 	}
 }
