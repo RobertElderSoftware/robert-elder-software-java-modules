@@ -48,9 +48,10 @@ public class MergedScreenInfo{
 	private List<Map<Coordinate, TestScreenCharacter>> layerRelativeCharacters;
 	//  Map of characters relative to bottom layer:
 	private List<Map<Coordinate, TestScreenCharacter>> bottomRelativeCharacters;
+	private Map<Coordinate, Map<Integer, Boolean>> isColumnSolidAndActiveStates;
 	//  Map of coordinate (in bottom layer coordinates) to layer number
         //  with solid column at that coordinate in final merged layer.
-	private Map<Coordinate, Integer> topmostSolidColumnLayers;
+	private Map<Coordinate, Integer> topmostSolidActiveColumnLayers;
 	//  Map that indicates whether there is *any* active column with a changed
 	//  flag set that's located above the topmost solid character:
 	private Map<Coordinate, Boolean> hasAboveActiveChangedFlags;
@@ -58,6 +59,7 @@ public class MergedScreenInfo{
 	private Map<Coordinate, Boolean> hasActiveFlags;
 	private Map<Coordinate, int []> topColourCodes;
 
+	private Set<ScreenRegion> allActiveTranslatedClippedExpandedChangedRegions;
 	private Set<ScreenRegion> allActiveTranslatedChangedRegions;
 
 	//  Save a copy of bottom layer before merge:
@@ -70,11 +72,13 @@ public class MergedScreenInfo{
 
 	public void init() throws Exception{
 		this.bottomRelativeCharacters = this.calculateBottomRelativeCharacters();
-		this.topmostSolidColumnLayers = this.calculateTopmostSolidColumnLayers();
+		this.isColumnSolidAndActiveStates = this.calculateIsColumnSolidAndActiveStates();
+		this.topmostSolidActiveColumnLayers = this.calculateTopmostSolidActiveColumnLayers();
 		this.hasAboveActiveChangedFlags = this.calculateHasAboveActiveChangedFlags();
 		this.hasActiveFlags = this.calculateHasActiveFlags();
 		this.topColourCodes = this.calculateTopColourCodes();
 		this.beforeMergeCharacters = this.calculateBeforeMergeCharacters();
+		this.allActiveTranslatedClippedExpandedChangedRegions = this.computeAllActiveTranslatedClippedExpandedChangedRegions();
 		this.allActiveTranslatedChangedRegions = this.computeAllActiveTranslatedChangedRegions();
 	}
 
@@ -86,8 +90,8 @@ public class MergedScreenInfo{
 		return this.bottomRelativeCharacters;
 	}
 
-	public Map<Coordinate, Integer> getTopmostSolidColumnLayers() throws Exception{
-		return this.topmostSolidColumnLayers;
+	public Map<Coordinate, Integer> getTopmostSolidActiveColumnLayers() throws Exception{
+		return this.topmostSolidActiveColumnLayers;
 	}
 
 	public Map<Coordinate, Boolean> getHasAboveActiveChangedFlags() throws Exception{
@@ -102,11 +106,15 @@ public class MergedScreenInfo{
 		return this.topColourCodes;
 	}
 
+	public Set<ScreenRegion> getAllActiveTranslatedClippedExpandedChangedRegions(){
+		return this.allActiveTranslatedClippedExpandedChangedRegions;
+	}
+
 	public Set<ScreenRegion> getAllActiveTranslatedChangedRegions(){
 		return this.allActiveTranslatedChangedRegions;
 	}
 
-	public Map<Coordinate, TestScreenCharacter> calculateBeforeMergeCharacters(){
+	private Map<Coordinate, TestScreenCharacter> calculateBeforeMergeCharacters(){
 		Map<Coordinate, TestScreenCharacter> rtn = new HashMap<Coordinate, TestScreenCharacter>();
 		//  Remember exactly what was in the bottom result later for later comparison
 		for(int x = 0; x < allLayers[0].getWidth(); x++){
@@ -158,24 +166,51 @@ public class MergedScreenInfo{
 		return rtn;
 	}
 
-	private Map<Coordinate, Integer> calculateTopmostSolidColumnLayers() throws Exception{
+	private Map<Coordinate, Map<Integer, Boolean>> calculateIsColumnSolidAndActiveStates() throws Exception{
+		Map<Coordinate, Map<Integer, Boolean>> rtn = new HashMap<Coordinate, Map<Integer, Boolean>>();
+		// Initialization
+		for(int x = 0; x < allLayers[0].getWidth(); x++){
+			for(int y = 0; y < allLayers[0].getHeight(); y++){
+				Coordinate bottomLayerCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
+				rtn.put(bottomLayerCoordinate, new HashMap<Integer, Boolean>());
+				for(int s = 0; s < allLayers.length; s++){
+					rtn.get(bottomLayerCoordinate).put(s, false);
+				}
+			}
+		}
+		for(int x = 0; x < allLayers[0].getWidth(); x++){
+			for(int y = 0; y < allLayers[0].getHeight(); y++){
+				Coordinate bottomLayerCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
+				for(int s = 0; s < allLayers.length; s++){
+					if(
+						bottomRelativeCharacters.get(s).containsKey(bottomLayerCoordinate) &&
+						bottomRelativeCharacters.get(s).get(bottomLayerCoordinate).active &&
+						allLayers[s].getIsLayerActive()
+					){
+						TestScreenCharacter c = bottomRelativeCharacters.get(s).get(bottomLayerCoordinate);
+						//  For each one of the columns in this multi-column character:
+						for(int i = 0; i < c.characterWidths && (i+x) < allLayers[0].getWidth(); i++){
+							Coordinate solidCoordinate = new Coordinate(Arrays.asList((long)(x+i), (long)y));
+							rtn.get(solidCoordinate).put(s, true);
+						}
+					}
+				}
+			}
+		}
+		return rtn;
+	}
+
+	private Map<Coordinate, Integer> calculateTopmostSolidActiveColumnLayers() throws Exception{
 		Map<Coordinate, Integer> rtn = new HashMap<Coordinate, Integer>();
 		for(int x = 0; x < allLayers[0].getWidth(); x++){
 			for(int y = 0; y < allLayers[0].getHeight(); y++){
 				Coordinate bottomLayerCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
+
 				int topMostLayer = allLayers.length -1;
 				while(topMostLayer >= 0){
-					if(
-						bottomRelativeCharacters.get(topMostLayer).containsKey(bottomLayerCoordinate) &&
-						bottomRelativeCharacters.get(topMostLayer).get(bottomLayerCoordinate).active &&
-						allLayers[topMostLayer].getIsLayerActive()
-					){
-						TestScreenCharacter c = bottomRelativeCharacters.get(topMostLayer).get(bottomLayerCoordinate);
-						// TODO:  Backtrack to look for start of character in multi-column case.
-						if(c.characters != null){
-							rtn.put(bottomLayerCoordinate, topMostLayer);
-							break;
-						}
+					if(isColumnSolidAndActiveStates.get(bottomLayerCoordinate).get(topMostLayer)){
+						rtn.put(bottomLayerCoordinate, topMostLayer);
+						break;
 					}
 					topMostLayer--;
 				}
@@ -296,7 +331,18 @@ public class MergedScreenInfo{
 		return rtn;
 	}
 
-	public Set<ScreenRegion> computeAllActiveTranslatedChangedRegions() throws Exception{
+	private Set<ScreenRegion> computeAllActiveTranslatedClippedExpandedChangedRegions() throws Exception{
+		//  This function keeps track of the changed regions that are supposed to be
+		//  in the final bottom merged layer 0.
+
+		//  Everything gets merged down into a coordinate system based on layer 0
+		CuboidAddress baseLayerCuboidAddress = ScreenRegion.makeScreenRegionCA(
+			0,
+			0,
+			allLayers[0].getWidth(),
+			allLayers[0].getHeight()
+		);
+
 		Set<ScreenRegion> allActiveChangedRegions = new TreeSet<ScreenRegion>();
 		for(int i = 0; i < allLayers.length; i++){
 			if(allLayers[i].getIsLayerActive()){
@@ -314,14 +360,46 @@ public class MergedScreenInfo{
 						));
 					}
 
-					ScreenRegion expandedRegion = ScreenLayer.getNonCharacterCuttingChangedRegions(translatedRegion, allLayers);
-					if(!expandedRegion.getRegion().equals(translatedRegion.getRegion())){
-						ScreenRegion blah = ScreenLayer.getNonCharacterCuttingChangedRegions(translatedRegion, allLayers);
+					CuboidAddress consideredRegion = translatedRegion.getRegion().getIntersectionCuboidAddress(baseLayerCuboidAddress);
+					ScreenRegion clippedRegion = new ScreenRegion(consideredRegion);
+
+
+					ScreenRegion expandedRegion = ScreenLayer.getNonCharacterCuttingChangedRegions(clippedRegion, allLayers);
+					if(!clippedRegion.getRegion().equals(expandedRegion.getRegion())){
+						ScreenRegion blah = ScreenLayer.getNonCharacterCuttingChangedRegions(clippedRegion, allLayers);
 						//For debugging:
-						throw new Exception("expandedRegion.getRegion()=" + expandedRegion.getRegion() + ", but translatedRegion.getRegion()=" + translatedRegion.getRegion());
+						throw new Exception("expandedRegion.getRegion()=" + expandedRegion.getRegion() + ", but clippedRegion.getRegion()=" + clippedRegion.getRegion());
 					}
 
 					allActiveChangedRegions.add(expandedRegion);
+				}
+			}
+		}
+		return allActiveChangedRegions;
+	}
+
+	private Set<ScreenRegion> computeAllActiveTranslatedChangedRegions() throws Exception{
+		//  For verifiction of changed flags in upper layers, we need to remember the
+		//  original non-clipped changed regions because all of their changed flags
+		//  are suppoused to get cleared after merging them in:
+		Set<ScreenRegion> allActiveChangedRegions = new TreeSet<ScreenRegion>();
+		for(int i = 0; i < allLayers.length; i++){
+			if(allLayers[i].getIsLayerActive()){
+				for(ScreenRegion r : allLayers[i].getChangedRegions()){
+					ScreenRegion translatedRegion = null;
+					if(i == 0){
+						translatedRegion = r;
+					}else{
+						//  For the upper changed regions above the final merged layer, translate them by the placement offset:
+						translatedRegion = new ScreenRegion(ScreenLayer.makeDimensionsCA(
+							r.getStartX() + allLayers[i].getPlacementOffset().getX().intValue(),
+							r.getStartY() + allLayers[i].getPlacementOffset().getY().intValue(),
+							r.getEndX() + allLayers[i].getPlacementOffset().getX().intValue(),
+							r.getEndY() + allLayers[i].getPlacementOffset().getY().intValue()
+						));
+					}
+
+					allActiveChangedRegions.add(translatedRegion);
 				}
 			}
 		}

@@ -1629,19 +1629,19 @@ public class BlockManagerUnitTest {
 				updatedChangedFlag   //  Changed
 			);
 		}else{
-			boolean isInChangedRegion = ScreenLayer.isInChangedRegion(currentCoordinate.getX().intValue(), currentCoordinate.getY().intValue(), msi.getAllActiveTranslatedChangedRegions());
+			boolean isInChangedRegion = ScreenLayer.isInChangedRegion(currentCoordinate.getX().intValue(), currentCoordinate.getY().intValue(), msi.getAllActiveTranslatedClippedExpandedChangedRegions());
 
 			Map<Coordinate, TestScreenCharacter> beforeMergeCharacters = msi.getBeforeMergeCharacters();
 			TestScreenCharacter bottomCharacterBefore = beforeMergeCharacters.get(currentCoordinate);
 			
 			//  Get pre-calculated maps that describe the characters we expect to see:
 			List<Map<Coordinate, TestScreenCharacter>> bottomRelativeCharacters = msi.getBottomRelativeCharacters();
-			Map<Coordinate, Integer> topmostSolidColumnLayers = msi.getTopmostSolidColumnLayers();
+			Map<Coordinate, Integer> topmostSolidActiveColumnLayers = msi.getTopmostSolidActiveColumnLayers();
 			Map<Coordinate, Boolean> hasAboveActiveChangedFlags = msi.getHasAboveActiveChangedFlags();
 			Map<Coordinate, Boolean> hasActiveFlags = msi.getHasActiveFlags();
 			Map<Coordinate, int []> allTopColourCodes = msi.getTopColourCodes();
 
-			Integer topmostActiveColumnLayer = topmostSolidColumnLayers.get(currentCoordinate);
+			Integer topmostActiveColumnLayer = topmostSolidActiveColumnLayers.get(currentCoordinate);
 			TestScreenCharacter topmostActiveColumn = topmostActiveColumnLayer == null ? null : bottomRelativeCharacters.get(topmostActiveColumnLayer).get(currentCoordinate);
 
 			boolean hasAnyAboveActiveChangedFlag = hasAboveActiveChangedFlags.get(currentCoordinate);
@@ -1751,11 +1751,11 @@ public class BlockManagerUnitTest {
 		int numDifferentSeeds = 30000;
 		int numTestCharacters = 10;
 		int maxNumChangedRegions = 5;
-		int maxNumLayers = 2;
+		int maxNumLayers = 5;
 		Long maxCharacterWidth = 1L;
-		boolean randomizePlacementOffset = false;
-		Long maxLayerWidth = 1L;
-		Long maxLayerHeight = 1L;
+		boolean randomizePlacementOffset = true;
+		Long maxLayerWidth = 10L;
+		Long maxLayerHeight = 10L;
 		Long placementOffsetXMax = randomizePlacementOffset ? 5L : 0L;
 		Long placementOffsetYMax = randomizePlacementOffset ? 5L : 0L;
 		for(int currentSeed = startingSeed; currentSeed < (startingSeed + numDifferentSeeds); currentSeed++){
