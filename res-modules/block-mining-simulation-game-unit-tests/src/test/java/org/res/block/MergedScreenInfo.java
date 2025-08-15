@@ -48,7 +48,7 @@ public class MergedScreenInfo{
 	private List<Map<Coordinate, TestScreenCharacter>> layerRelativeCharacters;
 	//  Map of characters relative to bottom layer:
 	private List<Map<Coordinate, TestScreenCharacter>> bottomRelativeCharacters;
-	private Map<Coordinate, Map<Integer, Boolean>> isColumnSolidAndActiveStates;
+	private Map<Coordinate, Map<Integer, SolidColumnType>> isColumnSolidAndActiveStates;
 	//  Map of coordinate (in bottom layer coordinates) to layer number
         //  with solid column at that coordinate in final merged layer.
 	private Map<Coordinate, Integer> topmostSolidActiveColumnLayers;
@@ -135,28 +135,36 @@ public class MergedScreenInfo{
 		return rtn;
 	}
 
+	private Coordinate layerToBottomCoordinate(Coordinate layerRelativeCoordinate, int s) throws Exception{
+		// Placement offset of bottom layer is ignored since placements need to be relative to bottom layer:
+		Long xPlacementOffset = s == 0L ? 0L : allLayers[s].getPlacementOffset().getX();
+		Long yPlacementOffset = s == 0L ? 0L : allLayers[s].getPlacementOffset().getY();
+		Coordinate bottomRelativeCoordinate = layerRelativeCoordinate.changeByDeltaXY(
+			xPlacementOffset,
+			yPlacementOffset
+		);
+		return bottomRelativeCoordinate;
+	}
+
 	private List<Map<Coordinate, TestScreenCharacter>> calculateBottomRelativeCharacters() throws Exception{
 		List<Map<Coordinate, TestScreenCharacter>> rtn = new ArrayList<Map<Coordinate, TestScreenCharacter>>();
 		for(int s = 0; s < allLayers.length; s++){
 			rtn.add(new TreeMap<Coordinate, TestScreenCharacter>());
-			for(int x = 0; x < allLayers[0].getWidth(); x++){
-				for(int y = 0; y < allLayers[0].getHeight(); y++){
-					Coordinate bottomLayerCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
-
-					// Placement offset of bottom layer is ignored since placements need to be relative to bottom layer:
-					Long xPlacementOffset = s == 0L ? 0L : -allLayers[s].getPlacementOffset().getX();
-					Long yPlacementOffset = s == 0L ? 0L : -allLayers[s].getPlacementOffset().getY();
-					Coordinate layerLocalCoordinate = bottomLayerCoordinate.changeByDeltaXY(
-						xPlacementOffset,
-						yPlacementOffset
-					);
+			for(int x = 0; x < allLayers[s].getWidth(); x++){
+				for(int y = 0; y < allLayers[s].getHeight(); y++){
+					Coordinate layerRelativeCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
 					if(
-						layerRelativeCharacters.get(s).containsKey(layerLocalCoordinate) &&
-						layerRelativeCharacters.get(s).get(layerLocalCoordinate).active &&
+						layerRelativeCharacters.get(s).containsKey(layerRelativeCoordinate) &&
+						layerRelativeCharacters.get(s).get(layerRelativeCoordinate).active &&
 						allLayers[s].getIsLayerActive()
 					){
-						TestScreenCharacter c = layerRelativeCharacters.get(s).get(layerLocalCoordinate);
-						rtn.get(s).put(bottomLayerCoordinate, c);
+						TestScreenCharacter c = layerRelativeCharacters.get(s).get(layerRelativeCoordinate);
+						//  Some of these entries will end up outside the boundaries of
+						//  the bottom layer, but that's necessary to keep track of
+						//  multi-column characters that might start outside the bottom
+						//  layer.
+						Coordinate bottomRelativeCoordinate = this.layerToBottomCoordinate(layerRelativeCoordinate, s);
+						rtn.get(s).put(bottomRelativeCoordinate, c);
 					}else{
 						//  If there is no corresponding coordinate here, there will just be a gap.
 					}
@@ -166,33 +174,66 @@ public class MergedScreenInfo{
 		return rtn;
 	}
 
-	private Map<Coordinate, Map<Integer, Boolean>> calculateIsColumnSolidAndActiveStates() throws Exception{
-		Map<Coordinate, Map<Integer, Boolean>> rtn = new HashMap<Coordinate, Map<Integer, Boolean>>();
-		// Initialization
+	private Map<Coordinate, Map<Integer, SolidColumnType>> calculateIsColumnSolidAndActiveStates() throws Exception{
+		Map<Coordinate, Map<Integer, SolidColumnType>> rtn = new HashMap<Coordinate, Map<Integer, SolidColumnType>>();
+		// Initialization over the boundaries of the bottom layer
 		for(int x = 0; x < allLayers[0].getWidth(); x++){
 			for(int y = 0; y < allLayers[0].getHeight(); y++){
 				Coordinate bottomLayerCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
-				rtn.put(bottomLayerCoordinate, new HashMap<Integer, Boolean>());
+				rtn.put(bottomLayerCoordinate, new HashMap<Integer, SolidColumnType>());
 				for(int s = 0; s < allLayers.length; s++){
-					rtn.get(bottomLayerCoordinate).put(s, false);
+					rtn.get(bottomLayerCoordinate).put(s, SolidColumnType.NULL);
 				}
 			}
 		}
-		for(int x = 0; x < allLayers[0].getWidth(); x++){
-			for(int y = 0; y < allLayers[0].getHeight(); y++){
-				Coordinate bottomLayerCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
-				for(int s = 0; s < allLayers.length; s++){
+
+		//  Iterate over original layer coordinates to catch multi-column characters that
+		//  start outside the boundary of the bottom layer:
+		for(int s = 0; s < allLayers.length; s++){
+			for(int x = 0; x < allLayers[s].getWidth(); x++){
+				for(int y = 0; y < allLayers[s].getHeight(); y++){
+					Coordinate layerRelativeCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
 					if(
-						bottomRelativeCharacters.get(s).containsKey(bottomLayerCoordinate) &&
-						bottomRelativeCharacters.get(s).get(bottomLayerCoordinate).active &&
+						layerRelativeCharacters.get(s).containsKey(layerRelativeCoordinate) &&
+						layerRelativeCharacters.get(s).get(layerRelativeCoordinate).active &&
 						allLayers[s].getIsLayerActive()
 					){
-						TestScreenCharacter c = bottomRelativeCharacters.get(s).get(bottomLayerCoordinate);
+						TestScreenCharacter c = layerRelativeCharacters.get(s).get(layerRelativeCoordinate);
+
 						//  For each one of the columns in this multi-column character:
-						for(int i = 0; i < c.characterWidths && (i+x) < allLayers[0].getWidth(); i++){
-							Coordinate solidCoordinate = new Coordinate(Arrays.asList((long)(x+i), (long)y));
-							rtn.get(solidCoordinate).put(s, true);
+						//  Only consider parts of characters inside the bottom layer region:
+						int startingBaseLayerX = this.layerToBottomCoordinate(layerRelativeCoordinate, s).getX().intValue();
+						int endingBaseLayerX = startingBaseLayerX + c.characterWidths -1;
+
+						SolidColumnType columnType = null;
+						if(startingBaseLayerX < 0){
+							columnType = SolidColumnType.SEVERED_LEFT;
+						}else if (!(endingBaseLayerX < allLayers[0].getWidth())){
+							columnType = SolidColumnType.SEVERED_RIGHT;
+						}else{
+							columnType = SolidColumnType.SOLID;
 						}
+
+						for(int i = 0; i < c.characterWidths; i++){
+							Coordinate solidLayerRelativeCoordinate = new Coordinate(
+								Arrays.asList(
+									(long)(layerRelativeCoordinate.getX().intValue() + i),
+									(long)(layerRelativeCoordinate.getY().intValue())
+								)
+							);
+							Coordinate solidBottomRelativeCoordinate = this.layerToBottomCoordinate(solidLayerRelativeCoordinate, s);
+							if(
+								// Make sure this coordinate is within the bounds of the bottom layer
+								solidBottomRelativeCoordinate.getX() >=0L &&
+								solidBottomRelativeCoordinate.getX() < allLayers[0].getWidth() &&
+								solidBottomRelativeCoordinate.getY() >=0L &&
+								solidBottomRelativeCoordinate.getY() < allLayers[0].getHeight()
+							){
+								rtn.get(solidBottomRelativeCoordinate).put(s, columnType);
+							}
+						}
+					}else{
+						//  If there is no corresponding coordinate here, there will just be a gap.
 					}
 				}
 			}
@@ -208,7 +249,9 @@ public class MergedScreenInfo{
 
 				int topMostLayer = allLayers.length -1;
 				while(topMostLayer >= 0){
-					if(isColumnSolidAndActiveStates.get(bottomLayerCoordinate).get(topMostLayer)){
+					if(isColumnSolidAndActiveStates.get(bottomLayerCoordinate).get(topMostLayer).equals(SolidColumnType.SOLID)){
+						//  A column that is part of a solid character exists
+						//  at this position.
 						rtn.put(bottomLayerCoordinate, topMostLayer);
 						break;
 					}
