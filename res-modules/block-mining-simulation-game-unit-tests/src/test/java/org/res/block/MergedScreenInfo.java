@@ -48,7 +48,11 @@ public class MergedScreenInfo{
 	private List<Map<Coordinate, TestScreenCharacter>> layerRelativeCharacters;
 	//  Map of characters relative to bottom layer:
 	private List<Map<Coordinate, TestScreenCharacter>> bottomRelativeCharacters;
+	//  Keep track of which columns are cut off by the start or end of the base layer:
 	private Map<Coordinate, Map<Integer, SolidColumnType>> isColumnSolidAndActiveStates;
+	//  A character is 'occluded' if any column in the character is covered by some
+	//  other column is an upper layer.
+	private Map<Coordinate, Map<Integer, Boolean>> isColumnOccludedStates;
 	//  Map of coordinate (in bottom layer coordinates) to layer number
         //  with solid column at that coordinate in final merged layer.
 	private Map<Coordinate, Integer> topmostSolidActiveColumnLayers;
@@ -73,6 +77,7 @@ public class MergedScreenInfo{
 	public void init() throws Exception{
 		this.bottomRelativeCharacters = this.calculateBottomRelativeCharacters();
 		this.isColumnSolidAndActiveStates = this.calculateIsColumnSolidAndActiveStates();
+		this.isColumnOccludedStates = this.calculateIsColumnOccludedStates();
 		this.topmostSolidActiveColumnLayers = this.calculateTopmostSolidActiveColumnLayers();
 		this.hasAboveActiveChangedFlags = this.calculateHasAboveActiveChangedFlags();
 		this.hasActiveFlags = this.calculateHasActiveFlags();
@@ -84,6 +89,14 @@ public class MergedScreenInfo{
 
 	public Map<Coordinate, TestScreenCharacter> getBeforeMergeCharacters() throws Exception{
 		return this.beforeMergeCharacters;
+	}
+
+	public Map<Coordinate, Map<Integer, SolidColumnType>> getIsColumnSolidAndActiveStates(){
+		return this.isColumnSolidAndActiveStates;
+	}
+
+	public Map<Coordinate, Map<Integer, Boolean>> getIsColumnOccludedStates(){
+		return this.isColumnOccludedStates;
 	}
 
 	public List<Map<Coordinate, TestScreenCharacter>> getBottomRelativeCharacters() throws Exception{
@@ -232,6 +245,77 @@ public class MergedScreenInfo{
 								rtn.get(solidBottomRelativeCoordinate).put(s, columnType);
 							}
 						}
+					}else{
+						//  If there is no corresponding coordinate here, there will just be a gap.
+					}
+				}
+			}
+		}
+		return rtn;
+	}
+
+	private Map<Coordinate, Map<Integer, Boolean>> calculateIsColumnOccludedStates() throws Exception{
+		Map<Coordinate, Map<Integer, Boolean>> rtn = new HashMap<Coordinate, Map<Integer, Boolean>>();
+
+		//  Iterate over original layer coordinates to catch multi-column characters that
+		//  start outside the boundary of the bottom layer:
+		for(int s = allLayers.length -1; s >= 0; s--){
+			for(int x = 0; x < allLayers[s].getWidth(); x++){
+				for(int y = 0; y < allLayers[s].getHeight(); y++){
+					Coordinate layerRelativeCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
+					if(
+						layerRelativeCharacters.get(s).containsKey(layerRelativeCoordinate) &&
+						layerRelativeCharacters.get(s).get(layerRelativeCoordinate).active &&
+						allLayers[s].getIsLayerActive()
+					){
+						TestScreenCharacter c = layerRelativeCharacters.get(s).get(layerRelativeCoordinate);
+
+						if(c.characterWidths > 0){
+							int currentCharacterWidth = c.characterWidths;
+
+							//  First, if any of the columns in this character were
+							//  occluded by some column above, mark ever column in this
+							//  character as occluded:
+							boolean hasAnyOccludedColunn = false;
+							for(int i = 0; i < currentCharacterWidth; i++){
+								Coordinate occluddedLayerRelativeCoordinate = new Coordinate(
+									Arrays.asList(
+										(long)(layerRelativeCoordinate.getX().intValue() + i),
+										(long)(layerRelativeCoordinate.getY().intValue())
+									)
+								);
+								Coordinate occludedBottomRelativeCoordinate = this.layerToBottomCoordinate(occluddedLayerRelativeCoordinate, s);
+								if(!rtn.containsKey(occludedBottomRelativeCoordinate)){
+									// Initialize coordinate it if it's not already set
+									rtn.put(occludedBottomRelativeCoordinate, new TreeMap<Integer, Boolean>());
+								}
+								if(!rtn.get(occludedBottomRelativeCoordinate).containsKey(s)){
+									rtn.get(occludedBottomRelativeCoordinate).put(s, false);
+								}
+								if(rtn.get(occludedBottomRelativeCoordinate).get(s)){
+									hasAnyOccludedColunn = true;
+								}
+								//  While we're at it, set the occluded flag to true for
+								//  every column under this one:
+								for(int s_under = -1; s_under >= 0; s_under--){
+									rtn.get(occludedBottomRelativeCoordinate).put(s_under, true);
+								}
+							}
+							//  At least one column was occluded.  Occlude the entire character:
+							if(hasAnyOccludedColunn){
+								for(int i = 0; i < currentCharacterWidth; i++){
+									Coordinate occluddedLayerRelativeCoordinate = new Coordinate(
+										Arrays.asList(
+											(long)(layerRelativeCoordinate.getX().intValue() + i),
+											(long)(layerRelativeCoordinate.getY().intValue())
+										)
+									);
+									Coordinate occludedBottomRelativeCoordinate = this.layerToBottomCoordinate(occluddedLayerRelativeCoordinate, s);
+									rtn.get(occludedBottomRelativeCoordinate).put(s, true);
+								}
+							}
+						}
+
 					}else{
 						//  If there is no corresponding coordinate here, there will just be a gap.
 					}

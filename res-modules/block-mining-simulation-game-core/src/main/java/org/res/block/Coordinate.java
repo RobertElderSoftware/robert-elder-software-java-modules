@@ -91,6 +91,10 @@ public class Coordinate extends Vector{
 		return new Coordinate(super.changeValues(Arrays.asList(this.getX() + deltaX, this.getY() + deltaY, this.getZ() + deltaZ)));
 	}
 
+	public Coordinate changeByDeltaX(Long deltaX) throws Exception {
+		return new Coordinate(super.changeValues(Arrays.asList(this.getX() + deltaX)));
+	}
+
 	public Coordinate changeByDeltaY(Long deltaY) throws Exception {
 		return new Coordinate(super.changeValues(Arrays.asList(this.getX() + 0L, this.getY() + deltaY)));
 	}

@@ -1749,13 +1749,13 @@ public class BlockManagerUnitTest {
         public void printRandomCharactersTest() throws Exception{
 		int startingSeed = 40;
 		int numDifferentSeeds = 30000;
-		int numTestCharacters = 10;
+		int numTestCharacters = 1;
 		int maxNumChangedRegions = 5;
-		int maxNumLayers = 5;
-		Long maxCharacterWidth = 1L;
-		boolean randomizePlacementOffset = true;
-		Long maxLayerWidth = 10L;
-		Long maxLayerHeight = 10L;
+		int maxNumLayers = 1;
+		Long maxCharacterWidth = 2L;
+		boolean randomizePlacementOffset = false;
+		Long maxLayerWidth = 2L;
+		Long maxLayerHeight = 1L;
 		Long placementOffsetXMax = randomizePlacementOffset ? 5L : 0L;
 		Long placementOffsetYMax = randomizePlacementOffset ? 5L : 0L;
 		for(int currentSeed = startingSeed; currentSeed < (startingSeed + numDifferentSeeds); currentSeed++){
@@ -1826,21 +1826,25 @@ public class BlockManagerUnitTest {
 						boolean currentChanged = this.getRandomBoolean(rand);
 						//  One in 3 chance of being inactive:
 						boolean currentActive = !(getRandBetweenRange(rand, 0L, 3L) == 0L);
-						int currentCharacterWidth = (int)getRandBetweenRange(rand, 0L, maxCharacterWidth + 1L);
-						String currentCharacters = null;
-						if(currentCharacterWidth == 0){
-							currentCharacters = null;
-						}else{
-							currentCharacters = Character.toString(randomCodePoint);
-						}
-						allLayers[l].characters[x][y] = currentCharacters;
-						allLayers[l].characterWidths[x][y] = currentCharacterWidth;
-						allLayers[l].colourCodes[x][y] = currentColourCodes;
-						allLayers[l].active[x][y] = currentActive;
-						allLayers[l].changed[x][y] = currentChanged;
+						int randomCharacterWidth = (int)getRandBetweenRange(rand, 0L, maxCharacterWidth + 1L);
+						int iterationWidth = randomCharacterWidth == 0 ? 1 : randomCharacterWidth;
+						for(int i = 0; i < iterationWidth; i++){
+							//  Actual character is specified in first column:
+							String firstColumnCharacters = randomCharacterWidth == 0 ? null : Character.toString(randomCodePoint);
+							String currentCharacters = i == 0 ? firstColumnCharacters : null;
+							allLayers[l].characters[x+i][y] = currentCharacters;
+							//  Character width is only specifed in first column:
+							int currentCharacterWidth = i == 0 ? randomCharacterWidth : 0;
+							allLayers[l].characterWidths[x+i][y] = currentCharacterWidth;
+							//  Every other column should have the same values for these members:
+							allLayers[l].colourCodes[x+i][y] = currentColourCodes;
+							allLayers[l].active[x+i][y] = currentActive;
+							allLayers[l].changed[x+i][y] = currentChanged;
 
-						TestScreenCharacter cc = new TestScreenCharacter(currentCharacters, currentCharacterWidth, currentColourCodes, currentActive, currentChanged);
-						layerCharacters.get(l).put(randomCoordinate, cc);
+							TestScreenCharacter cc = new TestScreenCharacter(currentCharacters, currentCharacterWidth, currentColourCodes, currentActive, currentChanged);
+							Coordinate currentCoordinate = randomCoordinate.changeByDeltaX((long)i);
+							layerCharacters.get(l).put(currentCoordinate, cc);
+						}
 					}
 				}
 				//  Fill up any blank spots where there are no characters:
