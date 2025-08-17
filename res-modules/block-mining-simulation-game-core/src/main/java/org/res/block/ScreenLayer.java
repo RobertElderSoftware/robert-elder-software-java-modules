@@ -754,9 +754,21 @@ public class ScreenLayer {
 				if(debugType.equals("characters")){
 					if(this.characters[i][j] != null){
 
-						characters = this.characters[i][j];
+						if(this.characterWidths[i][j] > 1){
+							//  For multi-column characters show numer of full width:
+							characters = "" + (this.characterWidths[i][j] % 10);
+						}else{
+							characters = this.characters[i][j];
+						}
 					}else{
-						characters = "#";
+						int offset = getNextCharacterStartToLeft(i, j, this);
+						if(offset != -1 && ((this.characterWidths[i-offset][j] - offset) > 0)){
+							//  A null that's part of a multi-column character:
+							characters = "_";
+						}else{
+							//  A random empty null area that's not part of a character.
+							characters = "#";
+						}
 					}
 					if(this.colourCodes[i][j] != null){
 						colourCodes = this.colourCodes[i][j];
@@ -824,24 +836,24 @@ public class ScreenLayer {
 		for(int j = 0; j < this.getHeight(); j++){
 			for(int i = 0; i < this.getWidth(); i++){
 				if(this.colourCodes[i][j] == null){
-					return "Saw null colour codes at x=" + i + ", j=" + j + ".";
+					return "Saw null colour codes at x=" + i + ", y=" + j + ".";
 				}
 				boolean insideMultiColumnCharacter = columnsRemaining > 0;
 				if(insideMultiColumnCharacter){
 					if(this.characterWidths[i][j] > 0){
-						return "Saw a non zero character width inside another character at x=" + i + ", j=" + j + ".";
+						return "Saw a non zero character width inside another character at x=" + i + ", y=" + j + ".";
 					}
 					if(!Arrays.equals(this.colourCodes[i][j], currentColourCodes)){
-						return "Saw an inconsistent colour code inside a multi-column character that did not match at x=" + i + ", j=" + j + ".";
+						return "Saw an inconsistent colour code inside a multi-column character that did not match at x=" + i + ", y=" + j + ".";
 					}
 					if(!Objects.equals(this.active[i][j], currentActiveState)){
-						return "Saw an inconsistent active state inside a multi-column character that did not match at x=" + i + ", j=" + j + ".";
+						return "Saw an inconsistent active state inside a multi-column character that did not match at x=" + i + ", y=" + j + ".";
 					}
 					if(!Objects.equals(this.changed[i][j], currentChangedState)){
-						return "Saw an inconsistent changed state inside a multi-column character that did not match at x=" + i + ", j=" + j + ".";
+						return "Saw an inconsistent changed state inside a multi-column character that did not match at x=" + i + ", y=" + j + ".";
 					}
 					if(this.characters[i][j] != null){
-						return "Saw non-null characters inside a multi-column character at x=" + i + ", j=" + j + ".";
+						return "Saw non-null characters inside a multi-column character at x=" + i + ", y=" + j + ".";
 					}
 					columnsRemaining--;
 					if(columnsRemaining == 0){
@@ -877,6 +889,22 @@ public class ScreenLayer {
 				return startX - currentX;
 			}
 			currentX--;
+		}
+		return -1;
+	}
+
+	public static int getNextCharacterStartToRight(int startX, int currentY, ScreenLayer layer){
+		int currentX = startX;
+		while(
+			currentX >= 0 &&
+			currentX < layer.getWidth() &&
+			currentY >= 0 &&
+			currentY < layer.getHeight()
+		){
+			if(layer.characterWidths[currentX][currentY] > 0){
+				return currentX - startX;
+			}
+			currentX++;
 		}
 		return -1;
 	}

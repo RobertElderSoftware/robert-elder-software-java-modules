@@ -297,7 +297,7 @@ public class MergedScreenInfo{
 								}
 								//  While we're at it, set the occluded flag to true for
 								//  every column under this one:
-								for(int s_under = -1; s_under >= 0; s_under--){
+								for(int s_under = s-1; s_under >= 0; s_under--){
 									rtn.get(occludedBottomRelativeCoordinate).put(s_under, true);
 								}
 							}
@@ -333,7 +333,11 @@ public class MergedScreenInfo{
 
 				int topMostLayer = allLayers.length -1;
 				while(topMostLayer >= 0){
-					if(isColumnSolidAndActiveStates.get(bottomLayerCoordinate).get(topMostLayer).equals(SolidColumnType.SOLID)){
+					if(
+						isColumnSolidAndActiveStates.get(bottomLayerCoordinate).get(topMostLayer).equals(SolidColumnType.SOLID) ||
+						isColumnSolidAndActiveStates.get(bottomLayerCoordinate).get(topMostLayer).equals(SolidColumnType.SEVERED_RIGHT) ||
+						isColumnSolidAndActiveStates.get(bottomLayerCoordinate).get(topMostLayer).equals(SolidColumnType.SEVERED_LEFT)
+					){
 						//  A column that is part of a solid character exists
 						//  at this position.
 						rtn.put(bottomLayerCoordinate, topMostLayer);
@@ -492,11 +496,13 @@ public class MergedScreenInfo{
 
 
 					ScreenRegion expandedRegion = ScreenLayer.getNonCharacterCuttingChangedRegions(clippedRegion, allLayers);
-					if(!clippedRegion.getRegion().equals(expandedRegion.getRegion())){
-						ScreenRegion blah = ScreenLayer.getNonCharacterCuttingChangedRegions(clippedRegion, allLayers);
-						//For debugging:
-						throw new Exception("expandedRegion.getRegion()=" + expandedRegion.getRegion() + ", but clippedRegion.getRegion()=" + clippedRegion.getRegion());
-					}
+					// When all characters are single-column characters, there should
+					// never be a change when obtaining the 'expanded' region:
+					//if(!clippedRegion.getRegion().equals(expandedRegion.getRegion())){
+					//	ScreenRegion blah = ScreenLayer.getNonCharacterCuttingChangedRegions(clippedRegion, allLayers);
+					//	//For debugging:
+					//	throw new Exception("expandedRegion.getRegion()=" + expandedRegion.getRegion() + ", but clippedRegion.getRegion()=" + clippedRegion.getRegion());
+					//}
 
 					allActiveChangedRegions.add(expandedRegion);
 				}
