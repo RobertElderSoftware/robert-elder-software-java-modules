@@ -305,18 +305,8 @@ public class ScreenLayer {
 						}
 					}else{
 						//  For any characters that start in this position, start tracking them:
-						int backtrack = 0;
-						while(
-							(
-								(xSrc-backtrack) >=0 &&
-								(xSrc-backtrack) < screenLayers[s].getWidth() &&
-								ySrc >=0 && 
-								ySrc < screenLayers[s].getHeight()
-							) && screenLayers[s].characterWidths[xSrc-backtrack][ySrc] == 0
-						){
-							backtrack++;
-						}
-						if((xSrc-backtrack) >=0 && activeStates[s][xR][yR]){
+						int backtrack = getNextCharacterStartToLeft(xSrc, ySrc, screenLayers[s]);
+						if(backtrack != -1 && activeStates[s][xR][yR]){
 							int expectedWidth = backtrack + 1;
 							if(xSrc >= 0 && xSrc < screenLayers[s].getWidth() && ySrc >= 0 && ySrc < screenLayers[s].getHeight()){
 								if(screenLayers[s].characterWidths[xSrc-backtrack][ySrc] == expectedWidth){
@@ -387,37 +377,29 @@ public class ScreenLayer {
 			this.getHeight()
 		);
 		
-		Set<ScreenRegion> nonClippedRegions = new HashSet<ScreenRegion>();
-		Set<ScreenRegion> translatedClippedExpandedRegions = new HashSet<ScreenRegion>();
+		Set<ScreenRegion> translatedExpandedRegions = new HashSet<ScreenRegion>();
+		Set<ScreenRegion> translatedExpandedClippedRegions = new HashSet<ScreenRegion>();
 		for(int l = 0; l < screenLayers.length; l++){
 			if(screenLayers[l].getIsLayerActive()){
 				for(ScreenRegion sourceRegion : screenLayers[l].getChangedRegions()){
-					CuboidAddress destinationRegionCA = ScreenRegion.makeScreenRegionCA(
+					ScreenRegion translatedRegion = new ScreenRegion(ScreenRegion.makeScreenRegionCA(
 						sourceRegion.getStartX() + xO[l],
 						sourceRegion.getStartY() + yO[l],
 						sourceRegion.getEndX() + xO[l],
 						sourceRegion.getEndY() + yO[l]
-					);
+					));
 
-					nonClippedRegions.add(new ScreenRegion(destinationRegionCA));
+					ScreenRegion expandedRegion = ScreenLayer.getNonCharacterCuttingChangedRegions(translatedRegion, screenLayers);
+					ScreenRegion clippedRegion = new ScreenRegion(expandedRegion.getRegion().getIntersectionCuboidAddress(baseLayerCuboidAddress));
 
-					CuboidAddress consideredRegion = destinationRegionCA.getIntersectionCuboidAddress(baseLayerCuboidAddress);
-					ScreenRegion clippedRegion = new ScreenRegion(consideredRegion);
-
-
-					ScreenRegion expandedRegion = ScreenLayer.getNonCharacterCuttingChangedRegions(clippedRegion, screenLayers);
-					if(!expandedRegion.getRegion().equals(clippedRegion.getRegion())){
-						//For debugging:
-						//throw new Exception("!expanded.getRegion().equals(region.getRegion())");
-					}
-
-					translatedClippedExpandedRegions.add(expandedRegion);
+					translatedExpandedClippedRegions.add(clippedRegion);
+					translatedExpandedRegions.add(expandedRegion);
 				}
 			}
 			screenLayers[l].clearChangedRegions();
 		}
 
-		for(ScreenRegion region : translatedClippedExpandedRegions){
+		for(ScreenRegion region : translatedExpandedRegions){
 			int startX = region.getStartX();
 			int startY = region.getStartY();
 			int endX = region.getEndX();
@@ -454,8 +436,10 @@ public class ScreenLayer {
 			this.calculateOcclusions(true, startX, endX, startY, endY, screenLayers, rightwardOcclusions, activeStates, xO, yO);
 			this.calculateOcclusions(false, startX, endX, startY, endY, screenLayers, leftwardOcclusions, activeStates, xO, yO);
 
-			for(int j = startY; j < endY; j++){
-				for(int i = startX; i < endX; i++){
+			for(int j = Math.max(0, startY); j < Math.min(screenLayers[0].getHeight(), endY); j++){
+				int currentCharacterWidth = 0;
+				int offsetIntoCharacter = 0;
+				for(int i = Math.max(0, startX); i < Math.min(screenLayers[0].getWidth(), endX); i++){
 					int xR = i-startX;
 					int yR = j-startY;
 					String outputCharacters = null;
@@ -531,13 +515,33 @@ public class ScreenLayer {
 						}
 					}
 
-					boolean hasChange = trustChangedFlags ? trustedChangeFlag : (
-						!(
-							(this.characterWidths[i][j] == outputCharacterWidths) &&
-							Arrays.equals(this.colourCodes[i][j], outputColourCodes) &&
-							Objects.equals(this.characters[i][j], outputCharacters)
-						) || this.changed[i][j] // if there is a pending changed flag that hasn't been printed yet.
-					);
+					if(offsetIntoCharacter == 0){
+						if(outputCharacterWidths > 0){
+							currentCharacterWidth = outputCharacterWidths;
+						}else{
+							currentCharacterWidth = 0;
+						}
+					}
+					if(offsetIntoCharacter >= currentCharacterWidth){
+						offsetIntoCharacter = 0;
+					}
+
+					boolean hasChange = false;
+					if(trustChangedFlags){
+						hasChange = trustedChangeFlag;
+					}else{
+						if(offsetIntoCharacter > 0){
+							//  For multi-column characters, use changed flag from first column.
+							int x_to_cmp = i - offsetIntoCharacter;
+							hasChange = this.changed[x_to_cmp][j];
+						}else{
+							hasChange = !(
+								(this.characterWidths[i][j] == outputCharacterWidths) &&
+								Arrays.equals(this.colourCodes[i][j], outputColourCodes) &&
+								Objects.equals(this.characters[i][j], outputCharacters)
+							) || this.changed[i][j]; // if there is a pending changed flag that hasn't been printed yet.
+						}
+					}
 
 					boolean finalActiveState = false;
 					for(int s = screenLayers.length -1; s >= 0; s--){
@@ -549,13 +553,14 @@ public class ScreenLayer {
 					this.colourCodes[i][j] = outputColourCodes;
 					this.changed[i][j] = hasChange;
 					this.active[i][j] = finalActiveState;
+					offsetIntoCharacter++;
 				}
 			}
 		}
 		//  If some of the changed regions overlap, there is a case where
 		//  the calculated change flags can be incorrect due to them being
 		//  cleared by a previous overlapping changed region.
-		for(ScreenRegion region : nonClippedRegions){
+		for(ScreenRegion region : translatedExpandedRegions){
 			for(int s = screenLayers.length -1; s >= 1; s--){
 				int startX = Math.max(region.getStartX() - xO[s], 0);
 				int startY = Math.max(region.getStartY() - yO[s], 0);
@@ -572,7 +577,7 @@ public class ScreenLayer {
 				}
 			}
 		}
-		this.addChangedRegions(translatedClippedExpandedRegions);
+		this.addChangedRegions(translatedExpandedClippedRegions);
 	}
 
 	private void nullifyPrecendingOverlappedCharacters(int x, int y){
@@ -862,14 +867,22 @@ public class ScreenLayer {
 					}
 				}else{
 					if(this.characterWidths[i][j] > 0){ // Start of a new character
+						if(this.characters[i][j] == null){
+							return "Saw character with specified width, but null characters at x=" + i + ", y=" + j + ".";
+						}
 						//  Started a new character
 						columnsRemaining = this.characterWidths[i][j] -1;
 						currentColourCodes = this.colourCodes[i][j];
 						currentChangedState = this.changed[i][j];
 						currentActiveState = this.active[i][j];
 					}else{
-						//  An empty null character.  This is a valid case
-						//  even if there are colour codes present.
+						//  An empty null character.  This is just an empty area.
+						if(this.colourCodes[i][j] == null){
+							return "Saw null colour codes inside a stray null character at x=" + i + ", y=" + j + ".";
+						}
+						if(this.colourCodes[i][j].length > 0){
+							return "Saw null non-empty colour codes inside a stray null character at x=" + i + ", y=" + j + ".";
+						}
 					}
 				}
 			}
@@ -963,12 +976,14 @@ public class ScreenLayer {
 			expandedEndX += additionalEndExpansionX;
 		}while(additionalEndExpansionX > 0);
 
-		// Keep expanded region within the layer:
+		// This can potentially expand the region beyond boundaries of any specific layer
+		// which is acceptable and necessary when the offset of one layer places characters
+		// beyond the boundary of another layer.
 		return new ScreenRegion(
 			ScreenLayer.makeDimensionsCA(
-				Math.max(expandedStartX, 0),
+				expandedStartX,
 				initialStartY,
-				Math.min(expandedEndX, layers[0].getWidth()),
+				expandedEndX,
 				initialEndY
 			)
 		);

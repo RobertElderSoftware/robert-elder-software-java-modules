@@ -1597,7 +1597,7 @@ public class BlockManagerUnitTest {
         }
 
 
-	public TestScreenCharacter getExpectedTestCharacter(MergedScreenInfo msi, boolean trustChangedFlags, ScreenLayer [] layers, List<Map<Coordinate, TestScreenCharacter>> layerCharacters, int l, Coordinate currentCoordinate) throws Exception{
+	public TestScreenCharacter getExpectedTestCharacter(MergedScreenInfo msi, boolean trustChangedFlags, ScreenLayer [] layers, List<Map<Coordinate, TestScreenCharacter>> layerCharacters, int l, Coordinate currentCoordinate, TestScreenCharacter firstColumnOfCharacter) throws Exception{
 
 		//  Check to see if the current point is inside a
 		//  changed region for at least one layer.  If so, return
@@ -1655,14 +1655,21 @@ public class BlockManagerUnitTest {
 			String resultCharacters = null;
 			int resultCharacterWidths = 0;
 			boolean resultActiveFlag = hasAnyActiveCharacter;
+			boolean trustedChangedFlag = hasAnyAboveActiveChangedFlag;
 			if(topmostActiveColumnLayer == null){
 				//  There is no active column 
 			}else{
-				if(isColumnOccludedStates.get(currentCoordinate).get(topmostActiveColumnLayer)){
+				SolidColumnType solidColumnType = isColumnSolidAndActiveStates.get(currentCoordinate).get(topmostActiveColumnLayer);
+				if(
+					isColumnOccludedStates.get(currentCoordinate).get(topmostActiveColumnLayer) ||
+					solidColumnType.equals(SolidColumnType.SEVERED_RIGHT) ||
+					solidColumnType.equals(SolidColumnType.SEVERED_LEFT)
+				){
 					//  Character was occluded, replace it with a space:
 					resultCharacters = " ";
 					resultCharacterWidths = 1;
 					resultActiveFlag = true;
+					trustedChangedFlag = true;  //  For now, just always set to true when occluded.
 				}else{
 					TestScreenCharacter topmostActiveColumn = bottomRelativeCharacters.get(topmostActiveColumnLayer).get(currentCoordinate);
 					resultCharacters = topmostActiveColumn.characters;
@@ -1670,15 +1677,25 @@ public class BlockManagerUnitTest {
 					resultActiveFlag = true;
 				}
 			}
+
+			boolean calculatedChangedFlag = !(  //  If there is an actual change in the before/after character:
+				(bottomCharacterBefore.characterWidths == resultCharacterWidths) &&
+				Arrays.equals(bottomCharacterBefore.colourCodes, resultColourCodes) &&
+				Objects.equals(bottomCharacterBefore.characters, resultCharacters)
+			);
+
+			//  When calculating changed flags for the trailing null characters in a 
+			//  multi-column character, use the changed flags from the first column
+			//  where the change will actually appear:
+			if(firstColumnOfCharacter != null){
+				calculatedChangedFlag = firstColumnOfCharacter.changed;
+			}
+
 			boolean resultChangedFlag = (
 				trustChangedFlags ?
-				(hasAnyAboveActiveChangedFlag) :
+				(trustedChangedFlag) :
 				(
-					!(  //  If there is an actual change in the before/after character:
-						(bottomCharacterBefore.characterWidths == resultCharacterWidths) &&
-						Arrays.equals(bottomCharacterBefore.colourCodes, resultColourCodes) &&
-						Objects.equals(bottomCharacterBefore.characters, resultCharacters)
-					) ||
+					calculatedChangedFlag ||
 					bottomCharacterBefore.changed //  OR, if there was a pending changed flag on this character before
 				)
 			);
@@ -1782,22 +1799,22 @@ public class BlockManagerUnitTest {
 	}
 
         public void printRandomCharactersTest() throws Exception{
-		int startingSeed = 254;
+		int startingSeed = 37485;
 		int numDifferentSeeds = 30000;
-		int numTestCharacters = 1;
-		int maxNumChangedRegions = 1;
+		int numTestCharacters = 2;
+		int maxNumChangedRegions = 2;
 		int maxNumLayers = 2;
 		Long maxCharacterWidth = 2L;
 		boolean randomizePlacementOffset = false;
-		Long maxLayerWidth = 2L;
-		Long maxLayerHeight = 1L;
+		Long maxLayerWidth = 3L;
+		Long maxLayerHeight = 2L;
 		Long placementOffsetXMax = randomizePlacementOffset ? 5L : 0L;
 		Long placementOffsetYMax = randomizePlacementOffset ? 5L : 0L;
 		for(int currentSeed = startingSeed; currentSeed < (startingSeed + numDifferentSeeds); currentSeed++){
-			System.out.println("Begin testing with seed=" + currentSeed);
 			Random rand = new Random(currentSeed);
-			int numLayers = rand.nextInt(maxNumLayers) + 1;
 			boolean trustChangedFlags = this.getRandomBoolean(rand);
+			System.out.println("Begin testing with seed=" + currentSeed + " and trustChangedFlags=" + trustChangedFlags);
+			int numLayers = rand.nextInt(maxNumLayers) + 1;
 
 			ScreenLayer [] allLayers = new ScreenLayer [numLayers];
 			List<Map<Coordinate, TestScreenCharacter>> layerCharacters = new ArrayList<Map<Coordinate, TestScreenCharacter>>();
@@ -1857,11 +1874,11 @@ public class BlockManagerUnitTest {
 						int y = (int)getRandBetweenRange(rand, 0L, (long)allLayers[l].getHeight());
 						Coordinate randomCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
 						int randomCodePoint = (int)getRandBetweenRange(rand, 97L, 113L);
-						int [] currentColourCodes = this.makeRandomColourCodes(rand);
 						boolean currentChanged = this.getRandomBoolean(rand);
 						//  One in 3 chance of being inactive:
 						boolean currentActive = !(getRandBetweenRange(rand, 0L, 3L) == 0L);
 						int randomCharacterWidth = (int)getRandBetweenRange(rand, 0L, maxCharacterWidth + 1L);
+						int [] currentColourCodes = randomCharacterWidth == 0 ? new int []{} : this.makeRandomColourCodes(rand);
 						int iterationWidth = randomCharacterWidth == 0 ? 1 : randomCharacterWidth;
 						boolean fits = this.canFitCharacterAtCoordinate(layerCharacters.get(l), randomCharacterWidth, randomCoordinate, allLayers[l]);
 						if(fits){
@@ -1956,17 +1973,20 @@ public class BlockManagerUnitTest {
 			bottomLayer.printDebugStates(xDrawOffset + (3*(bottomLayer.getWidth() + partsSpacing + 3)), yDrawOffset, "in_changed_region");
 			System.out.print("\n");
 
-			String afterMergeError = bottomLayer.validate();
-			if(afterMergeError != null){
-				throw new Exception("Validation after merge failed: " + afterMergeError);
-			}
 
 			//  Verify that everything in the merged layer is exactly as it's supposed to be:
 			for(int l = 0; l < numLayers; l++){
-				for(int x = 0; x < allLayers[l].getWidth(); x++){
-					for(int y = 0; y < allLayers[l].getHeight(); y++){
+				for(int y = 0; y < allLayers[l].getHeight(); y++){
+					TestScreenCharacter firstColumnOfCharacter = null;
+					int columnsLeftInCharacter = 0;
+					for(int x = 0; x < allLayers[l].getWidth(); x++){
 						Coordinate currentCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
-						TestScreenCharacter cc = this.getExpectedTestCharacter(msi, trustChangedFlags, allLayers, layerCharacters, l, currentCoordinate);
+						TestScreenCharacter ref = columnsLeftInCharacter > 0 ? firstColumnOfCharacter : null;
+						TestScreenCharacter cc = this.getExpectedTestCharacter(msi, trustChangedFlags, allLayers, layerCharacters, l, currentCoordinate, ref);
+						if(columnsLeftInCharacter <= 0 && cc.characterWidths > 0){
+							firstColumnOfCharacter = cc;
+							columnsLeftInCharacter = cc.characterWidths;
+						}
 
 						String msg = "currentCoordinate=" + currentCoordinate + ", trustChangedFlags=" + trustChangedFlags + ", x=" + x + ", y=" + y + ", l="+l;
 						this.verifyObject(allLayers[l].characters[x][y], cc.characters, msg);
@@ -1974,8 +1994,14 @@ public class BlockManagerUnitTest {
 						this.verifyArray(allLayers[l].colourCodes[x][y], cc.colourCodes, msg);
 						this.verifyObject(allLayers[l].changed[x][y], cc.changed, msg);
 						this.verifyObject(allLayers[l].active[x][y], cc.active, msg);
+						columnsLeftInCharacter--;
 					}
 				}
+			}
+
+			String afterMergeError = bottomLayer.validate();
+			if(afterMergeError != null){
+				throw new Exception("Validation after merge failed: " + afterMergeError);
 			}
 		}
         }
@@ -2031,7 +2057,7 @@ public class BlockManagerUnitTest {
 			}
 		}
 
-		ScreenLayer [] failingLayers = new ScreenLayer [6];
+		ScreenLayer [] failingLayers = new ScreenLayer [9];
 		//  Test invalid widths
 		failingLayers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		failingLayers[0].initialize();
@@ -2100,6 +2126,33 @@ public class BlockManagerUnitTest {
 		failingLayers[5].characters[0][0] = " ";
 		failingLayers[5].characterWidths[0][0] = 1;
 		failingLayers[5].colourCodes[0][0] = null;
+
+
+		//  Test blank null character having a colour code:
+		failingLayers[6] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
+		failingLayers[6].initialize();
+		failingLayers[6].setAllChangedFlagStates(false);
+		failingLayers[6].characters[0][0] = null;
+		failingLayers[6].characterWidths[0][0] = 0;
+		failingLayers[6].colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR};
+
+
+		//  Test blank null character having null colour codes:
+		failingLayers[7] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
+		failingLayers[7].initialize();
+		failingLayers[7].setAllChangedFlagStates(false);
+		failingLayers[7].characters[0][0] = null;
+		failingLayers[7].characterWidths[0][0] = 0;
+		failingLayers[7].colourCodes[0][0] = null;
+
+
+		//  Test non-zero width character with null characters
+		failingLayers[8] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
+		failingLayers[8].initialize();
+		failingLayers[8].setAllChangedFlagStates(false);
+		failingLayers[8].characters[0][0] = null;
+		failingLayers[8].characterWidths[0][0] = 1;
+		failingLayers[8].colourCodes[0][0] = new int [] {};
 
 		for(int i = 0; i < failingLayers.length; i++){
 			if(failingLayers[i].validate() != null){

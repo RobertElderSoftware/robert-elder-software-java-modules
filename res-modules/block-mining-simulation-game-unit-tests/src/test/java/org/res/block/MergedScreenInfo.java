@@ -491,20 +491,10 @@ public class MergedScreenInfo{
 						));
 					}
 
-					CuboidAddress consideredRegion = translatedRegion.getRegion().getIntersectionCuboidAddress(baseLayerCuboidAddress);
-					ScreenRegion clippedRegion = new ScreenRegion(consideredRegion);
+					ScreenRegion expandedRegion = ScreenLayer.getNonCharacterCuttingChangedRegions(translatedRegion, allLayers);
+					ScreenRegion clippedRegion = new ScreenRegion(expandedRegion.getRegion().getIntersectionCuboidAddress(baseLayerCuboidAddress));
 
-
-					ScreenRegion expandedRegion = ScreenLayer.getNonCharacterCuttingChangedRegions(clippedRegion, allLayers);
-					// When all characters are single-column characters, there should
-					// never be a change when obtaining the 'expanded' region:
-					//if(!clippedRegion.getRegion().equals(expandedRegion.getRegion())){
-					//	ScreenRegion blah = ScreenLayer.getNonCharacterCuttingChangedRegions(clippedRegion, allLayers);
-					//	//For debugging:
-					//	throw new Exception("expandedRegion.getRegion()=" + expandedRegion.getRegion() + ", but clippedRegion.getRegion()=" + clippedRegion.getRegion());
-					//}
-
-					allActiveChangedRegions.add(expandedRegion);
+					allActiveChangedRegions.add(clippedRegion);
 				}
 			}
 		}
@@ -531,8 +521,9 @@ public class MergedScreenInfo{
 							r.getEndY() + allLayers[i].getPlacementOffset().getY().intValue()
 						));
 					}
+					ScreenRegion expandedRegion = ScreenLayer.getNonCharacterCuttingChangedRegions(translatedRegion, allLayers);
 
-					allActiveChangedRegions.add(translatedRegion);
+					allActiveChangedRegions.add(expandedRegion);
 				}
 			}
 		}
