@@ -1689,6 +1689,8 @@ public class BlockManagerUnitTest {
 			//  where the change will actually appear:
 			if(firstColumnOfCharacter != null){
 				calculatedChangedFlag = firstColumnOfCharacter.changed;
+				resultColourCodes = firstColumnOfCharacter.colourCodes;
+				trustedChangedFlag = firstColumnOfCharacter.changed;
 			}
 
 			boolean resultChangedFlag = (
@@ -1799,15 +1801,15 @@ public class BlockManagerUnitTest {
 	}
 
         public void printRandomCharactersTest() throws Exception{
-		int startingSeed = 37485;
-		int numDifferentSeeds = 30000;
-		int numTestCharacters = 2;
-		int maxNumChangedRegions = 2;
-		int maxNumLayers = 2;
+		int startingSeed = 1;
+		int numDifferentSeeds = 3000000;
+		int numTestCharacters = 10;
+		int maxNumChangedRegions = 5;
+		int maxNumLayers = 5;
 		Long maxCharacterWidth = 2L;
 		boolean randomizePlacementOffset = false;
-		Long maxLayerWidth = 3L;
-		Long maxLayerHeight = 2L;
+		Long maxLayerWidth = 10L;
+		Long maxLayerHeight = 10L;
 		Long placementOffsetXMax = randomizePlacementOffset ? 5L : 0L;
 		Long placementOffsetYMax = randomizePlacementOffset ? 5L : 0L;
 		for(int currentSeed = startingSeed; currentSeed < (startingSeed + numDifferentSeeds); currentSeed++){

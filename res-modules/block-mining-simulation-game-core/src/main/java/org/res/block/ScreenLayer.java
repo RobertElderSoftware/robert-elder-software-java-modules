@@ -283,19 +283,7 @@ public class ScreenLayer {
 					int i = isLeftToRight ? iter : startX + xWidth - (iter - startX +1);
 					int xR = i-startX;
 					int yR = j-startY;
-					if(i == loopStart && s == screenLayers.length -1){
-						//  Initial value:
-						activeCharacterLayer[s][xR][yR] = -1;
-					}else if(i == loopStart){
-						//  Use whatever was above:
-						activeCharacterLayer[s][xR][yR] = activeCharacterLayer[s+1][xR][yR];
-					}else if(s == screenLayers.length -1){
-						//  Use whatever was before:
-						activeCharacterLayer[s][xR][yR] = activeCharacterLayer[s][xR-loopChange][yR];
-					}else{
-						//  Use active layer above, otherwise, use previous active layer:
-						activeCharacterLayer[s][xR][yR] = activeCharacterLayer[s+1][xR][yR] > 0 ? activeCharacterLayer[s+1][xR][yR] : activeCharacterLayer[s][xR-loopChange][yR];
-					}
+
 					int xSrc = i-xO[s];
 					int ySrc = j-yO[s];
 					if(isLeftToRight){
@@ -315,29 +303,50 @@ public class ScreenLayer {
 							}
 						}
 					}
-					if(currentCharacterWidths[s][xR][yR] > 0 && activeStates[s][xR][yR]){
+
+					if(i == loopStart && s == screenLayers.length -1){
+						//  Initial value:
+						activeCharacterLayer[s][xR][yR] = -1;
+					}else if(i == loopStart){
+						//  Use whatever was above:
+						activeCharacterLayer[s][xR][yR] = activeCharacterLayer[s+1][xR][yR];
+					}else if(s == screenLayers.length -1){
+						//  Use whatever was before:
+						activeCharacterLayer[s][xR][yR] = activeCharacterLayer[s][xR-loopChange][yR];
+					}else{
+						//  Use active layer above, otherwise, use previous active layer:
+						activeCharacterLayer[s][xR][yR] = activeCharacterLayer[s+1][xR][yR] > 0 ? activeCharacterLayer[s+1][xR][yR] : activeCharacterLayer[s][xR-loopChange][yR];
+					}
+
+					boolean isAtCharacterStartPosition = currentCharacterWidths[s][xR][yR] > 0;
+					if(isAtCharacterStartPosition && activeStates[s][xR][yR]){
 						columnsRemaining[s][xR][yR] = currentCharacterWidths[s][xR][yR];
 					}else if(i != loopStart){
 						columnsRemaining[s][xR][yR] = columnsRemaining[s][xR-loopChange][yR] -1;
 					}
-					if(activeCharacterLayer[s][xR][yR] != -1 && columnsRemaining[activeCharacterLayer[s][xR][yR]][xR][yR] <= 0 && activeStates[s][xR][yR]){
-						activeCharacterLayer[s][xR][yR] = -1;
+
+					if(
+						activeCharacterLayer[s][xR][yR] != -1 && //  If no character is currently active
+						columnsRemaining[activeCharacterLayer[s][xR][yR]][xR][yR] <= 0 //  And we're not currently inside a character
+					){
+						activeCharacterLayer[s][xR][yR] = -1; //  Exit being active from this character.
 					}
+
 
 					boolean hasSolidCharacter = columnsRemaining[s][xR][yR] > 0 && activeStates[s][xR][yR];
-					if(hasSolidCharacter){ //  If there is a char here
-						//  If the char starts at this position:
-						if(activeCharacterLayer[s][xR][yR] < 0 && currentCharacterWidths[s][xR][yR] > 0){
-							activeCharacterLayer[s][xR][yR] = s;
-						}
-					}
-
 					if(s == screenLayers.length -1){
 						//  For top layer
 						firstSolidLayers[s][xR][yR] = hasSolidCharacter ? s : -1;
 					}else{
 						//  For layers below, first solid character will with be a higher solid character or the current layer, or nothing:
 						firstSolidLayers[s][xR][yR] = firstSolidLayers[s+1][xR][yR] != -1 ? firstSolidLayers[s+1][xR][yR] : (hasSolidCharacter ? s : -1);
+					}
+
+					if(hasSolidCharacter){ //  If there is a char here
+						//  If the char starts at this position:
+						if(activeCharacterLayer[s][xR][yR] < 0 && isAtCharacterStartPosition && s >= firstSolidLayers[s][xR][yR]){
+							activeCharacterLayer[s][xR][yR] = s;
+						}
 					}
 
 					if(firstSolidLayers[s][xR][yR] == -1){
@@ -350,6 +359,7 @@ public class ScreenLayer {
 					}else{
 						throw new Exception("Not expected.");
 					}
+
 				}
 			}
 		}
@@ -439,7 +449,10 @@ public class ScreenLayer {
 			for(int j = Math.max(0, startY); j < Math.min(screenLayers[0].getHeight(), endY); j++){
 				int currentCharacterWidth = 0;
 				int offsetIntoCharacter = 0;
-				for(int i = Math.max(0, startX); i < Math.min(screenLayers[0].getWidth(), endX); i++){
+				int outputStartX = Math.max(0, startX);
+				int outputEndX = Math.min(screenLayers[0].getWidth(), endX);
+				boolean rightBoundaryHasSeveredCharacter = false;
+				for(int i = outputStartX; i < outputEndX; i++){
 					int xR = i-startX;
 					int yR = j-startY;
 					String outputCharacters = null;
@@ -515,6 +528,17 @@ public class ScreenLayer {
 						}
 					}
 
+					if((outputEndX - i) < outputCharacterWidths){
+						rightBoundaryHasSeveredCharacter = true;
+					}
+
+					if(rightBoundaryHasSeveredCharacter){
+						outputCharacters = " ";
+						outputCharacterWidths = 1;
+						trustedChangeFlag  = true;
+						
+					}
+
 					if(offsetIntoCharacter == 0){
 						if(outputCharacterWidths > 0){
 							currentCharacterWidth = outputCharacterWidths;
@@ -522,8 +546,13 @@ public class ScreenLayer {
 							currentCharacterWidth = 0;
 						}
 					}
-					if(offsetIntoCharacter >= currentCharacterWidth){
-						offsetIntoCharacter = 0;
+
+
+					if(offsetIntoCharacter > 0){
+						//  For multi-column characters, use changed flag from first column.
+						int x_to_cmp = i - offsetIntoCharacter;
+						outputColourCodes = this.colourCodes[x_to_cmp][j];
+						trustedChangeFlag = this.changed[x_to_cmp][j];
 					}
 
 					boolean hasChange = false;
@@ -548,12 +577,16 @@ public class ScreenLayer {
 						finalActiveState |= activeStates[s][i-startX][j-startY];
 					}
 
+
 					this.characters[i][j] = outputCharacters;
 					this.characterWidths[i][j] = outputCharacterWidths;
 					this.colourCodes[i][j] = outputColourCodes;
 					this.changed[i][j] = hasChange;
 					this.active[i][j] = finalActiveState;
 					offsetIntoCharacter++;
+					if(offsetIntoCharacter >= currentCharacterWidth){
+						offsetIntoCharacter = 0;
+					}
 				}
 			}
 		}
