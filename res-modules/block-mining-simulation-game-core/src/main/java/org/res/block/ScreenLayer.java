@@ -490,7 +490,10 @@ public class ScreenLayer {
 							trustedChangeFlag  = true;
 						}
 					}else if(rightward == -1 && leftward == -1){
-						throw new Exception("not expected");
+						//  Empty null column in upper layer exposing center column of multi-column character:
+						outputCharacters = " ";
+						outputCharacterWidths = 1;
+						trustedChangeFlag  = true;
 					}else if(rightward == -2 && leftward == -1){
 						throw new Exception("not expected");
 					}else if(rightward == -1 && leftward == -2){

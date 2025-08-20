@@ -1801,12 +1801,12 @@ public class BlockManagerUnitTest {
 	}
 
         public void printRandomCharactersTest() throws Exception{
-		int startingSeed = 1;
+		int startingSeed = 126604;
 		int numDifferentSeeds = 3000000;
 		int numTestCharacters = 10;
 		int maxNumChangedRegions = 5;
 		int maxNumLayers = 5;
-		Long maxCharacterWidth = 2L;
+		Long maxCharacterWidth = 11L;
 		boolean randomizePlacementOffset = false;
 		Long maxLayerWidth = 10L;
 		Long maxLayerHeight = 10L;
