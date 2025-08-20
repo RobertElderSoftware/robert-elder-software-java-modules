@@ -366,7 +366,6 @@ public class ScreenLayer {
 	}
 
 	public void mergeNonNullChangesDownOnto(ScreenLayer [] aboveLayers, boolean trustChangedFlags) throws Exception{
-
 		ScreenLayer [] screenLayers = new ScreenLayer [aboveLayers.length +1];
 		int [] xO = new int [aboveLayers.length +1];
 		int [] yO = new int [aboveLayers.length +1];
@@ -452,7 +451,11 @@ public class ScreenLayer {
 				int outputStartX = Math.max(0, startX);
 				int outputEndX = Math.min(screenLayers[0].getWidth(), endX);
 				boolean rightBoundaryHasSeveredCharacter = false;
-				for(int i = outputStartX; i < outputEndX; i++){
+				boolean leftBoundaryHasSeveredCharacter = true;
+
+				boolean firstColumnHasChange = true;
+				int [] firstColumnColourCodes = new int [] {};
+				for(int i = startX; i < outputEndX; i++){
 					int xR = i-startX;
 					int yR = j-startY;
 					String outputCharacters = null;
@@ -535,10 +538,16 @@ public class ScreenLayer {
 						rightBoundaryHasSeveredCharacter = true;
 					}
 
-					if(rightBoundaryHasSeveredCharacter){
+					if(offsetIntoCharacter == 0 && !(i < outputStartX)){
+						leftBoundaryHasSeveredCharacter = false;
+					}
+
+					if((!(i < outputStartX) && leftBoundaryHasSeveredCharacter) || rightBoundaryHasSeveredCharacter){
 						outputCharacters = " ";
 						outputCharacterWidths = 1;
 						trustedChangeFlag  = true;
+						firstColumnColourCodes = outputColourCodes;
+						firstColumnHasChange = trustedChangeFlag;
 						
 					}
 
@@ -550,13 +559,25 @@ public class ScreenLayer {
 						}
 					}
 
-
 					if(offsetIntoCharacter > 0){
 						//  For multi-column characters, use changed flag from first column.
-						int x_to_cmp = i - offsetIntoCharacter;
-						outputColourCodes = this.colourCodes[x_to_cmp][j];
-						trustedChangeFlag = this.changed[x_to_cmp][j];
+						outputColourCodes = firstColumnColourCodes;
+						trustedChangeFlag = firstColumnHasChange;
 					}
+
+					if(i < outputStartX){ //  We are before starting boundary of output layer
+						if(offsetIntoCharacter == 0){
+							firstColumnColourCodes = outputColourCodes;
+							firstColumnHasChange = true;
+						}
+						offsetIntoCharacter++;
+						if(offsetIntoCharacter >= currentCharacterWidth){
+							offsetIntoCharacter = 0;
+						}
+						continue;
+					}
+
+
 
 					boolean hasChange = false;
 					if(trustChangedFlags){
@@ -564,8 +585,7 @@ public class ScreenLayer {
 					}else{
 						if(offsetIntoCharacter > 0){
 							//  For multi-column characters, use changed flag from first column.
-							int x_to_cmp = i - offsetIntoCharacter;
-							hasChange = this.changed[x_to_cmp][j];
+							hasChange = firstColumnHasChange;
 						}else{
 							hasChange = !(
 								(this.characterWidths[i][j] == outputCharacterWidths) &&
@@ -586,6 +606,10 @@ public class ScreenLayer {
 					this.colourCodes[i][j] = outputColourCodes;
 					this.changed[i][j] = hasChange;
 					this.active[i][j] = finalActiveState;
+					if(offsetIntoCharacter == 0){
+						firstColumnHasChange = this.changed[i][j];
+						firstColumnColourCodes = this.colourCodes[i][j];
+					}
 					offsetIntoCharacter++;
 					if(offsetIntoCharacter >= currentCharacterWidth){
 						offsetIntoCharacter = 0;
@@ -644,7 +668,7 @@ public class ScreenLayer {
 		}
 	}
 
-	public boolean mergeChanges(ScreenLayer changes) throws Exception{
+	public void mergeChanges(ScreenLayer changes) throws Exception{
 		Set<ScreenRegion> regions = changes.getChangedRegions();
 		int xOffset = changes.getPlacementOffset().getX().intValue();
 		int yOffset = changes.getPlacementOffset().getY().intValue();
@@ -715,7 +739,6 @@ public class ScreenLayer {
 			}
 		}
 		changes.clearChangedRegions();
-		return this.setIsLayerActive(changes.getIsLayerActive());
 	}
 
 	public void printChanges(boolean useRightToLeftPrint, boolean resetCursorPosition, int xOffset, int yOffset) throws Exception{

@@ -776,7 +776,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		for(ScreenLayerPrintParameters param : params){
 			ScreenLayer changes = param.getScreenLayer();
 			int bufferIndex = param.getBufferIndex();
-			activeLayerStateChange |= this.screenLayers[bufferIndex].mergeChanges(changes);
+			this.screenLayers[bufferIndex].mergeChanges(changes);
+			activeLayerStateChange |= this.screenLayers[bufferIndex].setIsLayerActive(changes.getIsLayerActive());
 		}
 		//  If one of the layers had an active change state, invalidate and
 		//  re-evaluate all layers from scratch.
