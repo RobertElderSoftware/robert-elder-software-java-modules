@@ -121,7 +121,7 @@ class ArgumentParser {
 							}
 						}
 					}else{
-						throw new Exception("Unexpected number of parts in argument: " + argParts.length);
+						throw new Exception("Unexpected number of parts in argument: " + argParts.length + ", '" + args[i] + "'.");
 					}
 				}else{
 					//logger.info("i=" + i + args[i] + " versus " + currentArg.getArgumentKey());

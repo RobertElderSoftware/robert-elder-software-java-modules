@@ -149,6 +149,16 @@ public class ScreenLayer {
 		}
 	}
 
+	public void setAllActiveFlagStates(boolean state){
+		int width = this.getWidth();
+		int height = this.getHeight();
+		for(int i = 0; i < width; i++){
+			for(int j = 0; j < height; j++){
+				this.active[i][j] = state;
+			}
+		}
+	}
+
 	public void clearFlags(){
 		this.setAllChangedFlagStates(false);
 	}
@@ -203,10 +213,10 @@ public class ScreenLayer {
 	}
 
 	public void initialize(int chrWidth, String s, int [] colourCodes, String msg) throws Exception{
-		this.initializeInRegion(chrWidth, s, colourCodes, msg, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0,0, getWidth(), getHeight())), true);
+		this.initializeInRegion(chrWidth, s, colourCodes, msg, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0,0, getWidth(), getHeight())), true, false);
 	}
 
-	public void initializeInRegion(int chrWidth, String s, int [] colourCodes, String msg, ScreenRegion region, boolean defaultMaskState) throws Exception{
+	public void initializeInRegion(int chrWidth, String s, int [] colourCodes, String msg, ScreenRegion region, boolean defaultChangedFlag, boolean defaultActiveFlag) throws Exception{
 		this.addChangedRegion(region);
 		int startX = region.getStartX();
 		int startY = region.getStartY();
@@ -219,8 +229,8 @@ public class ScreenLayer {
 				this.characterWidths[i][j] = chrWidth;
 				this.colourCodes[i][j] = colourCodes;
 				this.characters[i][j] = s;
-				this.changed[i][j] = defaultMaskState;
-				this.active[i][j] = false;
+				this.changed[i][j] = defaultChangedFlag;
+				this.active[i][j] = defaultActiveFlag; //  Require the user to explicitly enable this column.
 			}
 		}
 		if(msg != null){
@@ -365,7 +375,11 @@ public class ScreenLayer {
 		}
 	}
 
-	public void mergeNonNullChangesDownOnto(ScreenLayer [] aboveLayers, boolean trustChangedFlags) throws Exception{
+	public void mergeDown(ScreenLayer aboveLayer, boolean trustChangedFlags) throws Exception{
+		this.mergeDown(new ScreenLayer [] {aboveLayer}, trustChangedFlags);
+	}
+
+	public void mergeDown(ScreenLayer [] aboveLayers, boolean trustChangedFlags) throws Exception{
 		ScreenLayer [] screenLayers = new ScreenLayer [aboveLayers.length +1];
 		int [] xO = new int [aboveLayers.length +1];
 		int [] yO = new int [aboveLayers.length +1];
@@ -640,107 +654,6 @@ public class ScreenLayer {
 		this.addChangedRegions(translatedExpandedClippedRegions);
 	}
 
-	private void nullifyPrecendingOverlappedCharacters(int x, int y){
-		//  Look for any previous multi-column characters that would
-		//  overlap with the current character.  If they exist, 
-		//  overwrite them.
-		int backtrack = 1;
-		while((x - backtrack) >= 0){
-			if(this.characterWidths[x-backtrack][y] > 0){
-				int requiredCharacters = this.characterWidths[x-backtrack][y];
-				int availableCharacters = backtrack;
-				if(requiredCharacters > availableCharacters){
-					// No space for found character, overwrite.
-					for(int g = x - backtrack; g < x; g++){
-						this.characterWidths[g][y] = 1;
-						this.characters[g][y] = " ";
-						this.changed[g][y] = true;
-					}
-					//  Continue in case there are multiple
-					//  multi-column characters that would
-					//  have overlapped.
-				}else{
-					// No overlap, do nothing
-					break;
-				}
-			}
-			backtrack++;
-		}
-	}
-
-	public void mergeChanges(ScreenLayer changes) throws Exception{
-		Set<ScreenRegion> regions = changes.getChangedRegions();
-		int xOffset = changes.getPlacementOffset().getX().intValue();
-		int yOffset = changes.getPlacementOffset().getY().intValue();
-		for(ScreenRegion sourceRegion : regions){
-			int changesInRegion = 0;
-			//  Determine the subset of the change that's actually lands within the destination layer
-			CuboidAddress destinationRegionCA = ScreenRegion.makeScreenRegionCA(
-				sourceRegion.getStartX() + xOffset,
-				sourceRegion.getStartY() + yOffset,
-				sourceRegion.getEndX() + xOffset,
-				sourceRegion.getEndY() + yOffset
-			);
-
-			CuboidAddress consideredRegion = destinationRegionCA.getIntersectionCuboidAddress(this.getDimensions());
-			ScreenRegion region = new ScreenRegion(consideredRegion);
-
-			int startX = region.getStartX();
-			int startY = region.getStartY();
-			int endX = region.getEndX();
-			int endY = region.getEndY();
-			for(int j = startY; j < endY; j++){
-				int i = startX;
-				while(i < endX){
-					int x = i;
-					int y = j;
-					int xF = i - xOffset;
-					int yF = j - yOffset;
-					String newCharacter = changes.characters[xF][yF];
-					int newCharacterWidth = changes.characterWidths[xF][yF];
-
-					if(changes.active[xF][yF]){
-						//  If a multi-column character is falling off the edge of the screen, just set it to null:
-						if(!((i+newCharacterWidth) <= endX)){
-							newCharacter = " ";
-							newCharacterWidth = 1;
-						}
-						boolean hasChanged = !(
-							(this.characterWidths[x][y] == newCharacterWidth) &&
-							Arrays.equals(this.colourCodes[x][y], changes.colourCodes[xF][yF]) &&
-							Objects.equals(this.characters[x][y], newCharacter)
-						) || this.changed[x][y]; //  In case multiple writes happened since last commit
-						this.changed[x][y] = hasChanged;
-						this.characterWidths[x][y] = newCharacterWidth;
-						this.colourCodes[x][y] = changes.colourCodes[xF][yF];
-						this.characters[x][y] = newCharacter;
-						
-						//  For multi-column characters, explicitly initialize any 'covered' characters as null to resolve printing glitches:
-						for(int k = 1; (k < newCharacterWidth) && (k+x) < endX; k++){
-							this.characterWidths[x+k][y] = 0;
-							this.colourCodes[x+k][y] = this.colourCodes[x][y];
-							this.characters[x+k][y] = null;
-							this.changed[x+k][y] = this.changed[x][y];
-							changes.changed[xF+k][yF] = false; //  Clear changed flag.
-						}
-						this.nullifyPrecendingOverlappedCharacters(x, y);
-						changes.changed[xF][yF] = false; //  Clear changed flag.
-						if(hasChanged){
-							changesInRegion++;
-						}
-					}
-					i += (newCharacterWidth < 1) ? 1 : newCharacterWidth; 
-					this.active[x][y] = true;
-				}
-			}
-
-			if(changesInRegion > 0){
-				this.addChangedRegion(region);
-			}
-		}
-		changes.clearChangedRegions();
-	}
-
 	public void printChanges(boolean useRightToLeftPrint, boolean resetCursorPosition, int xOffset, int yOffset) throws Exception{
 		int loopUpdate = useRightToLeftPrint ? -1 : 1;
 		boolean resetState = useRightToLeftPrint ? true : true; // TODO:  Optimize this in the future.
@@ -759,10 +672,6 @@ public class ScreenLayer {
 					//  Try to intelligently issue as few ANSI escape sequences as possible:
 					if(!Arrays.equals(this.colourCodes[i][j], lastUsedColourCodes)){
 						mustSetColourCodes = true;
-					}
-					//  These should always be initialized to empty array.
-					if(this.colourCodes[i][j] == null){
-						throw new Exception("this.colourCodes[i][j] == null");
 					}
 					if(
 						this.changed[i][j]
@@ -981,7 +890,7 @@ public class ScreenLayer {
 		return -1;
 	}
 
-	public static int getExpansionForCoordinate(int startX, int startY, int endY, int [] xO, int [] yO, ScreenLayer [] layers){
+	public static int getExpansionForCoordinate(boolean isLeftToRight, int startX, int startY, int endY, int [] xO, int [] yO, ScreenLayer [] layers){
 		for(int s = 0; s < layers.length; s++){
 			//  Start at previous x character:
 			int currentX = startX - xO[s] -1;
@@ -991,7 +900,7 @@ public class ScreenLayer {
 					//  No expansion necessary, there is no previous solid character
 				}else{
 					int characterWidth = layers[s].characterWidths[currentX - leftDistance][currentY];
-					int diff = characterWidth - (leftDistance + 1);
+					int diff = isLeftToRight ? (leftDistance + 1) : characterWidth - (leftDistance + 1);
 					if(diff > 0){
 						//  Need to expand.  The found char overshoots the region boundary by 'diff' amount.
 						return diff;
@@ -1025,13 +934,13 @@ public class ScreenLayer {
 
 		int additionalStartExpansionX = 0;
 		do{
-			additionalStartExpansionX = getExpansionForCoordinate(expandedStartX, initialStartY, initialEndY, xO, yO, layers);
+			additionalStartExpansionX = getExpansionForCoordinate(true, expandedStartX, initialStartY, initialEndY, xO, yO, layers);
 			expandedStartX -= additionalStartExpansionX;
 		}while(additionalStartExpansionX > 0);
 
 		int additionalEndExpansionX = 0;
 		do{
-			additionalEndExpansionX = getExpansionForCoordinate(expandedEndX, initialStartY, initialEndY, xO, yO, layers);
+			additionalEndExpansionX = getExpansionForCoordinate(false, expandedEndX, initialStartY, initialEndY, xO, yO, layers);
 			expandedEndX += additionalEndExpansionX;
 		}while(additionalEndExpansionX > 0);
 

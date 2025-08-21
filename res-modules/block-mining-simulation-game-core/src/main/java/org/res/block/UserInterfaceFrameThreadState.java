@@ -668,7 +668,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 	public void writeToLocalFrameBuffer(ScreenLayer changes, int bufferIndex) throws Exception{
-		this.bufferedScreenLayers[bufferIndex].mergeChanges(changes);
+		this.bufferedScreenLayers[bufferIndex].mergeDown(changes, false);
 	}
 
 	public boolean hasOtherFrameDimensionsChanged(FrameChangeWorkItemParams params){

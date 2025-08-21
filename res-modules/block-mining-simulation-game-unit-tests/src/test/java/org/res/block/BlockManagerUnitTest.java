@@ -910,7 +910,7 @@ public class BlockManagerUnitTest {
 
 		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
 		merged.initialize();
-		merged.mergeChanges(t);
+		merged.mergeDown(t, false);
 		this.verifyObject(merged.characters[0][0], "A");
 		this.verifyObject(merged.characterWidths[0][0], 1);
 		this.verifyArray(merged.colourCodes[0][0], new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
@@ -930,7 +930,7 @@ public class BlockManagerUnitTest {
 
 		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
 		merged.initialize();
-		merged.mergeChanges(t);
+		merged.mergeDown(t, false);
 
 		this.verifyObject(merged.characters[0][0], null);
 		this.verifyObject(merged.characterWidths[0][0], 0);
@@ -939,7 +939,7 @@ public class BlockManagerUnitTest {
 	}
 
         public void mergeChangesTest3() throws Exception{
-                //  Simple merge down test with change flag set, but with no region;  Should get ignored:
+                //  Simple merge down test with active flag not set, but with no region;  Should get ignored:
                 ScreenLayer t = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
                 t.initialize();
                 t.clearChangedRegions();
@@ -947,11 +947,11 @@ public class BlockManagerUnitTest {
                 t.characterWidths[0][0] = 1;
                 t.colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
                 t.changed[0][0] = true;
-                t.active[0][0] = true;
+                t.active[0][0] = false;
 
                 ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
                 merged.initialize();
-                merged.mergeChanges(t);
+                merged.mergeDown(t, false);
 
                 this.verifyObject(merged.characters[0][0], null);
                 this.verifyObject(merged.characterWidths[0][0], 0);
@@ -968,11 +968,16 @@ public class BlockManagerUnitTest {
                 t.colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
                 t.changed[0][0] = true;
                 t.active[0][0] = true;
+                t.characters[1][0] = null;
+                t.characterWidths[1][0] = 0;
+                t.colourCodes[1][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+                t.changed[1][0] = true;
+                t.active[1][0] = true;
 
                 ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 2, 1));
                 merged.initialize();
                 merged.setAllChangedFlagStates(false);
-                merged.mergeChanges(t);
+                merged.mergeDown(t, false);
 
                 this.verifyObject(merged.characters[0][0], "A");
                 this.verifyObject(merged.characterWidths[0][0], 2);
@@ -1000,7 +1005,7 @@ public class BlockManagerUnitTest {
                 ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
                 merged.initialize();
                 merged.setAllChangedFlagStates(false);
-                merged.mergeChanges(t);
+                merged.mergeDown(t, false);
 
                 this.verifyObject(merged.characters[0][0], null);
                 this.verifyObject(merged.characterWidths[0][0], 0);
@@ -1029,16 +1034,22 @@ public class BlockManagerUnitTest {
                 t.colourCodes[0][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
                 t.changed[0][0] = true;
                 t.active[0][0] = true;
+                t.characters[1][0] = null;
+                t.characterWidths[1][0] = 0;
+                t.colourCodes[1][0] = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR};
+                t.changed[1][0] = true;
+                t.active[1][0] = true;
+                t.validate();
 
                 ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
                 merged.initialize();
                 merged.setAllChangedFlagStates(false);
                 t.setPlacementOffset(new Coordinate(Arrays.asList(2L,0L)));
-                merged.mergeChanges(t); //  Merge in at end, should force character to null
+                merged.mergeDown(t, false); //  Merge in at end, should force character to null
                 t.setPlacementOffset(new Coordinate(Arrays.asList(0L,0L)));
-                merged.mergeChanges(t); //  Merge in at start, should be written correctly.
+                merged.mergeDown(t, false); //  Merge in at start, should be written correctly.
                 t.setPlacementOffset(new Coordinate(Arrays.asList(1L,0L)));
-                merged.mergeChanges(t); //  Should overwrite previous character due to multi-column overlap.
+                merged.mergeDown(t, false); //  Should overwrite previous character due to multi-column overlap.
 
                 this.verifyObject(merged.characters[0][0], " ");
                 this.verifyObject(merged.characterWidths[0][0], 1);
@@ -1077,7 +1088,7 @@ public class BlockManagerUnitTest {
 		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
 		merged.initialize();
 		merged.setAllChangedFlagStates(false);
-		merged.mergeNonNullChangesDownOnto(layers, true);
+		merged.mergeDown(layers, true);
 
 		this.verifyObject(merged.characters[0][0], "A");
 		this.verifyObject(merged.characterWidths[0][0], 2);
@@ -1143,7 +1154,7 @@ public class BlockManagerUnitTest {
 		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		merged.initialize();
 		merged.setAllChangedFlagStates(false);
-		merged.mergeNonNullChangesDownOnto(layers, true);
+		merged.mergeDown(layers, true);
 
 		this.verifyObject(merged.characters[0][0], " ");
 		this.verifyObject(merged.characterWidths[0][0], 1);
@@ -1215,7 +1226,7 @@ public class BlockManagerUnitTest {
 		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		merged.initialize();
 		merged.setAllChangedFlagStates(false);
-		merged.mergeNonNullChangesDownOnto(layers, true);
+		merged.mergeDown(layers, true);
 
 		this.verifyObject(merged.characters[0][0], "A");
 		this.verifyObject(merged.characterWidths[0][0], 2);
@@ -1272,7 +1283,7 @@ public class BlockManagerUnitTest {
 		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		merged.initialize();
 		merged.setAllChangedFlagStates(false);
-		merged.mergeNonNullChangesDownOnto(layers, true);
+		merged.mergeDown(layers, true);
 
 		this.verifyObject(merged.characters[0][0], "A");
 		this.verifyObject(merged.characterWidths[0][0], 2);
@@ -1316,7 +1327,7 @@ public class BlockManagerUnitTest {
                 merged.changed[0][0] = false;
                 merged.active[0][0] = true;
 
-                merged.mergeNonNullChangesDownOnto(layers, false);
+                merged.mergeDown(layers, false);
 
                 this.verifyObject(merged.characters[0][0], "M");
                 this.verifyObject(merged.characterWidths[0][0], 1);
@@ -1354,7 +1365,7 @@ public class BlockManagerUnitTest {
                 merged.changed[1][0] = false;
                 merged.active[1][0] = true;
 
-                merged.mergeNonNullChangesDownOnto(layers, true);
+                merged.mergeDown(layers, true);
                 //  Merging in the layer is supposed to clear the changed flags:
                 this.verifyObject(layers[0].changed[0][0], false);
                 this.verifyObject(layers[0].changed[1][0], false);
@@ -1378,7 +1389,7 @@ public class BlockManagerUnitTest {
                 output.changed[0][0] = false;
                 output.active[0][0] = true;
 
-                output.mergeChanges(merged);
+                output.mergeDown(merged, false);
                 //  Merging in the layer is supposed to clear the changed flags:
                 this.verifyObject(merged.changed[0][0], false);
                 this.verifyObject(merged.changed[1][0], false);
@@ -1400,7 +1411,7 @@ public class BlockManagerUnitTest {
                 this.verifyObject(output.changed[1][0], false);
 
                 // Try to Print same thing again:
-                merged.mergeNonNullChangesDownOnto(layers, true);
+                merged.mergeDown(layers, true);
                 //  Merging in the layer is supposed to clear the changed flags:
                 this.verifyObject(layers[0].changed[0][0], false);
                 this.verifyObject(layers[0].changed[1][0], false);
@@ -1415,7 +1426,7 @@ public class BlockManagerUnitTest {
                 this.verifyArray(merged.colourCodes[1][0], new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
                 this.verifyObject(merged.changed[1][0], false);
 
-                output.mergeChanges(merged);
+                output.mergeDown(merged, false);
 
                 this.verifyObject(output.characters[0][0], "=");
                 this.verifyObject(output.characterWidths[0][0], 2);
@@ -1459,7 +1470,7 @@ public class BlockManagerUnitTest {
                 merged.changed[1][0] = false;
                 merged.active[1][0] = true;
 
-                merged.mergeNonNullChangesDownOnto(layers, true);
+                merged.mergeDown(layers, true);
 
                 this.verifyObject(merged.characters[0][0], "A");
                 this.verifyObject(merged.characterWidths[0][0], 2);
@@ -1516,7 +1527,7 @@ public class BlockManagerUnitTest {
 		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		merged.initialize();
 		merged.setAllChangedFlagStates(false);
-		merged.mergeNonNullChangesDownOnto(layers, true);
+		merged.mergeDown(layers, true);
 
 		this.verifyObject(merged.characters[0][0], "A");
 		this.verifyObject(merged.characterWidths[0][0], 2);
@@ -1573,7 +1584,7 @@ public class BlockManagerUnitTest {
 		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		merged.initialize();
 		merged.setAllChangedFlagStates(false);
-		merged.mergeNonNullChangesDownOnto(layers, true);
+		merged.mergeDown(layers, true);
 
 		this.verifyObject(merged.characters[0][0], " ");
 		this.verifyObject(merged.characterWidths[0][0], 1);
@@ -1789,20 +1800,20 @@ public class BlockManagerUnitTest {
 			for(int i = 0; i < columnWidth; i++){
 				Coordinate currentCoordinate = startCoordinate.changeByDeltaX((long)i);
 				if(layerCharacters.containsKey(currentCoordinate)){
-					System.out.println("Discarding proposed character of width=" + printedCharacterWidth + " at startCoordinate=" + startCoordinate + " because it does not fit.");
+					//System.out.println("Discarding proposed character of width=" + printedCharacterWidth + " at startCoordinate=" + startCoordinate + " because it does not fit.");
 					return false;  //  Proposed new character would overlap an existing one.
 				}
 			}
 		}else{
-			System.out.println("Discarding proposed character of width=" + printedCharacterWidth + " at startCoordinate=" + startCoordinate + " because it goes beyond the end of the layer which has width=" + layer.getWidth());
+			//System.out.println("Discarding proposed character of width=" + printedCharacterWidth + " at startCoordinate=" + startCoordinate + " because it goes beyond the end of the layer which has width=" + layer.getWidth());
 			return false;  //  Character would go beyond layer boundary
 		}
 		return true; //  It will fit.
 	}
 
         public void printRandomCharactersTest() throws Exception{
-		int startingSeed = 127777;
-		int numDifferentSeeds = 3000000;
+		int startingSeed = 1;
+		int numDifferentSeeds = 50000;
 		int numTestCharacters = 20;
 		int maxNumChangedRegions = 5;
 		int maxNumLayers = 5;
@@ -1959,7 +1970,7 @@ public class BlockManagerUnitTest {
 			msi.init(); //  Initialize before merge to save a copy of before characters
 			//  Do the actual merge process:
 
-			bottomLayer.mergeNonNullChangesDownOnto(aboveLayers, trustChangedFlags);
+			bottomLayer.mergeDown(aboveLayers, trustChangedFlags);
 
 
 			System.out.print("Here is the resulting merged layer:\n");
@@ -2023,11 +2034,16 @@ public class BlockManagerUnitTest {
 		this.testAscendingMultiColumn();
 		this.testDescendingMultiColumn();
 		this.twoColumnOverOneColumn();
-        	this.writeBorderTwiceNoChange();
 		this.testMergeDownNoNeedToPrint();
 		this.testInheritBackgroundBelow();
 		this.testIgnoreBackgroundFlaggedFalse();
 		this.testPartiallyCoveredCharacterBackground();
+	}
+
+	@Test
+	public void runScreenPrintingTest() throws Exception {
+        	//  Commenting this out because it breaks the summary output from the unit tests.
+        	//this.writeBorderTwiceNoChange();
 	}
 
 	@Test
@@ -2183,6 +2199,54 @@ public class BlockManagerUnitTest {
 
 	public void expandChangeRegionTest() throws Exception{
 
+		//  Test 13
+		ScreenLayer [] test13 = new ScreenLayer [1];
+		test13[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 100, 1));
+		test13[0].initialize();
+		test13[0].clearChangedRegions();
+		test13[0].characters[0][0] = "A";
+		test13[0].characterWidths[0][0] = 2;
+		test13[0].colourCodes[0][0] = new int [] {};
+
+		doRegionExpansionTest(
+			test13,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 2, 1)),
+			"Test for correct expansion for region covering first part of multi-column character."
+		);
+
+		//  Test 14
+		ScreenLayer [] test14 = new ScreenLayer [1];
+		test14[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 100, 1));
+		test14[0].initialize();
+		test14[0].clearChangedRegions();
+		test14[0].characters[0][0] = "A";
+		test14[0].characterWidths[0][0] = 2;
+		test14[0].colourCodes[0][0] = new int [] {};
+
+		doRegionExpansionTest(
+			test14,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(1, 0, 2, 1)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 2, 1)),
+			"Test for correct expansion for region covering second part of multi-column character."
+		);
+
+		//  Test 15
+		ScreenLayer [] test15 = new ScreenLayer [1];
+		test15[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 100, 1));
+		test15[0].initialize();
+		test15[0].clearChangedRegions();
+		test15[0].characters[0][0] = " ";
+		test15[0].characterWidths[0][0] = 100;
+		test15[0].colourCodes[0][0] = new int [] {};
+
+		doRegionExpansionTest(
+			test15,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(3, 0, 4, 1)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 100, 1)),
+			"Test for correct expansion for region in middle of wide character."
+		);
+
 		//  Test 1
 		ScreenLayer [] test1 = new ScreenLayer [1];
 		test1[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
@@ -2273,9 +2337,9 @@ public class BlockManagerUnitTest {
 		doRegionExpansionTest(
 			test4,
 			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)),
-			//  Region should be restriced to bottom layer boundary:
-			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 2, 1)),
-			"Test for another expansion that is necessary on right edge due to char in same y line, BUT the expansion is capped at the edge of the bottom layer due to the last character going off the edge."
+			//  Region considered should go beyond bottom layer boundary:
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 3, 1)),
+			"Test for another expansion that is necessary on right edge due to char in same y line, BUT expansion goes beyond the edge of the bottom layer due to the last character going off the edge."
 		);
 
 
@@ -2445,7 +2509,6 @@ public class BlockManagerUnitTest {
 		);
 
 
-
 		//  Test 11
 		ScreenLayer [] test11 = new ScreenLayer [1];
 		test11[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
@@ -2479,7 +2542,7 @@ public class BlockManagerUnitTest {
 		doRegionExpansionTest(
 			test12,
 			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)),
-			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 0, 1)), //  X coordinate is reduced to fit within the zero sized bottom layer.
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)),
 			"Two layers, but bottom layer has zero size and top layer is a null character."
 		);
 

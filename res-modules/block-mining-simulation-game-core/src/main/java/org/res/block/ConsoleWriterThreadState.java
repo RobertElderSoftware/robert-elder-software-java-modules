@@ -638,7 +638,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			String msg = "All frames have been closed!  Press 'ESC' to open one.";
 			int bufferIndex = ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT;
 			this.screenLayers[bufferIndex] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, this.terminalWidth.intValue(), this.terminalHeight.intValue()));
-			this.screenLayers[bufferIndex].initialize(1, " ", new int [] {}, msg);
+			this.screenLayers[bufferIndex].initialize(1, " ", new int [] {UserInterfaceFrameThreadState.RESET_BG_COLOR}, msg);
+			this.screenLayers[bufferIndex].setAllActiveFlagStates(true);
 			this.mergedFinalScreenLayer = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, this.terminalWidth.intValue(), this.terminalHeight.intValue()));
 			this.mergedFinalScreenLayer.initialize();
 			this.printTerminalTextChanges(false);
@@ -776,7 +777,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		for(ScreenLayerPrintParameters param : params){
 			ScreenLayer changes = param.getScreenLayer();
 			int bufferIndex = param.getBufferIndex();
-			this.screenLayers[bufferIndex].mergeChanges(changes);
 			activeLayerStateChange |= this.screenLayers[bufferIndex].setIsLayerActive(changes.getIsLayerActive());
 		}
 		//  If one of the layers had an active change state, invalidate and
@@ -792,11 +792,17 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				this.screenLayers[i].setAllChangedFlagStates(true);
 			}
 		}
+		for(ScreenLayerPrintParameters param : params){
+			ScreenLayer changes = param.getScreenLayer();
+			int bufferIndex = param.getBufferIndex();
+			this.screenLayers[bufferIndex].mergeDown(changes, false);
+		}
+
 		return new EmptyWorkItemResult();
 	}
 
 	public void printTerminalTextChanges(boolean resetCursorPosition) throws Exception{
-		this.mergedFinalScreenLayer.mergeNonNullChangesDownOnto(this.screenLayers, true);
+		this.mergedFinalScreenLayer.mergeDown(this.screenLayers, true);
 		boolean useRightToLeftPrint = this.blockManagerThreadCollection.getRightToLeftPrint();
 		this.mergedFinalScreenLayer.printChanges(useRightToLeftPrint, resetCursorPosition, 0, 0);
 	}
