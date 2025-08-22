@@ -127,6 +127,17 @@ public class MergedScreenInfo{
 		return this.allActiveTranslatedChangedRegions;
 	}
 
+
+	public boolean isCharacterActive(Coordinate coordinate, int s, List<Map<Coordinate, TestScreenCharacter>> characterMap, ScreenLayer [] allLayers){
+		return (
+			(
+				characterMap.get(s).get(coordinate).active &&
+				allLayers[s].getIsLayerActive()
+			) ||
+			s == 0 //  Bottom layer is always counted as active.
+		);
+	}
+
 	private Map<Coordinate, TestScreenCharacter> calculateBeforeMergeCharacters(){
 		Map<Coordinate, TestScreenCharacter> rtn = new HashMap<Coordinate, TestScreenCharacter>();
 		//  Remember exactly what was in the bottom result later for later comparison
@@ -168,8 +179,7 @@ public class MergedScreenInfo{
 					Coordinate layerRelativeCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
 					if(
 						layerRelativeCharacters.get(s).containsKey(layerRelativeCoordinate) &&
-						layerRelativeCharacters.get(s).get(layerRelativeCoordinate).active &&
-						allLayers[s].getIsLayerActive()
+						this.isCharacterActive(layerRelativeCoordinate, s, layerRelativeCharacters, allLayers)
 					){
 						TestScreenCharacter c = layerRelativeCharacters.get(s).get(layerRelativeCoordinate);
 						//  Some of these entries will end up outside the boundaries of
@@ -208,8 +218,7 @@ public class MergedScreenInfo{
 					Coordinate layerRelativeCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
 					if(
 						layerRelativeCharacters.get(s).containsKey(layerRelativeCoordinate) &&
-						layerRelativeCharacters.get(s).get(layerRelativeCoordinate).active &&
-						allLayers[s].getIsLayerActive()
+						this.isCharacterActive(layerRelativeCoordinate, s, layerRelativeCharacters, allLayers)
 					){
 						TestScreenCharacter c = layerRelativeCharacters.get(s).get(layerRelativeCoordinate);
 
@@ -265,8 +274,7 @@ public class MergedScreenInfo{
 					Coordinate layerRelativeCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
 					if(
 						layerRelativeCharacters.get(s).containsKey(layerRelativeCoordinate) &&
-						layerRelativeCharacters.get(s).get(layerRelativeCoordinate).active &&
-						allLayers[s].getIsLayerActive()
+						this.isCharacterActive(layerRelativeCoordinate, s, layerRelativeCharacters, allLayers)
 					){
 						TestScreenCharacter c = layerRelativeCharacters.get(s).get(layerRelativeCoordinate);
 
@@ -367,8 +375,7 @@ public class MergedScreenInfo{
 				while(topMostLayer >= 0){
 					if(
 						bottomRelativeCharacters.get(topMostLayer).containsKey(bottomLayerCoordinate) &&
-						bottomRelativeCharacters.get(topMostLayer).get(bottomLayerCoordinate).active &&
-						allLayers[topMostLayer].getIsLayerActive()
+						this.isCharacterActive(bottomLayerCoordinate, topMostLayer, bottomRelativeCharacters, allLayers)
 					){
 						TestScreenCharacter c = bottomRelativeCharacters.get(topMostLayer).get(bottomLayerCoordinate);
 						if(c.changed && (!foundTopSolidCharacter)){
@@ -412,8 +419,7 @@ public class MergedScreenInfo{
 				while(topMostLayer >= 0){
 					if(
 						bottomRelativeCharacters.get(topMostLayer).containsKey(bottomLayerCoordinate) &&
-						bottomRelativeCharacters.get(topMostLayer).get(bottomLayerCoordinate).active &&
-						allLayers[topMostLayer].getIsLayerActive()
+						this.isCharacterActive(bottomLayerCoordinate, topMostLayer, bottomRelativeCharacters, allLayers)
 					){
 						TestScreenCharacter c = bottomRelativeCharacters.get(topMostLayer).get(bottomLayerCoordinate);
 						rtn.put(bottomLayerCoordinate, true);
@@ -442,8 +448,7 @@ public class MergedScreenInfo{
 				while(topMostLayer >= 0){
 					if(
 						bottomRelativeCharacters.get(topMostLayer).containsKey(bottomLayerCoordinate) &&
-						bottomRelativeCharacters.get(topMostLayer).get(bottomLayerCoordinate).active &&
-						allLayers[topMostLayer].getIsLayerActive()
+						this.isCharacterActive(bottomLayerCoordinate, topMostLayer, bottomRelativeCharacters, allLayers)
 					){
 						TestScreenCharacter c = bottomRelativeCharacters.get(topMostLayer).get(bottomLayerCoordinate);
 						if(c.colourCodes.length > 0){

@@ -306,7 +306,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 		Coordinate drawOffset = new Coordinate(Arrays.asList(drawOffsetX, drawOffsetY));
 		ScreenLayer changes = new ScreenLayer(drawOffset, ScreenLayer.makeDimensionsCA(0, 0, xDimSize, yDimSize));
-		changes.clearFlags();
+		changes.setAllChangedFlagStates(false);
 
 		int currentOffset = 0;
 		for(int i = 0; i < charactersToPrint.size(); i++){
@@ -360,7 +360,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			for(int i = 0; i < this.usedScreenLayers.length; i++){
 				int l = usedScreenLayers[i];
 				this.previousBufferedScreenLayers[l] = new ScreenLayer(this.bufferedScreenLayers[l]);
-				this.bufferedScreenLayers[l].clearFlags();
+				this.bufferedScreenLayers[l].setAllChangedFlagStates(false);
 			}
 			return true;
 		}
@@ -756,7 +756,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		Coordinate screenOffset = new Coordinate(Arrays.asList(drawOffsetX, drawOffsetY));
 		CuboidAddress screenDimensions = ScreenLayer.makeDimensionsCA(0, 0, totalWidth, totalHeight);
 		ScreenLayer changes = new ScreenLayer(screenOffset, screenDimensions);
-		changes.clearFlags();
+		changes.setAllChangedFlagStates(false);
 
 		for(int j = 0; j < areaCellHeight; j++){
 			int currentOffset = 0;
@@ -764,9 +764,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				if(updatedCellContents[i][j] == null){
 					int paddedWidthSoFar = 0;
 					while(paddedWidthSoFar < this.getMapAreaCellWidth()){
-						changes.colourCodes[currentOffset][j] = updatedColourCodes[i][j];
-						changes.characters[currentOffset][j] = null;
-						changes.characterWidths[currentOffset][j] = 0;
+						changes.colourCodes[currentOffset][j] = new int [] {GREEN_FG_COLOR, RED_BG_COLOR};
+						changes.characters[currentOffset][j] = "X";
+						changes.characterWidths[currentOffset][j] = 1;
 						changes.changed[currentOffset][j] = true;
 						changes.active[currentOffset][j] = true;
 						currentOffset += 1;

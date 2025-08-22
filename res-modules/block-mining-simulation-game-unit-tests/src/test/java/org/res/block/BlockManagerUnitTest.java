@@ -1607,6 +1607,85 @@ public class BlockManagerUnitTest {
 		this.verifyObject(merged.changed[3][0], false);
         }
 
+        public void testMergeIntoInactiveLayer() throws Exception{
+		//  Test what happens when you merge down onto an inactive layer
+		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
+
+		merged.initialize();
+		merged.setIsLayerActive(false);
+		merged.setAllChangedFlagStates(false);
+		merged.characters[0][0] = "A";
+		merged.characterWidths[0][0] = 1;
+		merged.colourCodes[0][0] = new int [] {};
+		merged.changed[0][0] = true;
+		merged.active[0][0] = true;
+		merged.characters[1][0] = "B";
+		merged.characterWidths[1][0] = 1; 
+		merged.colourCodes[1][0] = new int [] {};
+		merged.changed[1][0] = true;
+		merged.active[1][0] = false;
+		merged.characters[2][0] = "C";
+		merged.characterWidths[2][0] = 1; 
+		merged.colourCodes[2][0] = new int [] {};
+		merged.changed[2][0] = false;
+		merged.active[2][0] = true;
+		merged.characters[3][0] = "D";
+		merged.characterWidths[3][0] = 1; 
+		merged.colourCodes[3][0] = new int [] {};
+		merged.changed[3][0] = false;
+		merged.active[3][0] = false;
+
+		ScreenLayer [] layers = new ScreenLayer [1];
+		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
+		layers[0].initialize();
+		layers[0].setAllChangedFlagStates(false);
+		layers[0].characters[0][0] = "A";
+		layers[0].characterWidths[0][0] = 1;
+		layers[0].colourCodes[0][0] = new int [] {};
+		layers[0].changed[0][0] = true;
+		layers[0].active[0][0] = true;
+		layers[0].characters[1][0] = "B";
+		layers[0].characterWidths[1][0] = 1; 
+		layers[0].colourCodes[1][0] = new int [] {};
+		layers[0].changed[1][0] = true;
+		layers[0].active[1][0] = false;
+		layers[0].characters[2][0] = "C";
+		layers[0].characterWidths[2][0] = 1; 
+		layers[0].colourCodes[2][0] = new int [] {};
+		layers[0].changed[2][0] = false;
+		layers[0].active[2][0] = true;
+		layers[0].characters[3][0] = "D";
+		layers[0].characterWidths[3][0] = 1; 
+		layers[0].colourCodes[3][0] = new int [] {};
+		layers[0].changed[3][0] = false;
+		layers[0].active[3][0] = false;
+
+		merged.mergeDown(layers, false);
+
+		this.verifyObject(merged.characters[0][0], "A");
+		this.verifyObject(merged.characterWidths[0][0], 1);
+		this.verifyArray(merged.colourCodes[0][0], new int [] {});
+		this.verifyObject(merged.changed[0][0], true);
+		this.verifyObject(merged.active[0][0], true);
+
+		this.verifyObject(merged.characters[1][0], "B");
+		this.verifyObject(merged.characterWidths[1][0], 1);
+		this.verifyArray(merged.colourCodes[1][0], new int [] {});
+		this.verifyObject(merged.changed[1][0], true);
+		this.verifyObject(merged.active[1][0], true);
+
+		this.verifyObject(merged.characters[2][0], "C");
+		this.verifyObject(merged.characterWidths[2][0], 1);
+		this.verifyArray(merged.colourCodes[2][0], new int [] {});
+		this.verifyObject(merged.changed[2][0], false);
+		this.verifyObject(merged.active[2][0], true);
+
+		this.verifyObject(merged.characters[3][0], "D");
+		this.verifyObject(merged.characterWidths[3][0], 1);
+		this.verifyArray(merged.colourCodes[3][0], new int [] {});
+		this.verifyObject(merged.changed[3][0], false);
+		this.verifyObject(merged.active[3][0], true);
+        }
 
 	public TestScreenCharacter getExpectedTestCharacter(MergedScreenInfo msi, boolean trustChangedFlags, ScreenLayer [] layers, List<Map<Coordinate, TestScreenCharacter>> layerCharacters, int l, Coordinate currentCoordinate, TestScreenCharacter firstColumnOfCharacter) throws Exception{
 
@@ -2038,6 +2117,7 @@ public class BlockManagerUnitTest {
 		this.testInheritBackgroundBelow();
 		this.testIgnoreBackgroundFlaggedFalse();
 		this.testPartiallyCoveredCharacterBackground();
+		this.testMergeIntoInactiveLayer();
 	}
 
 	@Test
@@ -2199,53 +2279,6 @@ public class BlockManagerUnitTest {
 
 	public void expandChangeRegionTest() throws Exception{
 
-		//  Test 13
-		ScreenLayer [] test13 = new ScreenLayer [1];
-		test13[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 100, 1));
-		test13[0].initialize();
-		test13[0].clearChangedRegions();
-		test13[0].characters[0][0] = "A";
-		test13[0].characterWidths[0][0] = 2;
-		test13[0].colourCodes[0][0] = new int [] {};
-
-		doRegionExpansionTest(
-			test13,
-			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)),
-			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 2, 1)),
-			"Test for correct expansion for region covering first part of multi-column character."
-		);
-
-		//  Test 14
-		ScreenLayer [] test14 = new ScreenLayer [1];
-		test14[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 100, 1));
-		test14[0].initialize();
-		test14[0].clearChangedRegions();
-		test14[0].characters[0][0] = "A";
-		test14[0].characterWidths[0][0] = 2;
-		test14[0].colourCodes[0][0] = new int [] {};
-
-		doRegionExpansionTest(
-			test14,
-			new ScreenRegion(ScreenLayer.makeDimensionsCA(1, 0, 2, 1)),
-			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 2, 1)),
-			"Test for correct expansion for region covering second part of multi-column character."
-		);
-
-		//  Test 15
-		ScreenLayer [] test15 = new ScreenLayer [1];
-		test15[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 100, 1));
-		test15[0].initialize();
-		test15[0].clearChangedRegions();
-		test15[0].characters[0][0] = " ";
-		test15[0].characterWidths[0][0] = 100;
-		test15[0].colourCodes[0][0] = new int [] {};
-
-		doRegionExpansionTest(
-			test15,
-			new ScreenRegion(ScreenLayer.makeDimensionsCA(3, 0, 4, 1)),
-			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 100, 1)),
-			"Test for correct expansion for region in middle of wide character."
-		);
 
 		//  Test 1
 		ScreenLayer [] test1 = new ScreenLayer [1];
@@ -2544,6 +2577,90 @@ public class BlockManagerUnitTest {
 			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)),
 			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)),
 			"Two layers, but bottom layer has zero size and top layer is a null character."
+		);
+
+		//  Test 13
+		ScreenLayer [] test13 = new ScreenLayer [1];
+		test13[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 100, 1));
+		test13[0].initialize();
+		test13[0].clearChangedRegions();
+		test13[0].characters[0][0] = "A";
+		test13[0].characterWidths[0][0] = 2;
+		test13[0].colourCodes[0][0] = new int [] {};
+
+		doRegionExpansionTest(
+			test13,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 2, 1)),
+			"Test for correct expansion for region covering first part of multi-column character."
+		);
+
+		//  Test 14
+		ScreenLayer [] test14 = new ScreenLayer [1];
+		test14[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 100, 1));
+		test14[0].initialize();
+		test14[0].clearChangedRegions();
+		test14[0].characters[0][0] = "A";
+		test14[0].characterWidths[0][0] = 2;
+		test14[0].colourCodes[0][0] = new int [] {};
+
+		doRegionExpansionTest(
+			test14,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(1, 0, 2, 1)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 2, 1)),
+			"Test for correct expansion for region covering second part of multi-column character."
+		);
+
+		//  Test 15
+		ScreenLayer [] test15 = new ScreenLayer [1];
+		test15[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 100, 1));
+		test15[0].initialize();
+		test15[0].clearChangedRegions();
+		test15[0].characters[0][0] = " ";
+		test15[0].characterWidths[0][0] = 100;
+		test15[0].colourCodes[0][0] = new int [] {};
+
+		doRegionExpansionTest(
+			test15,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(3, 0, 4, 1)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 100, 1)),
+			"Test for correct expansion for region in middle of wide character."
+		);
+
+		//  Test 16
+		ScreenLayer [] test16 = new ScreenLayer [1];
+		test16[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
+		test16[0].initialize();
+		test16[0].clearChangedRegions();
+		test16[0].characters[0][0] = " ";
+		test16[0].characterWidths[0][0] = 1;
+		test16[0].colourCodes[0][0] = new int [] {};
+		test16[0].characters[1][0] = " ";
+		test16[0].characterWidths[1][0] = 1;
+		test16[0].colourCodes[1][0] = new int [] {};
+		test16[0].characters[2][0] = " ";
+		test16[0].characterWidths[2][0] = 1;
+		test16[0].colourCodes[2][0] = new int [] {};
+
+		doRegionExpansionTest(
+			test16,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, 1, 1)),
+			"Test for no change for first space character."
+		);
+
+		doRegionExpansionTest(
+			test16,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(1, 0, 2, 1)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(1, 0, 2, 1)),
+			"Test for no change for second space character."
+		);
+
+		doRegionExpansionTest(
+			test16,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(2, 0, 3, 1)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(2, 0, 3, 1)),
+			"Test for no change for third space character."
 		);
 
 	}

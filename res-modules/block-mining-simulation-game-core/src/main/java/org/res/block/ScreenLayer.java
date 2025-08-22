@@ -159,10 +159,6 @@ public class ScreenLayer {
 		}
 	}
 
-	public void clearFlags(){
-		this.setAllChangedFlagStates(false);
-	}
-
 	public ScreenLayer(ScreenLayer l){
 		this.placementOffset = l.getPlacementOffset();
 		this.dimensions = l.getDimensions();
@@ -448,7 +444,8 @@ public class ScreenLayer {
 						int ySrc = j-yO[s];
 						int xR = i-startX;
 						int yR = j-startY;
-						activeStates[s][xR][yR] = layerActive && screenLayers[s].active[xSrc][ySrc];
+						//  For any character in layer 0, always consider it as active regardless of whether it's 'inactive' or not:
+						activeStates[s][xR][yR] = (layerActive && screenLayers[s].active[xSrc][ySrc]) || s == 0;
 						if(screenLayers[s].changed[xSrc][ySrc] && activeStates[s][xR][yR]){
 							changeFlags[s][xR][yR] = true; //  Check all layers, just in case a layer underneath has a change of BG colour.
 						}
@@ -892,15 +889,15 @@ public class ScreenLayer {
 
 	public static int getExpansionForCoordinate(boolean isLeftToRight, int startX, int startY, int endY, int [] xO, int [] yO, ScreenLayer [] layers){
 		for(int s = 0; s < layers.length; s++){
-			//  Start at previous x character:
-			int currentX = startX - xO[s] -1;
+			//  Start at current x character:
+			int currentX = startX - xO[s];
 			for(int currentY = startY - yO[s]; currentY < endY - yO[s]; currentY++){
 				int leftDistance = getNextCharacterStartToLeft(currentX, currentY, layers[s]);
 				if(leftDistance == -1){
 					//  No expansion necessary, there is no previous solid character
 				}else{
 					int characterWidth = layers[s].characterWidths[currentX - leftDistance][currentY];
-					int diff = isLeftToRight ? (leftDistance + 1) : characterWidth - (leftDistance + 1);
+					int diff = isLeftToRight ? leftDistance : characterWidth - leftDistance -1;
 					if(diff > 0){
 						//  Need to expand.  The found char overshoots the region boundary by 'diff' amount.
 						return diff;
@@ -940,7 +937,8 @@ public class ScreenLayer {
 
 		int additionalEndExpansionX = 0;
 		do{
-			additionalEndExpansionX = getExpansionForCoordinate(false, expandedEndX, initialStartY, initialEndY, xO, yO, layers);
+			//  -1 because 'end' indicates the next character, not the current one:
+			additionalEndExpansionX = getExpansionForCoordinate(false, expandedEndX -1, initialStartY, initialEndY, xO, yO, layers);
 			expandedEndX += additionalEndExpansionX;
 		}while(additionalEndExpansionX > 0);
 
