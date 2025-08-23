@@ -211,7 +211,8 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			this.onMapAreaChange(this.mapAreaCuboidAddress); // Refresh map area
 		}
 
-		this.reprintFrame();
+		this.drawBorders();
+		this.updateFrameCoordinate();
 	}
 
 	public void updateMapAreaForPlayerPositionChange(Coordinate previousPosition, Coordinate newPosition) throws Exception{
@@ -279,7 +280,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			this.updatePlayerOverlay(new CuboidAddress(newPosition, newPosition.add(Coordinate.makeUnitCoordinate(4L))), true);
 		}
 
-		this.reprintFrame();
+		this.updateFrameCoordinate();
 		this.onFinalizeFrame();
 	}
 
@@ -318,9 +319,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		this.onFinalizeFrame();
 	}
 
-	public void reprintFrame() throws Exception {
-		this.drawBorders();
-		//  Player coordinate:
+	public void updateFrameCoordinate() throws Exception {
 		String playerCoordinateString = "X=" + this.getPlayerPosition().getX() + ", Y=" + this.getPlayerPosition().getY() + ", Z=" + this.getPlayerPosition().getZ();
 		this.printTextAtScreenXY(new ColouredTextFragment(playerCoordinateString, new int [] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}), 10L, 0L, true);
 	}

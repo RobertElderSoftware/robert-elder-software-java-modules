@@ -52,6 +52,7 @@ class ArgumentParser {
 		new ArgumentDescription("--use-ascii", 0, "Explicitly try to use only the simplest ASCII characters to produce graphics (for non-graphics ttys)"),
 		new ArgumentDescription("--use-emojis", 0, "Explicitly try to use more advanced Unicode character graphics like emojis"),
 		new ArgumentDescription("--right-to-left-print", 0, "Print screen updates from right to left instead of left to right.  Avoids display bugs in some terminals."),
+		new ArgumentDescription("--compatibility-width", 1, "Specify a fixed width for all non-ASCII characters."),
 		new ArgumentDescription("--allow-unrecognized-block-types", 0, "Allow the game to run even when there are block types that aren't supported in the block schema."),
 		new ArgumentDescription("--block-world-file", 1, "The name of the sqlite database file (SQLITE only)."),
 		new ArgumentDescription("--print-block-schema", 0, "Print current block schema and exit."),
@@ -121,7 +122,7 @@ class ArgumentParser {
 							}
 						}
 					}else{
-						throw new Exception("Unexpected number of parts in argument: " + argParts.length + ", '" + args[i] + "'.");
+						throw new Exception("There were " + argParts.length + "  parts in argument #" + i +  ": '" + args[i] + "', but expected to see 2 parts.");
 					}
 				}else{
 					//logger.info("i=" + i + args[i] + " versus " + currentArg.getArgumentKey());

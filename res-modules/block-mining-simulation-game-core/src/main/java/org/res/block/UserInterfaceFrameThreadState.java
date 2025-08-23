@@ -295,45 +295,65 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 
 		int totalWidth = 0;
+		int maximumCharacterWidth = 0;
 		for(String s : charactersToPrint){
 			int chrWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(s).getDeltaX().intValue();
+			if(chrWidth > maximumCharacterWidth){
+				maximumCharacterWidth = chrWidth;
+			}
 			logger.info("chrWidth=" + chrWidth + " for '" + s + "' (" + BlockModelContext.convertToHex(s.getBytes("UTF-8")) + " in hex).");
 			totalWidth += (chrWidth < 1 ? 1 : chrWidth);
 		}
 
-		int xDimSize = xDirection ? totalWidth : 1;
-		int yDimSize = xDirection ? 1 : totalWidth;
+		int xDimSize = xDirection ? totalWidth : maximumCharacterWidth;
+		int yDimSize = xDirection ? 1 : charactersToPrint.size();
 
 		Coordinate drawOffset = new Coordinate(Arrays.asList(drawOffsetX, drawOffsetY));
 		ScreenLayer changes = new ScreenLayer(drawOffset, ScreenLayer.makeDimensionsCA(0, 0, xDimSize, yDimSize));
 		changes.setAllChangedFlagStates(false);
 
-		int currentOffset = 0;
+		int currentXOffset = 0;
+		int currentYOffset = 0;
 		for(int i = 0; i < charactersToPrint.size(); i++){
 			String s = charactersToPrint.get(i);
 			int chrWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(s).getDeltaX().intValue();
-			int xIndex = xDirection ? currentOffset : 0;
-			int yIndex = xDirection ? 0 : currentOffset;
-			changes.colourCodes[xIndex][yIndex] = newColourCodes[i];
-			changes.characters[xIndex][yIndex] = s;
-			changes.characterWidths[xIndex][yIndex] = chrWidth;
-			changes.changed[xIndex][yIndex] = true;
-			changes.active[xIndex][yIndex] = true;
 			if(xDirection){
-				currentOffset++;
+				changes.colourCodes[currentXOffset][currentYOffset] = newColourCodes[i];
+				changes.characters[currentXOffset][currentYOffset] = s;
+				changes.characterWidths[currentXOffset][currentYOffset] = chrWidth;
+				changes.changed[currentXOffset][currentYOffset] = true;
+				changes.active[currentXOffset][currentYOffset] = true;
+				currentXOffset++;
 				//  For multi-column characters in 'x' direction, reset any of the 'covered'
 				//  columns take up by the multi-column character:
 				for(int k = 1; k < chrWidth; k++){
-					changes.colourCodes[currentOffset][yIndex] = newColourCodes[i];
-					changes.characters[currentOffset][yIndex] = null;
-					changes.characterWidths[currentOffset][yIndex] = 0;
-					changes.changed[currentOffset][yIndex] = true;
-					changes.active[currentOffset][yIndex] = true;
-					currentOffset++;
+					changes.colourCodes[currentXOffset][currentYOffset] = newColourCodes[i];
+					changes.characters[currentXOffset][currentYOffset] = null;
+					changes.characterWidths[currentXOffset][currentYOffset] = 0;
+					changes.changed[currentXOffset][currentYOffset] = true;
+					changes.active[currentXOffset][currentYOffset] = true;
+					currentXOffset++;
 				}
 			}else{
+				changes.colourCodes[currentXOffset][currentYOffset] = newColourCodes[i];
+				changes.characters[currentXOffset][currentYOffset] = s;
+				changes.characterWidths[currentXOffset][currentYOffset] = chrWidth;
+				changes.changed[currentXOffset][currentYOffset] = true;
+				changes.active[currentXOffset][currentYOffset] = true;
+				currentXOffset++;
+				//  For multi-column characters in 'x' direction, reset any of the 'covered'
+				//  columns take up by the multi-column character:
+				for(int k = 1; k < chrWidth; k++){
+					changes.colourCodes[currentXOffset][currentYOffset] = newColourCodes[i];
+					changes.characters[currentXOffset][currentYOffset] = null;
+					changes.characterWidths[currentXOffset][currentYOffset] = 0;
+					changes.changed[currentXOffset][currentYOffset] = true;
+					changes.active[currentXOffset][currentYOffset] = true;
+					currentXOffset++;
+				}
+				currentXOffset = 0;
 				//  Always advance by 1 if printing in Y direction.
-				currentOffset += 1;
+				currentYOffset += 1;
 			}
 		}
 

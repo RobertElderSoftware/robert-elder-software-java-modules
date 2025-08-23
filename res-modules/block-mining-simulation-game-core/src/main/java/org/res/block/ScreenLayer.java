@@ -276,13 +276,47 @@ public class ScreenLayer {
 		int [][][] columnsRemaining = new int [screenLayers.length][xWidth][yHeight];
 		//  The width of a character that we're starting on (in left to right pass)
 		//  or ending on (in right to left pass):
-		int [][][] currentCharacterWidths = new int [screenLayers.length][xWidth][yHeight];
 		int [][][] activeCharacterLayer = new int [screenLayers.length][xWidth][yHeight]; //  The layer number of what we think the top chr is
 
 		int loopStart = isLeftToRight ? startX : endX - 1;
 		int loopEnd = isLeftToRight ? endX : startX - 1;
 		int loopChange = isLeftToRight ? 1 : -1;
 		int [][][] firstSolidLayers = new int [screenLayers.length][xWidth][yHeight];
+
+		int [][][] currentCharacterWidths = new int [screenLayers.length][xWidth][yHeight];
+
+		//  Pre-calculate character width positions:
+		for(int s = screenLayers.length -1; s >= 0; s--){
+			for(int j = startY; j < endY; j++){
+				for(int i = startX; i < endX; i++){
+					if(isLeftToRight){
+						int xSrc = i-xO[s];
+						int ySrc = j-yO[s];
+						int xR = i-startX;
+						int yR = j-startY;
+						if(xSrc >= 0 && xSrc < screenLayers[s].getWidth() && ySrc >= 0 && ySrc < screenLayers[s].getHeight()){
+							currentCharacterWidths[s][xR][yR] = screenLayers[s].characterWidths[xSrc][ySrc];
+						}
+					}else{
+						//  Right to left pass puts width at end:
+						int xSrc = i-xO[s];
+						int ySrc = j-yO[s];
+						if(xSrc >= 0 && xSrc < screenLayers[s].getWidth() && ySrc >= 0 && ySrc < screenLayers[s].getHeight()){
+							int chrWidth = screenLayers[s].characterWidths[xSrc][ySrc];
+							if(chrWidth > 0){
+								int end_i = i + chrWidth -1; //  Offset of end of char
+								int xR = end_i - startX;
+								int yR = j-startY;
+								if(xR >= 0 && xR < xWidth){
+									currentCharacterWidths[s][xR][yR] = screenLayers[s].characterWidths[xSrc][ySrc];
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
 		for(int s = screenLayers.length -1; s >= 0; s--){
 			for(int j = startY; j < endY; j++){
 				for(int iter = startX; iter < endX; iter++){
@@ -292,23 +326,6 @@ public class ScreenLayer {
 
 					int xSrc = i-xO[s];
 					int ySrc = j-yO[s];
-					if(isLeftToRight){
-						//  For any characters that start in this position, start tracking them:
-						if(xSrc >= 0 && xSrc < screenLayers[s].getWidth() && ySrc >= 0 && ySrc < screenLayers[s].getHeight()){
-							currentCharacterWidths[s][xR][yR] = screenLayers[s].characterWidths[xSrc][ySrc];
-						}
-					}else{
-						//  For any characters that start in this position, start tracking them:
-						int backtrack = getNextCharacterStartToLeft(xSrc, ySrc, screenLayers[s]);
-						if(backtrack != -1 && activeStates[s][xR][yR]){
-							int expectedWidth = backtrack + 1;
-							if(xSrc >= 0 && xSrc < screenLayers[s].getWidth() && ySrc >= 0 && ySrc < screenLayers[s].getHeight()){
-								if(screenLayers[s].characterWidths[xSrc-backtrack][ySrc] == expectedWidth){
-									currentCharacterWidths[s][xR][yR] = expectedWidth;
-								}
-							}
-						}
-					}
 
 					if(i == loopStart && s == screenLayers.length -1){
 						//  Initial value:
@@ -651,7 +668,11 @@ public class ScreenLayer {
 		this.addChangedRegions(translatedExpandedClippedRegions);
 	}
 
-	public void printChanges(boolean useRightToLeftPrint, boolean resetCursorPosition, int xOffset, int yOffset) throws Exception{
+	public void printChanges(boolean resetCursorPosition, int xOffset, int yOffset) throws Exception{
+		this.printChanges(false, false, resetCursorPosition, xOffset, yOffset);
+	}
+
+	public void printChanges(boolean useCompatibilityWidth, boolean useRightToLeftPrint, boolean resetCursorPosition, int xOffset, int yOffset) throws Exception{
 		int loopUpdate = useRightToLeftPrint ? -1 : 1;
 		boolean resetState = useRightToLeftPrint ? true : true; // TODO:  Optimize this in the future.
 		int [] lastUsedColourCodes = null;
@@ -673,6 +694,23 @@ public class ScreenLayer {
 					if(
 						this.changed[i][j]
 					){
+						if(useCompatibilityWidth){
+							String currentPositionSequence = "\033[" + (j+1+yOffset) + ";" + (i+1+xOffset) + "H";
+							this.stringBuilder.append(currentPositionSequence);
+
+							List<String> codes = new ArrayList<String>();
+							for(int c : this.colourCodes[i][j]){
+								codes.add(String.valueOf(c));
+							}
+							String currentColorSequence = "\033[0m\033[" + String.join(";", codes) + "m";
+							this.stringBuilder.append(currentColorSequence);
+							mustSetColourCodes = resetState;
+							lastUsedColourCodes = this.colourCodes[i][j];
+
+							for(int k = 0; k < this.characterWidths[i][j]; k++){
+								this.stringBuilder.append(" ");
+							}
+						}
 						if(mustSetCursorPosition){
 							String currentPositionSequence = "\033[" + (j+1+yOffset) + ";" + (i+1+xOffset) + "H";
 							this.stringBuilder.append(currentPositionSequence);

@@ -184,6 +184,15 @@ public class BlockManagerThreadCollection {
 		return this.commandLineArgumentCollection.hasUsedKey("--right-to-left-print");
 	}
 
+	public Integer getCompatibilityWidth() throws Exception {
+		if(this.commandLineArgumentCollection.hasUsedKey("--compatibility-width")){
+			return Integer.valueOf(this.commandLineArgumentCollection.getUsedSingleValue("--compatibility-width"));
+			
+		}else{
+			return null;
+		}
+	}
+
 	public GraphicsMode getGraphicsMode() throws Exception{
 		if(!this.getIsUseASCII() && !this.getIsUseEmojis()){
 			//  Default to whatever support is implied by TERM variable:

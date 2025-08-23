@@ -312,9 +312,24 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	public TextWidthMeasurementWorkItemResult measureTextLengthOnTerminal(String text) throws Exception{
 		if(!measuredTextLengths.containsKey(text)){
+			Integer compatibilityWidth = this.blockManagerThreadCollection.getCompatibilityWidth();
+
 			TextWidthMeasurementWorkItem wm = new TextWidthMeasurementWorkItem(this.consoleWriterThreadState, text);
-			TextWidthMeasurementWorkItemResult m = (TextWidthMeasurementWorkItemResult)this.consoleWriterThreadState.putBlockingWorkItem(wm, WorkItemPriority.PRIORITY_LOW);
-			measuredTextLengths.put(text, m);
+			TextWidthMeasurementWorkItemResult result = (TextWidthMeasurementWorkItemResult)this.consoleWriterThreadState.putBlockingWorkItem(wm, WorkItemPriority.PRIORITY_LOW);
+			if(
+				//  If compatibility width is turned on
+				compatibilityWidth != null &&
+				//  and this character doesn't have a y displacement,
+				result.getDeltaY().equals(0L) &&
+				//  and it's not an ASCII character:
+				!(
+					text.length() == 1 &&
+					Character.codePointAt(text, 0) < 128
+				)
+			){
+				result = new TextWidthMeasurementWorkItemResult((long)compatibilityWidth, 0L);
+			}
+			measuredTextLengths.put(text, result);
 		}
 		return this.measuredTextLengths.get(text);
 	}

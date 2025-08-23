@@ -1406,7 +1406,7 @@ public class BlockManagerUnitTest {
 
                 this.verifyObject(output.changed[0][0], true);
                 this.verifyObject(output.changed[1][0], true);
-		output.printChanges(false, false, 10, 10); // Clear changed flags
+		output.printChanges(false, 10, 10); // Clear changed flags
                 this.verifyObject(output.changed[0][0], false);
                 this.verifyObject(output.changed[1][0], false);
 
