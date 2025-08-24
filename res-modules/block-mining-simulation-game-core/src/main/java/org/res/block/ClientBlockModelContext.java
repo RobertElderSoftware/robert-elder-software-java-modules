@@ -546,6 +546,10 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		return this.inMemoryChunks.readBlockAtCoordinate(coordinate);
 	}
 
+	public void loadBlocksFromMemory(ThreeDimensionalCircularBuffer<IndividualBlock> blockBuffer, CuboidAddress areaToInclude, CuboidAddress areaToExclude) throws Exception {
+		this.inMemoryChunks.loadBlocksFromMemory(blockBuffer, areaToInclude, areaToExclude);
+	}
+
 	public List<Cuboid> getBlocksInRegions(List<CuboidAddress> cuboidAddresses) throws Exception{
 		throw new Exception("Not Implemented.");
 	}

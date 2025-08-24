@@ -164,7 +164,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 
 		int selectedIndex = this.getSelectedInventoryItemIndex().intValue();
 		String prefix = itemIndex == selectedIndex ? prefixCharacter : "";
-		String paddedPrefix = this.whitespacePad(prefix, 3L);
+		String paddedPrefix = this.whitespacePad(prefix, this.getMapAreaCellWidth(), false);
 
 		String inventoryItemText = this.whitespacePad(blockPresentation, this.getMapAreaCellWidth()) + "  (" + stack.getQuantity().toString() + ") " + blockFromStack.getClass().getSimpleName() + " ";
 		return new ColouredTextFragmentList(Arrays.asList(
@@ -205,7 +205,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 				Long yOffset = yPaddingTop + (i * 2L);
 				//this.printTextAtScreenXY(text, 2L + offset, yOffset, true);
 
-				Long xOffset = 2L + offset;
+				Long xOffset = this.getMapAreaCellWidth() + offset;
 				Long paddingLeft = xOffset;
 				Long paddingRight = this.getInnerFrameWidth() - (xOffset + getInventoryColumnWidth()) + 2L;
 				paddingRight = Math.max(2L, paddingRight);

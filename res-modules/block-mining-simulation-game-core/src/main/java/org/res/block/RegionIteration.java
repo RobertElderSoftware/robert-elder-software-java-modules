@@ -56,6 +56,10 @@ public class RegionIteration {
 		this.isOverflow = !cuboidAddress.containsCoordinate(coordinate);
 	}
 
+	public boolean isDone(){
+		return this.isOverflow;
+	}
+
 	public Coordinate getCurrentCoordinate() throws Exception {
 		if(this.isOverflow){
 			throw new Exception("This region iteration is in overflow state at coordinate " + coordinate + " for cuboid address " + this.cuboidAddress + ".");

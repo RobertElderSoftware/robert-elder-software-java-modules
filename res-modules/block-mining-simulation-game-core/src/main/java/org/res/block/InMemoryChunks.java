@@ -286,20 +286,40 @@ public class InMemoryChunks extends WorkItemQueueOwner<InMemoryChunksWorkItem> {
 		}
 	}
 
+	private IndividualBlock readBlockAtCoordinate_Internal(Coordinate coordinate) throws Exception{
+		//  Figure out which 'chunk' this coordinate belongs to:
+		CuboidAddress chunkCuboidAddress = CuboidAddress.blockCoordinateToChunkCuboidAddress(coordinate, this.chunkSize);
+		long blockOffsetInArray = chunkCuboidAddress.getLinearArrayIndexForCoordinate(coordinate);
+		if(this.pendingAlreadyRequestedChunks.contains(chunkCuboidAddress)){
+			return null; //  Still waiting on chunk to come back from server.
+		}else{
+			IndividualBlock [] blocksInChunk = this.blockChunks.get(chunkCuboidAddress);
+			if(blocksInChunk == null){ //  Chunk not loaded at all, and not even in a pending request to server.
+				return null;
+			}else{
+				return blocksInChunk[(int)blockOffsetInArray];
+			}
+		}
+	}
+
 	public IndividualBlock readBlockAtCoordinate(Coordinate coordinate) throws Exception{
 		synchronized(lock){
-			//  Figure out which 'chunk' this coordinate belongs to:
-			CuboidAddress chunkCuboidAddress = CuboidAddress.blockCoordinateToChunkCuboidAddress(coordinate, this.chunkSize);
-			long blockOffsetInArray = chunkCuboidAddress.getLinearArrayIndexForCoordinate(coordinate);
-			if(this.pendingAlreadyRequestedChunks.contains(chunkCuboidAddress)){
-				return null; //  Still waiting on chunk to come back from server.
-			}else{
-				IndividualBlock [] blocksInChunk = this.blockChunks.get(chunkCuboidAddress);
-				if(blocksInChunk == null){ //  Chunk not loaded at all, and not even in a pending request to server.
-					return null;
-				}else{
-					return blocksInChunk[(int)blockOffsetInArray];
+			return readBlockAtCoordinate_Internal(coordinate);
+		}
+	}
+
+	public void loadBlocksFromMemory(ThreeDimensionalCircularBuffer<IndividualBlock> blockBuffer, CuboidAddress areaToInclude, CuboidAddress areaToExclude) throws Exception {
+		synchronized(lock){
+			RegionIteration regionIteration = new RegionIteration(areaToInclude.getCanonicalLowerCoordinate(), areaToInclude);
+			while(!regionIteration.isDone()){
+				Coordinate currentCoordinate = regionIteration.getCurrentCoordinate();
+				if(areaToExclude == null || !areaToExclude.containsCoordinate(currentCoordinate)){
+					IndividualBlock b = this.readBlockAtCoordinate_Internal(currentCoordinate);
+					if(b != null){ /* Chunk not even loaded. */
+						blockBuffer.setObjectAtCoordinate(currentCoordinate, b);
+					}
 				}
+				regionIteration.incrementCoordinateWithinCuboidAddress();
 			}
 		}
 	}

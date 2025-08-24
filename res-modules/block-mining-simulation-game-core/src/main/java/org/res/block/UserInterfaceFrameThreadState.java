@@ -446,7 +446,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	public Long getMapAreaCellWidth() throws Exception{
 		if(this.mapAreaCellWidth == null){
 			GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
-			this.mapAreaCellWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(BlockSkins.getPresentation(IronOxide.class, mode.equals(GraphicsMode.ASCII))).getDeltaX();
+			Long ironOxideBlockWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(BlockSkins.getPresentation(IronOxide.class, mode.equals(GraphicsMode.ASCII))).getDeltaX();
+
+			Integer compatibilityWidth = this.blockManagerThreadCollection.getCompatibilityWidth();
+			this.mapAreaCellWidth = Math.max(ironOxideBlockWidth, compatibilityWidth == null ? 0 : compatibilityWidth);
 		}
 		return this.mapAreaCellWidth;
 	}
@@ -842,11 +845,15 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 	public String whitespacePad(String presentedText, Long paddedWidth) throws Exception{
+		return whitespacePad(presentedText, paddedWidth, true);
+	}
+
+	public String whitespacePad(String presentedText, Long paddedWidth, boolean checkWidth) throws Exception{
 		//  An empty cell with zero byte length will otherwise render to nothing causing the last cell to not get overprinted.
 		//  Adding the extra space after the Rocks because the 'rock' emoji only takes up one space for the background colour, and BG colour won't update correctly otherwise.
 
 		Long presentedTextWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(presentedText).getDeltaX();
-		if(presentedTextWidth > paddedWidth){
+		if(checkWidth && presentedTextWidth > paddedWidth){
 			throw new Exception("Text has terminal width of " + presentedTextWidth + " which is wider than allowed paddedWidth value of " + paddedWidth);
 		}
 
