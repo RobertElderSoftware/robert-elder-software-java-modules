@@ -66,7 +66,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	protected FrameChangeWorkItemParams currentFrameChangeWorkItemParams;
 	protected FrameChangeWorkItemParams previousSuccessfullyPrintedFrameChangeWorkItemParams;
 	protected int [] usedScreenLayers;
-	protected boolean completedInitialOpen = false; //  Used to speed up feedback on initial open.
+	protected boolean completedInitialBackgroundClear = false; //  Used to speed up feedback on initial open.
 
 	private final AtomicLong frameDimensionsChangeSeq = new AtomicLong(0);
 
@@ -364,7 +364,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			ScreenRegion.makeScreenRegionCA(0, 0, xDimSize, yDimSize)
 		);
 		changes.addChangedRegion(region);
-		this.writeToLocalFrameBuffer(changes, bufferIndex);
+		this.writeToLocalFrameBuffer(changes, bufferIndex, true);
 	}
 
 	public boolean sendConsolePrintMessage(List<ScreenLayerPrintParameters> params, FrameDimensions fd) throws Exception{
@@ -682,6 +682,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			if(hasThisFrameDimensionsChanged || hasOtherFrameDimensionsChanged){
 				this.initializeFrames();
 			}
+
+			if(hasThisFrameDimensionsChanged){ //  If frame size changed, may need to refresh background.
+				this.completedInitialBackgroundClear = false;
+			}
 			this.onRenderFrame(hasThisFrameDimensionsChanged, hasOtherFrameDimensionsChanged);
 			boolean printedSuccessfully = this.onFinalizeFrame();
 			if(printedSuccessfully){
@@ -690,8 +694,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 	}
 
-	public void writeToLocalFrameBuffer(ScreenLayer changes, int bufferIndex) throws Exception{
-		this.bufferedScreenLayers[bufferIndex].mergeDown(changes, false);
+	public void writeToLocalFrameBuffer(ScreenLayer changes, int bufferIndex, boolean forcedBottomLayerActiveState) throws Exception{
+		this.bufferedScreenLayers[bufferIndex].mergeDown(changes, false, forcedBottomLayerActiveState);
 	}
 
 	public boolean hasOtherFrameDimensionsChanged(FrameChangeWorkItemParams params){
@@ -769,7 +773,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		return false;
 	}
 
-	public void sendCellUpdatesInScreenArea(CuboidAddress areaToUpdate, String [][] updatedCellContents, int [][][] updatedColourCodes, Long drawOffsetX, Long drawOffsetY, int bufferIndex) throws Exception{
+	public void sendCellUpdatesInScreenArea(CuboidAddress areaToUpdate, String [][] updatedCellContents, int [][][] updatedColourCodes, Long drawOffsetX, Long drawOffsetY, int bufferIndex, boolean forcedBottomLayerActiveState) throws Exception{
 		//  Print a square of padded cells on the terminal.
 		int areaCellWidth = (int)areaToUpdate.getWidthForIndex(0L);
 		int areaCellHeight = (int)areaToUpdate.getWidthForIndex(2L);
@@ -841,7 +845,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 		ScreenRegion region = new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, xSize, ySize));
 		changes.addChangedRegion(region);
-		this.writeToLocalFrameBuffer(changes, bufferIndex);
+		this.writeToLocalFrameBuffer(changes, bufferIndex, forcedBottomLayerActiveState);
 	}
 
 	public String whitespacePad(String presentedText, Long paddedWidth) throws Exception{
@@ -873,9 +877,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			}
 			this.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(repeatNumber), new int[] {FRAME_CLEAR_BG_COLOR}), 0L, l, true);
 		}
-		if(!this.completedInitialOpen){
+		if(!this.completedInitialBackgroundClear){
+			//  If this write is reject, it doesn't mattter because it must have came from a resize event and will trigger another clear
 			this.onFinalizeFrame(); //  Initial clear frame to give fast feedback to user.
-			this.completedInitialOpen = true;
+			this.completedInitialBackgroundClear = true;
 		}
 	}
 

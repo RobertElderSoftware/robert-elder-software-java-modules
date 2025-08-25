@@ -389,10 +389,18 @@ public class ScreenLayer {
 	}
 
 	public void mergeDown(ScreenLayer aboveLayer, boolean trustChangedFlags) throws Exception{
-		this.mergeDown(new ScreenLayer [] {aboveLayer}, trustChangedFlags);
+		this.mergeDown(aboveLayer, trustChangedFlags, true);
+	}
+
+	public void mergeDown(ScreenLayer aboveLayer, boolean trustChangedFlags, boolean forcedBottomLayerState) throws Exception{
+		this.mergeDown(new ScreenLayer [] {aboveLayer}, trustChangedFlags, forcedBottomLayerState);
 	}
 
 	public void mergeDown(ScreenLayer [] aboveLayers, boolean trustChangedFlags) throws Exception{
+		this.mergeDown(aboveLayers, trustChangedFlags, true);
+	}
+
+	public void mergeDown(ScreenLayer [] aboveLayers, boolean trustChangedFlags, boolean forcedBottomLayerState) throws Exception{
 		ScreenLayer [] screenLayers = new ScreenLayer [aboveLayers.length +1];
 		int [] xO = new int [aboveLayers.length +1];
 		int [] yO = new int [aboveLayers.length +1];
@@ -462,7 +470,7 @@ public class ScreenLayer {
 						int xR = i-startX;
 						int yR = j-startY;
 						//  For any character in layer 0, always consider it as active regardless of whether it's 'inactive' or not:
-						activeStates[s][xR][yR] = (layerActive && screenLayers[s].active[xSrc][ySrc]) || s == 0;
+						activeStates[s][xR][yR] = (s == 0) ? forcedBottomLayerState : (layerActive && screenLayers[s].active[xSrc][ySrc]);
 						if(screenLayers[s].changed[xSrc][ySrc] && activeStates[s][xR][yR]){
 							changeFlags[s][xR][yR] = true; //  Check all layers, just in case a layer underneath has a change of BG colour.
 						}
@@ -935,12 +943,26 @@ public class ScreenLayer {
 					//  No expansion necessary, there is no previous solid character
 				}else{
 					int characterWidth = layers[s].characterWidths[currentX - leftDistance][currentY];
-					int diff = isLeftToRight ? leftDistance : characterWidth - leftDistance -1;
-					if(diff > 0){
-						//  Need to expand.  The found char overshoots the region boundary by 'diff' amount.
-						return diff;
+					if(isLeftToRight){
+						if(leftDistance > 0){
+							int diff = characterWidth - leftDistance;
+							if(diff > 0){
+								//  Need to expand.  The found char start is beyond the left region boundary by 'leftDistance' amount.
+								return leftDistance;
+							}else{
+
+							}
+						}else{
+							//  No expansion necessary, the left boundary is already on a character start
+						}
 					}else{
-						//  No expansion necessary, there is space for the character.
+						int diff = characterWidth - leftDistance -1;
+						if(diff > 0){
+							//  Need to expand.  The found char overshoots the region boundary by 'diff' amount.
+							return diff;
+						}else{
+							//  No expansion necessary, there is space for the character.
+						}
 					}
 				}
 			}
@@ -991,5 +1013,18 @@ public class ScreenLayer {
 				initialEndY
 			)
 		);
+	}
+
+	public String getMessageIfScreenHasNullCharacters() throws Exception{
+		int width = this.getWidth();
+		int height = this.getHeight();
+		for(int i = 0; i < width; i++){
+			for(int j = 0; j < height; j++){
+				if(this.characters[i][j] == null){
+					return "Saw a null at i=" + i + ", j=" + j;
+				}
+			}
+		}
+		return null;
 	}
 }

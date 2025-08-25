@@ -68,10 +68,12 @@ public class MergedScreenInfo{
 
 	//  Save a copy of bottom layer before merge:
 	private Map<Coordinate, TestScreenCharacter> beforeMergeCharacters;
+	private Boolean randomizedForcedBottomLayerState;
 
-	public MergedScreenInfo(ScreenLayer [] allLayers, List<Map<Coordinate, TestScreenCharacter>> layerRelativeCharacters){
+	public MergedScreenInfo(ScreenLayer [] allLayers, List<Map<Coordinate, TestScreenCharacter>> layerRelativeCharacters, boolean randomizedForcedBottomLayerState){
 		this.allLayers = allLayers;
 		this.layerRelativeCharacters = layerRelativeCharacters;
+		this.randomizedForcedBottomLayerState = randomizedForcedBottomLayerState;
 	}
 
 	public void init() throws Exception{
@@ -129,13 +131,15 @@ public class MergedScreenInfo{
 
 
 	public boolean isCharacterActive(Coordinate coordinate, int s, List<Map<Coordinate, TestScreenCharacter>> characterMap, ScreenLayer [] allLayers){
-		return (
-			(
+		if(s == 0){
+			return this.randomizedForcedBottomLayerState;
+		}else{
+			return (
 				characterMap.get(s).get(coordinate).active &&
 				allLayers[s].getIsLayerActive()
-			) ||
-			s == 0 //  Bottom layer is always counted as active.
-		);
+				
+			);
+		}
 	}
 
 	private Map<Coordinate, TestScreenCharacter> calculateBeforeMergeCharacters(){

@@ -1687,7 +1687,7 @@ public class BlockManagerUnitTest {
 		this.verifyObject(merged.active[3][0], true);
         }
 
-	public TestScreenCharacter getExpectedTestCharacter(MergedScreenInfo msi, boolean trustChangedFlags, ScreenLayer [] layers, List<Map<Coordinate, TestScreenCharacter>> layerCharacters, int l, Coordinate currentCoordinate, TestScreenCharacter firstColumnOfCharacter) throws Exception{
+	public TestScreenCharacter getExpectedTestCharacter(MergedScreenInfo msi, boolean trustChangedFlags, boolean randomizedForcedBottomLayerState, ScreenLayer [] layers, List<Map<Coordinate, TestScreenCharacter>> layerCharacters, int l, Coordinate currentCoordinate, TestScreenCharacter firstColumnOfCharacter) throws Exception{
 
 		//  Check to see if the current point is inside a
 		//  changed region for at least one layer.  If so, return
@@ -1904,8 +1904,9 @@ public class BlockManagerUnitTest {
 		Long placementOffsetYMax = randomizePlacementOffset ? 5L : 0L;
 		for(int currentSeed = startingSeed; currentSeed < (startingSeed + numDifferentSeeds); currentSeed++){
 			Random rand = new Random(currentSeed);
+			boolean randomizedForcedBottomLayerState = this.getRandomBoolean(rand);
 			boolean trustChangedFlags = this.getRandomBoolean(rand);
-			System.out.println("Begin testing with seed=" + currentSeed + " and trustChangedFlags=" + trustChangedFlags);
+			System.out.println("Begin testing with seed=" + currentSeed + " and trustChangedFlags=" + trustChangedFlags + ", randomizedForcedBottomLayerState=" + randomizedForcedBottomLayerState);
 			int numLayers = rand.nextInt(maxNumLayers) + 1;
 
 			ScreenLayer [] allLayers = new ScreenLayer [numLayers];
@@ -2045,11 +2046,11 @@ public class BlockManagerUnitTest {
 				}
 			}
 			
-			MergedScreenInfo msi = new MergedScreenInfo(allLayers, layerCharacters);
+			MergedScreenInfo msi = new MergedScreenInfo(allLayers, layerCharacters, randomizedForcedBottomLayerState);
 			msi.init(); //  Initialize before merge to save a copy of before characters
 			//  Do the actual merge process:
 
-			bottomLayer.mergeDown(aboveLayers, trustChangedFlags);
+			bottomLayer.mergeDown(aboveLayers, trustChangedFlags, randomizedForcedBottomLayerState);
 
 
 			System.out.print("Here is the resulting merged layer:\n");
@@ -2074,13 +2075,13 @@ public class BlockManagerUnitTest {
 					for(int x = 0; x < allLayers[l].getWidth(); x++){
 						Coordinate currentCoordinate = new Coordinate(Arrays.asList((long)x, (long)y));
 						TestScreenCharacter ref = columnsLeftInCharacter > 0 ? firstColumnOfCharacter : null;
-						TestScreenCharacter cc = this.getExpectedTestCharacter(msi, trustChangedFlags, allLayers, layerCharacters, l, currentCoordinate, ref);
+						TestScreenCharacter cc = this.getExpectedTestCharacter(msi, trustChangedFlags, randomizedForcedBottomLayerState, allLayers, layerCharacters, l, currentCoordinate, ref);
 						if(columnsLeftInCharacter <= 0 && cc.characterWidths > 0){
 							firstColumnOfCharacter = cc;
 							columnsLeftInCharacter = cc.characterWidths;
 						}
 
-						String msg = "currentCoordinate=" + currentCoordinate + ", trustChangedFlags=" + trustChangedFlags + ", x=" + x + ", y=" + y + ", l="+l;
+						String msg = "currentCoordinate=" + currentCoordinate + ", trustChangedFlags=" + trustChangedFlags + ", randomizedForcedBottomLayerState=" + randomizedForcedBottomLayerState +  ", x=" + x + ", y=" + y + ", l="+l;
 						this.verifyObject(allLayers[l].characters[x][y], cc.characters, msg);
 						this.verifyObject(allLayers[l].characterWidths[x][y], cc.characterWidths, msg);
 						this.verifyArray(allLayers[l].colourCodes[x][y], cc.colourCodes, msg);
@@ -2661,6 +2662,29 @@ public class BlockManagerUnitTest {
 			new ScreenRegion(ScreenLayer.makeDimensionsCA(2, 0, 3, 1)),
 			new ScreenRegion(ScreenLayer.makeDimensionsCA(2, 0, 3, 1)),
 			"Test for no change for third space character."
+		);
+
+
+		//  Test 17
+		ScreenLayer [] test17 = new ScreenLayer [1];
+		test17[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
+		test17[0].initialize();
+		test17[0].clearChangedRegions();
+		test17[0].characters[0][0] = " ";
+		test17[0].characterWidths[0][0] = 1;
+		test17[0].colourCodes[0][0] = new int [] {};
+		test17[0].characters[1][0] = null;
+		test17[0].characterWidths[1][0] = 0;
+		test17[0].colourCodes[1][0] = new int [] {};
+		test17[0].characters[2][0] = " ";
+		test17[0].characterWidths[2][0] = 1;
+		test17[0].colourCodes[2][0] = new int [] {};
+
+		doRegionExpansionTest(
+			test17,
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(1, 0, 2, 1)),
+			new ScreenRegion(ScreenLayer.makeDimensionsCA(1, 0, 2, 1)),
+			"Test for no change when only over a null character that's beside a 1 width character."
 		);
 
 	}

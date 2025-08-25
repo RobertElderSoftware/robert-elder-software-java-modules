@@ -328,7 +328,8 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			currentPositionColours,
 			this.getMapXOffsetInScreenCoordinates(playerPositionCA),
 			this.getMapYOffsetInScreenCoordinates(playerPositionCA),
-			ConsoleWriterThreadState.BUFFER_INDEX_OVERLAY
+			ConsoleWriterThreadState.BUFFER_INDEX_OVERLAY,
+			false
 		);
 	}
 
@@ -377,8 +378,6 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		boolean useASCII = mode.equals(GraphicsMode.ASCII);
 		Long areaToUpdateWidth = areaToUpdate.getWidthForIndex(0L);
 		Long areaToUpdateHeight = areaToUpdate.getWidthForIndex(2L);
-		Long mapAreaWidthInCells = this.mapAreaCuboidAddress.getWidthForIndex(0L);
-		Long mapAreaHeightInCells = this.mapAreaCuboidAddress.getWidthForIndex(2L);
 		String [][] updatedCellContents = new String [areaToUpdateWidth.intValue()][areaToUpdateHeight.intValue()];
 		int [][][] updatedBackgroundColours = new int [areaToUpdateWidth.intValue()][areaToUpdateHeight.intValue()][2];
 
@@ -431,14 +430,15 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 		Long screenDrawX = (this.getMapXOffsetInCells(areaToUpdate) * this.getMapAreaCellWidth()) + this.getFrameCharacterWidth();
 		Long screenDrawY = this.getMapYOffsetInCells(areaToUpdate) + this.getFrameCharacterHeight();
-	
+
 		this.sendCellUpdatesInScreenArea(
 			areaToUpdate,
 			updatedCellContents,
 			updatedBackgroundColours,
 			this.getMapXOffsetInScreenCoordinates(areaToUpdate),
 			this.getMapYOffsetInScreenCoordinates(areaToUpdate),
-			ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT
+			ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT,
+			true
 		);
 	}
 
