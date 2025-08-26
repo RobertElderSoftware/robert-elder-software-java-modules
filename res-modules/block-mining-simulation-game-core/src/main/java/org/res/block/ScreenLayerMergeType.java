@@ -30,40 +30,24 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.Set;
-import java.util.List;
-import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
+import java.util.Map;
+import java.util.HashMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
+public enum ScreenLayerMergeType {
+        PREFER_BOTTOM_LAYER (true),
+        PREFER_INPUT_TRANSPARENCY (false);
 
-public class ScreenLayerPrintParameters {
+        private final boolean bottomLayerState;
 
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private ScreenLayer screenLayer;
-	private ScreenLayerMergeParameters screenLayerMergeParameters;
+        private ScreenLayerMergeType(boolean bottomLayerState) {
+                this.bottomLayerState = bottomLayerState;
+        }
 
-	public ScreenLayerPrintParameters(ScreenLayer screenLayer, ScreenLayerMergeParameters screenLayerMergeParameters){
-	       	this.screenLayer = screenLayer;
-		this.screenLayerMergeParameters = screenLayerMergeParameters;
-	}
+        public boolean equalsBottomLayerState(boolean bottomLayerState) {
+                return this.bottomLayerState == bottomLayerState;
+        }
 
-	public ScreenLayerMergeParameters getScreenLayerMergeParameters(){
-		return this.screenLayerMergeParameters;
-	}
-
-	public ScreenLayer getScreenLayer(){
-		return this.screenLayer;
-	}
-
-	public int getBufferIndex(){
-		return this.screenLayerMergeParameters.getBufferIndex();
-	}
-
-	public ScreenLayerMergeType getScreenLayerMergeType(){
-		return this.screenLayerMergeParameters.getScreenLayerMergeType();
-	}
+        public boolean toBoolean() {
+                return this.bottomLayerState;
+        }
 }

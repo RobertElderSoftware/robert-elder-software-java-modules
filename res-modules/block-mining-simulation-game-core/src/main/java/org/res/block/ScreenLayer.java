@@ -389,18 +389,18 @@ public class ScreenLayer {
 	}
 
 	public void mergeDown(ScreenLayer aboveLayer, boolean trustChangedFlags) throws Exception{
-		this.mergeDown(aboveLayer, trustChangedFlags, true);
+		this.mergeDown(aboveLayer, trustChangedFlags, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
 	}
 
-	public void mergeDown(ScreenLayer aboveLayer, boolean trustChangedFlags, boolean forcedBottomLayerState) throws Exception{
+	public void mergeDown(ScreenLayer aboveLayer, boolean trustChangedFlags, ScreenLayerMergeType forcedBottomLayerState) throws Exception{
 		this.mergeDown(new ScreenLayer [] {aboveLayer}, trustChangedFlags, forcedBottomLayerState);
 	}
 
 	public void mergeDown(ScreenLayer [] aboveLayers, boolean trustChangedFlags) throws Exception{
-		this.mergeDown(aboveLayers, trustChangedFlags, true);
+		this.mergeDown(aboveLayers, trustChangedFlags, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
 	}
 
-	public void mergeDown(ScreenLayer [] aboveLayers, boolean trustChangedFlags, boolean forcedBottomLayerState) throws Exception{
+	public void mergeDown(ScreenLayer [] aboveLayers, boolean trustChangedFlags, ScreenLayerMergeType forcedBottomLayerState) throws Exception{
 		ScreenLayer [] screenLayers = new ScreenLayer [aboveLayers.length +1];
 		int [] xO = new int [aboveLayers.length +1];
 		int [] yO = new int [aboveLayers.length +1];
@@ -470,7 +470,8 @@ public class ScreenLayer {
 						int xR = i-startX;
 						int yR = j-startY;
 						//  For any character in layer 0, always consider it as active regardless of whether it's 'inactive' or not:
-						activeStates[s][xR][yR] = (s == 0) ? forcedBottomLayerState : (layerActive && screenLayers[s].active[xSrc][ySrc]);
+						boolean fbls = forcedBottomLayerState.toBoolean();
+						activeStates[s][xR][yR] = (s == 0) ? fbls : (layerActive && screenLayers[s].active[xSrc][ySrc]);
 						if(screenLayers[s].changed[xSrc][ySrc] && activeStates[s][xR][yR]){
 							changeFlags[s][xR][yR] = true; //  Check all layers, just in case a layer underneath has a change of BG colour.
 						}
@@ -694,10 +695,14 @@ public class ScreenLayer {
 			for(int j = startY; j < endY; j++){
 				boolean mustSetCursorPosition = true;
 				boolean mustSetColourCodes = true;
+				int chrsLeft = 0;
 				for(int i = startColumn; i != endColumn; i += loopUpdate){
 					//  Try to intelligently issue as few ANSI escape sequences as possible:
 					if(!Arrays.equals(this.colourCodes[i][j], lastUsedColourCodes)){
 						mustSetColourCodes = true;
+					}
+					if(chrsLeft <= 0){
+						chrsLeft = this.characterWidths[i][j];
 					}
 					if(
 						this.changed[i][j]
@@ -734,13 +739,17 @@ public class ScreenLayer {
 							mustSetColourCodes = resetState;
 							lastUsedColourCodes = this.colourCodes[i][j];
 						}
-						if(this.characters[i][j] != null){
+						if(this.characters[i][j] == null && chrsLeft == 0){
+							this.stringBuilder.append("\033[43mX\033[0m"); // Highlight Nulls
+						}else if(this.characters[i][j] == null){
+						}else{
 							this.stringBuilder.append(this.characters[i][j]);
 						}
 						this.changed[i][j] = false;
 					}else{
 						mustSetCursorPosition = true;
 					}
+					chrsLeft--;
 				}
 			}
 		}

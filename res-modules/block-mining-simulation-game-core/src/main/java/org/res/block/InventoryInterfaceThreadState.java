@@ -127,7 +127,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 			logger.info("InventoryInterfaceThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
 		}
 		this.onRenderFrame(true, true);
-		this.onFinalizeFrame();
+		this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
 	}
 
 	public void onKeyboardInput(byte [] characters) throws Exception {
@@ -152,7 +152,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		if(this.getFrameWidth() != null && this.getFrameHeight() != null){
 			this.reprintFrame();
 		}
-		this.onFinalizeFrame();
+		this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
 	}
 
 	public ColouredTextFragmentList makeInventoryItemText(PlayerInventoryItemStack stack, int itemIndex) throws Exception{

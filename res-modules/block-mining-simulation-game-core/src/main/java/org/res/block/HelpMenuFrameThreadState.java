@@ -189,7 +189,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		}else{
 			logger.info("HelpMenuFrameThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
 		}
-		this.onFinalizeFrame();
+		this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
 	}
 
 	public void onResizeFrame(Long deltaXColumns, Long deltaYColumns) throws Exception {
@@ -335,12 +335,12 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			} case HelpMenuOptionType.DO_SUBMENU:{
 				this.helpMenu.descendIntoSubmenu();
 				this.render();
-				this.onFinalizeFrame();
+				this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
 				break;
 			} case HelpMenuOptionType.BACK_UP_LEVEL:{
 				this.helpMenu.ascendFromSubmenu();
 				this.render();
-				this.onFinalizeFrame();
+				this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
 				break;
 			} case HelpMenuOptionType.ROTATE_SPLIT:{
 				this.onRotateSplit((RotateSplitHelpMenuOption)option);
@@ -384,7 +384,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 					}case ACTION_HELP_MENU_TOGGLE:{
 						this.helpMenu.setActiveState(false);
 						this.render();
-						this.onFinalizeFrame();
+						this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
 						break;
 					}default:{
 						logger.info("Ignoring " + b);
@@ -449,13 +449,11 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 
 		ScreenRegion region = new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, terminalWidth, terminalHeight));
 		changes.addChangedRegion(region);
-		this.writeToLocalFrameBuffer(changes, ConsoleWriterThreadState.BUFFER_INDEX_MENU, false);
+		this.writeToLocalFrameBuffer(changes, new ScreenLayerMergeParameters(ConsoleWriterThreadState.BUFFER_INDEX_MENU, ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY));
 
-		if(this.helpMenu.getActiveState()){
-			for(LinePrintingInstructionAtOffset instruction : instructions){
-				Long lineYOffset = instruction.getOffsetY() + yOffset;
-				this.executeLinePrintingInstructionsAtYOffset(Arrays.asList(instruction.getLinePrintingInstruction()), lineYOffset, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
-			}
+		for(LinePrintingInstructionAtOffset instruction : instructions){
+			Long lineYOffset = instruction.getOffsetY() + yOffset;
+			this.executeLinePrintingInstructionsAtYOffset(Arrays.asList(instruction.getLinePrintingInstruction()), lineYOffset, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
 		}
 
 		this.setScreenLayerState(ConsoleWriterThreadState.BUFFER_INDEX_MENU, this.helpMenu.getActiveState());

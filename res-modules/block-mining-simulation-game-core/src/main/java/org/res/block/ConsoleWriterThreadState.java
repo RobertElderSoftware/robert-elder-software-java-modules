@@ -795,14 +795,14 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		for(ScreenLayerPrintParameters param : params){
 			ScreenLayer changes = param.getScreenLayer();
 			int bufferIndex = param.getBufferIndex();
-			this.screenLayers[bufferIndex].mergeDown(changes, false, false);
+			this.screenLayers[bufferIndex].mergeDown(changes, false, param.getScreenLayerMergeType());
 		}
 
 		return new EmptyWorkItemResult();
 	}
 
 	public void printTerminalTextChanges(boolean resetCursorPosition) throws Exception{
-		this.mergedFinalScreenLayer.mergeDown(this.screenLayers, false, true);
+		this.mergedFinalScreenLayer.mergeDown(this.screenLayers, false, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
 		boolean useRightToLeftPrint = this.blockManagerThreadCollection.getRightToLeftPrint();
 		boolean useCompatibilityWidth = this.blockManagerThreadCollection.getCompatibilityWidth() != null;
 		this.mergedFinalScreenLayer.printChanges(useCompatibilityWidth, useRightToLeftPrint, resetCursorPosition, 0, 0);

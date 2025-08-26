@@ -281,7 +281,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		}
 
 		this.updateFrameCoordinate();
-		this.onFinalizeFrame();
+		this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
 	}
 
 	private void onMapAreaChange(CuboidAddress newMapArea) throws Exception{
@@ -303,7 +303,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	public void onUpdateMapAreaFlagsNotify(CuboidAddress areaToUpdate) throws Exception {
 		this.loadMapAreaBlocksFromMemory(areaToUpdate, null);
 		this.printMapAreaUpdates(areaToUpdate);
-		this.onFinalizeFrame();
+		this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
 	}
 
 	public void updateFrameCoordinate() throws Exception {
@@ -328,8 +328,10 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			currentPositionColours,
 			this.getMapXOffsetInScreenCoordinates(playerPositionCA),
 			this.getMapYOffsetInScreenCoordinates(playerPositionCA),
-			ConsoleWriterThreadState.BUFFER_INDEX_OVERLAY,
-			false
+			new ScreenLayerMergeParameters(
+				ConsoleWriterThreadState.BUFFER_INDEX_OVERLAY,
+				ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY
+			)
 		);
 	}
 
@@ -437,8 +439,10 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			updatedBackgroundColours,
 			this.getMapXOffsetInScreenCoordinates(areaToUpdate),
 			this.getMapYOffsetInScreenCoordinates(areaToUpdate),
-			ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT,
-			true
+			new ScreenLayerMergeParameters(
+				ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT,
+				ScreenLayerMergeType.PREFER_BOTTOM_LAYER
+			)
 		);
 	}
 

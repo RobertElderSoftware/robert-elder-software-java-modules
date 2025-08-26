@@ -265,7 +265,7 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 		}else{
 			logger.info("HelpMenuFrameThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
 		}
-		this.onFinalizeFrame();
+		this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
 	}
 
 	public void onKeyboardInput(byte [] characters) throws Exception {
