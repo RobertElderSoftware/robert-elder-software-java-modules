@@ -86,8 +86,8 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public List<LinePrintingInstructionAtOffset> getAllHelpMenuLines() throws Exception {
-		int [] titleAnsiCodes = new int[] {UserInterfaceFrameThreadState.DEFAULT_TEXT_BG_COLOR, UserInterfaceFrameThreadState.BOLD_COLOR, UserInterfaceFrameThreadState.UNDERLINE_COLOR, UserInterfaceFrameThreadState.RED_FG_COLOR};
-		int [] normalAnsiCodes = new int[] {UserInterfaceFrameThreadState.DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR};
+		int [] titleAnsiCodes = UserInterfaceFrameThreadState.getHelpDetailsTitleColors();
+		int [] normalAnsiCodes = UserInterfaceFrameThreadState.getDefaultTextColors();
 		List<LinePrintingInstructionAtOffset> rtn = new ArrayList<LinePrintingInstructionAtOffset>();
 		Long blockOffsetLeftPadding = 3L;
 		Long descriptionOffsetLeftPadding = 9L;

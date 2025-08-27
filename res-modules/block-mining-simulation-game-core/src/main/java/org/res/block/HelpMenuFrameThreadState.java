@@ -419,7 +419,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		for(int i = 0; i < this.helpMenu.getDisplayedHelpMenuOptions().size(); i++){
 			HelpMenuOption menuOption = this.helpMenu.getDisplayedHelpMenuOptions().get(i);
 			ColouredTextFragmentList menuItemTextFragmentList = new ColouredTextFragmentList();
-			int [] ansiColourCodes = (i == this.helpMenu.getCurrentMenuYIndex()) ? new int[] {YELLOW_BG_COLOR, BLACK_FG_COLOR} : new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR};
+			int [] ansiColourCodes = (i == this.helpMenu.getCurrentMenuYIndex()) ? UserInterfaceFrameThreadState.getActiveHelpMenuItemColors() : UserInterfaceFrameThreadState.getDefaultTextColors();
 			menuItemTextFragmentList.add(new ColouredTextFragment(menuOption.getTitle(), ansiColourCodes));
 
 			List<LinePrintingInstruction> menuItemLineInstructions = this.getLinePrintingInstructions(menuItemTextFragmentList, leftPadding, rightPadding, false, false, Long.valueOf(terminalWidth));
@@ -437,7 +437,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			for(int j = 0; j < terminalHeight; j++){
 				boolean isInMenuBox = (i >= xOffset && i < (xOffset + menuWidth)) && (j >= yOffset && j < (yOffset + menuHeight));
 				String character = (this.helpMenu.getActiveState() && isInMenuBox) ? " " : null;
-				int [] colours = (this.helpMenu.getActiveState() && isInMenuBox) ? new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR} : new int [] {};
+				int [] colours = (this.helpMenu.getActiveState() && isInMenuBox) ? UserInterfaceFrameThreadState.getHelpMenuBackgroundColours() : new int [] {};
 				int characterWidth = (this.helpMenu.getActiveState() && isInMenuBox) ? 1 : 0;
 				changes.characterWidths[i][j] = characterWidth;
 				changes.colourCodes[i][j] = colours;

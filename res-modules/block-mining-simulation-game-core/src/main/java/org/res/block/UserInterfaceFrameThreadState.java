@@ -80,43 +80,201 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	private Long mapAreaCellWidth = null;
 	private Long frameCharacterWidth = null;
-	public static int RESET_BG_COLOR = 0;
-	public static int BOLD_COLOR = 1;
-	public static int UNDERLINE_COLOR = 4;
-	public static int CROSSED_OUT_COLOR = 9;
+	public static final int RESET_BG_COLOR = 0;
+	public static final int BOLD_COLOR = 1;
+	public static final int UNDERLINE_COLOR = 4;
+	public static final int CROSSED_OUT_COLOR = 9;
 
-	public static int BLACK_FG_COLOR = 30;
-	public static int RED_FG_COLOR = 31;
-	public static int GREEN_FG_COLOR = 32;
-	public static int YELLOW_FG_COLOR = 33;
-	public static int BLUE_FG_COLOR = 34;
-	public static int MAGENTA_FG_COLOR = 35;
-	public static int CYAN_FG_COLOR = 36;
-	public static int WHITE_FG_COLOR = 37;
+	public static final int BLACK_FG_COLOR = 30;
+	public static final int RED_FG_COLOR = 31;
+	public static final int GREEN_FG_COLOR = 32;
+	public static final int YELLOW_FG_COLOR = 33;
+	public static final int BLUE_FG_COLOR = 34;
+	public static final int MAGENTA_FG_COLOR = 35;
+	public static final int CYAN_FG_COLOR = 36;
+	public static final int WHITE_FG_COLOR = 37;
+	public static final int SELECTABLE_FG_COLOR = 38;
+	public static final int [] RGB_PURPLE_FG_COLOR = new int [] {SELECTABLE_FG_COLOR, 2, 0xC0, 0x95, 0xE4}; // #c095e4
+	public static final int [] RGB_PINK_VERY_LIGHT_FG_COLOR = new int [] {SELECTABLE_FG_COLOR, 2, 0xFC, 0xED, 0xF2};  //#fcedf2
+	public static final int [] RGB_PINK_LIGHT_FG_COLOR = new int [] {SELECTABLE_FG_COLOR, 2, 0xFF, 0xD1, 0xD4};  //#ffd1d4
+	public static final int [] RGB_PINK_MID_FG_COLOR = new int [] {SELECTABLE_FG_COLOR, 2, 0xFF, 0xB7, 0xC5};  //#ffb7c5
+	public static final int [] RGB_PINK_DARK_MID_FG_COLOR = new int [] {SELECTABLE_FG_COLOR, 2, 0xFF, 0xA0, 0xC5};  //#ffa0c5
 
-	public static int BLACK_BG_COLOR = 40;
-	public static int RED_BG_COLOR = 41;
-	public static int GREEN_BG_COLOR = 42;
-	public static int YELLOW_BG_COLOR = 43;
-	public static int BLUE_BG_COLOR = 44;
-	public static int MAGENTA_BG_COLOR = 45;
-	public static int CYAN_BG_COLOR = 46;
-	public static int WHITE_BG_COLOR = 47;
+	public static final int BLACK_BG_COLOR = 40;
+	public static final int RED_BG_COLOR = 41;
+	public static final int GREEN_BG_COLOR = 42;
+	public static final int YELLOW_BG_COLOR = 43;
+	public static final int BLUE_BG_COLOR = 44;
+	public static final int MAGENTA_BG_COLOR = 45;
+	public static final int CYAN_BG_COLOR = 46;
+	public static final int WHITE_BG_COLOR = 47;
+	public static final int SELECTABLE_BG_COLOR = 48;
+	
+	public static final int [] RGB_DEEP_PINK_BG_COLOR = new int [] {SELECTABLE_BG_COLOR, 2, 0xFF, 0x7A, 0xAC}; // #ff7aac
+	public static final int [] RGB_PURPLE_BG_COLOR = new int [] {SELECTABLE_BG_COLOR, 2, 0xC0, 0x95, 0xE4}; // #c095e4
+	public static final int [] RGB_PINK_VERY_LIGHT_BG_COLOR = new int [] {SELECTABLE_BG_COLOR, 2, 0xFC, 0xED, 0xF2};  //#fcedf2
+	public static final int [] RGB_PINK_LIGHT_BG_COLOR = new int [] {SELECTABLE_BG_COLOR, 2, 0xFF, 0xD1, 0xD4};  //#ffd1d4
+	public static final int [] RGB_PINK_MID_BG_COLOR = new int [] {SELECTABLE_BG_COLOR, 2, 0xFF, 0xB7, 0xC5};  //#ffb7c5
+	public static final int [] RGB_PINK_DARK_MID_BG_COLOR = new int [] {SELECTABLE_BG_COLOR, 2, 0xFF, 0xA0, 0xC5};  //#ffa0c5
 
-	public static int GRAY_BG_COLOR = 100;
-	public static int PLAYER_BG_COLOR = GREEN_BG_COLOR;
-
-	public static int DEFAULT_BG_COLOR = BLACK_BG_COLOR;
-	public static int FRAME_BG_COLOR = DEFAULT_BG_COLOR;
-	public static int MAP_CELL_BG_COLOR1 = DEFAULT_BG_COLOR;
-	public static int MAP_CELL_BG_COLOR2 = DEFAULT_BG_COLOR;
-	public static int FRAME_CLEAR_BG_COLOR = DEFAULT_BG_COLOR;
-	public static int DEFAULT_TEXT_BG_COLOR = DEFAULT_BG_COLOR;
-
-	public static int DEFAULT_TEXT_FG_COLOR = GREEN_FG_COLOR;
+	public static final int GRAY_BG_COLOR = 100;
+	public static final ColourThemeType currentTheme = ColourThemeType.DEFAULT;
 
 	public ScreenLayer[] previousBufferedScreenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
 	public ScreenLayer[] bufferedScreenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
+
+	public static final int [] getDefaultBGColors(){
+		switch(currentTheme){
+			case PINK:{
+				return RGB_PINK_MID_BG_COLOR;
+			}default:{
+				return new int [] {BLACK_BG_COLOR};
+			}
+		}
+	}
+
+	public static final int [] getPlayerBGColors(){
+		return new int [] {GREEN_BG_COLOR};
+	}
+
+	public static final int [] getDefaultTextFGColors(){
+		switch(currentTheme){
+			case PINK:{
+				return RGB_PURPLE_FG_COLOR;
+			}default:{
+				return new int [] {GREEN_FG_COLOR};
+			}
+		}
+	}
+
+	public static final int [] getHighlightedTextFGColors(){
+		switch(currentTheme){
+			case PINK:{
+				return RGB_PINK_DARK_MID_FG_COLOR;
+			}default:{
+				return new int [] {RED_FG_COLOR};
+			}
+		}
+	}
+
+	public static final int [] getExcitingBlockBGColors(){
+		switch(currentTheme){
+			case PINK:{
+				return RGB_DEEP_PINK_BG_COLOR;
+			}default:{
+				return new int [] {RED_BG_COLOR};
+			}
+		}
+	}
+
+	public static final int [] getHelpMenuBackgroundColours(){
+		switch(currentTheme){
+			case PINK:{
+				return RGB_PINK_LIGHT_BG_COLOR;
+			}default:{
+				return new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR};
+			}
+		}
+	}
+
+	public static final int [] getDefaultTextBGColors(){
+		return getDefaultBGColors();
+	}
+
+	public static final int [] getDefaultTextColors(){
+		return concatIntArrays(getDefaultTextFGColors(), getDefaultTextBGColors());
+	}
+
+	public static final int [] getActiveFrameColors(){
+		return concatIntArrays(getDefaultTextBGColors(), getHighlightedTextFGColors());
+	}
+
+	public static final int [] getInactiveFrameColors(){
+		return getDefaultTextColors();
+	}
+
+	public static final int [] getActiveHelpMenuItemColors(){
+		return new int [] {YELLOW_BG_COLOR, BLACK_FG_COLOR};
+	}
+
+	public static final int [] getHelpDetailsTitleColors(){
+		return concatIntArrays(getDefaultTextBGColors(), concatIntArrays(new int[] {BOLD_COLOR, UNDERLINE_COLOR}, getHighlightedTextFGColors()));
+	}
+
+	public static final int [] getFrameClearBGColor(){
+		return getDefaultTextBGColors();
+	}
+
+	public static final int [] getMapCellBGColor(){
+		return getDefaultTextBGColors();
+	}
+
+	public static final int [] getMapAreaTextColors(boolean useAscii){
+		if(useAscii){
+			return new int [] {YELLOW_FG_COLOR};
+		}else{
+			return getDefaultTextFGColors();
+		}
+	}
+
+	public static final int [] getUnderBlockBGColor(boolean useAscii){
+		if(useAscii){
+			return new int [] {MAGENTA_BG_COLOR};
+		}else{
+			switch(currentTheme){
+				case PINK:{
+					return RGB_PURPLE_BG_COLOR;
+				}default:{
+					return new int [] {GRAY_BG_COLOR};
+				}
+			}
+		}
+	}
+
+	public static final int [] getEmptyBlockBGColor(boolean useAscii){
+		if(useAscii){
+			return getDefaultTextBGColors();
+		}else{
+			return getMapCellBGColor();
+		}
+	}
+
+	public static final int [] getLoadingBlockBGColor(boolean useAscii){
+		if(useAscii){
+			return getDefaultTextBGColors();
+		}else{
+			return UserInterfaceFrameThreadState.getMapCellBGColor();
+		}
+	}
+
+	public static final int [] getBlockBGColor(boolean useAscii, boolean overStillLoadingBlock, boolean overExcitingBlock, boolean overSolidBlock){
+		if(overStillLoadingBlock){
+			return UserInterfaceFrameThreadState.getLoadingBlockBGColor(useAscii);
+		}else{
+			if(overExcitingBlock){
+				return getExcitingBlockBGColors();
+			}else{
+				if(overSolidBlock){
+					return UserInterfaceFrameThreadState.getUnderBlockBGColor(useAscii);
+				}else{
+					return UserInterfaceFrameThreadState.getEmptyBlockBGColor(useAscii);
+				}
+			}
+		}
+	}
+
+	public static final int [] getColourCodesForMapCell(boolean useASCII, boolean overStillLoadingBlock, boolean overExcitingBlock, boolean overSolidBlock){
+		int [] blockBGColours = UserInterfaceFrameThreadState.getBlockBGColor(useASCII, overStillLoadingBlock, overExcitingBlock, overSolidBlock);
+		int [] textColour = UserInterfaceFrameThreadState.getMapAreaTextColors(useASCII);
+		return UserInterfaceFrameThreadState.concatIntArrays(blockBGColours, textColour);
+	}
+
+	public static final int [] concatIntArrays(int [] a, int [] b){
+		int[] result = new int[a.length + b.length];
+		System.arraycopy(a, 0, result, 0, a.length);
+		System.arraycopy(b, 0, result, a.length, b.length);
+		return result;
+        }
 
 	protected static List<String[]> splitStringByDelimiterPairs(String str, String delimiterRegex){
 		List<String[]> rtn = new ArrayList<String[]>();
@@ -213,7 +371,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 	protected List<LinePrintingInstruction> getLinePrintingInstructions(String text, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign, Long maxLineLength) throws Exception{
-		ColouredTextFragmentList tfl = new ColouredTextFragmentList(new ColouredTextFragment(text, new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}));
+		ColouredTextFragmentList tfl = new ColouredTextFragmentList(new ColouredTextFragment(text, getDefaultTextColors()));
 		return getLinePrintingInstructions(tfl, paddingLeft, paddingRight, leftAlign, rightAlign, maxLineLength);
 	}
 
@@ -600,9 +758,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				Coordinate c = new Coordinate(Arrays.asList(this.getFrameOffsetX() + i * fchrw, this.getFrameOffsetY()));
 				String borderCharacter = this.getFrameConnectionCharacterForCoordinate(c);
 				if(this.isCoordinateRelatedToFocusedFrame(c, ffd)){
-					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BG_COLOR, RED_FG_COLOR}));
+					fragmentList.add(new ColouredTextFragment(borderCharacter, getActiveFrameColors()));
 				}else{
-					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BG_COLOR, DEFAULT_TEXT_FG_COLOR}));
+					fragmentList.add(new ColouredTextFragment(borderCharacter, getInactiveFrameColors()));
 				}
 			}
 			this.printTextAtScreenXY(fragmentList, 0L, 0L, true);
@@ -617,9 +775,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				Coordinate c = new Coordinate(Arrays.asList(this.getFrameOffsetX(), i));
 				String borderCharacter = this.getFrameConnectionCharacterForCoordinate(c);
 				if(this.isCoordinateRelatedToFocusedFrame(c, ffd)){
-					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BG_COLOR, RED_FG_COLOR}));
+					fragmentList.add(new ColouredTextFragment(borderCharacter, getActiveFrameColors()));
 				}else{
-					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BG_COLOR, DEFAULT_TEXT_FG_COLOR}));
+					fragmentList.add(new ColouredTextFragment(borderCharacter, getInactiveFrameColors()));
 				}
 			}
 			this.printTextAtScreenXY(fragmentList, 0L, 1L, false);
@@ -634,9 +792,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				Coordinate c = new Coordinate(Arrays.asList(this.getFrameOffsetX() + this.getFrameWidth() -fchrw, i));
 				String borderCharacter = this.getFrameConnectionCharacterForCoordinate(c);
 				if(this.isCoordinateRelatedToFocusedFrame(c, ffd)){
-					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BG_COLOR, RED_FG_COLOR}));
+					fragmentList.add(new ColouredTextFragment(borderCharacter, getActiveFrameColors()));
 				}else{
-					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BG_COLOR, DEFAULT_TEXT_FG_COLOR}));
+					fragmentList.add(new ColouredTextFragment(borderCharacter, getInactiveFrameColors()));
 				}
 			}
 			this.printTextAtScreenXY(fragmentList, this.getFrameWidth() -fchrw, 1L, false);
@@ -648,9 +806,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				Coordinate c = new Coordinate(Arrays.asList(this.getFrameOffsetX() + i * fchrw, this.getFrameOffsetY() + this.getFrameHeight() -1));
 				String borderCharacter = this.getFrameConnectionCharacterForCoordinate(c);
 				if(this.isCoordinateRelatedToFocusedFrame(c, ffd)){
-					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BG_COLOR, RED_FG_COLOR}));
+					fragmentList.add(new ColouredTextFragment(borderCharacter, getActiveFrameColors()));
 				}else{
-					fragmentList.add(new ColouredTextFragment(borderCharacter, new int [] {FRAME_BG_COLOR, DEFAULT_TEXT_FG_COLOR}));
+					fragmentList.add(new ColouredTextFragment(borderCharacter, getInactiveFrameColors()));
 				}
 			}
 			this.printTextAtScreenXY(fragmentList, 0L, this.getFrameHeight() -1, true);
@@ -879,7 +1037,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			if(repeatNumber < 0){
 				throw new Exception("repeatNumber is negative: " + repeatNumber);
 			}
-			this.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(repeatNumber), new int[] {FRAME_CLEAR_BG_COLOR}), 0L, l, true);
+			this.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(repeatNumber), getFrameClearBGColor()), 0L, l, true);
 		}
 		if(!this.completedInitialBackgroundClear){
 			//  Initial clear frame to give fast feedback to user.

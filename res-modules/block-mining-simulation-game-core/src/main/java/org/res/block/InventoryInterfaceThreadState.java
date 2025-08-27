@@ -168,8 +168,8 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 
 		String inventoryItemText = this.whitespacePad(blockPresentation, this.getMapAreaCellWidth()) + "  (" + stack.getQuantity().toString() + ") " + blockFromStack.getClass().getSimpleName() + " ";
 		return new ColouredTextFragmentList(Arrays.asList(
-			new ColouredTextFragment(paddedPrefix, new int[] {DEFAULT_TEXT_BG_COLOR, GREEN_FG_COLOR}),
-			new ColouredTextFragment(inventoryItemText, new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR})
+			new ColouredTextFragment(paddedPrefix, UserInterfaceFrameThreadState.getDefaultTextColors()),
+			new ColouredTextFragment(inventoryItemText, UserInterfaceFrameThreadState.getDefaultTextColors())
 		), true);
 	}
 
@@ -230,14 +230,14 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	public void reprintFrame() throws Exception {
 		this.drawBorders();
 
-		this.printTextAtScreenXY(new ColouredTextFragment("- Inventory -", new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR}), 5L, 0L, true);
+		this.printTextAtScreenXY(new ColouredTextFragment("- Inventory -", UserInterfaceFrameThreadState.getDefaultTextColors()), 5L, 0L, true);
 
 		List<ColouredTextFragmentList> inventoryItemTextLists = new ArrayList<ColouredTextFragmentList>();
 		PlayerInventory inventory = this.getPlayerInventory();
 		if(inventory != null){
 			List<PlayerInventoryItemStack> itemStacks = inventory.getInventoryItemStackList();
 			if(itemStacks.size() == 0){
-				inventoryItemTextLists.add(new ColouredTextFragmentList(new ColouredTextFragment("Empty.", new int[] {DEFAULT_TEXT_BG_COLOR, DEFAULT_TEXT_FG_COLOR})));
+				inventoryItemTextLists.add(new ColouredTextFragmentList(new ColouredTextFragment("Empty.", UserInterfaceFrameThreadState.getDefaultTextColors())));
 			}else{
 				for(int i = 0; i < itemStacks.size(); i++){
 					PlayerInventoryItemStack stack = itemStacks.get(i);

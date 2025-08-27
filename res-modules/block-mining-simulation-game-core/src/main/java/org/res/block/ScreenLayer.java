@@ -99,8 +99,25 @@ public class ScreenLayer {
 		return (int)this.dimensions.getHeight();
 	}
 
-	public void setPlacementOffset(Coordinate placementOffset){
-		this.placementOffset = placementOffset;
+	public void setPlacementOffset(Coordinate newPlacementOffset) throws Exception{
+		//  Change region for where the layer was before the new placement offset
+		//  (Can possibly be outside the layer, but that's necessary for the
+		//  case where this layer gets merged down onto something else)
+		Long displacementX = newPlacementOffset.getX() - this.placementOffset.getX();
+		Long displacementY = newPlacementOffset.getY() - this.placementOffset.getY();
+		this.addChangedRegion(new ScreenRegion(
+			ScreenRegion.makeScreenRegionCA(
+				-displacementX.intValue(),
+				-displacementY.intValue(),
+				-displacementX.intValue() + getWidth(),
+				-displacementY.intValue() + getHeight()
+			)
+		));
+		//  Change region for entire layer at new offset
+		this.addChangedRegion(new ScreenRegion(
+			ScreenRegion.makeScreenRegionCA(0, 0, getWidth(), getHeight())
+		));
+		this.placementOffset = newPlacementOffset;
 	}
 
 	public Coordinate getPlacementOffset(){

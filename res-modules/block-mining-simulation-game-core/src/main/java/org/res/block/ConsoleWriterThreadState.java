@@ -642,7 +642,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			this.screenLayers[bufferIndex].setAllActiveFlagStates(true);
 			this.mergedFinalScreenLayer = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, this.terminalWidth.intValue(), this.terminalHeight.intValue()));
 			this.mergedFinalScreenLayer.initialize();
-			this.printTerminalTextChanges(false);
+			this.printTerminalTextChanges(false, false);
 		}
 	}
 
@@ -801,8 +801,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		return new EmptyWorkItemResult();
 	}
 
-	public void printTerminalTextChanges(boolean resetCursorPosition) throws Exception{
-		this.mergedFinalScreenLayer.mergeDown(this.screenLayers, false, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
+	public void printTerminalTextChanges(boolean resetCursorPosition, boolean trustChangedFlags) throws Exception{
+		this.mergedFinalScreenLayer.mergeDown(this.screenLayers, trustChangedFlags, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
 		boolean useRightToLeftPrint = this.blockManagerThreadCollection.getRightToLeftPrint();
 		boolean useCompatibilityWidth = this.blockManagerThreadCollection.getCompatibilityWidth() != null;
 		this.mergedFinalScreenLayer.printChanges(useCompatibilityWidth, useRightToLeftPrint, resetCursorPosition, 0, 0);
@@ -997,7 +997,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				int refreshAreaX = Math.min(16, this.screenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT].getWidth());
 				int refreshAreaY = Math.min(4, this.screenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT].getHeight());
 				this.setScreenAreaChangeStates(0, 0, refreshAreaX, refreshAreaY, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true);
-				this.printTerminalTextChanges(false);
+				this.printTerminalTextChanges(false, true);
 				logger.info("Finished printing test text '" + text + "' and issued cursor re-positioning request to calculate width. Waiting for result on stdin...");
 			}
 			if(this.currentTextWidthMeasurement == null){
@@ -1008,7 +1008,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 						//  If the thread expects a response, unblock it:
 						this.addResultForThreadId(result, w.getThreadId());
 					}
-					this.printTerminalTextChanges(true);
+					this.printTerminalTextChanges(true, false);
 				}
 			}else{
 				TextWidthMeasurementWorkItemResult r = this.currentTextWidthMeasurement.getResult();
