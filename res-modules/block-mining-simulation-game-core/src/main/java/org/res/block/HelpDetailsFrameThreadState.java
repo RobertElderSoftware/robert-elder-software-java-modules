@@ -68,7 +68,7 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 	private Long scrollOffset = 0L;
 
 	public HelpDetailsFrameThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
-		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT});
+		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 	}
@@ -265,7 +265,7 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 		}else{
 			logger.info("HelpMenuFrameThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
 		}
-		this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
+		this.onFinalizeFrame();
 	}
 
 	public void onKeyboardInput(byte [] characters) throws Exception {
@@ -277,7 +277,7 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void render() throws Exception{
-		this.clearFrame();
+		this.initializeFrames();
 		this.reprintFrame();
 		List<LinePrintingInstructionAtOffset> instructions = this.getAllLinePrintingInstructions();
 		for(LinePrintingInstructionAtOffset instruction : instructions){
@@ -289,6 +289,7 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
+		this.throwExceptionIfScreenHasNullCharacters();
 		this.linePrintingInstructionsAtOffset = null; //  If dimension of frame change, must re-compute all lines.
 		this.render();
 	}

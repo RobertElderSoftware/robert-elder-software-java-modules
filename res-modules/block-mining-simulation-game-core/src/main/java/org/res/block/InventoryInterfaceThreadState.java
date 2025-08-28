@@ -65,7 +65,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	private ClientBlockModelContext clientBlockModelContext;
 
 	public InventoryInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
-		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT});
+		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 	}
@@ -127,7 +127,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 			logger.info("InventoryInterfaceThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
 		}
 		this.onRenderFrame(true, true);
-		this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
+		this.onFinalizeFrame();
 	}
 
 	public void onKeyboardInput(byte [] characters) throws Exception {
@@ -139,7 +139,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	}
 
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
-		this.clearFrame();
+		//this.throwExceptionIfScreenHasNullCharacters();
 		this.render();
 	}
 
@@ -152,7 +152,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		if(this.getFrameWidth() != null && this.getFrameHeight() != null){
 			this.reprintFrame();
 		}
-		this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
+		this.onFinalizeFrame();
 	}
 
 	public ColouredTextFragmentList makeInventoryItemText(PlayerInventoryItemStack stack, int itemIndex) throws Exception{

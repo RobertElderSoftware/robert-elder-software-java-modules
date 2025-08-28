@@ -80,7 +80,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	private ScreenLayer playerIcon;
 
 	public MapAreaInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
-		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, ConsoleWriterThreadState.BUFFER_INDEX_OVERLAY});
+		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, ConsoleWriterThreadState.BUFFER_INDEX_OVERLAY}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER, ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 
@@ -184,7 +184,6 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
 		if(hasThisFrameDimensionsChanged){
-			this.clearFrame();
 			FrameDimensions currentFrameDimensions = new FrameDimensions(this.getFrameDimensions());
 			Long totalXBorderSize = this.getTotalXBorderSize();
 			Long totalYBorderSize = this.getTotalYBorderSize();
@@ -209,7 +208,6 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			this.onMapAreaChange(newMapArea);
 
 		}else if(hasOtherFrameDimensionsChanged){
-			this.clearFrame();
 			this.onMapAreaChange(this.mapAreaCuboidAddress); // Refresh map area
 		}
 
@@ -275,22 +273,19 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		Coordinate lastGameInterfacePosition = this.playerPosition;
 		this.playerPosition = newPosition;
 
-		if(lastGameInterfacePosition != null){
-			this.updatePlayerOverlay(new CuboidAddress(lastGameInterfacePosition, lastGameInterfacePosition.add(Coordinate.makeUnitCoordinate(4L))), false);
-		}
 		if(newPosition != null){
-			this.updatePlayerOverlay(new CuboidAddress(newPosition, newPosition.add(Coordinate.makeUnitCoordinate(4L))), true);
+			this.updatePlayerOverlay(new CuboidAddress(newPosition, newPosition.add(Coordinate.makeUnitCoordinate(4L))));
 		}
 
 		this.updateFrameCoordinate();
-		this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
+		this.onFinalizeFrame();
 	}
 
 	private void onMapAreaChange(CuboidAddress newMapArea) throws Exception{
 		this.clientBlockModelContext.putWorkItem(new MapAreaChangeWorkItem(this.clientBlockModelContext, newMapArea), WorkItemPriority.PRIORITY_LOW);
 		CuboidAddress previousMapArea = this.mapAreaCuboidAddress;
 		this.mapAreaCuboidAddress = newMapArea;
-		this.updatePlayerOverlay(new CuboidAddress(this.playerPosition, this.playerPosition.add(Coordinate.makeUnitCoordinate(4L))), true);
+		this.updatePlayerOverlay(new CuboidAddress(this.playerPosition, this.playerPosition.add(Coordinate.makeUnitCoordinate(4L))));
 
 		this.mapAreaBlocks.updateBufferRegion(newMapArea.getSubDimensions(0L, 3L));
 		this.loadMapAreaBlocksFromMemory(newMapArea, previousMapArea);
@@ -305,7 +300,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	public void onUpdateMapAreaFlagsNotify(CuboidAddress areaToUpdate) throws Exception {
 		this.loadMapAreaBlocksFromMemory(areaToUpdate, null);
 		this.printMapAreaUpdates(areaToUpdate);
-		this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
+		this.onFinalizeFrame();
 	}
 
 	public void updateFrameCoordinate() throws Exception {
@@ -346,7 +341,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		return pi;
 	}
 
-	public void updatePlayerOverlay(CuboidAddress playerPositionCA, boolean isPlayerLocation) throws Exception{
+	public void updatePlayerOverlay(CuboidAddress playerPositionCA) throws Exception{
 		ScreenLayer pi = this.getPlayerCharacterIcon();
 		pi.setPlacementOffset(new Coordinate(Arrays.asList(
 			this.getMapXOffsetInScreenCoordinates(playerPositionCA),

@@ -757,7 +757,8 @@ public class ScreenLayer {
 							lastUsedColourCodes = this.colourCodes[i][j];
 						}
 						if(this.characters[i][j] == null && chrsLeft == 0){
-							this.stringBuilder.append("\033[43mX\033[0m"); // Highlight Nulls
+							//this.stringBuilder.append("\033[43mX\033[0m"); // Highlight Nulls
+							this.stringBuilder.append("\033[0m "); //  Clear space with default colour space.
 						}else if(this.characters[i][j] == null){
 						}else{
 							this.stringBuilder.append(this.characters[i][j]);
@@ -1044,10 +1045,15 @@ public class ScreenLayer {
 	public String getMessageIfScreenHasNullCharacters() throws Exception{
 		int width = this.getWidth();
 		int height = this.getHeight();
-		for(int i = 0; i < width; i++){
-			for(int j = 0; j < height; j++){
+		for(int j = 0; j < height; j++){
+			for(int i = 0; i < width; ){
 				if(this.characters[i][j] == null){
 					return "Saw a null at i=" + i + ", j=" + j;
+				}
+				if(this.characterWidths[i][j] == 0){
+					i++;
+				}else{
+					i += this.characterWidths[i][j];
 				}
 			}
 		}

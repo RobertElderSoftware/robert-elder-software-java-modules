@@ -66,7 +66,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	protected FrameChangeWorkItemParams currentFrameChangeWorkItemParams;
 	protected FrameChangeWorkItemParams previousSuccessfullyPrintedFrameChangeWorkItemParams;
 	protected int [] usedScreenLayers;
-	protected boolean completedInitialBackgroundClear = false; //  Used to speed up feedback on initial open.
+	protected ScreenLayerMergeType [] usedScreenLayersMergeTypes;
+
+
 
 	private final AtomicLong frameDimensionsChangeSeq = new AtomicLong(0);
 
@@ -120,7 +122,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	public static final int GRAY_BG_COLOR = 100;
 	public static final ColourThemeType currentTheme = ColourThemeType.DEFAULT;
 
-	public ScreenLayer[] previousBufferedScreenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
 	public ScreenLayer[] bufferedScreenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
 
 	public static final int [] getDefaultBGColors(){
@@ -537,7 +538,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}else{ //  Successfully printed
 			for(int i = 0; i < this.usedScreenLayers.length; i++){
 				int l = usedScreenLayers[i];
-				this.previousBufferedScreenLayers[l] = new ScreenLayer(this.bufferedScreenLayers[l]);
 				this.bufferedScreenLayers[l].setAllChangedFlagStates(false);
 			}
 			return true;
@@ -841,11 +841,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				this.initializeFrames();
 			}
 
-			if(hasThisFrameDimensionsChanged){ //  If frame size changed, may need to refresh background.
-				this.completedInitialBackgroundClear = false;
-			}
 			this.onRenderFrame(hasThisFrameDimensionsChanged, hasOtherFrameDimensionsChanged);
-			boolean printedSuccessfully = this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
+			boolean printedSuccessfully = this.onFinalizeFrame();
 			if(printedSuccessfully){
 				this.previousSuccessfullyPrintedFrameChangeWorkItemParams = this.currentFrameChangeWorkItemParams;
 			}
@@ -894,8 +891,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			int l = usedScreenLayers[i];
 			Coordinate placementOffset = new Coordinate(Arrays.asList(this.getFrameDimensions().getFrameOffsetX(), this.getFrameDimensions().getFrameOffsetY()));
 			this.bufferedScreenLayers[l] = new ScreenLayer(placementOffset, ScreenLayer.makeDimensionsCA(0, 0, width, height));
-			this.bufferedScreenLayers[l].initialize(0, null, new int [] {});
-			this.previousBufferedScreenLayers[l] = new ScreenLayer(placementOffset, ScreenLayer.makeDimensionsCA(0, 0, width, height));
+			//  Initialize to all spaces:
+			this.bufferedScreenLayers[l].initializeInRegion(1, " ", getFrameClearBGColor(), null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, width, height)), true, true);
 		}
 	}
 
@@ -909,7 +906,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		return rtn;
 	}
 
-	public boolean onFinalizeFrame(ScreenLayerMergeType screenLayerMergeType) throws Exception{
+	public boolean onFinalizeFrame() throws Exception{
 		//  Send message with current frame contents.
 		if(this.getFrameDimensions() != null){
 			List<ScreenLayerPrintParameters> params = new ArrayList<ScreenLayerPrintParameters>();
@@ -917,7 +914,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			for(int i = 0; i < this.usedScreenLayers.length; i++){
 				int l = usedScreenLayers[i];
 				totalChangedRegions += this.bufferedScreenLayers[l].getChangedRegions().size();
-				ScreenLayerMergeParameters mergeParams = new ScreenLayerMergeParameters(l, screenLayerMergeType);
+				ScreenLayerMergeParameters mergeParams = new ScreenLayerMergeParameters(l, this.usedScreenLayersMergeTypes[i]);
 				params.addAll(
 					makeScreenPrintParameters(
 						this.bufferedScreenLayers[l],
@@ -1039,24 +1036,16 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			}
 			this.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(repeatNumber), getFrameClearBGColor()), 0L, l, true);
 		}
-		if(!this.completedInitialBackgroundClear){
-			//  Initial clear frame to give fast feedback to user.
-
-			boolean printedSuccessfully = this.onFinalizeFrame(ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
-			if(printedSuccessfully){
-				this.previousSuccessfullyPrintedFrameChangeWorkItemParams = this.currentFrameChangeWorkItemParams;
-				this.completedInitialBackgroundClear = true;
-			}
-		}
 	}
 
 	private ClientBlockModelContext clientBlockModelContext;
 
-	public UserInterfaceFrameThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, int [] usedScreenLayers) throws Exception {
+	public UserInterfaceFrameThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, int [] usedScreenLayers, ScreenLayerMergeType [] usedScreenLayersMergeTypes) throws Exception {
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 		this.frameId = seq.getAndIncrement();
 		this.usedScreenLayers = usedScreenLayers;
+		this.usedScreenLayersMergeTypes = usedScreenLayersMergeTypes;
 
 		this.currentFrameChangeWorkItemParams = new FrameChangeWorkItemParams(
 			new FrameDimensions(),
@@ -1069,7 +1058,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 		for(int i = 0; i < usedScreenLayers.length; i++){
 			this.bufferedScreenLayers[usedScreenLayers[i]] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 0,0));
-			this.previousBufferedScreenLayers[usedScreenLayers[i]] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 0,0));
 		}
 	}
 
@@ -1079,5 +1067,16 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
 		return this.blockManagerThreadCollection;
+	}
+
+
+	public void throwExceptionIfScreenHasNullCharacters() throws Exception{
+		for(int i = 0; i < this.usedScreenLayers.length; i++){
+			int l = usedScreenLayers[i];
+			String s = this.bufferedScreenLayers[l].getMessageIfScreenHasNullCharacters();
+			if(s != null){
+				throw new Exception(s);
+			}
+		}	
 	}
 }

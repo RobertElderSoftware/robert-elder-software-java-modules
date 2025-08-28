@@ -71,7 +71,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	private HelpMenu helpMenu = null;
 
 	public HelpMenuFrameThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
-		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_MENU});
+		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_MENU}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 		this.helpMenu = new HelpMenu(false, new HelpMenuLevel(Arrays.asList()));
@@ -189,7 +189,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		}else{
 			logger.info("HelpMenuFrameThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
 		}
-		this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
+		this.onFinalizeFrame();
 	}
 
 	public void onResizeFrame(Long deltaXColumns, Long deltaYColumns) throws Exception {
@@ -335,12 +335,12 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			} case HelpMenuOptionType.DO_SUBMENU:{
 				this.helpMenu.descendIntoSubmenu();
 				this.render();
-				this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
+				this.onFinalizeFrame();
 				break;
 			} case HelpMenuOptionType.BACK_UP_LEVEL:{
 				this.helpMenu.ascendFromSubmenu();
 				this.render();
-				this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
+				this.onFinalizeFrame();
 				break;
 			} case HelpMenuOptionType.ROTATE_SPLIT:{
 				this.onRotateSplit((RotateSplitHelpMenuOption)option);
@@ -384,7 +384,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 					}case ACTION_HELP_MENU_TOGGLE:{
 						this.helpMenu.setActiveState(false);
 						this.render();
-						this.onFinalizeFrame(ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
+						this.onFinalizeFrame();
 						break;
 					}default:{
 						logger.info("Ignoring " + b);
