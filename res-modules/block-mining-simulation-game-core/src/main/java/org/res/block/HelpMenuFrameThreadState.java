@@ -439,11 +439,11 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 				String character = (this.helpMenu.getActiveState() && isInMenuBox) ? " " : null;
 				int [] colours = (this.helpMenu.getActiveState() && isInMenuBox) ? UserInterfaceFrameThreadState.getHelpMenuBackgroundColours() : new int [] {};
 				int characterWidth = (this.helpMenu.getActiveState() && isInMenuBox) ? 1 : 0;
-				changes.characterWidths[i][j] = characterWidth;
-				changes.colourCodes[i][j] = colours;
-				changes.characters[i][j] = character;
-				changes.changed[i][j] = true;
-				changes.active[i][j] = true;
+				changes.setColumnCharacterWidth(i, j, characterWidth);
+				changes.setColumnColourCodes(i, j, colours);
+				changes.setColumnCharacter(i, j, character);
+				changes.setColumnChanged(i, j, true);
+				changes.setColumnActive(i, j, true);
 			}
 		}
 

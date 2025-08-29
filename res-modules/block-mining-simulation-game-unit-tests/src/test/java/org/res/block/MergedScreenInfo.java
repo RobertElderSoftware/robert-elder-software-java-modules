@@ -151,11 +151,11 @@ public class MergedScreenInfo{
 				rtn.put(
 					coordinate,
 					new TestScreenCharacter(
-						allLayers[0].characters[x][y],
-						allLayers[0].characterWidths[x][y],
-						allLayers[0].colourCodes[x][y],
-						allLayers[0].active[x][y],
-						allLayers[0].changed[x][y]
+						allLayers[0].getColumnCharacter(x, y),
+						allLayers[0].getColumnCharacterWidth(x, y),
+						allLayers[0].getColumnColourCodes(x, y),
+						allLayers[0].getColumnActive(x, y),
+						allLayers[0].getColumnChanged(x, y)
 					)
 				);
 			}

@@ -477,37 +477,37 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			String s = charactersToPrint.get(i);
 			int chrWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(s).getDeltaX().intValue();
 			if(xDirection){
-				changes.colourCodes[currentXOffset][currentYOffset] = newColourCodes[i];
-				changes.characters[currentXOffset][currentYOffset] = s;
-				changes.characterWidths[currentXOffset][currentYOffset] = chrWidth;
-				changes.changed[currentXOffset][currentYOffset] = true;
-				changes.active[currentXOffset][currentYOffset] = true;
+				changes.setColumnColourCodes(currentXOffset, currentYOffset, newColourCodes[i]);
+				changes.setColumnCharacter(currentXOffset, currentYOffset, s);
+				changes.setColumnCharacterWidth(currentXOffset, currentYOffset, chrWidth);
+				changes.setColumnChanged(currentXOffset, currentYOffset, true);
+				changes.setColumnActive(currentXOffset, currentYOffset, true);
 				currentXOffset++;
 				//  For multi-column characters in 'x' direction, reset any of the 'covered'
 				//  columns take up by the multi-column character:
 				for(int k = 1; k < chrWidth; k++){
-					changes.colourCodes[currentXOffset][currentYOffset] = newColourCodes[i];
-					changes.characters[currentXOffset][currentYOffset] = null;
-					changes.characterWidths[currentXOffset][currentYOffset] = 0;
-					changes.changed[currentXOffset][currentYOffset] = true;
-					changes.active[currentXOffset][currentYOffset] = true;
+					changes.setColumnColourCodes(currentXOffset, currentYOffset, newColourCodes[i]);
+					changes.setColumnCharacter(currentXOffset, currentYOffset, null);
+					changes.setColumnCharacterWidth(currentXOffset, currentYOffset, 0);
+					changes.setColumnChanged(currentXOffset, currentYOffset, true);
+					changes.setColumnActive(currentXOffset, currentYOffset, true);
 					currentXOffset++;
 				}
 			}else{
-				changes.colourCodes[currentXOffset][currentYOffset] = newColourCodes[i];
-				changes.characters[currentXOffset][currentYOffset] = s;
-				changes.characterWidths[currentXOffset][currentYOffset] = chrWidth;
-				changes.changed[currentXOffset][currentYOffset] = true;
-				changes.active[currentXOffset][currentYOffset] = true;
+				changes.setColumnColourCodes(currentXOffset, currentYOffset, newColourCodes[i]);
+				changes.setColumnCharacter(currentXOffset, currentYOffset, s);
+				changes.setColumnCharacterWidth(currentXOffset, currentYOffset, chrWidth);
+				changes.setColumnChanged(currentXOffset, currentYOffset, true);
+				changes.setColumnActive(currentXOffset, currentYOffset, true);
 				currentXOffset++;
 				//  For multi-column characters in 'x' direction, reset any of the 'covered'
 				//  columns take up by the multi-column character:
 				for(int k = 1; k < chrWidth; k++){
-					changes.colourCodes[currentXOffset][currentYOffset] = newColourCodes[i];
-					changes.characters[currentXOffset][currentYOffset] = null;
-					changes.characterWidths[currentXOffset][currentYOffset] = 0;
-					changes.changed[currentXOffset][currentYOffset] = true;
-					changes.active[currentXOffset][currentYOffset] = true;
+					changes.setColumnColourCodes(currentXOffset, currentYOffset, newColourCodes[i]);
+					changes.setColumnCharacter(currentXOffset, currentYOffset, null);
+					changes.setColumnCharacterWidth(currentXOffset, currentYOffset, 0);
+					changes.setColumnChanged(currentXOffset, currentYOffset, true);
+					changes.setColumnActive(currentXOffset, currentYOffset, true);
 					currentXOffset++;
 				}
 				currentXOffset = 0;
@@ -950,32 +950,32 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 				if(updatedCellContents[i][j] == null){
 					int paddedWidthSoFar = 0;
 					while(paddedWidthSoFar < this.getMapAreaCellWidth()){
-						changes.colourCodes[currentOffset][j] = new int [] {GREEN_FG_COLOR, RED_BG_COLOR};
-						changes.characters[currentOffset][j] = "X";
-						changes.characterWidths[currentOffset][j] = 1;
-						changes.changed[currentOffset][j] = true;
-						changes.active[currentOffset][j] = true;
+						changes.setColumnColourCodes(currentOffset, j, new int [] {GREEN_FG_COLOR, RED_BG_COLOR});
+						changes.setColumnCharacter(currentOffset, j, "X");
+						changes.setColumnCharacterWidth(currentOffset, j, 1);
+						changes.setColumnChanged(currentOffset, j, true);
+						changes.setColumnActive(currentOffset, j, true);
 						currentOffset += 1;
 						paddedWidthSoFar += 1;
 					}
 				}else{
 					// The character in the cell
 					int chrWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(updatedCellContents[i][j]).getDeltaX().intValue();
-					changes.colourCodes[currentOffset][j] = updatedColourCodes[i][j];
-					changes.characters[currentOffset][j] = updatedCellContents[i][j];
-					changes.characterWidths[currentOffset][j] = chrWidth;
-					changes.changed[currentOffset][j] = true;
-					changes.active[currentOffset][j] = true;
+					changes.setColumnColourCodes(currentOffset, j, updatedColourCodes[i][j]);
+					changes.setColumnCharacter(currentOffset, j, updatedCellContents[i][j]);
+					changes.setColumnCharacterWidth(currentOffset, j, chrWidth);
+					changes.setColumnChanged(currentOffset, j, true);
+					changes.setColumnActive(currentOffset, j, true);
 					currentOffset += (chrWidth > 0) ? 1 : 0;
 
 					//  For multi-column characters, reset any of the 'covered'
 					//  columns take up by the multi-column character:
 					for(int k = 1; k < chrWidth && currentOffset < totalWidth; k++){
-						changes.colourCodes[currentOffset][j] = updatedColourCodes[i][j];
-						changes.characters[currentOffset][j] = null;
-						changes.characterWidths[currentOffset][j] = 0;
-						changes.changed[currentOffset][j] = true;
-						changes.active[currentOffset][j] = true;
+						changes.setColumnColourCodes(currentOffset, j, updatedColourCodes[i][j]);
+						changes.setColumnCharacter(currentOffset, j, null);
+						changes.setColumnCharacterWidth(currentOffset, j, 0);
+						changes.setColumnChanged(currentOffset, j, true);
+						changes.setColumnActive(currentOffset, j, true);
 						currentOffset++;
 					}
 
@@ -984,11 +984,11 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 					while(paddedWidthSoFar < this.getMapAreaCellWidth()){
 						String space = " ";
 						int spaceWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(space).getDeltaX().intValue();
-						changes.colourCodes[currentOffset][j] = updatedColourCodes[i][j];
-						changes.characters[currentOffset][j] = space;
-						changes.characterWidths[currentOffset][j] = spaceWidth;
-						changes.changed[currentOffset][j] = true;
-						changes.active[currentOffset][j] = true;
+						changes.setColumnColourCodes(currentOffset, j, updatedColourCodes[i][j]);
+						changes.setColumnCharacter(currentOffset, j, space);
+						changes.setColumnCharacterWidth(currentOffset, j, spaceWidth);
+						changes.setColumnChanged(currentOffset, j, true);
+						changes.setColumnActive(currentOffset, j, true);
 						currentOffset += spaceWidth;
 						paddedWidthSoFar += spaceWidth;
 					}

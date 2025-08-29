@@ -60,17 +60,57 @@ public class ScreenLayer {
 	private boolean isLayerActive = true;
 	private Coordinate placementOffset;  //  The offset of where the layer should end up once it's merged in.
 	private CuboidAddress dimensions;
-	public int [][] characterWidths = null;
-	public int [][][] colourCodes = null;
-	public String [][] characters = null;
-	public boolean [][] changed = null;
-	public boolean [][] active = null;
+	private int [][] characterWidthss = null;
+	private int [][][] colourCodess = null;
+	private String [][] characterss = null;
+	private boolean [][] changedd = null;
+	private boolean [][] activee = null;
 	private int [] defaultColourCodes = new int [] {};
 	private Set<ScreenRegion> changedRegions = new HashSet<ScreenRegion>();
 	private final StringBuilder stringBuilder = new StringBuilder();
 
-	public boolean getIsLayerActive(){
+	public final boolean getIsLayerActive(){
 		return this.isLayerActive;
+	}
+
+	public final String getColumnCharacter(final int x, final int y){
+		return this.characterss[x][y];
+	}
+
+	public void setColumnCharacter(final int x, final int y, final String characters){
+		this.characterss[x][y] = characters;
+	}
+
+	public final int [] getColumnColourCodes(final int x, final int y){
+		return this.colourCodess[x][y];
+	}
+
+	public void setColumnColourCodes(final int x, final int y, final int [] colourCodes){
+		this.colourCodess[x][y] = colourCodes;
+	}
+
+	public final int getColumnCharacterWidth(final int x, final int y){
+		return this.characterWidthss[x][y];
+	}
+
+	public void setColumnCharacterWidth(final int x, final int y, final int characterWidth){
+		this.characterWidthss[x][y] = characterWidth;
+	}
+
+	public final boolean getColumnChanged(final int x, final int y){
+		return this.changedd[x][y];
+	}
+
+	public void setColumnChanged(final int x, final int y, final boolean newState){
+		this.changedd[x][y] = newState;
+	}
+
+	public final boolean getColumnActive(final int x, final int y){
+		return this.activee[x][y];
+	}
+
+	public void setColumnActive(final int x, final int y, final boolean newState){
+		this.activee[x][y] = newState;
 	}
 
 	public static CuboidAddress makeDimensionsCA(int startX, int startY, int endX, int endY) throws Exception{
@@ -80,7 +120,7 @@ public class ScreenLayer {
 		);
 	}
 
-	public boolean setIsLayerActive(boolean isLayerActive) throws Exception{
+	public final boolean setIsLayerActive(boolean isLayerActive) throws Exception{
 		if(this.isLayerActive != isLayerActive){
 			this.isLayerActive = isLayerActive;
 			this.addChangedRegion(new ScreenRegion(ScreenRegion.makeScreenRegionCA(0,0, getWidth(), getHeight())));
@@ -147,11 +187,11 @@ public class ScreenLayer {
 	public ScreenLayer(Coordinate placementOffset, CuboidAddress dimensions) throws Exception{
 		int width = (int)dimensions.getWidth();
 		int height = (int)dimensions.getHeight();
-		this.characterWidths = new int [width][height];
-		this.colourCodes = new int [width][height][];
-		this.characters = new String [width][height];
-		this.changed = new boolean [width][height];
-		this.active = new boolean [width][height];
+		this.characterWidthss = new int [width][height];
+		this.colourCodess = new int [width][height][];
+		this.characterss = new String [width][height];
+		this.changedd = new boolean [width][height];
+		this.activee = new boolean [width][height];
 		this.dimensions = dimensions;
 		this.placementOffset = placementOffset;
 	}
@@ -161,7 +201,7 @@ public class ScreenLayer {
 		int height = this.getHeight();
 		for(int i = 0; i < width; i++){
 			for(int j = 0; j < height; j++){
-				this.changed[i][j] = state;
+				this.setColumnChanged(i, j, state);
 			}
 		}
 	}
@@ -171,7 +211,7 @@ public class ScreenLayer {
 		int height = this.getHeight();
 		for(int i = 0; i < width; i++){
 			for(int j = 0; j < height; j++){
-				this.active[i][j] = state;
+				this.setColumnActive(i, j, state);
 			}
 		}
 	}
@@ -181,37 +221,37 @@ public class ScreenLayer {
 		this.dimensions = l.getDimensions();
 		int width = l.getWidth();
 		int height = l.getHeight();
-		this.characterWidths = new int [width][height];
+		this.characterWidthss = new int [width][height];
 		for(int i = 0; i < width; i++){
 			for(int j = 0; j < height; j++){
-				this.characterWidths[i][j] = l.characterWidths[i][j];
+				this.characterWidthss[i][j] = l.getColumnCharacterWidth(i, j);
 			}
 		}
-		this.colourCodes = new int [width][height][];
+		this.colourCodess = new int [width][height][];
 		for(int i = 0; i < width; i++){
 			for(int j = 0; j < height; j++){
-				this.colourCodes[i][j] = new int [l.colourCodes[i][j].length];
-				for(int k = 0; k < l.colourCodes[i][j].length; k++){
-					this.colourCodes[i][j][k] = l.colourCodes[i][j][k];
+				this.colourCodess[i][j] = new int [l.getColumnColourCodes(i, j).length];
+				for(int k = 0; k < l.getColumnColourCodes(i, j).length; k++){
+					this.colourCodess[i][j][k] = l.getColumnColourCodes(i, j)[k];
 				}
 			}
 		}
-		this.characters = new String [width][height];
+		this.characterss = new String [width][height];
 		for(int i = 0; i < width; i++){
 			for(int j = 0; j < height; j++){
-				this.characters[i][j] = l.characters[i][j];
+				this.characterss[i][j] = l.getColumnCharacter(i, j);
 			}
 		}
-		this.changed = new boolean [width][height];
+		this.changedd = new boolean [width][height];
 		for(int i = 0; i < width; i++){
 			for(int j = 0; j < height; j++){
-				this.changed[i][j] = l.changed[i][j];
+				this.changedd[i][j] = l.getColumnChanged(i, j);
 			}
 		}
-		this.active = new boolean [width][height];
+		this.activee = new boolean [width][height];
 		for(int i = 0; i < width; i++){
 			for(int j = 0; j < height; j++){
-				this.active[i][j] = l.active[i][j];
+				this.activee[i][j] = l.getColumnActive(i, j);
 			}
 		}
 	}
@@ -239,11 +279,11 @@ public class ScreenLayer {
 
 		for(int i = startX; i < endX; i++){
 			for(int j = startY; j < endY; j++){
-				this.characterWidths[i][j] = chrWidth;
-				this.colourCodes[i][j] = colourCodes;
-				this.characters[i][j] = s;
-				this.changed[i][j] = defaultChangedFlag;
-				this.active[i][j] = defaultActiveFlag; //  Require the user to explicitly enable this column.
+				this.setColumnCharacterWidth(i, j, chrWidth);
+				this.setColumnColourCodes(i, j, colourCodes);
+				this.setColumnCharacter(i, j, s);
+				this.setColumnChanged(i, j, defaultChangedFlag);
+				this.setColumnActive(i, j, defaultActiveFlag); //  Require the user to explicitly enable this column.
 			}
 		}
 		if(msg != null){
@@ -259,7 +299,7 @@ public class ScreenLayer {
 
 			for(int i = 0; i < msg.length(); i++){
 				if(((xOffset + i)) < getWidth()){
-					this.characters[xOffset + i][yOffset] = String.valueOf(msg.charAt(i));
+					this.setColumnCharacter(xOffset + i, yOffset, String.valueOf(msg.charAt(i)));
 				}
 			}
 		}
@@ -273,7 +313,7 @@ public class ScreenLayer {
 		
 		for(int i = 0; i < width; i++){
 			for(int j = 0; j < height; j++){
-				this.changed[i + startX][j + startY] = state;
+				this.setColumnChanged(i + startX, j + startY, state);
 			}
 		}
 		this.addChangedRegion(
@@ -312,20 +352,20 @@ public class ScreenLayer {
 						int xR = i-startX;
 						int yR = j-startY;
 						if(xSrc >= 0 && xSrc < screenLayers[s].getWidth() && ySrc >= 0 && ySrc < screenLayers[s].getHeight()){
-							currentCharacterWidths[s][xR][yR] = screenLayers[s].characterWidths[xSrc][ySrc];
+							currentCharacterWidths[s][xR][yR] = screenLayers[s].getColumnCharacterWidth(xSrc, ySrc);
 						}
 					}else{
 						//  Right to left pass puts width at end:
 						int xSrc = i-xO[s];
 						int ySrc = j-yO[s];
 						if(xSrc >= 0 && xSrc < screenLayers[s].getWidth() && ySrc >= 0 && ySrc < screenLayers[s].getHeight()){
-							int chrWidth = screenLayers[s].characterWidths[xSrc][ySrc];
+							int chrWidth = screenLayers[s].getColumnCharacterWidth(xSrc, ySrc);
 							if(chrWidth > 0){
 								int end_i = i + chrWidth -1; //  Offset of end of char
 								int xR = end_i - startX;
 								int yR = j-startY;
 								if(xR >= 0 && xR < xWidth){
-									currentCharacterWidths[s][xR][yR] = screenLayers[s].characterWidths[xSrc][ySrc];
+									currentCharacterWidths[s][xR][yR] = screenLayers[s].getColumnCharacterWidth(xSrc, ySrc);
 								}
 							}
 						}
@@ -488,8 +528,8 @@ public class ScreenLayer {
 						int yR = j-startY;
 						//  For any character in layer 0, always consider it as active regardless of whether it's 'inactive' or not:
 						boolean fbls = forcedBottomLayerState.toBoolean();
-						activeStates[s][xR][yR] = (s == 0) ? fbls : (layerActive && screenLayers[s].active[xSrc][ySrc]);
-						if(screenLayers[s].changed[xSrc][ySrc] && activeStates[s][xR][yR]){
+						activeStates[s][xR][yR] = (s == 0) ? fbls : (layerActive && screenLayers[s].getColumnActive(xSrc, ySrc));
+						if(screenLayers[s].getColumnChanged(xSrc, ySrc) && activeStates[s][xR][yR]){
 							changeFlags[s][xR][yR] = true; //  Check all layers, just in case a layer underneath has a change of BG colour.
 						}
 					}
@@ -520,8 +560,8 @@ public class ScreenLayer {
 						int xSrc = i-xO[s];
 						int ySrc = j-yO[s];
 						if(xSrc >= 0 && xSrc < screenLayers[s].getWidth() && ySrc >= 0 && ySrc < screenLayers[s].getHeight()){
-							if(screenLayers[s].colourCodes[xSrc][ySrc].length > 0 && activeStates[s][xR][yR]){
-								outputColourCodes = screenLayers[s].colourCodes[xSrc][ySrc];
+							if(screenLayers[s].getColumnColourCodes(xSrc, ySrc).length > 0 && activeStates[s][xR][yR]){
+								outputColourCodes = screenLayers[s].getColumnColourCodes(xSrc, ySrc);
 								break;
 							}
 						}
@@ -534,8 +574,8 @@ public class ScreenLayer {
 						if(rightward == leftward){
 							int xSrc = i-xO[rightward];
 							int ySrc = j-yO[rightward];
-							outputCharacters = screenLayers[rightward].characters[xSrc][ySrc];
-							outputCharacterWidths = screenLayers[rightward].characterWidths[xSrc][ySrc];
+							outputCharacters = screenLayers[rightward].getColumnCharacter(xSrc, ySrc);
+							outputCharacterWidths = screenLayers[rightward].getColumnCharacterWidth(xSrc, ySrc);
 							trustedChangeFlag  = changeFlags[rightward][xR][yR];
 						}else if(rightward >= 0){
 							outputCharacters = " ";
@@ -569,7 +609,7 @@ public class ScreenLayer {
 							int xSrc = i-xO[s];
 							int ySrc = j-yO[s];
 							trustedChangeFlag |= changeFlags[s][xR][yR];
-							if(screenLayers[s].characters[xSrc][ySrc] != null){
+							if(screenLayers[s].getColumnCharacter(xSrc, ySrc) != null){
 								//  Found solid character:
 								break;
 							}
@@ -580,8 +620,8 @@ public class ScreenLayer {
 						if(activeStates[s][xR][yR]){
 							int xSrc = i-xO[s];
 							int ySrc = j-yO[s];
-							trustedChangeFlag |= screenLayers[s].colourCodes[xSrc][ySrc].length > 0 && changeFlags[s][xR][yR];
-							if(screenLayers[s].colourCodes[xSrc][ySrc].length > 0){
+							trustedChangeFlag |= screenLayers[s].getColumnColourCodes(xSrc, ySrc).length > 0 && changeFlags[s][xR][yR];
+							if(screenLayers[s].getColumnColourCodes(xSrc, ySrc).length > 0){
 								//  Found colour codes
 								break;
 							}
@@ -642,10 +682,10 @@ public class ScreenLayer {
 							hasChange = firstColumnHasChange;
 						}else{
 							hasChange = !(
-								(this.characterWidths[i][j] == outputCharacterWidths) &&
-								Arrays.equals(this.colourCodes[i][j], outputColourCodes) &&
-								Objects.equals(this.characters[i][j], outputCharacters)
-							) || this.changed[i][j]; // if there is a pending changed flag that hasn't been printed yet.
+								(this.getColumnCharacterWidth(i, j) == outputCharacterWidths) &&
+								Arrays.equals(this.getColumnColourCodes(i, j), outputColourCodes) &&
+								Objects.equals(this.getColumnCharacter(i, j), outputCharacters)
+							) || this.getColumnChanged(i, j); // if there is a pending changed flag that hasn't been printed yet.
 						}
 					}
 
@@ -655,14 +695,14 @@ public class ScreenLayer {
 					}
 
 
-					this.characters[i][j] = outputCharacters;
-					this.characterWidths[i][j] = outputCharacterWidths;
-					this.colourCodes[i][j] = outputColourCodes;
-					this.changed[i][j] = hasChange;
-					this.active[i][j] = finalActiveState;
+					this.setColumnCharacter(i, j, outputCharacters);
+					this.setColumnCharacterWidth(i, j, outputCharacterWidths);
+					this.setColumnColourCodes(i, j, outputColourCodes);
+					this.setColumnChanged(i, j, hasChange);
+					this.setColumnActive(i, j, finalActiveState);
 					if(offsetIntoCharacter == 0){
-						firstColumnHasChange = this.changed[i][j];
-						firstColumnColourCodes = this.colourCodes[i][j];
+						firstColumnHasChange = this.getColumnChanged(i, j);
+						firstColumnColourCodes = this.getColumnColourCodes(i, j);
 					}
 					offsetIntoCharacter++;
 					if(offsetIntoCharacter >= currentCharacterWidth){
@@ -683,9 +723,9 @@ public class ScreenLayer {
 				for(int j = startY; j < endY; j++){
 					for(int i = startX; i < endX; i++){
 						//  Clear the changed flag for any active layer other than the merged layer:
-						boolean isLayerActive = screenLayers[s].getIsLayerActive() && screenLayers[s].active[i][j];
+						boolean isLayerActive = screenLayers[s].getIsLayerActive() && screenLayers[s].getColumnActive(i, j);
 						if(isLayerActive){
-							screenLayers[s].changed[i][j] = false;
+							screenLayers[s].setColumnChanged(i, j, false);
 						}
 					}
 				}
@@ -715,29 +755,29 @@ public class ScreenLayer {
 				int chrsLeft = 0;
 				for(int i = startColumn; i != endColumn; i += loopUpdate){
 					//  Try to intelligently issue as few ANSI escape sequences as possible:
-					if(!Arrays.equals(this.colourCodes[i][j], lastUsedColourCodes)){
+					if(!Arrays.equals(this.getColumnColourCodes(i, j), lastUsedColourCodes)){
 						mustSetColourCodes = true;
 					}
 					if(chrsLeft <= 0){
-						chrsLeft = this.characterWidths[i][j];
+						chrsLeft = this.getColumnCharacterWidth(i, j);
 					}
 					if(
-						this.changed[i][j]
+						this.getColumnChanged(i, j)
 					){
 						if(useCompatibilityWidth){
 							String currentPositionSequence = "\033[" + (j+1+yOffset) + ";" + (i+1+xOffset) + "H";
 							this.stringBuilder.append(currentPositionSequence);
 
 							List<String> codes = new ArrayList<String>();
-							for(int c : this.colourCodes[i][j]){
+							for(int c : this.getColumnColourCodes(i, j)){
 								codes.add(String.valueOf(c));
 							}
 							String currentColorSequence = "\033[0m\033[" + String.join(";", codes) + "m";
 							this.stringBuilder.append(currentColorSequence);
 							mustSetColourCodes = resetState;
-							lastUsedColourCodes = this.colourCodes[i][j];
+							lastUsedColourCodes = this.getColumnColourCodes(i, j);
 
-							for(int k = 0; k < this.characterWidths[i][j]; k++){
+							for(int k = 0; k < this.getColumnCharacterWidth(i, j); k++){
 								this.stringBuilder.append(" ");
 							}
 						}
@@ -748,22 +788,22 @@ public class ScreenLayer {
 						}
 						if(mustSetColourCodes){
 							List<String> codes = new ArrayList<String>();
-							for(int c : this.colourCodes[i][j]){
+							for(int c : this.getColumnColourCodes(i, j)){
 								codes.add(String.valueOf(c));
 							}
 							String currentColorSequence = "\033[0m\033[" + String.join(";", codes) + "m";
 							this.stringBuilder.append(currentColorSequence);
 							mustSetColourCodes = resetState;
-							lastUsedColourCodes = this.colourCodes[i][j];
+							lastUsedColourCodes = this.getColumnColourCodes(i, j);
 						}
-						if(this.characters[i][j] == null && chrsLeft == 0){
+						if(this.getColumnCharacter(i, j) == null && chrsLeft == 0){
 							//this.stringBuilder.append("\033[43mX\033[0m"); // Highlight Nulls
 							this.stringBuilder.append("\033[0m "); //  Clear space with default colour space.
-						}else if(this.characters[i][j] == null){
+						}else if(this.getColumnCharacter(i, j) == null){
 						}else{
-							this.stringBuilder.append(this.characters[i][j]);
+							this.stringBuilder.append(this.getColumnCharacter(i, j));
 						}
-						this.changed[i][j] = false;
+						this.setColumnChanged(i, j, false);
 					}else{
 						mustSetCursorPosition = true;
 					}
@@ -795,17 +835,17 @@ public class ScreenLayer {
 				String characters = null;
 				boolean isInChangedRegion = ScreenLayer.isInChangedRegion(i, j, this.changedRegions);
 				if(debugType.equals("characters")){
-					if(this.characters[i][j] != null){
+					if(this.getColumnCharacter(i, j) != null){
 
-						if(this.characterWidths[i][j] > 1){
+						if(this.getColumnCharacterWidth(i, j) > 1){
 							//  For multi-column characters show numer of full width:
-							characters = "" + (this.characterWidths[i][j] % 10);
+							characters = "" + (this.getColumnCharacterWidth(i, j) % 10);
 						}else{
-							characters = this.characters[i][j];
+							characters = this.getColumnCharacter(i, j);
 						}
 					}else{
 						int offset = getNextCharacterStartToLeft(i, j, this);
-						if(offset != -1 && ((this.characterWidths[i-offset][j] - offset) > 0)){
+						if(offset != -1 && ((this.getColumnCharacterWidth(i-offset, j) - offset) > 0)){
 							//  A null that's part of a multi-column character:
 							characters = "_";
 						}else{
@@ -813,33 +853,33 @@ public class ScreenLayer {
 							characters = "#";
 						}
 					}
-					if(this.colourCodes[i][j] != null){
-						colourCodes = this.colourCodes[i][j];
+					if(this.getColumnColourCodes(i, j) != null){
+						colourCodes = this.getColumnColourCodes(i, j);
 					}else{
 						colourCodes = new int []{UserInterfaceFrameThreadState.CROSSED_OUT_COLOR};
 					}
 				}else if(debugType.equals("active")){
-					if(this.active[i][j] && this.getIsLayerActive()){
+					if(this.getColumnActive(i, j) && this.getIsLayerActive()){
 						colourCodes = new int []{UserInterfaceFrameThreadState.GREEN_BG_COLOR};
-					}else if(this.active[i][j] && !this.getIsLayerActive()){
+					}else if(this.getColumnActive(i, j) && !this.getIsLayerActive()){
 						colourCodes = new int []{UserInterfaceFrameThreadState.BLUE_BG_COLOR, UserInterfaceFrameThreadState.CROSSED_OUT_COLOR, UserInterfaceFrameThreadState.RED_FG_COLOR};
-					}else if(!this.active[i][j] && this.getIsLayerActive()){
+					}else if(!this.getColumnActive(i, j) && this.getIsLayerActive()){
 						colourCodes = new int []{UserInterfaceFrameThreadState.BLACK_BG_COLOR};
-					}else if(!this.active[i][j] && !this.getIsLayerActive()){
+					}else if(!this.getColumnActive(i, j) && !this.getIsLayerActive()){
 						colourCodes = new int []{UserInterfaceFrameThreadState.RED_BG_COLOR};
 					}
-					if(isInChangedRegion && this.active[i][j]){
+					if(isInChangedRegion && this.getColumnActive(i, j)){
 						characters = "*";
 					}else{
 						characters = " ";
 					}
 				}else if(debugType.equals("changed")){
-					if(this.changed[i][j]){
+					if(this.getColumnChanged(i, j)){
 						colourCodes = new int []{UserInterfaceFrameThreadState.GREEN_BG_COLOR};
 					}else{
 						colourCodes = new int []{UserInterfaceFrameThreadState.BLACK_BG_COLOR};
 					}
-					if(isInChangedRegion && this.changed[i][j]){
+					if(isInChangedRegion && this.getColumnChanged(i, j)){
 						characters = "*";
 					}else{
 						characters = " ";
@@ -878,24 +918,24 @@ public class ScreenLayer {
 		boolean currentChangedState = false;
 		for(int j = 0; j < this.getHeight(); j++){
 			for(int i = 0; i < this.getWidth(); i++){
-				if(this.colourCodes[i][j] == null){
+				if(this.getColumnColourCodes(i, j) == null){
 					return "Saw null colour codes at x=" + i + ", y=" + j + ".";
 				}
 				boolean insideMultiColumnCharacter = columnsRemaining > 0;
 				if(insideMultiColumnCharacter){
-					if(this.characterWidths[i][j] > 0){
+					if(this.getColumnCharacterWidth(i, j) > 0){
 						return "Saw a non zero character width inside another character at x=" + i + ", y=" + j + ".";
 					}
-					if(!Arrays.equals(this.colourCodes[i][j], currentColourCodes)){
+					if(!Arrays.equals(this.getColumnColourCodes(i, j), currentColourCodes)){
 						return "Saw an inconsistent colour code inside a multi-column character that did not match at x=" + i + ", y=" + j + ".";
 					}
-					if(!Objects.equals(this.active[i][j], currentActiveState)){
+					if(!Objects.equals(this.getColumnActive(i, j), currentActiveState)){
 						return "Saw an inconsistent active state inside a multi-column character that did not match at x=" + i + ", y=" + j + ".";
 					}
-					if(!Objects.equals(this.changed[i][j], currentChangedState)){
+					if(!Objects.equals(this.getColumnChanged(i, j), currentChangedState)){
 						return "Saw an inconsistent changed state inside a multi-column character that did not match at x=" + i + ", y=" + j + ".";
 					}
-					if(this.characters[i][j] != null){
+					if(this.getColumnCharacter(i, j) != null){
 						return "Saw non-null characters inside a multi-column character at x=" + i + ", y=" + j + ".";
 					}
 					columnsRemaining--;
@@ -904,21 +944,21 @@ public class ScreenLayer {
 						currentColourCodes = new int [] {};
 					}
 				}else{
-					if(this.characterWidths[i][j] > 0){ // Start of a new character
-						if(this.characters[i][j] == null){
+					if(this.getColumnCharacterWidth(i, j) > 0){ // Start of a new character
+						if(this.getColumnCharacter(i, j) == null){
 							return "Saw character with specified width, but null characters at x=" + i + ", y=" + j + ".";
 						}
 						//  Started a new character
-						columnsRemaining = this.characterWidths[i][j] -1;
-						currentColourCodes = this.colourCodes[i][j];
-						currentChangedState = this.changed[i][j];
-						currentActiveState = this.active[i][j];
+						columnsRemaining = this.getColumnCharacterWidth(i, j) -1;
+						currentColourCodes = this.getColumnColourCodes(i, j);
+						currentChangedState = this.getColumnChanged(i, j);
+						currentActiveState = this.getColumnActive(i, j);
 					}else{
 						//  An empty null character.  This is just an empty area.
-						if(this.colourCodes[i][j] == null){
+						if(this.getColumnColourCodes(i, j) == null){
 							return "Saw null colour codes inside a stray null character at x=" + i + ", y=" + j + ".";
 						}
-						if(this.colourCodes[i][j].length > 0){
+						if(this.getColumnColourCodes(i, j).length > 0){
 							return "Saw null non-empty colour codes inside a stray null character at x=" + i + ", y=" + j + ".";
 						}
 					}
@@ -936,7 +976,7 @@ public class ScreenLayer {
 			currentY >= 0 &&
 			currentY < layer.getHeight()
 		){
-			if(layer.characterWidths[currentX][currentY] > 0){
+			if(layer.getColumnCharacterWidth(currentX, currentY) > 0){
 				return startX - currentX;
 			}
 			currentX--;
@@ -952,7 +992,7 @@ public class ScreenLayer {
 			currentY >= 0 &&
 			currentY < layer.getHeight()
 		){
-			if(layer.characterWidths[currentX][currentY] > 0){
+			if(layer.getColumnCharacterWidth(currentX, currentY) > 0){
 				return currentX - startX;
 			}
 			currentX++;
@@ -969,7 +1009,7 @@ public class ScreenLayer {
 				if(leftDistance == -1){
 					//  No expansion necessary, there is no previous solid character
 				}else{
-					int characterWidth = layers[s].characterWidths[currentX - leftDistance][currentY];
+					int characterWidth = layers[s].getColumnCharacterWidth(currentX - leftDistance, currentY);
 					if(isLeftToRight){
 						if(leftDistance > 0){
 							int diff = characterWidth - leftDistance;
@@ -1047,13 +1087,13 @@ public class ScreenLayer {
 		int height = this.getHeight();
 		for(int j = 0; j < height; j++){
 			for(int i = 0; i < width; ){
-				if(this.characters[i][j] == null){
+				if(this.getColumnCharacter(i, j) == null){
 					return "Saw a null at i=" + i + ", j=" + j;
 				}
-				if(this.characterWidths[i][j] == 0){
+				if(this.getColumnCharacterWidth(i, j) == 0){
 					i++;
 				}else{
-					i += this.characterWidths[i][j];
+					i += this.getColumnCharacterWidth(i, j);
 				}
 			}
 		}

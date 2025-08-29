@@ -326,17 +326,17 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		Coordinate screenOffset = new Coordinate(Arrays.asList(0L, 0L)); //  Initialze to 0,0
 		CuboidAddress screenDimensions = ScreenLayer.makeDimensionsCA(0, 0, iconWidth, 1);
 		ScreenLayer pi = new ScreenLayer(screenOffset, screenDimensions);
-		pi.characters[0][0] = playerIconString;
-		pi.colourCodes[0][0] = playerColour;
-		pi.characterWidths[0][0] = iconWidth;
-		pi.active[0][0] = true;
-		pi.changed[0][0] = true;
+		pi.setColumnCharacter(0, 0, playerIconString);
+		pi.setColumnColourCodes(0, 0, playerColour);
+		pi.setColumnCharacterWidth(0, 0, iconWidth);
+		pi.setColumnActive(0, 0, true);
+		pi.setColumnChanged(0, 0, true);
 		for(int i = 1; i < iconWidth; i++){
-			pi.characters[i][0] = null;
-			pi.colourCodes[i][0] = playerColour;
-			pi.characterWidths[i][0] = 0;
-			pi.active[i][0] = true;
-			pi.changed[i][0] = true;
+			pi.setColumnCharacter(i, 0, null);
+			pi.setColumnColourCodes(i, 0, playerColour);
+			pi.setColumnCharacterWidth(i, 0, 0);
+			pi.setColumnActive(i, 0, true);
+			pi.setColumnChanged(i, 0, true);
 		}
 		return pi;
 	}
