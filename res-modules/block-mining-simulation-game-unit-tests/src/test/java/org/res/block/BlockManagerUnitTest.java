@@ -901,11 +901,7 @@ public class BlockManagerUnitTest {
 		//  Simple merge down test with a change.
 		ScreenLayer t = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
 		t.initialize();
-		t.setColumnCharacter(0, 0, "A");
-		t.setColumnCharacterWidth(0, 0, 1);
-		t.setColumnColourCodes(0, 0, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-		t.setColumnChanged(0, 0, true);
-		t.setColumnActive(0, 0, true);
+		t.setMultiColumnCharacter(0, 0, "A", 1, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR}, true, true);
 		t.addChangedRegion(new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, t.getWidth(), t.getHeight())));
 
 		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
@@ -921,11 +917,7 @@ public class BlockManagerUnitTest {
 		//  Simple merge down test with no change flag set with region;  Should get ignored:
 		ScreenLayer t = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
 		t.initialize();
-		t.setColumnCharacter(0, 0, "A");
-		t.setColumnCharacterWidth(0, 0, 1);
-		t.setColumnColourCodes(0, 0, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-		t.setColumnChanged(0, 0, false);
-		t.setColumnActive(0, 0, false);
+		t.setMultiColumnCharacter(0, 0, "A", 1, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR}, false, false);
 		t.addChangedRegion(new ScreenRegion(ScreenLayer.makeDimensionsCA(0, 0, t.getWidth(), t.getHeight())));
 
 		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
@@ -943,11 +935,7 @@ public class BlockManagerUnitTest {
                 ScreenLayer t = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
                 t.initialize();
                 t.clearChangedRegions();
-                t.setColumnCharacter(0, 0, "A");
-                t.setColumnCharacterWidth(0, 0, 1);
-                t.setColumnColourCodes(0, 0, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-                t.setColumnChanged(0, 0, true);
-                t.setColumnActive(0, 0, false);
+		t.setMultiColumnCharacter(0, 0, "A", 1, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR}, true, false);
 
                 ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
                 merged.initialize();
@@ -963,17 +951,7 @@ public class BlockManagerUnitTest {
                 //  Merge down with two column character
                 ScreenLayer t = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 2, 1));
                 t.initialize();
-                t.setColumnCharacter(0, 0, "A");
-                t.setColumnCharacterWidth(0, 0, 2);
-                t.setColumnColourCodes(0, 0, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-                t.setColumnChanged(0, 0, true);
-                t.setColumnActive(0, 0, true);
-                t.setColumnCharacter(1, 0, null);
-                t.setColumnCharacterWidth(1, 0, 0);
-                t.setColumnColourCodes(1, 0, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-                t.setColumnChanged(1, 0, true);
-                t.setColumnActive(1, 0, true);
-
+		t.setMultiColumnCharacter(0, 0, "A", 2, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR}, true, true);
                 ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 2, 1));
                 merged.initialize();
                 merged.setAllChangedFlagStates(false);
@@ -2287,9 +2265,7 @@ public class BlockManagerUnitTest {
 		test1[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
 		test1[0].initialize();
 		test1[0].clearChangedRegions();
-		test1[0].setColumnCharacter(0, 0, " ");
-		test1[0].setColumnCharacterWidth(0, 0, 1);
-		test1[0].setColumnColourCodes(0, 0, new int [] {});
+		test1[0].setMultiColumnCharacter(0, 0, " ", 1, new int [] {});
 
 		doRegionExpansionTest(
 			test1,
@@ -2303,12 +2279,7 @@ public class BlockManagerUnitTest {
 		test2[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 2, 1));
 		test2[0].initialize();
 		test2[0].clearChangedRegions();
-		test2[0].setColumnCharacter(0, 0, "A");
-		test2[0].setColumnCharacterWidth(0, 0, 2);
-		test2[0].setColumnColourCodes(0, 0, new int [] {});
-		test2[0].setColumnCharacter(1, 0, null);
-		test2[0].setColumnCharacterWidth(1, 0, 0);
-		test2[0].setColumnColourCodes(1, 0, new int [] {});
+		test2[0].setMultiColumnCharacter(0, 0, "A", 2, new int [] {});
 
 		doRegionExpansionTest(
 			test2,
@@ -2322,22 +2293,12 @@ public class BlockManagerUnitTest {
 		test3[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
 		test3[0].initialize();
 		test3[0].clearChangedRegions();
-		test3[0].setColumnCharacter(0, 0, "A");
-		test3[0].setColumnCharacterWidth(0, 0, 2);
-		test3[0].setColumnColourCodes(0, 0, new int [] {});
-		test3[0].setColumnCharacter(1, 0, null);
-		test3[0].setColumnCharacterWidth(1, 0, 0);
-		test3[0].setColumnColourCodes(1, 0, new int [] {});
+		test3[0].setMultiColumnCharacter(0, 0, "A", 2, new int [] {});
 
 		test3[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
 		test3[1].initialize();
 		test3[1].clearChangedRegions();
-		test3[1].setColumnCharacter(1, 0, "A");
-		test3[1].setColumnCharacterWidth(1, 0, 2);
-		test3[1].setColumnColourCodes(1, 0, new int [] {});
-		test3[1].setColumnCharacter(2, 0, null);
-		test3[1].setColumnCharacterWidth(2, 0, 0);
-		test3[1].setColumnColourCodes(2, 0, new int [] {});
+		test3[1].setMultiColumnCharacter(1, 0, "A", 2, new int [] {});
 
 		doRegionExpansionTest(
 			test3,
@@ -2352,22 +2313,12 @@ public class BlockManagerUnitTest {
 		test4[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 2, 1));
 		test4[0].initialize();
 		test4[0].clearChangedRegions();
-		test4[0].setColumnCharacter(0, 0, "A");
-		test4[0].setColumnCharacterWidth(0, 0, 2);
-		test4[0].setColumnColourCodes(0, 0, new int [] {});
-		test4[0].setColumnCharacter(1, 0, null);
-		test4[0].setColumnCharacterWidth(1, 0, 0);
-		test4[0].setColumnColourCodes(1, 0, new int [] {});
+		test4[0].setMultiColumnCharacter(0, 0, "A", 2, new int [] {});
 
 		test4[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
 		test4[1].initialize();
 		test4[1].clearChangedRegions();
-		test4[1].setColumnCharacter(1, 0, "A");
-		test4[1].setColumnCharacterWidth(1, 0, 2);
-		test4[1].setColumnColourCodes(1, 0, new int [] {});
-		test4[1].setColumnCharacter(2, 0, null);
-		test4[1].setColumnCharacterWidth(2, 0, 0);
-		test4[1].setColumnColourCodes(2, 0, new int [] {});
+		test4[1].setMultiColumnCharacter(1, 0, "A", 2, new int [] {});
 
 		doRegionExpansionTest(
 			test4,
@@ -2383,22 +2334,12 @@ public class BlockManagerUnitTest {
 		test5[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 2));
 		test5[0].initialize();
 		test5[0].clearChangedRegions();
-		test5[0].setColumnCharacter(0, 0, "A");
-		test5[0].setColumnCharacterWidth(0, 0, 2);
-		test5[0].setColumnColourCodes(0, 0, new int [] {});
-		test5[0].setColumnCharacter(1, 0, null);
-		test5[0].setColumnCharacterWidth(1, 0, 0);
-		test5[0].setColumnColourCodes(1, 0, new int [] {});
+		test5[0].setMultiColumnCharacter(0, 0, "A", 2, new int [] {});
 
 		test5[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 2));
 		test5[1].initialize();
 		test5[1].clearChangedRegions();
-		test5[1].setColumnCharacter(1, 1, "A");
-		test5[1].setColumnCharacterWidth(1, 1, 2);
-		test5[1].setColumnColourCodes(1, 1, new int [] {});
-		test5[1].setColumnCharacter(2, 1, null);
-		test5[1].setColumnCharacterWidth(2, 1, 0);
-		test5[1].setColumnColourCodes(2, 1, new int [] {});
+		test5[1].setMultiColumnCharacter(1, 1, "A", 2, new int [] {});
 
 		doRegionExpansionTest(
 			test5,
@@ -2413,9 +2354,7 @@ public class BlockManagerUnitTest {
 		test6[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 3));
 		test6[0].initialize();
 		test6[0].clearChangedRegions();
-		test6[0].setColumnCharacter(1, 1, " ");
-		test6[0].setColumnCharacterWidth(1, 1, 1);
-		test6[0].setColumnColourCodes(1, 1, new int [] {});
+		test6[0].setMultiColumnCharacter(1, 1, " ", 1, new int [] {});
 
 		doRegionExpansionTest(
 			test6,
@@ -2429,15 +2368,8 @@ public class BlockManagerUnitTest {
 		test7[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 3));
 		test7[0].initialize();
 		test7[0].clearChangedRegions();
-		test7[0].setColumnCharacter(1, 1, " ");
-		test7[0].setColumnCharacterWidth(1, 1, 1);
-		test7[0].setColumnColourCodes(1, 1, new int [] {});
-		test7[0].setColumnCharacter(0, 2, "A");
-		test7[0].setColumnCharacterWidth(0, 2, 2);
-		test7[0].setColumnColourCodes(0, 2, new int [] {});
-		test7[0].setColumnCharacter(1, 2, null);
-		test7[0].setColumnCharacterWidth(1, 2, 0);
-		test7[0].setColumnColourCodes(1, 2, new int [] {});
+		test7[0].setMultiColumnCharacter(1, 1, " ", 1, new int [] {});
+		test7[0].setMultiColumnCharacter(0, 2, "A", 2, new int [] {});
 
 		doRegionExpansionTest(
 			test7,
@@ -2451,22 +2383,12 @@ public class BlockManagerUnitTest {
 		test8[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 2));
 		test8[0].initialize();
 		test8[0].clearChangedRegions();
-		test8[0].setColumnCharacter(1, 0, "A");
-		test8[0].setColumnCharacterWidth(1, 0, 2);
-		test8[0].setColumnColourCodes(1, 0, new int [] {});
-		test8[0].setColumnCharacter(2, 0, null);
-		test8[0].setColumnCharacterWidth(2, 0, 0);
-		test8[0].setColumnColourCodes(2, 0, new int [] {});
+		test8[0].setMultiColumnCharacter(1, 0, "A", 2, new int [] {});
 
 		test8[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 2));
 		test8[1].initialize();
 		test8[1].clearChangedRegions();
-		test8[1].setColumnCharacter(0, 1, "A");
-		test8[1].setColumnCharacterWidth(0, 1, 2);
-		test8[1].setColumnColourCodes(0, 1, new int [] {});
-		test8[1].setColumnCharacter(1, 1, null);
-		test8[1].setColumnCharacterWidth(1, 1, 0);
-		test8[1].setColumnColourCodes(1, 1, new int [] {});
+		test8[1].setMultiColumnCharacter(0, 1, "A", 2, new int [] {});
 
 		doRegionExpansionTest(
 			test8,
@@ -2482,25 +2404,19 @@ public class BlockManagerUnitTest {
 		test9[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 10, 3));
 		test9[0].initialize();
 		test9[0].clearChangedRegions();
-		test9[0].setColumnCharacter(0, 0, "A");
-		test9[0].setColumnCharacterWidth(0, 0, 2);
-		test9[0].setColumnColourCodes(0, 0, new int [] {});
+		test9[0].setMultiColumnCharacter(0, 0, "A", 2, new int [] {});
                 test9[0].setPlacementOffset(new Coordinate(Arrays.asList(99L,99L))); //Should be ignored
 
 		test9[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 10, 3));
 		test9[1].initialize();
 		test9[1].clearChangedRegions();
-		test9[1].setColumnCharacter(0, 0, "A");
-		test9[1].setColumnCharacterWidth(0, 0, 5);
-		test9[1].setColumnColourCodes(0, 0, new int [] {});
+		test9[1].setMultiColumnCharacter(0, 0, "A", 5, new int [] {});
                 test9[1].setPlacementOffset(new Coordinate(Arrays.asList(1L, 1L)));
 
 		test9[2] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 10, 3));
 		test9[2].initialize();
 		test9[2].clearChangedRegions();
-		test9[2].setColumnCharacter(1, 0, "A");
-		test9[2].setColumnCharacterWidth(1, 0, 4);
-		test9[2].setColumnColourCodes(1, 0, new int [] {});
+		test9[2].setMultiColumnCharacter(1, 0, "A", 4, new int [] {});
                 test9[2].setPlacementOffset(new Coordinate(Arrays.asList(3L, 1L)));
 
 		doRegionExpansionTest(
@@ -2515,25 +2431,19 @@ public class BlockManagerUnitTest {
 		test10[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 10, 3));
 		test10[0].initialize();
 		test10[0].clearChangedRegions();
-		test10[0].setColumnCharacter(5, 0, "A");
-		test10[0].setColumnCharacterWidth(5, 0, 2);
-		test10[0].setColumnColourCodes(5, 0, new int [] {});
+		test10[0].setMultiColumnCharacter(5, 0, "A", 2, new int [] {});
                 test10[0].setPlacementOffset(new Coordinate(Arrays.asList(88L,88L))); //Should be ignored
 
 		test10[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 10, 3));
 		test10[1].initialize();
 		test10[1].clearChangedRegions();
-		test10[1].setColumnCharacter(2, 0, "A");
-		test10[1].setColumnCharacterWidth(2, 0, 5);
-		test10[1].setColumnColourCodes(2, 0, new int [] {});
+		test10[1].setMultiColumnCharacter(2, 0, "A", 5, new int [] {});
                 test10[1].setPlacementOffset(new Coordinate(Arrays.asList(1L, 1L)));
 
 		test10[2] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 10, 3));
 		test10[2].initialize();
 		test10[2].clearChangedRegions();
-		test10[2].setColumnCharacter(1, 0, "A");
-		test10[2].setColumnCharacterWidth(1, 0, 9);
-		test10[2].setColumnColourCodes(1, 0, new int [] {});
+		test10[2].setMultiColumnCharacter(1, 0, "A", 9, new int [] {});
                 test10[2].setPlacementOffset(new Coordinate(Arrays.asList(-1L, 1L)));
 
 		doRegionExpansionTest(
@@ -2549,9 +2459,7 @@ public class BlockManagerUnitTest {
 		test11[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
 		test11[0].initialize();
 		test11[0].clearChangedRegions();
-		test11[0].setColumnCharacter(0, 0, null);
-		test11[0].setColumnCharacterWidth(0, 0, 0);
-		test11[0].setColumnColourCodes(0, 0, new int [] {});
+		test11[0].setToEmpty(0, 0);
 
 		doRegionExpansionTest(
 			test11,
@@ -2570,9 +2478,7 @@ public class BlockManagerUnitTest {
 		test12[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
 		test12[1].initialize();
 		test12[1].clearChangedRegions();
-		test12[1].setColumnCharacter(0, 0, null);
-		test12[1].setColumnCharacterWidth(0, 0, 0);
-		test12[1].setColumnColourCodes(0, 0, new int [] {});
+		test12[1].setToEmpty(0, 0);
 
 		doRegionExpansionTest(
 			test12,
@@ -2586,9 +2492,7 @@ public class BlockManagerUnitTest {
 		test13[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 100, 1));
 		test13[0].initialize();
 		test13[0].clearChangedRegions();
-		test13[0].setColumnCharacter(0, 0, "A");
-		test13[0].setColumnCharacterWidth(0, 0, 2);
-		test13[0].setColumnColourCodes(0, 0, new int [] {});
+		test13[0].setMultiColumnCharacter(0, 0, "A", 2, new int [] {});
 
 		doRegionExpansionTest(
 			test13,
@@ -2602,9 +2506,7 @@ public class BlockManagerUnitTest {
 		test14[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 100, 1));
 		test14[0].initialize();
 		test14[0].clearChangedRegions();
-		test14[0].setColumnCharacter(0, 0, "A");
-		test14[0].setColumnCharacterWidth(0, 0, 2);
-		test14[0].setColumnColourCodes(0, 0, new int [] {});
+		test14[0].setMultiColumnCharacter(0, 0, "A", 2, new int [] {});
 
 		doRegionExpansionTest(
 			test14,
@@ -2618,9 +2520,7 @@ public class BlockManagerUnitTest {
 		test15[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 100, 1));
 		test15[0].initialize();
 		test15[0].clearChangedRegions();
-		test15[0].setColumnCharacter(0, 0, " ");
-		test15[0].setColumnCharacterWidth(0, 0, 100);
-		test15[0].setColumnColourCodes(0, 0, new int [] {});
+		test15[0].setMultiColumnCharacter(0, 0, " ", 100, new int [] {});
 
 		doRegionExpansionTest(
 			test15,
@@ -2634,15 +2534,9 @@ public class BlockManagerUnitTest {
 		test16[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
 		test16[0].initialize();
 		test16[0].clearChangedRegions();
-		test16[0].setColumnCharacter(0, 0, " ");
-		test16[0].setColumnCharacterWidth(0, 0, 1);
-		test16[0].setColumnColourCodes(0, 0, new int [] {});
-		test16[0].setColumnCharacter(1, 0, " ");
-		test16[0].setColumnCharacterWidth(1, 0, 1);
-		test16[0].setColumnColourCodes(1, 0, new int [] {});
-		test16[0].setColumnCharacter(2, 0, " ");
-		test16[0].setColumnCharacterWidth(2, 0, 1);
-		test16[0].setColumnColourCodes(2, 0, new int [] {});
+		test16[0].setMultiColumnCharacter(0, 0, " ", 1, new int [] {});
+		test16[0].setMultiColumnCharacter(1, 0, " ", 1, new int [] {});
+		test16[0].setMultiColumnCharacter(2, 0, " ", 1, new int [] {});
 
 		doRegionExpansionTest(
 			test16,
@@ -2671,15 +2565,9 @@ public class BlockManagerUnitTest {
 		test17[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
 		test17[0].initialize();
 		test17[0].clearChangedRegions();
-		test17[0].setColumnCharacter(0, 0, " ");
-		test17[0].setColumnCharacterWidth(0, 0, 1);
-		test17[0].setColumnColourCodes(0, 0, new int [] {});
-		test17[0].setColumnCharacter(1, 0, null);
-		test17[0].setColumnCharacterWidth(1, 0, 0);
-		test17[0].setColumnColourCodes(1, 0, new int [] {});
-		test17[0].setColumnCharacter(2, 0, " ");
-		test17[0].setColumnCharacterWidth(2, 0, 1);
-		test17[0].setColumnColourCodes(2, 0, new int [] {});
+		test17[0].setMultiColumnCharacter(0, 0, " ", 1, new int [] {});
+		test17[0].setToEmpty(1, 0);
+		test17[0].setMultiColumnCharacter(2, 0, " ", 1, new int [] {});
 
 		doRegionExpansionTest(
 			test17,
@@ -2687,7 +2575,6 @@ public class BlockManagerUnitTest {
 			new ScreenRegion(ScreenLayer.makeDimensionsCA(1, 0, 2, 1)),
 			"Test for no change when only over a null character that's beside a 1 width character."
 		);
-
 	}
 
 	@Test

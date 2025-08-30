@@ -59,6 +59,7 @@ public class BlockSkins {
 		patternsTmp.put(StonePick.class.getName(),"\u26CF\uFE0F");
 		patternsTmp.put(IronPick.class.getName(),"\u26CF\uFE0F");
 		patternsTmp.put(TitaniumDioxide.class.getName(),"\u2B1C");
+		patternsTmp.put(MetallicTitanium.class.getName(),"\u2B1C");
 		patternsTmp.put(SiliconDioxide.class.getName(),"\u2B1C");
 		patternsTmp.put(Ilmenite.class.getName(),"\u2B1B");
 		patternsTmp.put(Rock.class.getName(),"\uD83E\uDEA8");

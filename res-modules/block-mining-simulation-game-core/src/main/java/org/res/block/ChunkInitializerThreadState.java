@@ -60,6 +60,19 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 	private InMemoryChunks inMemoryChunks;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
+	private static final Object [] interestingBlocks = new Object [] {
+		MetallicTitanium.class,
+		SiliconDioxide.class,
+		Chrysoberyl.class,
+		MetallicSilver.class,
+		TitaniumDioxide.class,
+		Bauxite.class,
+		Pyrite.class,
+		Ilmenite.class,
+		MetallicCopper.class,
+		IronOxide.class
+	};
+
 	public ChunkInitializerThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, InMemoryChunks inMemoryChunks) throws Exception{
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
@@ -194,24 +207,13 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 		if(c.getY() < 0L){
 			if(noiseAtPixel <= 0.60){
 				return clientBlockModelContext.getBlockDataForClass(Rock.class);
-			}else if(noiseAtPixel <= 0.65){
-				return clientBlockModelContext.getBlockDataForClass(SiliconDioxide.class);
-			}else if(noiseAtPixel <= 0.70){
-				return clientBlockModelContext.getBlockDataForClass(Chrysoberyl.class);
-			}else if(noiseAtPixel <= 0.75){
-				return clientBlockModelContext.getBlockDataForClass(MetallicSilver.class);
-			}else if(noiseAtPixel <= 0.80){
-				return clientBlockModelContext.getBlockDataForClass(TitaniumDioxide.class);
-			}else if(noiseAtPixel <= 0.85){
-				return clientBlockModelContext.getBlockDataForClass(Bauxite.class);
-			}else if(noiseAtPixel <= 0.90){
-				return clientBlockModelContext.getBlockDataForClass(Pyrite.class);
-			}else if(noiseAtPixel <= 0.95){
-				return clientBlockModelContext.getBlockDataForClass(Ilmenite.class);
-			}else if(noiseAtPixel <= 0.96){
-				return clientBlockModelContext.getBlockDataForClass(MetallicCopper.class);
 			}else if(noiseAtPixel <= 1.0){
-				return clientBlockModelContext.getBlockDataForClass(IronOxide.class);
+				//  Fill up this range of gradient with whatever interesting blocks are currently in the game:
+				double maxDifference = 1.0 - 0.60;
+				double observedDifference = noiseAtPixel - 0.60;
+				double fraction = observedDifference / maxDifference;
+				int index = Math.min(interestingBlocks.length -1, (int)(fraction * interestingBlocks.length));
+				return clientBlockModelContext.getBlockDataForClass((Class)interestingBlocks[index]);
 			}else{
 				return clientBlockModelContext.getBlockDataForClass(IronPick.class);
 			}

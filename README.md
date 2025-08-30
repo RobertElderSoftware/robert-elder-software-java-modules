@@ -66,6 +66,7 @@ Block Mining Simulation Game - Available Command-line Arguments:
 --use-ascii                                - Explicitly try to use only the simplest ASCII characters to produce graphics (for non-graphics ttys)
 --use-emojis                               - Explicitly try to use more advanced Unicode character graphics like emojis
 --right-to-left-print                      - Print screen updates from right to left instead of left to right.  Avoids display bugs in some terminals.
+--compatibility-width             <arg>    - Specify a fixed width for all non-ASCII characters.
 --allow-unrecognized-block-types           - Allow the game to run even when there are block types that aren't supported in the block schema.
 --block-world-file                <arg>    - The name of the sqlite database file (SQLITE only).
 --print-block-schema                       - Print current block schema and exit.

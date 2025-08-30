@@ -116,6 +116,12 @@
 		},
 		{
 			"match_type": "byte_comparison",
+			"byte_pattern_base_64": "Q0FTOjc0NDAtMzItNg==",
+			"block_class": "org.res.block.MetallicTitanium",
+			"dedication": "Thomas Riegler"
+		},
+		{
+			"match_type": "byte_comparison",
 			"byte_pattern_base_64": "Q0FTOjE0ODA4LTYwLTc=",
 			"block_class": "org.res.block.SiliconDioxide",
 			"dedication": "GameDevChad"

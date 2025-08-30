@@ -60,11 +60,7 @@ public class ScreenLayer {
 	private boolean isLayerActive = true;
 	private Coordinate placementOffset;  //  The offset of where the layer should end up once it's merged in.
 	private CuboidAddress dimensions;
-	private int [][] characterWidthss = null;
-	private int [][][] colourCodess = null;
-	private String [][] characterss = null;
-	private boolean [][] changedd = null;
-	private boolean [][] activee = null;
+	private ScreenLayerColumn [][] columns;
 	private int [] defaultColourCodes = new int [] {};
 	private Set<ScreenRegion> changedRegions = new HashSet<ScreenRegion>();
 	private final StringBuilder stringBuilder = new StringBuilder();
@@ -73,44 +69,79 @@ public class ScreenLayer {
 		return this.isLayerActive;
 	}
 
-	public final String getColumnCharacter(final int x, final int y){
-		return this.characterss[x][y];
+	public final ScreenLayerColumn getColumn(final int x, final int y){
+		return this.columns[x][y];
 	}
 
-	public void setColumnCharacter(final int x, final int y, final String characters){
-		this.characterss[x][y] = characters;
+	public final String getColumnCharacter(final int x, final int y){
+		return this.columns[x][y].getCharacter();
+	}
+
+	public void setColumnCharacter(final int x, final int y, final String character){
+		this.columns[x][y].setCharacter(character);
 	}
 
 	public final int [] getColumnColourCodes(final int x, final int y){
-		return this.colourCodess[x][y];
+		return this.columns[x][y].getColourCodes();
 	}
 
 	public void setColumnColourCodes(final int x, final int y, final int [] colourCodes){
-		this.colourCodess[x][y] = colourCodes;
+		this.columns[x][y].setColourCodes(colourCodes);
 	}
 
 	public final int getColumnCharacterWidth(final int x, final int y){
-		return this.characterWidthss[x][y];
+		return this.columns[x][y].getCharacterWidth();
+	}
+
+	public void setMultiColumnCharacter(final int x, final int y, String character, final int characterWidth, final int [] colourCodes){
+		this.setMultiColumnCharacter(x, y, character, characterWidth, colourCodes, true, true);
+	}
+
+	public void setMultiColumnCharacter(final int x, final int y, String character, final int characterWidth, final int [] colourCodes, boolean changed, boolean active){
+		this.columns[x][y].setCharacterWidth(characterWidth);
+		this.columns[x][y].setCharacter(character);
+		this.columns[x][y].setColourCodes(colourCodes);
+		this.columns[x][y].setChanged(changed);
+		this.columns[x][y].setActive(active);
+		for(int i = 1; i < characterWidth; i++){
+			this.columns[x+i][y].setCharacterWidth(0);
+			this.columns[x+i][y].setCharacter(null);
+			this.columns[x+i][y].setColourCodes(colourCodes);
+			this.columns[x+i][y].setChanged(changed);
+			this.columns[x+i][y].setActive(active);
+		}
+	}
+
+	public void setToEmpty(final int x, final int y){
+		this.setToEmpty(x, y, true, true);
+	}
+
+	public void setToEmpty(final int x, final int y, boolean changed, boolean active){
+		this.columns[x][y].setCharacterWidth(0);
+		this.columns[x][y].setCharacter(null);
+		this.columns[x][y].setColourCodes(new int [] {});
+		this.columns[x][y].setChanged(changed);
+		this.columns[x][y].setActive(active);
 	}
 
 	public void setColumnCharacterWidth(final int x, final int y, final int characterWidth){
-		this.characterWidthss[x][y] = characterWidth;
+		this.columns[x][y].setCharacterWidth(characterWidth);
 	}
 
 	public final boolean getColumnChanged(final int x, final int y){
-		return this.changedd[x][y];
+		return this.columns[x][y].getChanged();
 	}
 
 	public void setColumnChanged(final int x, final int y, final boolean newState){
-		this.changedd[x][y] = newState;
+		this.columns[x][y].setChanged(newState);
 	}
 
 	public final boolean getColumnActive(final int x, final int y){
-		return this.activee[x][y];
+		return this.columns[x][y].getActive();
 	}
 
 	public void setColumnActive(final int x, final int y, final boolean newState){
-		this.activee[x][y] = newState;
+		this.columns[x][y].setActive(newState);
 	}
 
 	public static CuboidAddress makeDimensionsCA(int startX, int startY, int endX, int endY) throws Exception{
@@ -187,11 +218,18 @@ public class ScreenLayer {
 	public ScreenLayer(Coordinate placementOffset, CuboidAddress dimensions) throws Exception{
 		int width = (int)dimensions.getWidth();
 		int height = (int)dimensions.getHeight();
-		this.characterWidthss = new int [width][height];
-		this.colourCodess = new int [width][height][];
-		this.characterss = new String [width][height];
-		this.changedd = new boolean [width][height];
-		this.activee = new boolean [width][height];
+		this.columns = new ScreenLayerColumn [width][height];
+		for(int i = 0; i < width; i++){
+			for(int j = 0; j < height; j++){
+				this.columns[i][j] = new ScreenLayerColumn(
+					0,
+					new int [] {},
+					null,
+					false,
+					false
+				);
+			}
+		}
 		this.dimensions = dimensions;
 		this.placementOffset = placementOffset;
 	}
@@ -212,46 +250,6 @@ public class ScreenLayer {
 		for(int i = 0; i < width; i++){
 			for(int j = 0; j < height; j++){
 				this.setColumnActive(i, j, state);
-			}
-		}
-	}
-
-	public ScreenLayer(ScreenLayer l){
-		this.placementOffset = l.getPlacementOffset();
-		this.dimensions = l.getDimensions();
-		int width = l.getWidth();
-		int height = l.getHeight();
-		this.characterWidthss = new int [width][height];
-		for(int i = 0; i < width; i++){
-			for(int j = 0; j < height; j++){
-				this.characterWidthss[i][j] = l.getColumnCharacterWidth(i, j);
-			}
-		}
-		this.colourCodess = new int [width][height][];
-		for(int i = 0; i < width; i++){
-			for(int j = 0; j < height; j++){
-				this.colourCodess[i][j] = new int [l.getColumnColourCodes(i, j).length];
-				for(int k = 0; k < l.getColumnColourCodes(i, j).length; k++){
-					this.colourCodess[i][j][k] = l.getColumnColourCodes(i, j)[k];
-				}
-			}
-		}
-		this.characterss = new String [width][height];
-		for(int i = 0; i < width; i++){
-			for(int j = 0; j < height; j++){
-				this.characterss[i][j] = l.getColumnCharacter(i, j);
-			}
-		}
-		this.changedd = new boolean [width][height];
-		for(int i = 0; i < width; i++){
-			for(int j = 0; j < height; j++){
-				this.changedd[i][j] = l.getColumnChanged(i, j);
-			}
-		}
-		this.activee = new boolean [width][height];
-		for(int i = 0; i < width; i++){
-			for(int j = 0; j < height; j++){
-				this.activee[i][j] = l.getColumnActive(i, j);
 			}
 		}
 	}
@@ -462,9 +460,11 @@ public class ScreenLayer {
 		int [] xO = new int [aboveLayers.length +1];
 		int [] yO = new int [aboveLayers.length +1];
 		screenLayers[0] = this;  //  Bottom layer should be current layer.
+		screenLayers[0].validate();
 		xO[0] = 0;
 		yO[0] = 0;  //  All of the 'placement offsets' are relative to the layer we're merging down onto.
 		for(int a = 0; a < aboveLayers.length; a++){
+			aboveLayers[a].validate();
 			screenLayers[a+1] = aboveLayers[a];  //  All the layers above to merge down
 			xO[a+1] = aboveLayers[a].getPlacementOffset().getX().intValue();
 			yO[a+1] = aboveLayers[a].getPlacementOffset().getY().intValue();
@@ -732,6 +732,7 @@ public class ScreenLayer {
 			}
 		}
 		this.addChangedRegions(translatedExpandedClippedRegions);
+		this.validate();
 	}
 
 	public void printChanges(boolean resetCursorPosition, int xOffset, int yOffset) throws Exception{
