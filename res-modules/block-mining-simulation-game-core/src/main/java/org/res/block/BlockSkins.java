@@ -84,6 +84,7 @@ public class BlockSkins {
 		descriptionsTmp.put(StonePick.class.getName(),"A stone pick axe.  Capable of mining all blocks within a radius of 2 from the player.");
 		descriptionsTmp.put(IronPick.class.getName(),"An iron pick axe.  Capable of mining all blocks within a radius of 3 from the player.");
 		descriptionsTmp.put(TitaniumDioxide.class.getName(),"One cubic meter of titanium dioxide, chemical formula TiO₂");
+		descriptionsTmp.put(MetallicTitanium.class.getName(),"One cubic meter of metallic titanium, the element with atomic number 22.");
 		descriptionsTmp.put(SiliconDioxide.class.getName(),"One cubic meter of silicon dioxide, chemical formula SiO₂");
 		descriptionsTmp.put(Ilmenite.class.getName(),"One cubic meter of ilmenite, chemical formula FeTiO₃");
 		descriptionsTmp.put(Rock.class.getName(),"One cubic meter of limestone rocks (calcium carbonate), chemical formula CaCO₃");

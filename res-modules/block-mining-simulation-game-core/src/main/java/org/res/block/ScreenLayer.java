@@ -460,11 +460,11 @@ public class ScreenLayer {
 		int [] xO = new int [aboveLayers.length +1];
 		int [] yO = new int [aboveLayers.length +1];
 		screenLayers[0] = this;  //  Bottom layer should be current layer.
-		screenLayers[0].validate();
+		screenLayers[0].throwExceptionOnValidationFailure();
 		xO[0] = 0;
 		yO[0] = 0;  //  All of the 'placement offsets' are relative to the layer we're merging down onto.
 		for(int a = 0; a < aboveLayers.length; a++){
-			aboveLayers[a].validate();
+			aboveLayers[a].throwExceptionOnValidationFailure();
 			screenLayers[a+1] = aboveLayers[a];  //  All the layers above to merge down
 			xO[a+1] = aboveLayers[a].getPlacementOffset().getX().intValue();
 			yO[a+1] = aboveLayers[a].getPlacementOffset().getY().intValue();
@@ -732,7 +732,7 @@ public class ScreenLayer {
 			}
 		}
 		this.addChangedRegions(translatedExpandedClippedRegions);
-		this.validate();
+		this.throwExceptionOnValidationFailure();
 	}
 
 	public void printChanges(boolean resetCursorPosition, int xOffset, int yOffset) throws Exception{
@@ -910,6 +910,13 @@ public class ScreenLayer {
 		this.stringBuilder.setLength(0);      //  clear buffer.
 	}
 
+	public void throwExceptionOnValidationFailure() throws Exception{
+		String validationResult = this.validate();
+		if(validationResult != null){
+			throw new Exception(validationResult);
+		}
+	}
+
 	public String validate() throws Exception{
 		//   Check for scenarios that should be impossible that
 		//   the layer merging algorithms don't account for.
@@ -919,6 +926,10 @@ public class ScreenLayer {
 		boolean currentChangedState = false;
 		for(int j = 0; j < this.getHeight(); j++){
 			for(int i = 0; i < this.getWidth(); i++){
+				int observedWidth = this.getColumnCharacterWidth(i, j) > 0 ? this.getColumnCharacterWidth(i, j) : 0;
+				if(i + observedWidth > this.getWidth()){
+					return "Saw character of width " + observedWidth + " as x=" + i + ", y=" + j + ", but layer width is only " + this.getWidth();
+				}
 				if(this.getColumnColourCodes(i, j) == null){
 					return "Saw null colour codes at x=" + i + ", y=" + j + ".";
 				}

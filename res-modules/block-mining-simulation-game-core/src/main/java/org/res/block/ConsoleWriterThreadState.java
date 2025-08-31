@@ -994,8 +994,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				System.out.flush();
 				//  We just by-passed the screen printing buffer, so invalidate the area of the
 				//  screen where the test character was and re-print whatever was there:
-				int refreshAreaX = Math.min(16, this.screenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT].getWidth());
-				int refreshAreaY = Math.min(4, this.screenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT].getHeight());
+				//  For X refresh area, just update the entire width, otherwise we risk setting inconsistent changed flaged on a multi-column character:
+				int refreshAreaX = this.screenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT].getWidth();
+				int refreshAreaY = Math.min(2, this.screenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT].getHeight());
 				this.setScreenAreaChangeStates(0, 0, refreshAreaX, refreshAreaY, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, true);
 				this.printTerminalTextChanges(false, true);
 				logger.info("Finished printing test text '" + text + "' and issued cursor re-positioning request to calculate width. Waiting for result on stdin...");

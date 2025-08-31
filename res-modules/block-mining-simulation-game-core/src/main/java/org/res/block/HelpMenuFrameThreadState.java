@@ -436,14 +436,14 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		for(int i = 0; i < terminalWidth; i++){
 			for(int j = 0; j < terminalHeight; j++){
 				boolean isInMenuBox = (i >= xOffset && i < (xOffset + menuWidth)) && (j >= yOffset && j < (yOffset + menuHeight));
-				String character = (this.helpMenu.getActiveState() && isInMenuBox) ? " " : null;
-				int [] colours = (this.helpMenu.getActiveState() && isInMenuBox) ? UserInterfaceFrameThreadState.getHelpMenuBackgroundColours() : new int [] {};
-				int characterWidth = (this.helpMenu.getActiveState() && isInMenuBox) ? 1 : 0;
-				changes.setColumnCharacterWidth(i, j, characterWidth);
-				changes.setColumnColourCodes(i, j, colours);
-				changes.setColumnCharacter(i, j, character);
-				changes.setColumnChanged(i, j, true);
-				changes.setColumnActive(i, j, true);
+				if(this.helpMenu.getActiveState() && isInMenuBox){
+					int [] colours = UserInterfaceFrameThreadState.getHelpMenuBackgroundColours();
+					String character = " ";
+					int characterWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(character).getDeltaX().intValue();;
+					changes.setMultiColumnCharacter(i, j, character, characterWidth, colours, true, true);
+				}else{
+					changes.setToEmpty(i, j, true, true);
+				}
 			}
 		}
 

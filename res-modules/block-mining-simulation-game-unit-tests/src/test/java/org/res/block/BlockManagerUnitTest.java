@@ -971,14 +971,10 @@ public class BlockManagerUnitTest {
 
         public void mergeChangesTest5() throws Exception{
                 //  Multi-column characters that don't fit in last column should just become null characters:
-                ScreenLayer t = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
+                ScreenLayer t = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
                 t.setAllChangedFlagStates(false);
                 t.initialize();
-                t.setColumnCharacter(2, 0, "A");
-                t.setColumnCharacterWidth(2, 0, 2);
-                t.setColumnColourCodes(2, 0, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-                t.setColumnChanged(2, 0, true);
-                t.setColumnActive(2, 0, true);
+		t.setMultiColumnCharacter(2, 0, "A", 2, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR}, true, true);
 
                 ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
                 merged.initialize();
@@ -1007,16 +1003,7 @@ public class BlockManagerUnitTest {
                 ScreenLayer t = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
                 t.setAllChangedFlagStates(false);
                 t.initialize();
-                t.setColumnCharacter(0, 0, "A");
-                t.setColumnCharacterWidth(0, 0, 2);
-                t.setColumnColourCodes(0, 0, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-                t.setColumnChanged(0, 0, true);
-                t.setColumnActive(0, 0, true);
-                t.setColumnCharacter(1, 0, null);
-                t.setColumnCharacterWidth(1, 0, 0);
-                t.setColumnColourCodes(1, 0, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-                t.setColumnChanged(1, 0, true);
-                t.setColumnActive(1, 0, true);
+                t.setMultiColumnCharacter(0, 0, "A", 2, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR}, true, true);
                 t.validate();
 
                 ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
@@ -1052,16 +1039,7 @@ public class BlockManagerUnitTest {
 		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
 		layers[0].initialize();
 		layers[0].setAllChangedFlagStates(false);
-		layers[0].setColumnCharacter(0, 0, "A");
-		layers[0].setColumnCharacterWidth(0, 0, 2);
-		layers[0].setColumnColourCodes(0, 0, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-		layers[0].setColumnChanged(0, 0, true);
-		layers[0].setColumnActive(0, 0, true);
-		layers[0].setColumnCharacter(1, 0, null);
-		layers[0].setColumnCharacterWidth(1, 0, 0);
-		layers[0].setColumnColourCodes(1, 0, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-		layers[0].setColumnChanged(1, 0, true);
-		layers[0].setColumnActive(1, 0, true);
+		layers[0].setMultiColumnCharacter(0, 0, "A", 2, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR}, true, true);
 
 		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
 		merged.initialize();
@@ -1090,44 +1068,17 @@ public class BlockManagerUnitTest {
 		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[0].initialize();
 		layers[0].setAllChangedFlagStates(false);
-		layers[0].setColumnCharacter(0, 0, "A");
-		layers[0].setColumnCharacterWidth(0, 0, 2);
-		layers[0].setColumnColourCodes(0, 0, new int [] {UserInterfaceFrameThreadState.BLUE_FG_COLOR});
-		layers[0].setColumnChanged(0, 0, true);
-		layers[0].setColumnActive(0, 0, true);
-		layers[0].setColumnCharacter(1, 0, null);
-		layers[0].setColumnCharacterWidth(1, 0, 0);
-		layers[0].setColumnColourCodes(1, 0, new int [] {UserInterfaceFrameThreadState.BLUE_FG_COLOR});
-		layers[0].setColumnChanged(1, 0, true);
-		layers[0].setColumnActive(1, 0, true);
+		layers[0].setMultiColumnCharacter(0, 0, "A", 2, new int [] {UserInterfaceFrameThreadState.BLUE_FG_COLOR}, true, true);
 
 		layers[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[1].initialize();
 		layers[1].setAllChangedFlagStates(false);
-		layers[1].setColumnCharacter(1, 0, "A"); //  Overlaps first "A"
-		layers[1].setColumnCharacterWidth(1, 0, 2);
-		layers[1].setColumnColourCodes(1, 0, new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR});
-		layers[1].setColumnChanged(1, 0, true);
-		layers[1].setColumnActive(1, 0, true);
-		layers[1].setColumnCharacter(2, 0, null);
-		layers[1].setColumnCharacterWidth(2, 0, 0);
-		layers[1].setColumnColourCodes(2, 0, new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR});
-		layers[1].setColumnChanged(2, 0, true);
-		layers[1].setColumnActive(2, 0, true);
+		layers[1].setMultiColumnCharacter(1, 0, "A", 2, new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR}, true, true); //  Overlaps first "A"
 
 		layers[2] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[2].initialize();
 		layers[2].setAllChangedFlagStates(false);
-		layers[2].setColumnCharacter(2, 0, "A");
-		layers[2].setColumnCharacterWidth(2, 0, 2);
-		layers[2].setColumnColourCodes(2, 0, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-		layers[2].setColumnChanged(2, 0, true);
-		layers[2].setColumnActive(2, 0, true);
-		layers[2].setColumnCharacter(3, 0, null);
-		layers[2].setColumnCharacterWidth(3, 0, 0);
-		layers[2].setColumnColourCodes(3, 0, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-		layers[2].setColumnChanged(3, 0, true);
-		layers[2].setColumnActive(3, 0, true);
+		layers[2].setMultiColumnCharacter(2, 0, "A", 2, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR}, true, true);
 
 		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		merged.initialize();
@@ -1162,44 +1113,17 @@ public class BlockManagerUnitTest {
 		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[0].initialize();
 		layers[0].setAllChangedFlagStates(false);
-		layers[0].setColumnCharacter(2, 0, "A");
-		layers[0].setColumnCharacterWidth(2, 0, 2);
-		layers[0].setColumnColourCodes(2, 0, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-		layers[0].setColumnChanged(2, 0, true);
-		layers[0].setColumnActive(2, 0, true);
-		layers[0].setColumnCharacter(3, 0, null);
-		layers[0].setColumnCharacterWidth(3, 0, 0);
-		layers[0].setColumnColourCodes(3, 0, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-		layers[0].setColumnChanged(3, 0, true);
-		layers[0].setColumnActive(3, 0, true);
+		layers[0].setMultiColumnCharacter(2, 0, "A", 2, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR}, true, true);
 
 		layers[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[1].initialize();
 		layers[1].setAllChangedFlagStates(false);
-		layers[1].setColumnCharacter(1, 0, "A");
-		layers[1].setColumnCharacterWidth(1, 0, 2);
-		layers[1].setColumnColourCodes(1, 0, new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR});
-		layers[1].setColumnChanged(1, 0, true);
-		layers[1].setColumnActive(1, 0, true);
-		layers[1].setColumnCharacter(2, 0, null);
-		layers[1].setColumnCharacterWidth(2, 0, 0);
-		layers[1].setColumnColourCodes(2, 0, new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR});
-		layers[1].setColumnChanged(2, 0, true);
-		layers[1].setColumnActive(2, 0, true);
+		layers[1].setMultiColumnCharacter(1, 0, "A", 2, new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR}, true, true);
 
 		layers[2] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[2].initialize();
 		layers[2].setAllChangedFlagStates(false);
-		layers[2].setColumnCharacter(0, 0, "A");
-		layers[2].setColumnCharacterWidth(0, 0, 2);
-		layers[2].setColumnColourCodes(0, 0, new int [] {UserInterfaceFrameThreadState.BLUE_FG_COLOR});
-		layers[2].setColumnChanged(0, 0, true);
-		layers[2].setColumnActive(0, 0, true);
-		layers[2].setColumnCharacter(1, 0, null);
-		layers[2].setColumnCharacterWidth(1, 0, 0);
-		layers[2].setColumnColourCodes(1, 0, new int [] {UserInterfaceFrameThreadState.BLUE_FG_COLOR});
-		layers[2].setColumnChanged(1, 0, true);
-		layers[2].setColumnActive(1, 0, true);
+		layers[2].setMultiColumnCharacter(0, 0, "A", 2, new int [] {UserInterfaceFrameThreadState.BLUE_FG_COLOR}, true, true);
 
 		ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		merged.initialize();
@@ -1234,25 +1158,12 @@ public class BlockManagerUnitTest {
 		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[0].initialize();
 		layers[0].setAllChangedFlagStates(false);
-		layers[0].setColumnCharacter(1, 0, " ");
-		layers[0].setColumnCharacterWidth(1, 0, 1); //  Bottom Layer
-		layers[0].setColumnColourCodes(1, 0, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-		layers[0].setColumnChanged(1, 0, true);
-		layers[0].setColumnActive(1, 0, true);
+		layers[0].setMultiColumnCharacter(1, 0, " ", 1, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR}, true, true);
 
 		layers[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[1].initialize();
 		layers[1].setAllChangedFlagStates(false);
-		layers[1].setColumnCharacter(0, 0, "A"); //  Middle layer
-		layers[1].setColumnCharacterWidth(0, 0, 2);
-		layers[1].setColumnColourCodes(0, 0, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-		layers[1].setColumnChanged(0, 0, true);
-		layers[1].setColumnActive(0, 0, true);
-		layers[1].setColumnCharacter(1, 0, null); //  Middle layer
-		layers[1].setColumnCharacterWidth(1, 0, 0);
-		layers[1].setColumnColourCodes(1, 0, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
-		layers[1].setColumnChanged(1, 0, true);
-		layers[1].setColumnActive(1, 0, true);
+		layers[1].setMultiColumnCharacter(0, 0, "A", 2, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR}, true, true); //  Middle layer
 
 		layers[2] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[2].initialize();
@@ -1290,20 +1201,12 @@ public class BlockManagerUnitTest {
 		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
                 layers[0].initialize();
                 layers[0].setAllChangedFlagStates(false);
-                layers[0].setColumnCharacter(0, 0, "M");
-                layers[0].setColumnCharacterWidth(0, 0, 1);
-                layers[0].setColumnColourCodes(0, 0, new int [] {});
-                layers[0].setColumnChanged(0, 0, true);
-                layers[0].setColumnActive(0, 0, true);
+                layers[0].setMultiColumnCharacter(0, 0, "M", 1, new int [] {}, true, true);
 
                 ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 1, 1));
                 merged.initialize();
                 merged.setAllChangedFlagStates(false);
-                merged.setColumnCharacter(0, 0, "M");
-                merged.setColumnCharacterWidth(0, 0, 1);
-                merged.setColumnColourCodes(0, 0, new int [] {});
-                merged.setColumnChanged(0, 0, false);
-                merged.setColumnActive(0, 0, true);
+                merged.setMultiColumnCharacter(0, 0, "M", 1, new int [] {}, false, true);
 
                 merged.mergeDown(layers, false);
 
@@ -1318,30 +1221,13 @@ public class BlockManagerUnitTest {
 		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 2, 1));
                 layers[0].initialize();
                 layers[0].setAllChangedFlagStates(false);
-                layers[0].setColumnCharacter(0, 0, "=");
-                layers[0].setColumnCharacterWidth(0, 0, 2);
-                layers[0].setColumnColourCodes(0, 0, new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
-                layers[0].setColumnChanged(0, 0, true);
-                layers[0].setColumnActive(0, 0, true);
-                layers[0].setColumnCharacter(1, 0, null);
-                layers[0].setColumnCharacterWidth(1, 0, 0);
-                layers[0].setColumnColourCodes(1, 0, new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
-                layers[0].setColumnChanged(1, 0, true);
-                layers[0].setColumnActive(1, 0, true);
+                layers[0].setMultiColumnCharacter(0, 0, "=", 2, new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR}, true, true);
 
                 ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 2, 1));
                 merged.initialize();
                 merged.setAllChangedFlagStates(false);
-                merged.setColumnCharacter(0, 0, null);
-                merged.setColumnCharacterWidth(0, 0, 0);
-                merged.setColumnColourCodes(0, 0, new int [] {});
-                merged.setColumnChanged(0, 0, false);
-                merged.setColumnActive(0, 0, true);
-                merged.setColumnCharacter(1, 0, null);
-                merged.setColumnCharacterWidth(1, 0, 0);
-                merged.setColumnColourCodes(1, 0, new int [] {});
-                merged.setColumnChanged(1, 0, false);
-                merged.setColumnActive(1, 0, true);
+                merged.setToEmpty(0, 0, false, true);
+                merged.setToEmpty(1, 0, false, true);
 
                 merged.mergeDown(layers, true);
                 //  Merging in the layer is supposed to clear the changed flags:
@@ -1361,11 +1247,7 @@ public class BlockManagerUnitTest {
                 ScreenLayer output = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 2, 1));
                 output.initialize();
                 output.setAllChangedFlagStates(false);
-                output.setColumnCharacter(0, 0, null);
-                output.setColumnCharacterWidth(0, 0, 0);
-                output.setColumnColourCodes(0, 0, new int [] {});
-                output.setColumnChanged(0, 0, false);
-                output.setColumnActive(0, 0, true);
+                output.setToEmpty(0, 0);
 
                 output.mergeDown(merged, false);
                 //  Merging in the layer is supposed to clear the changed flags:
@@ -1423,30 +1305,13 @@ public class BlockManagerUnitTest {
 		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
                 layers[0].initialize();
                 layers[0].setAllChangedFlagStates(false);
-                layers[0].setColumnCharacter(0, 0, "A");
-                layers[0].setColumnCharacterWidth(0, 0, 2);
-                layers[0].setColumnColourCodes(0, 0, new int [] {});
-                layers[0].setColumnChanged(0, 0, true);
-                layers[0].setColumnActive(0, 0, true);
-                layers[0].setColumnCharacter(1, 0, null);
-                layers[0].setColumnCharacterWidth(1, 0, 0);
-                layers[0].setColumnColourCodes(1, 0, new int [] {});
-                layers[0].setColumnChanged(1, 0, true);
-                layers[0].setColumnActive(1, 0, true);
+                layers[0].setMultiColumnCharacter(0, 0, "A", 2, new int [] {}, true, true);;
 
                 ScreenLayer merged = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 3, 1));
                 merged.initialize();
                 merged.setAllChangedFlagStates(false);
-                merged.setColumnCharacter(0, 0, " ");
-                merged.setColumnCharacterWidth(0, 0, 1);
-                merged.setColumnColourCodes(0, 0, new int [] {UserInterfaceFrameThreadState.BLUE_BG_COLOR});
-                merged.setColumnChanged(0, 0, false);
-                merged.setColumnActive(0, 0, true);
-                merged.setColumnCharacter(1, 0, null);
-                merged.setColumnCharacterWidth(1, 0, 0);
-                merged.setColumnColourCodes(1, 0, new int [] {UserInterfaceFrameThreadState.BLUE_BG_COLOR});
-                merged.setColumnChanged(1, 0, false);
-                merged.setColumnActive(1, 0, true);
+                merged.setMultiColumnCharacter(0, 0, " ", 1, new int [] {UserInterfaceFrameThreadState.BLUE_BG_COLOR}, false, true);
+                merged.setToEmpty(1, 0, false, true);
 
                 merged.mergeDown(layers, true);
 
@@ -1473,30 +1338,13 @@ public class BlockManagerUnitTest {
 		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[0].initialize();
 		layers[0].setAllChangedFlagStates(false);
-		layers[0].setColumnCharacter(0, 0, " ");
-		layers[0].setColumnCharacterWidth(0, 0, 1); //  Bottom Layer
-		layers[0].setColumnColourCodes(0, 0, new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
-		layers[0].setColumnChanged(0, 0, true);
-		layers[0].setColumnActive(0, 0, true);
-		layers[0].setColumnCharacter(1, 0, " ");
-		layers[0].setColumnCharacterWidth(1, 0, 1); 
-		layers[0].setColumnColourCodes(1, 0, new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
-		layers[0].setColumnChanged(1, 0, true);
-		layers[0].setColumnActive(1, 0, true);
+		layers[0].setMultiColumnCharacter(0, 0, " ", 1, new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR}, true, true);
+		layers[0].setMultiColumnCharacter(1, 0, " ", 1, new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR}, true, true);
 
 		layers[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[1].initialize();
 		layers[1].setAllChangedFlagStates(false);
-		layers[1].setColumnCharacter(0, 0, "A"); //  Middle layer, should merge down and inherit bottom layer's BG colour
-		layers[1].setColumnCharacterWidth(0, 0, 2);
-		layers[1].setColumnColourCodes(0, 0, new int [] {});
-		layers[1].setColumnChanged(0, 0, false);
-		layers[1].setColumnActive(0, 0, true);
-		layers[1].setColumnCharacter(1, 0, null);
-		layers[1].setColumnCharacterWidth(1, 0, 0);
-		layers[1].setColumnColourCodes(1, 0, new int [] {});
-		layers[1].setColumnChanged(1, 0, false);
-		layers[1].setColumnActive(1, 0, true);
+		layers[1].setMultiColumnCharacter(0, 0, "A", 2, new int [] {}, false, true); //  Middle layer, should merge down and inherit bottom layer's BG colour
 
 		layers[2] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[2].initialize();
@@ -1535,25 +1383,12 @@ public class BlockManagerUnitTest {
 		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[0].initialize();
 		layers[0].setAllChangedFlagStates(false);
-		layers[0].setColumnCharacter(0, 0, "A");
-		layers[0].setColumnCharacterWidth(0, 0, 2); //  Bottom Layer
-		layers[0].setColumnColourCodes(0, 0, new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
-		layers[0].setColumnChanged(0, 0, true);
-		layers[0].setColumnActive(0, 0, true);
-		layers[0].setColumnCharacter(1, 0, null);
-		layers[0].setColumnCharacterWidth(1, 0, 0); 
-		layers[0].setColumnColourCodes(1, 0, new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
-		layers[0].setColumnChanged(1, 0, true);
-		layers[0].setColumnActive(1, 0, true);
+		layers[0].setMultiColumnCharacter(0, 0, "A", 2, new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR}, true, true);
 
 		layers[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[1].initialize();
 		layers[1].setAllChangedFlagStates(false);
-		layers[1].setColumnCharacter(0, 0, " "); //  Middle layer,
-		layers[1].setColumnCharacterWidth(0, 0, 1);
-		layers[1].setColumnColourCodes(0, 0, new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR});
-		layers[1].setColumnChanged(0, 0, true);
-		layers[1].setColumnActive(0, 0, true);
+		layers[1].setMultiColumnCharacter(0, 0, " ", 1, new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR}, true, true); //  Middle layer,
 
 		layers[2] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[2].initialize();
@@ -1592,51 +1427,19 @@ public class BlockManagerUnitTest {
 		merged.initialize();
 		merged.setIsLayerActive(false);
 		merged.setAllChangedFlagStates(false);
-		merged.setColumnCharacter(0, 0, "A");
-		merged.setColumnCharacterWidth(0, 0, 1);
-		merged.setColumnColourCodes(0, 0, new int [] {});
-		merged.setColumnChanged(0, 0, true);
-		merged.setColumnActive(0, 0, true);
-		merged.setColumnCharacter(1, 0, "B");
-		merged.setColumnCharacterWidth(1, 0, 1); 
-		merged.setColumnColourCodes(1, 0, new int [] {});
-		merged.setColumnChanged(1, 0, true);
-		merged.setColumnActive(1, 0, false);
-		merged.setColumnCharacter(2, 0, "C");
-		merged.setColumnCharacterWidth(2, 0, 1); 
-		merged.setColumnColourCodes(2, 0, new int [] {});
-		merged.setColumnChanged(2, 0, false);
-		merged.setColumnActive(2, 0, true);
-		merged.setColumnCharacter(3, 0, "D");
-		merged.setColumnCharacterWidth(3, 0, 1); 
-		merged.setColumnColourCodes(3, 0, new int [] {});
-		merged.setColumnChanged(3, 0, false);
-		merged.setColumnActive(3, 0, false);
+		merged.setMultiColumnCharacter(0, 0, "A", 1, new int [] {}, true, true);
+		merged.setMultiColumnCharacter(1, 0, "B", 1, new int [] {}, true, false);
+		merged.setMultiColumnCharacter(2, 0, "C", 1, new int [] {}, false, true);
+		merged.setMultiColumnCharacter(3, 0, "D", 1, new int [] {}, false, false);
 
 		ScreenLayer [] layers = new ScreenLayer [1];
 		layers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		layers[0].initialize();
 		layers[0].setAllChangedFlagStates(false);
-		layers[0].setColumnCharacter(0, 0, "A");
-		layers[0].setColumnCharacterWidth(0, 0, 1);
-		layers[0].setColumnColourCodes(0, 0, new int [] {});
-		layers[0].setColumnChanged(0, 0, true);
-		layers[0].setColumnActive(0, 0, true);
-		layers[0].setColumnCharacter(1, 0, "B");
-		layers[0].setColumnCharacterWidth(1, 0, 1); 
-		layers[0].setColumnColourCodes(1, 0, new int [] {});
-		layers[0].setColumnChanged(1, 0, true);
-		layers[0].setColumnActive(1, 0, false);
-		layers[0].setColumnCharacter(2, 0, "C");
-		layers[0].setColumnCharacterWidth(2, 0, 1); 
-		layers[0].setColumnColourCodes(2, 0, new int [] {});
-		layers[0].setColumnChanged(2, 0, false);
-		layers[0].setColumnActive(2, 0, true);
-		layers[0].setColumnCharacter(3, 0, "D");
-		layers[0].setColumnCharacterWidth(3, 0, 1); 
-		layers[0].setColumnColourCodes(3, 0, new int [] {});
-		layers[0].setColumnChanged(3, 0, false);
-		layers[0].setColumnActive(3, 0, false);
+		layers[0].setMultiColumnCharacter(0, 0, "A", 1, new int [] {}, true, true);
+		layers[0].setMultiColumnCharacter(1, 0, "B", 1, new int [] {}, true, false);
+		layers[0].setMultiColumnCharacter(2, 0, "C", 1, new int [] {}, false, true);
+		layers[0].setMultiColumnCharacter(3, 0, "D", 1, new int [] {}, false, false);
 
 		merged.mergeDown(layers, false);
 
@@ -2135,7 +1938,7 @@ public class BlockManagerUnitTest {
 			}
 		}
 
-		ScreenLayer [] failingLayers = new ScreenLayer [9];
+		ScreenLayer [] failingLayers = new ScreenLayer [10];
 		//  Test invalid widths
 		failingLayers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		failingLayers[0].initialize();
@@ -2231,6 +2034,15 @@ public class BlockManagerUnitTest {
 		failingLayers[8].setColumnCharacter(0, 0, null);
 		failingLayers[8].setColumnCharacterWidth(0, 0, 1);
 		failingLayers[8].setColumnColourCodes(0, 0, new int [] {});
+
+
+		//  Test characters that do not fit inside layer
+		failingLayers[9] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
+		failingLayers[9].initialize();
+		failingLayers[9].setAllChangedFlagStates(false);
+		failingLayers[9].setColumnCharacter(3, 0, "A");
+		failingLayers[9].setColumnCharacterWidth(3, 0, 2);
+		failingLayers[9].setColumnColourCodes(3, 0, new int [] {});
 
 		for(int i = 0; i < failingLayers.length; i++){
 			if(failingLayers[i].validate() != null){
