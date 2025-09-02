@@ -93,6 +93,15 @@ public class ScreenLayer {
 		return this.columns[x][y].getCharacterWidth();
 	}
 
+	public final int getPositiveOnlyColumnCharacterWidth(final int x, final int y){
+		int v = this.columns[x][y].getCharacterWidth();
+		if(v > 0){
+			return v;
+		}else{
+			return 0;
+		}
+	}
+
 	public void setMultiColumnCharacter(final int x, final int y, String character, final int characterWidth, final int [] colourCodes){
 		this.setMultiColumnCharacter(x, y, character, characterWidth, colourCodes, true, true);
 	}
@@ -104,7 +113,9 @@ public class ScreenLayer {
 		this.columns[x][y].setChanged(changed);
 		this.columns[x][y].setActive(active);
 		for(int i = 1; i < characterWidth; i++){
-			this.columns[x+i][y].setCharacterWidth(0);
+			//  For multi-column characters, widths after the first indicate
+			//  how many columns back to move to get to the first column.
+			this.columns[x+i][y].setCharacterWidth(-i);
 			this.columns[x+i][y].setCharacter(null);
 			this.columns[x+i][y].setColourCodes(colourCodes);
 			this.columns[x+i][y].setChanged(changed);
@@ -275,6 +286,10 @@ public class ScreenLayer {
 		int endY = region.getEndY();
 		this.defaultColourCodes = colourCodes;
 
+		if(!(chrWidth == 0 && s == null || chrWidth == 1)){
+			throw new Exception("chrWidth == 0 && s == null || chrWidth == 1");
+		}
+
 		for(int i = startX; i < endX; i++){
 			for(int j = startY; j < endY; j++){
 				this.setColumnCharacterWidth(i, j, chrWidth);
@@ -338,44 +353,11 @@ public class ScreenLayer {
 		int loopChange = isLeftToRight ? 1 : -1;
 		int [][][] firstSolidLayers = new int [screenLayers.length][xWidth][yHeight];
 
-		int [][][] currentCharacterWidths = new int [screenLayers.length][xWidth][yHeight];
-
-		//  Pre-calculate character width positions:
 		for(int s = screenLayers.length -1; s >= 0; s--){
 			for(int j = startY; j < endY; j++){
-				for(int i = startX; i < endX; i++){
-					if(isLeftToRight){
-						int xSrc = i-xO[s];
-						int ySrc = j-yO[s];
-						int xR = i-startX;
-						int yR = j-startY;
-						if(xSrc >= 0 && xSrc < screenLayers[s].getWidth() && ySrc >= 0 && ySrc < screenLayers[s].getHeight()){
-							currentCharacterWidths[s][xR][yR] = screenLayers[s].getColumnCharacterWidth(xSrc, ySrc);
-						}
-					}else{
-						//  Right to left pass puts width at end:
-						int xSrc = i-xO[s];
-						int ySrc = j-yO[s];
-						if(xSrc >= 0 && xSrc < screenLayers[s].getWidth() && ySrc >= 0 && ySrc < screenLayers[s].getHeight()){
-							int chrWidth = screenLayers[s].getColumnCharacterWidth(xSrc, ySrc);
-							if(chrWidth > 0){
-								int end_i = i + chrWidth -1; //  Offset of end of char
-								int xR = end_i - startX;
-								int yR = j-startY;
-								if(xR >= 0 && xR < xWidth){
-									currentCharacterWidths[s][xR][yR] = screenLayers[s].getColumnCharacterWidth(xSrc, ySrc);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-
-		for(int s = screenLayers.length -1; s >= 0; s--){
-			for(int j = startY; j < endY; j++){
-				for(int iter = startX; iter < endX; iter++){
-					int i = isLeftToRight ? iter : startX + xWidth - (iter - startX +1);
+				int i;
+				for(int iter = 0; iter < xWidth; iter++){
+					i = loopStart + (loopChange * iter);
 					int xR = i-startX;
 					int yR = j-startY;
 
@@ -396,9 +378,29 @@ public class ScreenLayer {
 						activeCharacterLayer[s][xR][yR] = activeCharacterLayer[s+1][xR][yR] > 0 ? activeCharacterLayer[s+1][xR][yR] : activeCharacterLayer[s][xR-loopChange][yR];
 					}
 
-					boolean isAtCharacterStartPosition = currentCharacterWidths[s][xR][yR] > 0;
+					int currentCharacterWidth = 0;
+					if(xSrc >= 0 && xSrc < screenLayers[s].getWidth() && ySrc >= 0 && ySrc < screenLayers[s].getHeight()){
+						int observedColumnWidthValue = screenLayers[s].getColumnCharacterWidth(xSrc, ySrc);
+						if(isLeftToRight){
+							if(observedColumnWidthValue > 0){
+								currentCharacterWidth = observedColumnWidthValue;
+							}
+						}else{
+							if(observedColumnWidthValue == 1){
+								currentCharacterWidth = 1;
+							}else if(observedColumnWidthValue < 0){
+								//  In Right to left pass, the 'start' of the character is where the negative offset is one less than the actual width:
+								if(screenLayers[s].getColumnCharacterWidth(xSrc + observedColumnWidthValue, ySrc) == ((-observedColumnWidthValue) + 1)){
+									currentCharacterWidth = screenLayers[s].getColumnCharacterWidth(xSrc + observedColumnWidthValue, ySrc);
+								}
+								
+							}
+						}
+					}
+
+					boolean isAtCharacterStartPosition = currentCharacterWidth > 0;
 					if(isAtCharacterStartPosition && activeStates[s][xR][yR]){
-						columnsRemaining[s][xR][yR] = currentCharacterWidths[s][xR][yR];
+						columnsRemaining[s][xR][yR] = currentCharacterWidth;
 					}else if(i != loopStart){
 						columnsRemaining[s][xR][yR] = columnsRemaining[s][xR-loopChange][yR] -1;
 					}
@@ -760,7 +762,8 @@ public class ScreenLayer {
 						mustSetColourCodes = true;
 					}
 					if(chrsLeft <= 0){
-						chrsLeft = this.getColumnCharacterWidth(i, j);
+						int columnWidthValue = this.getColumnCharacterWidth(i, j);
+						chrsLeft = columnWidthValue > 0 ? columnWidthValue : 0;
 					}
 					if(
 						this.getColumnChanged(i, j)
@@ -778,7 +781,8 @@ public class ScreenLayer {
 							mustSetColourCodes = resetState;
 							lastUsedColourCodes = this.getColumnColourCodes(i, j);
 
-							for(int k = 0; k < this.getColumnCharacterWidth(i, j); k++){
+							int columnWidthValue = this.getColumnCharacterWidth(i, j)  > 0 ? this.getColumnCharacterWidth(i, j) : 0;
+							for(int k = 0; k < columnWidthValue; k++){
 								this.stringBuilder.append(" ");
 							}
 						}
@@ -846,7 +850,7 @@ public class ScreenLayer {
 						}
 					}else{
 						int offset = getNextCharacterStartToLeft(i, j, this);
-						if(offset != -1 && ((this.getColumnCharacterWidth(i-offset, j) - offset) > 0)){
+						if(offset != -1 && ((this.getPositiveOnlyColumnCharacterWidth(i-offset, j) - offset) > 0)){
 							//  A null that's part of a multi-column character:
 							characters = "_";
 						}else{
@@ -920,23 +924,34 @@ public class ScreenLayer {
 	public String validate() throws Exception{
 		//   Check for scenarios that should be impossible that
 		//   the layer merging algorithms don't account for.
-		int columnsRemaining = 0;
 		int [] currentColourCodes = new int [] {};
 		boolean currentActiveState = false;
 		boolean currentChangedState = false;
 		for(int j = 0; j < this.getHeight(); j++){
+			int offsetIntoCharacter = 0;
+			int totalCharacterWidth = 0;
 			for(int i = 0; i < this.getWidth(); i++){
-				int observedWidth = this.getColumnCharacterWidth(i, j) > 0 ? this.getColumnCharacterWidth(i, j) : 0;
-				if(i + observedWidth > this.getWidth()){
-					return "Saw character of width " + observedWidth + " as x=" + i + ", y=" + j + ", but layer width is only " + this.getWidth();
+				offsetIntoCharacter++;
+				if(offsetIntoCharacter == totalCharacterWidth){
+					// Reset colour codes for next character.
+					currentColourCodes = new int [] {};
+					offsetIntoCharacter = 0;
+					totalCharacterWidth = 0;
+				}
+
+				int columnWidthValue = this.getColumnCharacterWidth(i, j);
+				if(columnWidthValue >= 0 && (i + columnWidthValue) > this.getWidth()){
+					return "Saw character of width " + columnWidthValue + " as x=" + i + ", y=" + j + ", but layer width is only " + this.getWidth();
 				}
 				if(this.getColumnColourCodes(i, j) == null){
 					return "Saw null colour codes at x=" + i + ", y=" + j + ".";
 				}
-				boolean insideMultiColumnCharacter = columnsRemaining > 0;
+				boolean insideMultiColumnCharacter = offsetIntoCharacter < totalCharacterWidth;
 				if(insideMultiColumnCharacter){
-					if(this.getColumnCharacterWidth(i, j) > 0){
-						return "Saw a non zero character width inside another character at x=" + i + ", y=" + j + ".";
+					//  Every width inside a multi-column character should provide the x
+					//  offset to get back to the first column of this multi-column character:
+					if(!(this.getColumnCharacterWidth(i, j) == -offsetIntoCharacter)){
+						return "Saw an incorrect width value (" + this.getColumnCharacterWidth(i, j) + "), expected (" + (-offsetIntoCharacter) + ") inside a multi-column character at x=" + i + ", y=" + j + ".";
 					}
 					if(!Arrays.equals(this.getColumnColourCodes(i, j), currentColourCodes)){
 						return "Saw an inconsistent colour code inside a multi-column character that did not match at x=" + i + ", y=" + j + ".";
@@ -950,21 +965,18 @@ public class ScreenLayer {
 					if(this.getColumnCharacter(i, j) != null){
 						return "Saw non-null characters inside a multi-column character at x=" + i + ", y=" + j + ".";
 					}
-					columnsRemaining--;
-					if(columnsRemaining == 0){
-						// Reset colour codes for next character.
-						currentColourCodes = new int [] {};
-					}
+
 				}else{
 					if(this.getColumnCharacterWidth(i, j) > 0){ // Start of a new character
 						if(this.getColumnCharacter(i, j) == null){
 							return "Saw character with specified width, but null characters at x=" + i + ", y=" + j + ".";
 						}
 						//  Started a new character
-						columnsRemaining = this.getColumnCharacterWidth(i, j) -1;
 						currentColourCodes = this.getColumnColourCodes(i, j);
 						currentChangedState = this.getColumnChanged(i, j);
 						currentActiveState = this.getColumnActive(i, j);
+						totalCharacterWidth = this.getColumnCharacterWidth(i, j); // First column gives actual character total width
+						offsetIntoCharacter = 0;
 					}else{
 						//  An empty null character.  This is just an empty area.
 						if(this.getColumnColourCodes(i, j) == null){
@@ -996,22 +1008,6 @@ public class ScreenLayer {
 		return -1;
 	}
 
-	public static int getNextCharacterStartToRight(int startX, int currentY, ScreenLayer layer){
-		int currentX = startX;
-		while(
-			currentX >= 0 &&
-			currentX < layer.getWidth() &&
-			currentY >= 0 &&
-			currentY < layer.getHeight()
-		){
-			if(layer.getColumnCharacterWidth(currentX, currentY) > 0){
-				return currentX - startX;
-			}
-			currentX++;
-		}
-		return -1;
-	}
-
 	public static int getExpansionForCoordinate(boolean isLeftToRight, int startX, int startY, int endY, int [] xO, int [] yO, ScreenLayer [] layers){
 		for(int s = 0; s < layers.length; s++){
 			//  Start at current x character:
@@ -1021,7 +1017,7 @@ public class ScreenLayer {
 				if(leftDistance == -1){
 					//  No expansion necessary, there is no previous solid character
 				}else{
-					int characterWidth = layers[s].getColumnCharacterWidth(currentX - leftDistance, currentY);
+					int characterWidth = layers[s].getPositiveOnlyColumnCharacterWidth(currentX - leftDistance, currentY);
 					if(isLeftToRight){
 						if(leftDistance > 0){
 							int diff = characterWidth - leftDistance;
@@ -1105,7 +1101,7 @@ public class ScreenLayer {
 				if(this.getColumnCharacterWidth(i, j) == 0){
 					i++;
 				}else{
-					i += this.getColumnCharacterWidth(i, j);
+					i += this.getColumnCharacterWidth(i, j) > 0 ? this.getColumnCharacterWidth(i, j) : 0;
 				}
 			}
 		}

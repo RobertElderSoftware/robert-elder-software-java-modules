@@ -16,5 +16,6 @@ If you make a pledge to sponsor a custom block type, be aware that the following
 
 -  Your recorded 'dedication' in the game is permanent and will be publicly viewable forever in the help menu and other places throughout the game.  If you'd like your dedication to be anonymous, you can simply use the moniker 'anonymous' or another pseudonym of your choosing.  Sponsoring a block type also grants you a license to play the game under the 'Robert Elder Software Proprietary License'.
 -  Sponsoring a custom block type does NOT grant you any interest, title, or claim to any aspect of the game.  It is effectively just an acknowledgement and thank you for supporting the project.
+-  A sponsored 'block' type cannot be 'owned'.  Sponsored blocks are not a form of currency and are non-transferable, nor do they have any monetary value.  They are simply a feature within the game.
 -  Robert Elder Software Inc. reserves the right to refuse or remove any monikers that are deemed offensive or obscene.
 

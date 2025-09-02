@@ -964,7 +964,7 @@ public class BlockManagerUnitTest {
 
                 //  There should be an empty column after:
                 this.verifyObject(merged.getColumnCharacter(1, 0), null);
-                this.verifyObject(merged.getColumnCharacterWidth(1, 0), 0);
+                this.verifyObject(merged.getColumnCharacterWidth(1, 0), -1);
                 this.verifyArray(merged.getColumnColourCodes(1, 0), new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
                 this.verifyObject(merged.getColumnChanged(1, 0), true);
         }
@@ -1028,7 +1028,7 @@ public class BlockManagerUnitTest {
 
                 //  There was not enough space to print the last multi-column character:
                 this.verifyObject(merged.getColumnCharacter(2, 0), null);
-                this.verifyObject(merged.getColumnCharacterWidth(2, 0), 0);
+                this.verifyObject(merged.getColumnCharacterWidth(2, 0), -1);
                 this.verifyArray(merged.getColumnColourCodes(2, 0), new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
                 this.verifyObject(merged.getColumnChanged(2, 0), true);
         }
@@ -1052,7 +1052,7 @@ public class BlockManagerUnitTest {
 		this.verifyObject(merged.getColumnChanged(0, 0), true);
 
 		this.verifyObject(merged.getColumnCharacter(1, 0), null);
-		this.verifyObject(merged.getColumnCharacterWidth(1, 0), 0);
+		this.verifyObject(merged.getColumnCharacterWidth(1, 0), -1);
 		this.verifyArray(merged.getColumnColourCodes(1, 0), new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
 		this.verifyObject(merged.getColumnChanged(1, 0), true);
 
@@ -1101,7 +1101,7 @@ public class BlockManagerUnitTest {
 		this.verifyObject(merged.getColumnChanged(2, 0), true);
 
 		this.verifyObject(merged.getColumnCharacter(3, 0), null);
-		this.verifyObject(merged.getColumnCharacterWidth(3, 0), 0);
+		this.verifyObject(merged.getColumnCharacterWidth(3, 0), -1);
 		this.verifyArray(merged.getColumnColourCodes(3, 0), new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
 		this.verifyObject(merged.getColumnChanged(3, 0), true);
         }
@@ -1136,7 +1136,7 @@ public class BlockManagerUnitTest {
 		this.verifyObject(merged.getColumnChanged(0, 0), true);
 
 		this.verifyObject(merged.getColumnCharacter(1, 0), null);
-		this.verifyObject(merged.getColumnCharacterWidth(1, 0), 0);
+		this.verifyObject(merged.getColumnCharacterWidth(1, 0), -1);
 		this.verifyArray(merged.getColumnColourCodes(1, 0), new int [] {UserInterfaceFrameThreadState.BLUE_FG_COLOR});
 		this.verifyObject(merged.getColumnChanged(1, 0), true);
 
@@ -1180,7 +1180,7 @@ public class BlockManagerUnitTest {
 		this.verifyObject(merged.getColumnChanged(0, 0), true);
 
 		this.verifyObject(merged.getColumnCharacter(1, 0), null);
-		this.verifyObject(merged.getColumnCharacterWidth(1, 0), 0);
+		this.verifyObject(merged.getColumnCharacterWidth(1, 0), -1);
 		this.verifyArray(merged.getColumnColourCodes(1, 0), new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR});
 		this.verifyObject(merged.getColumnChanged(1, 0), true);
 
@@ -1321,7 +1321,7 @@ public class BlockManagerUnitTest {
                 this.verifyObject(merged.getColumnChanged(0, 0), true);
 
                 this.verifyObject(merged.getColumnCharacter(1, 0), null);
-                this.verifyObject(merged.getColumnCharacterWidth(1, 0), 0);
+                this.verifyObject(merged.getColumnCharacterWidth(1, 0), -1);
                 this.verifyArray(merged.getColumnColourCodes(1, 0), new int [] {UserInterfaceFrameThreadState.BLUE_BG_COLOR});
                 this.verifyObject(merged.getColumnChanged(1, 0), true);
 
@@ -1361,7 +1361,7 @@ public class BlockManagerUnitTest {
 		this.verifyObject(merged.getColumnChanged(0, 0), true);
 
 		this.verifyObject(merged.getColumnCharacter(1, 0), null);
-		this.verifyObject(merged.getColumnCharacterWidth(1, 0), 0);
+		this.verifyObject(merged.getColumnCharacterWidth(1, 0), -1);
 		this.verifyArray(merged.getColumnColourCodes(1, 0), new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
 		this.verifyObject(merged.getColumnChanged(1, 0), true);
 
@@ -1761,8 +1761,8 @@ public class BlockManagerUnitTest {
 								String firstColumnCharacters = randomCharacterWidth == 0 ? null : Character.toString(randomCodePoint);
 								String currentCharacters = i == 0 ? firstColumnCharacters : null;
 								allLayers[l].setColumnCharacter(x+i, y, currentCharacters);
-								//  Character width is only specifed in first column:
-								int currentCharacterWidth = i == 0 ? randomCharacterWidth : 0;
+								//  Character width is only specifed in first column, after that, it's offsets back to first column.
+								int currentCharacterWidth = randomCharacterWidth == 0 ? 0 : (i == 0 ? randomCharacterWidth : -i);
 								allLayers[l].setColumnCharacterWidth(x+i, y, currentCharacterWidth);
 								//  Every other column should have the same values for these members:
 								allLayers[l].setColumnColourCodes(x+i, y, currentColourCodes);
@@ -1919,7 +1919,7 @@ public class BlockManagerUnitTest {
 	@Test
 	public void runScreenLayerValidationTest() throws Exception {
 		System.out.println("Begin runScreenLayerValidationTest:");
-		ScreenLayer [] passingLayers = new ScreenLayer [1];
+		ScreenLayer [] passingLayers = new ScreenLayer [2];
 		passingLayers[0] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
 		passingLayers[0].initialize();
 		passingLayers[0].setAllChangedFlagStates(false);
@@ -1929,6 +1929,18 @@ public class BlockManagerUnitTest {
 		passingLayers[0].setColumnCharacter(1, 0, " ");
 		passingLayers[0].setColumnCharacterWidth(1, 0, 1);
 		passingLayers[0].setColumnColourCodes(1, 0, new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
+
+
+
+		passingLayers[1] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 4, 1));
+		passingLayers[1].initialize();
+		passingLayers[1].setAllChangedFlagStates(false);
+		passingLayers[1].setColumnCharacter(0, 0, "A");
+		passingLayers[1].setColumnCharacterWidth(0, 0, 2);
+		passingLayers[1].setColumnColourCodes(0, 0, new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
+		passingLayers[1].setColumnCharacter(1, 0, null);
+		passingLayers[1].setColumnCharacterWidth(1, 0, -1);
+		passingLayers[1].setColumnColourCodes(1, 0, new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR});
 
 		for(int i = 0; i < passingLayers.length; i++){
 			if(!(passingLayers[i].validate() == null)){
