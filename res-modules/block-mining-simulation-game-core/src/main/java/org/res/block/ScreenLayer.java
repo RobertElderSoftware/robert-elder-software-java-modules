@@ -339,7 +339,37 @@ public class ScreenLayer {
 		);
 	}
 
-	public void calculateOcclusions(boolean isLeftToRight, int startX, int endX, int startY, int endY, ScreenLayer [] screenLayers, int [][][] occlusions, boolean [][][] activeStates, int [] xO, int [] yO) throws Exception{
+	public final int getCharacterWidthForStartingBoundary(final int x, final int y, final boolean isLeftToRight){
+		int columnValue = getColumnCharacterWidth(x, y);
+		if(isLeftToRight){
+			if(columnValue > 0){
+				return columnValue;
+			}else{
+				return 0;
+			}
+		}else{
+			if(columnValue == 1){
+				return columnValue;
+			}else if(columnValue < 0){
+				//  In Right to left pass, the 'start' of the character is where the negative offset is one less than the actual width:
+				final int characterStart = x + columnValue;
+				final int expectedWidth = (-columnValue) + 1;
+				if(getColumnCharacterWidth(characterStart, y) == expectedWidth){
+					return getColumnCharacterWidth(characterStart, y);
+				}else{
+					return 0;
+				}
+			}else{
+				return 0;
+			}
+		}
+	}
+
+	public final boolean isAtInitialColumnOfCharacter(final int x, final int y){
+		return this.columns[x][y].isAtInitialColumnOfCharacter();
+	}
+
+	public void calculateOcclusions(final boolean isLeftToRight, final int startX, final int endX, final int startY, final int endY, final ScreenLayer [] screenLayers, final int [][][] occlusions, final boolean [][][] activeStates, final int [] xO, final int [] yO) throws Exception{
 		int xWidth = endX-startX;
 		int yHeight = endY-startY;
 		//  Number of columns remaining in the current active, top character:
@@ -380,22 +410,7 @@ public class ScreenLayer {
 
 					int currentCharacterWidth = 0;
 					if(xSrc >= 0 && xSrc < screenLayers[s].getWidth() && ySrc >= 0 && ySrc < screenLayers[s].getHeight()){
-						int observedColumnWidthValue = screenLayers[s].getColumnCharacterWidth(xSrc, ySrc);
-						if(isLeftToRight){
-							if(observedColumnWidthValue > 0){
-								currentCharacterWidth = observedColumnWidthValue;
-							}
-						}else{
-							if(observedColumnWidthValue == 1){
-								currentCharacterWidth = 1;
-							}else if(observedColumnWidthValue < 0){
-								//  In Right to left pass, the 'start' of the character is where the negative offset is one less than the actual width:
-								if(screenLayers[s].getColumnCharacterWidth(xSrc + observedColumnWidthValue, ySrc) == ((-observedColumnWidthValue) + 1)){
-									currentCharacterWidth = screenLayers[s].getColumnCharacterWidth(xSrc + observedColumnWidthValue, ySrc);
-								}
-								
-							}
-						}
+						currentCharacterWidth = screenLayers[s].getCharacterWidthForStartingBoundary(xSrc, ySrc, isLeftToRight);
 					}
 
 					boolean isAtCharacterStartPosition = currentCharacterWidth > 0;
@@ -439,7 +454,6 @@ public class ScreenLayer {
 					}else{
 						throw new Exception("Not expected.");
 					}
-
 				}
 			}
 		}
@@ -542,8 +556,6 @@ public class ScreenLayer {
 			this.calculateOcclusions(false, startX, endX, startY, endY, screenLayers, leftwardOcclusions, activeStates, xO, yO);
 
 			for(int j = Math.max(0, startY); j < Math.min(screenLayers[0].getHeight(), endY); j++){
-				int currentCharacterWidth = 0;
-				int offsetIntoCharacter = 0;
 				int outputStartX = Math.max(0, startX);
 				int outputEndX = Math.min(screenLayers[0].getWidth(), endX);
 				boolean rightBoundaryHasSeveredCharacter = false;
@@ -557,6 +569,7 @@ public class ScreenLayer {
 					String outputCharacters = null;
 					int outputCharacterWidths = 0;
 					int [] outputColourCodes = new int []{};
+					boolean isAtInitialColumnOfCharacter;
 					//  Colour codes come from top most coloured character:
 					for(int s = screenLayers.length -1; s >= 0; s--){
 						int xSrc = i-xO[s];
@@ -578,21 +591,27 @@ public class ScreenLayer {
 							int ySrc = j-yO[rightward];
 							outputCharacters = screenLayers[rightward].getColumnCharacter(xSrc, ySrc);
 							outputCharacterWidths = screenLayers[rightward].getColumnCharacterWidth(xSrc, ySrc);
-							trustedChangeFlag  = changeFlags[rightward][xR][yR];
+							trustedChangeFlag = changeFlags[rightward][xR][yR];
+							isAtInitialColumnOfCharacter = screenLayers[rightward].isAtInitialColumnOfCharacter(xSrc, ySrc);
 						}else if(rightward >= 0){
+							isAtInitialColumnOfCharacter = true;
 							outputCharacters = " ";
 							outputCharacterWidths = 1;
 							trustedChangeFlag  = true;
 						}else if(leftward >= 0){
+							isAtInitialColumnOfCharacter = true;
 							outputCharacters = " ";
 							outputCharacterWidths = 1;
 							trustedChangeFlag  = true;
+						}else{
+							throw new Exception("not possible.");
 						}
 					}else if(rightward == -1 && leftward == -1){
 						//  Empty null column in upper layer exposing center column of multi-column character:
 						outputCharacters = " ";
 						outputCharacterWidths = 1;
 						trustedChangeFlag  = true;
+						isAtInitialColumnOfCharacter = true;
 					}else if(rightward == -2 && leftward == -1){
 						throw new Exception("not expected");
 					}else if(rightward == -1 && leftward == -2){
@@ -600,6 +619,7 @@ public class ScreenLayer {
 					}else if(rightward == -2 && leftward == -2){
 						outputCharacters = null;
 						outputCharacterWidths = 0;
+						isAtInitialColumnOfCharacter = true;
 					}else{
 						throw new Exception("not expected");
 					}
@@ -634,11 +654,11 @@ public class ScreenLayer {
 						rightBoundaryHasSeveredCharacter = true;
 					}
 
-					if(offsetIntoCharacter == 0 && !(i < outputStartX)){
+					if(isAtInitialColumnOfCharacter && !(i < outputStartX)){
 						leftBoundaryHasSeveredCharacter = false;
 					}
 
-					if((!(i < outputStartX) && leftBoundaryHasSeveredCharacter) || rightBoundaryHasSeveredCharacter){
+					if(leftBoundaryHasSeveredCharacter || rightBoundaryHasSeveredCharacter){
 						outputCharacters = " ";
 						outputCharacterWidths = 1;
 						trustedChangeFlag  = true;
@@ -647,39 +667,23 @@ public class ScreenLayer {
 						
 					}
 
-					if(offsetIntoCharacter == 0){
-						if(outputCharacterWidths > 0){
-							currentCharacterWidth = outputCharacterWidths;
-						}else{
-							currentCharacterWidth = 0;
-						}
-					}
-
-					if(offsetIntoCharacter > 0){
+					if(!isAtInitialColumnOfCharacter){
 						//  For multi-column characters, use changed flag from first column.
 						outputColourCodes = firstColumnColourCodes;
 						trustedChangeFlag = firstColumnHasChange;
 					}
+					firstColumnColourCodes = outputColourCodes;
 
 					if(i < outputStartX){ //  We are before starting boundary of output layer
-						if(offsetIntoCharacter == 0){
-							firstColumnColourCodes = outputColourCodes;
-							firstColumnHasChange = true;
-						}
-						offsetIntoCharacter++;
-						if(offsetIntoCharacter >= currentCharacterWidth){
-							offsetIntoCharacter = 0;
-						}
 						continue;
 					}
-
-
+					firstColumnHasChange = trustedChangeFlag;
 
 					boolean hasChange = false;
 					if(trustChangedFlags){
 						hasChange = trustedChangeFlag;
 					}else{
-						if(offsetIntoCharacter > 0){
+						if(!isAtInitialColumnOfCharacter){
 							//  For multi-column characters, use changed flag from first column.
 							hasChange = firstColumnHasChange;
 						}else{
@@ -688,6 +692,7 @@ public class ScreenLayer {
 								Arrays.equals(this.getColumnColourCodes(i, j), outputColourCodes) &&
 								Objects.equals(this.getColumnCharacter(i, j), outputCharacters)
 							) || this.getColumnChanged(i, j); // if there is a pending changed flag that hasn't been printed yet.
+							firstColumnHasChange = hasChange;
 						}
 					}
 
@@ -696,20 +701,11 @@ public class ScreenLayer {
 						finalActiveState |= activeStates[s][i-startX][j-startY];
 					}
 
-
 					this.setColumnCharacter(i, j, outputCharacters);
 					this.setColumnCharacterWidth(i, j, outputCharacterWidths);
 					this.setColumnColourCodes(i, j, outputColourCodes);
 					this.setColumnChanged(i, j, hasChange);
 					this.setColumnActive(i, j, finalActiveState);
-					if(offsetIntoCharacter == 0){
-						firstColumnHasChange = this.getColumnChanged(i, j);
-						firstColumnColourCodes = this.getColumnColourCodes(i, j);
-					}
-					offsetIntoCharacter++;
-					if(offsetIntoCharacter >= currentCharacterWidth){
-						offsetIntoCharacter = 0;
-					}
 				}
 			}
 		}

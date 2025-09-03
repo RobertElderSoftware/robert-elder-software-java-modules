@@ -104,6 +104,12 @@ public class ScreenLayerColumn {
 		this.active = newState;
 	}
 
+	public final boolean isAtInitialColumnOfCharacter(){
+		//  Used to identify when we're on the first column
+		//  of a character.  Returns true for empty character too.
+		return this.characterWidth > -1;
+	}
+
 	public ScreenLayerColumn(int characterWidth, int [] colourCodes, String character, boolean changed, boolean active) throws Exception{
 		this.characterWidth = characterWidth;
 		this.colourCodes = colourCodes;
