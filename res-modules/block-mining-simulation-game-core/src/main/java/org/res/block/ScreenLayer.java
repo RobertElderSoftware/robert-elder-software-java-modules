@@ -517,39 +517,39 @@ public class ScreenLayer {
 		}
 
 		for(ScreenRegion region : translatedExpandedRegions){
-			int startX = region.getStartX();
-			int startY = region.getStartY();
-			int endX = region.getEndX();
-			int endY = region.getEndY();
+			final int startX = region.getStartX();
+			final int startY = region.getStartY();
+			final int endX = region.getEndX();
+			final int endY = region.getEndY();
 
-			int xWidth = endX - startX;
-			int yHeight = endY - startY;
-			int [][][] rightwardOcclusions = new int [screenLayers.length][xWidth][yHeight];
-			int [][][] leftwardOcclusions = new int [screenLayers.length][xWidth][yHeight];
+			final int xWidth = endX - startX;
+			final int yHeight = endY - startY;
+			final int [][][] rightwardOcclusions = new int [screenLayers.length][xWidth][yHeight];
+			final int [][][] leftwardOcclusions = new int [screenLayers.length][xWidth][yHeight];
 			//  Pre-calculate the active states for all layers in the entire current horizontal strip:
-			boolean [][][] changeFlags = new boolean [screenLayers.length][xWidth][yHeight];
-			boolean [][][] activeStates = new boolean [screenLayers.length][xWidth][yHeight];
-			boolean [][] finalActiveStates = new boolean [xWidth][yHeight];
-			int [][] nonEmptyColourCounts = new int [xWidth][yHeight];
-			int [][] solidCharacterCounts = new int [xWidth][yHeight];
-			boolean [][] colourCodeChangedFlags = new boolean [xWidth][yHeight];
-			boolean [][] solidCharacterChangedFlags = new boolean [xWidth][yHeight];
-			int [][][] topColourCodes = new int [xWidth][yHeight][];
+			final boolean [][][] changeFlags = new boolean [screenLayers.length][xWidth][yHeight];
+			final boolean [][][] activeStates = new boolean [screenLayers.length][xWidth][yHeight];
+			final boolean [][] finalActiveStates = new boolean [xWidth][yHeight];
+			final int [][] nonEmptyColourCounts = new int [xWidth][yHeight];
+			final int [][] solidCharacterCounts = new int [xWidth][yHeight];
+			final boolean [][] colourCodeChangedFlags = new boolean [xWidth][yHeight];
+			final boolean [][] solidCharacterChangedFlags = new boolean [xWidth][yHeight];
+			final int [][][] topColourCodes = new int [xWidth][yHeight][];
 
 			for(int s = screenLayers.length -1; s >= 0; s--){
-				int innerStartX = startX + (-(Math.min(startX - xO[s], 0)));
-				int innerStartY = startY + (-(Math.min(startY - yO[s], 0)));
-				int innerEndX = endX + Math.min(screenLayers[s].getWidth() - (endX -xO[s]), 0);
-				int innerEndY = endY + Math.min(screenLayers[s].getHeight() - (endY -yO[s]), 0);
+				final int innerStartX = startX + (-(Math.min(startX - xO[s], 0)));
+				final int innerStartY = startY + (-(Math.min(startY - yO[s], 0)));
+				final int innerEndX = endX + Math.min(screenLayers[s].getWidth() - (endX -xO[s]), 0);
+				final int innerEndY = endY + Math.min(screenLayers[s].getHeight() - (endY -yO[s]), 0);
 				for(int j = innerStartY; j < innerEndY; j++){
-					boolean layerActive = screenLayers[s].getIsLayerActive();
+					final boolean layerActive = screenLayers[s].getIsLayerActive();
 					for(int i = innerStartX; i < innerEndX; i++){
-						int xSrc = i-xO[s];
-						int ySrc = j-yO[s];
-						int xR = i-startX;
-						int yR = j-startY;
+						final int xSrc = i-xO[s];
+						final int ySrc = j-yO[s];
+						final int xR = i-startX;
+						final int yR = j-startY;
 						//  For any character in layer 0, always consider it as active regardless of whether it's 'inactive' or not:
-						boolean fbls = forcedBottomLayerState.toBoolean();
+						final boolean fbls = forcedBottomLayerState.toBoolean();
 						activeStates[s][xR][yR] = (s == 0) ? fbls : (layerActive && screenLayers[s].getColumnActive(xSrc, ySrc));
 
 						finalActiveStates[xR][yR] |= activeStates[s][i-startX][j-startY];
@@ -583,16 +583,14 @@ public class ScreenLayer {
 			this.calculateOcclusions(false, startX, endX, startY, endY, screenLayers, leftwardOcclusions, activeStates, xO, yO);
 
 			for(int j = Math.max(0, startY); j < Math.min(screenLayers[0].getHeight(), endY); j++){
-				int outputStartX = Math.max(0, startX);
-				int outputEndX = Math.min(screenLayers[0].getWidth(), endX);
+				final int outputStartX = Math.max(0, startX);
+				final int outputEndX = Math.min(screenLayers[0].getWidth(), endX);
 				boolean rightBoundaryHasSeveredCharacter = false;
 				boolean leftBoundaryHasSeveredCharacter = true;
 
-				boolean firstColumnHasChange = true;
-				int [] firstColumnColourCodes = new int [] {};
 				for(int i = outputStartX; i < outputEndX; i++){
-					int xR = i-startX;
-					int yR = j-startY;
+					final int xR = i-startX;
+					final int yR = j-startY;
 					String outputCharacters = null;
 					int outputCharacterWidths = 0;
 					boolean isAtInitialColumnOfCharacter;
@@ -649,20 +647,16 @@ public class ScreenLayer {
 						outputCharacters = " ";
 						outputCharacterWidths = 1;
 						occludedChangeFlag = true;
-						firstColumnColourCodes = topColourCodes[xR][yR];
-						firstColumnHasChange = occludedChangeFlag || solidCharacterChangedFlags[xR][yR] || colourCodeChangedFlags[xR][yR];
 						
 					}
 
-					if(!isAtInitialColumnOfCharacter){
-						//  For multi-column characters, use changed flag from first column.
-						topColourCodes[xR][yR] = firstColumnColourCodes;
-						solidCharacterChangedFlags[xR][yR] = firstColumnHasChange;
-						colourCodeChangedFlags[xR][yR] = firstColumnHasChange;
+					if(outputCharacterWidths < 0){ // non-first columns in multi-colun char
+						if(i-1 >= 0){
+							topColourCodes[xR][yR] = this.getColumnColourCodes(i-1, j);
+							solidCharacterChangedFlags[xR][yR] = this.getColumnChanged(i-1, j);
+							colourCodeChangedFlags[xR][yR] = this.getColumnChanged(i-1, j);
+						}
 					}
-
-					firstColumnHasChange = occludedChangeFlag || solidCharacterChangedFlags[xR][yR] || colourCodeChangedFlags[xR][yR];
-					firstColumnColourCodes = topColourCodes[xR][yR];
 
 					boolean hasChange = false;
 					if(trustChangedFlags){
@@ -670,14 +664,13 @@ public class ScreenLayer {
 					}else{
 						if(!isAtInitialColumnOfCharacter){
 							//  For multi-column characters, use changed flag from first column.
-							hasChange = firstColumnHasChange;
+							hasChange = occludedChangeFlag || solidCharacterChangedFlags[xR][yR] || colourCodeChangedFlags[xR][yR];
 						}else{
 							hasChange = !(
 								(this.getColumnCharacterWidth(i, j) == outputCharacterWidths) &&
 								Arrays.equals(this.getColumnColourCodes(i, j), topColourCodes[xR][yR]) &&
 								Objects.equals(this.getColumnCharacter(i, j), outputCharacters)
 							) || this.getColumnChanged(i, j); // if there is a pending changed flag that hasn't been printed yet.
-							firstColumnHasChange = hasChange;
 						}
 					}
 
@@ -694,14 +687,14 @@ public class ScreenLayer {
 		//  cleared by a previous overlapping changed region.
 		for(ScreenRegion region : translatedExpandedRegions){
 			for(int s = screenLayers.length -1; s >= 1; s--){
-				int startX = Math.max(region.getStartX() - xO[s], 0);
-				int startY = Math.max(region.getStartY() - yO[s], 0);
-				int endX = Math.min(region.getEndX() - xO[s], screenLayers[s].getWidth());
-				int endY = Math.min(region.getEndY() - yO[s], screenLayers[s].getHeight());
+				final int startX = Math.max(region.getStartX() - xO[s], 0);
+				final int startY = Math.max(region.getStartY() - yO[s], 0);
+				final int endX = Math.min(region.getEndX() - xO[s], screenLayers[s].getWidth());
+				final int endY = Math.min(region.getEndY() - yO[s], screenLayers[s].getHeight());
 				for(int j = startY; j < endY; j++){
 					for(int i = startX; i < endX; i++){
 						//  Clear the changed flag for any active layer other than the merged layer:
-						boolean isLayerActive = screenLayers[s].getIsLayerActive() && screenLayers[s].getColumnActive(i, j);
+						final boolean isLayerActive = screenLayers[s].getIsLayerActive() && screenLayers[s].getColumnActive(i, j);
 						if(isLayerActive){
 							screenLayers[s].setColumnChanged(i, j, false);
 						}
