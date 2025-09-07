@@ -65,6 +65,16 @@ public class ScreenLayer {
 	private Set<ScreenRegion> changedRegions = new HashSet<ScreenRegion>();
 	private final StringBuilder stringBuilder = new StringBuilder();
 
+	private RecycledArrayBuffer changeFlagsRecycledBuffer = new RecycledArrayBuffer();
+	private RecycledArrayBuffer activeStatesRecycledBuffer = new RecycledArrayBuffer();
+	private RecycledArrayBuffer finalActiveStatesRecycledBuffer = new RecycledArrayBuffer();
+	private RecycledArrayBuffer colourCodeChangedFlagsRecycledBuffer = new RecycledArrayBuffer();
+	private RecycledArrayBuffer solidCharacterChangedFlagsRecycledBuffer = new RecycledArrayBuffer();
+	private RecycledArrayBuffer nonEmptyColourCountsRecycledBuffer = new RecycledArrayBuffer();
+	private RecycledArrayBuffer solidCharacterCountsRecycledBuffer = new RecycledArrayBuffer();
+	private RecycledArrayBuffer rightwardOcclusionsRecycledBuffer = new RecycledArrayBuffer();
+	private RecycledArrayBuffer leftwardOcclusionsRecycledBuffer = new RecycledArrayBuffer();
+
 	public final boolean getIsLayerActive(){
 		return this.isLayerActive;
 	}
@@ -429,6 +439,35 @@ public class ScreenLayer {
 		}
 	}
 
+	public void populateTranslatedExpandedClippedRegions(ScreenLayer [] screenLayers, Set<ScreenRegion> translatedExpandedRegions, Set<ScreenRegion> translatedExpandedClippedRegions, int [] xO, int [] yO) throws Exception{
+		//  Everything gets merged down into a coordinate system based on layer 0
+		CuboidAddress baseLayerCuboidAddress = ScreenRegion.makeScreenRegionCA(
+			0,
+			0,
+			this.getWidth(),
+			this.getHeight()
+		);
+		for(int l = 0; l < screenLayers.length; l++){
+			if(screenLayers[l].getIsLayerActive()){
+				for(ScreenRegion sourceRegion : screenLayers[l].getChangedRegions()){
+					ScreenRegion translatedRegion = new ScreenRegion(ScreenRegion.makeScreenRegionCA(
+						sourceRegion.getStartX() + xO[l],
+						sourceRegion.getStartY() + yO[l],
+						sourceRegion.getEndX() + xO[l],
+						sourceRegion.getEndY() + yO[l]
+					));
+
+					ScreenRegion expandedRegion = ScreenLayer.getNonCharacterCuttingChangedRegions(translatedRegion, screenLayers);
+					ScreenRegion clippedRegion = new ScreenRegion(expandedRegion.getRegion().getIntersectionCuboidAddress(baseLayerCuboidAddress));
+
+					translatedExpandedClippedRegions.add(clippedRegion);
+					translatedExpandedRegions.add(expandedRegion);
+				}
+			}
+			screenLayers[l].clearChangedRegions();
+		}
+	}
+
 	public void mergeDown(ScreenLayer aboveLayer, boolean trustChangedFlags) throws Exception{
 		this.mergeDown(aboveLayer, trustChangedFlags, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
 	}
@@ -455,36 +494,10 @@ public class ScreenLayer {
 			xO[a+1] = aboveLayers[a].getPlacementOffset().getX().intValue();
 			yO[a+1] = aboveLayers[a].getPlacementOffset().getY().intValue();
 		}
-
-		//  Everything gets merged down into a coordinate system based on layer 0
-		CuboidAddress baseLayerCuboidAddress = ScreenRegion.makeScreenRegionCA(
-			0,
-			0,
-			this.getWidth(),
-			this.getHeight()
-		);
 		
 		Set<ScreenRegion> translatedExpandedRegions = new HashSet<ScreenRegion>();
 		Set<ScreenRegion> translatedExpandedClippedRegions = new HashSet<ScreenRegion>();
-		for(int l = 0; l < screenLayers.length; l++){
-			if(screenLayers[l].getIsLayerActive()){
-				for(ScreenRegion sourceRegion : screenLayers[l].getChangedRegions()){
-					ScreenRegion translatedRegion = new ScreenRegion(ScreenRegion.makeScreenRegionCA(
-						sourceRegion.getStartX() + xO[l],
-						sourceRegion.getStartY() + yO[l],
-						sourceRegion.getEndX() + xO[l],
-						sourceRegion.getEndY() + yO[l]
-					));
-
-					ScreenRegion expandedRegion = ScreenLayer.getNonCharacterCuttingChangedRegions(translatedRegion, screenLayers);
-					ScreenRegion clippedRegion = new ScreenRegion(expandedRegion.getRegion().getIntersectionCuboidAddress(baseLayerCuboidAddress));
-
-					translatedExpandedClippedRegions.add(clippedRegion);
-					translatedExpandedRegions.add(expandedRegion);
-				}
-			}
-			screenLayers[l].clearChangedRegions();
-		}
+		this.populateTranslatedExpandedClippedRegions(screenLayers, translatedExpandedRegions, translatedExpandedClippedRegions, xO, yO);
 
 		for(ScreenRegion region : translatedExpandedClippedRegions){
 			final int startX = region.getStartX();
@@ -495,13 +508,13 @@ public class ScreenLayer {
 			final int xWidth = endX - startX;
 			final int yHeight = endY - startY;
 			//  Pre-calculate the active states for all layers in the entire current horizontal strip:
-			final boolean [][][] changeFlags = new boolean [screenLayers.length][xWidth][yHeight];
-			final boolean [][][] activeStates = new boolean [screenLayers.length][xWidth][yHeight];
-			final boolean [][] finalActiveStates = new boolean [xWidth][yHeight];
-			final int [][] nonEmptyColourCounts = new int [xWidth][yHeight];
-			final int [][] solidCharacterCounts = new int [xWidth][yHeight];
-			final boolean [][] colourCodeChangedFlags = new boolean [xWidth][yHeight];
-			final boolean [][] solidCharacterChangedFlags = new boolean [xWidth][yHeight];
+			final boolean [][][] changeFlags = this.changeFlagsRecycledBuffer.get3DBooleanArray(screenLayers.length, xWidth, yHeight);
+			final boolean [][][] activeStates = this.activeStatesRecycledBuffer.get3DBooleanArray(screenLayers.length, xWidth, yHeight);
+			final boolean [][] finalActiveStates = this.finalActiveStatesRecycledBuffer.get2DBooleanArray(xWidth, yHeight);
+			final int [][] nonEmptyColourCounts = this.nonEmptyColourCountsRecycledBuffer.get2DIntArray(xWidth, yHeight);
+			final int [][] solidCharacterCounts = this.solidCharacterCountsRecycledBuffer.get2DIntArray(xWidth, yHeight);
+			final boolean [][] colourCodeChangedFlags = this.colourCodeChangedFlagsRecycledBuffer.get2DBooleanArray(xWidth, yHeight);
+			final boolean [][] solidCharacterChangedFlags = this.solidCharacterChangedFlagsRecycledBuffer.get2DBooleanArray(xWidth, yHeight);
 			final int [][][] topColourCodes = new int [xWidth][yHeight][];
 			final int [] emptyColours = new int [] {};
 
@@ -548,8 +561,8 @@ public class ScreenLayer {
 				}
 			}
 
-			final int [] rightwardOcclusions = new int [xWidth];
-			final int [] leftwardOcclusions = new int [xWidth];
+			final int [] rightwardOcclusions = rightwardOcclusionsRecycledBuffer.get1DIntArray(xWidth);
+			final int [] leftwardOcclusions = leftwardOcclusionsRecycledBuffer.get1DIntArray(xWidth);
 
 			for(int j = Math.max(0, startY); j < Math.min(screenLayers[0].getHeight(), endY); j++){
 				final int outputStartX = Math.max(0, startX);
@@ -655,6 +668,13 @@ public class ScreenLayer {
 				}
 			}
 		}
+
+		this.resetChangedFlags(screenLayers, translatedExpandedRegions, xO, yO);
+		this.addChangedRegions(translatedExpandedClippedRegions);
+		//this.throwExceptionOnValidationFailure();
+	}
+
+	public void resetChangedFlags(ScreenLayer [] screenLayers, Set<ScreenRegion> translatedExpandedRegions, int [] xO, int [] yO) throws Exception{
 		//  If some of the changed regions overlap, there is a case where
 		//  the calculated change flags can be incorrect due to them being
 		//  cleared by a previous overlapping changed region.
@@ -675,8 +695,6 @@ public class ScreenLayer {
 				}
 			}
 		}
-		this.addChangedRegions(translatedExpandedClippedRegions);
-		//this.throwExceptionOnValidationFailure();
 	}
 
 	public void printChanges(boolean resetCursorPosition, int xOffset, int yOffset) throws Exception{
