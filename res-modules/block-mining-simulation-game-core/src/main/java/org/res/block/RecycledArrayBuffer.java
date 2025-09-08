@@ -67,6 +67,9 @@ public class RecycledArrayBuffer {
 	private int twoDBooleanArray_x;
 	private int twoDBooleanArray_y;
 
+	private boolean [] oneDBooleanArray;
+	private int oneDBooleanArray_x;
+
 	private int [][] twoDIntArray;
 	private int twoDIntArray_x;
 	private int twoDIntArray_y;
@@ -134,6 +137,26 @@ public class RecycledArrayBuffer {
 			}
 		}
 		return this.twoDBooleanArray;
+	}
+
+	public boolean [] get1DBooleanArray(int x){
+		if(this.oneDBooleanArray == null){
+			this.oneDBooleanArray = new boolean [x];
+			this.oneDBooleanArray_x = x;
+		}else{
+			//  If the required array is smaller, don't trigger a re-allocation:
+			if(
+				x > this.oneDBooleanArray_x
+			){
+				int maxX = Math.max(x, this.oneDBooleanArray_x);
+				this.oneDBooleanArray = new boolean [maxX];
+				this.oneDBooleanArray_x = maxX;
+			}else{
+				//  Re-initialize the relevant part of the array:
+				Arrays.fill(this.oneDBooleanArray, 0, x, false);
+			}
+		}
+		return this.oneDBooleanArray;
 	}
 
 	public int [][] get2DIntArray(int x, int y){

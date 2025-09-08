@@ -448,7 +448,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			charactersToPrint.add(c.getCharacter());
 		}
 		//  Print a string in either the X or Y Direction.
-		logger.info("charactersToPrint=" + charactersToPrint);
+		//logger.info("charactersToPrint=" + charactersToPrint);
 		if(charactersToPrint.size() != newColourCodes.length){
 			throw new Exception("Size missmatch in colour code array: " + charactersToPrint.size() + " verus " + newColourCodes.length);
 		}
@@ -460,7 +460,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			if(chrWidth > maximumCharacterWidth){
 				maximumCharacterWidth = chrWidth;
 			}
-			logger.info("chrWidth=" + chrWidth + " for '" + s + "' (" + BlockModelContext.convertToHex(s.getBytes("UTF-8")) + " in hex).");
+			//logger.info("chrWidth=" + chrWidth + " for '" + s + "' (" + BlockModelContext.convertToHex(s.getBytes("UTF-8")) + " in hex).");
 			totalWidth += (chrWidth < 1 ? 1 : chrWidth);
 		}
 
