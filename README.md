@@ -55,6 +55,18 @@ You can run the .jar file with the '--help' flag to show a help menu:
 java -jar block-mining-simulation-game-single-player-client-0.0.7.jar --help
 ```
 
+#  Compatibility Width
+
+All of the graphics in this game are simple text and emoji characters.  As such, in order for the game to correctly
+display characters and screen updates, it needs to be able to accurately calculate the width of a character in
+the given terminal environment.  Certain terminals don't properly support multi-column Unicode characters which 
+can lead to display issues.  If you experience these issues, it is suggested that you try running the game with
+the '--compatibility-width' flag set to 3.  This will force all non-ASCII characters to have an assumed
+width of 3 columns:
+
+```
+java -jar block-mining-simulation-game-single-player-client-0.0.7.jar --compatibility-width 3
+```
 
 ```
 Block Mining Simulation Game - Available Command-line Arguments:

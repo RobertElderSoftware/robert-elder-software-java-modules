@@ -68,9 +68,7 @@ public class ScreenLayer {
 	private RecycledArrayBuffer changeFlagsRecycledBuffer = new RecycledArrayBuffer();
 	private RecycledArrayBuffer activeStatesRecycledBuffer = new RecycledArrayBuffer();
 	private RecycledArrayBuffer finalActiveStatesRecycledBuffer = new RecycledArrayBuffer();
-	private RecycledArrayBuffer colourCodeChangedFlagsRecycledBuffer = new RecycledArrayBuffer();
-	private RecycledArrayBuffer solidCharacterChangedFlagsRecycledBuffer = new RecycledArrayBuffer();
-	private RecycledArrayBuffer nonEmptyColourCountsRecycledBuffer = new RecycledArrayBuffer();
+	private RecycledArrayBuffer trustedChangedFlagsRecycledBuffer = new RecycledArrayBuffer();
 	private RecycledArrayBuffer rightwardOcclusionsRecycledBuffer = new RecycledArrayBuffer();
 	private RecycledArrayBuffer leftwardOcclusionsRecycledBuffer = new RecycledArrayBuffer();
 
@@ -378,7 +376,7 @@ public class ScreenLayer {
 		return this.columns[x][y].isAtInitialColumnOfCharacter();
 	}
 
-	public void calculateOcclusions(final boolean isLeftToRight, final int startX, final int endX, final int j, final int startY, final ScreenLayer [] screenLayers, final int [] occlusions, final boolean [][][] activeStates, final int [] xO, final int [] yO, boolean [] solidCharacterChangedFlags) throws Exception{
+	public void calculateOcclusions(final boolean isLeftToRight, final int startX, final int endX, final int j, final int startY, final ScreenLayer [] screenLayers, final int [] occlusions, final boolean [][][] activeStates, final int [] xO, final int [] yO, boolean [] trustedChangedFlags) throws Exception{
 		int xWidth = endX-startX;
 
 		int loopStart = isLeftToRight ? startX : endX - 1;
@@ -394,19 +392,31 @@ public class ScreenLayer {
 			int yR = j-startY;
 
 			int firstSolidLayer = -1;
+			boolean sawPopulatedColourCodes = false;
 
 			int currentCharacterWidth = 0;
 			for(int s = screenLayers.length -1; s >= 0; s--){
 				int xSrc = i-xO[s];
 				int ySrc = j-yO[s];
 				if(activeStates[s][xR][yR]){
-					if(xSrc >= 0 && xSrc < screenLayers[s].getWidth() && ySrc >= 0 && ySrc < screenLayers[s].getHeight()){
-						solidCharacterChangedFlags[xR] |= screenLayers[s].getColumnChanged(xSrc, ySrc);
-						currentCharacterWidth = screenLayers[s].getCharacterWidthForStartingBoundary(xSrc, ySrc, isLeftToRight);
-						int currentColumnWidthValue = screenLayers[s].getColumnCharacterWidth(xSrc, ySrc);
-						if(currentColumnWidthValue != 0){ //  Some part of a solid character
-							firstSolidLayer = s;
-							break;
+					boolean columnChanged = screenLayers[s].getColumnChanged(xSrc, ySrc);
+					if(firstSolidLayer == -1){
+						if(xSrc >= 0 && xSrc < screenLayers[s].getWidth() && ySrc >= 0 && ySrc < screenLayers[s].getHeight()){
+							trustedChangedFlags[xR] |= columnChanged;
+							int currentColumnWidthValue = screenLayers[s].getColumnCharacterWidth(xSrc, ySrc);
+							currentCharacterWidth = screenLayers[s].getCharacterWidthForStartingBoundary(xSrc, ySrc, isLeftToRight);
+							if(currentColumnWidthValue != 0){ //  Some part of a solid character
+								firstSolidLayer = s;
+							}
+
+						}
+					}
+					if(!sawPopulatedColourCodes){
+						int [] colours = screenLayers[s].getColumnColourCodes(xSrc, ySrc);
+						boolean colourCodesAreEmpty = colours.length == 0;
+						if(!colourCodesAreEmpty){
+							trustedChangedFlags[xR] |= columnChanged;
+							sawPopulatedColourCodes = true;
 						}
 					}
 				}
@@ -457,7 +467,9 @@ public class ScreenLayer {
 						sourceRegion.getEndY() + yO[l]
 					));
 
+					//  Expand the region to not cut multi-column characters:
 					ScreenRegion expandedRegion = ScreenLayer.getNonCharacterCuttingChangedRegions(translatedRegion, screenLayers);
+					//  Clip the region to fit inside the base layer:
 					ScreenRegion clippedRegion = new ScreenRegion(expandedRegion.getRegion().getIntersectionCuboidAddress(baseLayerCuboidAddress));
 
 					translatedExpandedClippedRegions.add(clippedRegion);
@@ -495,7 +507,10 @@ public class ScreenLayer {
 			yO[a+1] = aboveLayers[a].getPlacementOffset().getY().intValue();
 		}
 		
-		Set<ScreenRegion> translatedExpandedRegions = new HashSet<ScreenRegion>();
+		//  Regions that have been translated to base layer coordinates, and expanded to not cut multi-column characters:
+		Set<ScreenRegion> translatedExpandedRegions = new HashSet<ScreenRegion>(); 
+		//  Regions that have been translated to base layer coordinates, and expanded to not cut multi-column characters
+		//  and also clipped to be within the base layer:
 		Set<ScreenRegion> translatedExpandedClippedRegions = new HashSet<ScreenRegion>();
 		this.populateTranslatedExpandedClippedRegions(screenLayers, translatedExpandedRegions, translatedExpandedClippedRegions, xO, yO);
 
@@ -511,11 +526,10 @@ public class ScreenLayer {
 			final boolean [][][] changeFlags = this.changeFlagsRecycledBuffer.get3DBooleanArray(screenLayers.length, xWidth, yHeight);
 			final boolean [][][] activeStates = this.activeStatesRecycledBuffer.get3DBooleanArray(screenLayers.length, xWidth, yHeight);
 			final boolean [][] finalActiveStates = this.finalActiveStatesRecycledBuffer.get2DBooleanArray(xWidth, yHeight);
-			final int [][] nonEmptyColourCounts = this.nonEmptyColourCountsRecycledBuffer.get2DIntArray(xWidth, yHeight);
-			final boolean [][] colourCodeChangedFlags = this.colourCodeChangedFlagsRecycledBuffer.get2DBooleanArray(xWidth, yHeight);
 			final int [][][] topColourCodes = new int [xWidth][yHeight][];
 			final int [] emptyColours = new int [] {};
 
+			//  Control whether layer 0 is forced active or inactive:
 			final boolean fbls = forcedBottomLayerState.toBoolean();
 
 			for(int s = screenLayers.length -1; s >= 0; s--){
@@ -530,7 +544,6 @@ public class ScreenLayer {
 						final int ySrc = j-yO[s];
 						final int xR = i-startX;
 						final int yR = j-startY;
-						//  For any character in layer 0, always consider it as active regardless of whether it's 'inactive' or not:
 						activeStates[s][xR][yR] = (s == 0) ? fbls : (layerActive && screenLayers[s].getColumnActive(xSrc, ySrc));
 
 						if(topColourCodes[xR][yR] == null){
@@ -547,17 +560,13 @@ public class ScreenLayer {
 
 							if(screenLayers[s].getColumnChanged(xSrc, ySrc)){
 								changeFlags[s][xR][yR] = true; //  Check all layers, just in case a layer underneath has a change of BG colour.
-								if(nonEmptyColourCounts[xR][yR] == 0 && columnColourCodes.length > 0){
-									colourCodeChangedFlags[xR][yR] = true;
-								}
 							}
-							nonEmptyColourCounts[xR][yR] += columnColourCodes.length;
 						}
 					}
 				}
 			}
 
-			this.applyOcclusions(screenLayers, startX, endX, startY, endY, xWidth, topColourCodes, colourCodeChangedFlags, activeStates, finalActiveStates, xO, yO, trustChangedFlags);
+			this.applyOcclusions(screenLayers, startX, endX, startY, endY, xWidth, topColourCodes, activeStates, finalActiveStates, xO, yO, trustChangedFlags);
 		}
 
 		this.resetChangedFlags(screenLayers, translatedExpandedRegions, xO, yO);
@@ -565,7 +574,7 @@ public class ScreenLayer {
 		//this.throwExceptionOnValidationFailure();
 	}
 
-	public void applyOcclusions(final ScreenLayer [] screenLayers, final int startX, final int endX, final int startY, final int endY, final int xWidth, final int [][][] topColourCodes, final boolean [][] colourCodeChangedFlags, final boolean [][][] activeStates, final boolean [][] finalActiveStates, final int [] xO, final int [] yO, final boolean trustChangedFlags) throws Exception{
+	public void applyOcclusions(final ScreenLayer [] screenLayers, final int startX, final int endX, final int startY, final int endY, final int xWidth, final int [][][] topColourCodes, final boolean [][][] activeStates, final boolean [][] finalActiveStates, final int [] xO, final int [] yO, final boolean trustChangedFlags) throws Exception{
 		final int [] rightwardOcclusions = rightwardOcclusionsRecycledBuffer.get1DIntArray(xWidth);
 		final int [] leftwardOcclusions = leftwardOcclusionsRecycledBuffer.get1DIntArray(xWidth);
 
@@ -576,9 +585,9 @@ public class ScreenLayer {
 			boolean rightBoundaryHasSeveredCharacter = false;
 			boolean leftBoundaryHasSeveredCharacter = true;
 
-			final boolean [] solidCharacterChangedFlags = this.solidCharacterChangedFlagsRecycledBuffer.get1DBooleanArray(xWidth); // Re-initialize boolean array
-			this.calculateOcclusions(true, startX, endX, j, startY, screenLayers, rightwardOcclusions, activeStates, xO, yO, solidCharacterChangedFlags);
-			this.calculateOcclusions(false, startX, endX, j, startY, screenLayers, leftwardOcclusions, activeStates, xO, yO, solidCharacterChangedFlags);
+			final boolean [] trustedChangedFlags = this.trustedChangedFlagsRecycledBuffer.get1DBooleanArray(xWidth); // Re-initialize boolean array
+			this.calculateOcclusions(true, startX, endX, j, startY, screenLayers, rightwardOcclusions, activeStates, xO, yO, trustedChangedFlags);
+			this.calculateOcclusions(false, startX, endX, j, startY, screenLayers, leftwardOcclusions, activeStates, xO, yO, trustedChangedFlags);
 
 			for(int i = outputStartX; i < outputEndX; i++){
 				final int xR = i-startX;
@@ -590,7 +599,7 @@ public class ScreenLayer {
 				int leftward = leftwardOcclusions[xR];
 				boolean occludedChangeFlag = false;
 				if(rightward >=0 || leftward >= 0){
-					if(rightward == leftward){
+					if(rightward == leftward){ //  Both directions agree on what layer should be active:
 						int xSrc = i-xO[rightward];
 						int ySrc = j-yO[rightward];
 						outputCharacters = screenLayers[rightward].getColumnCharacter(xSrc, ySrc);
@@ -636,25 +645,27 @@ public class ScreenLayer {
 				}
 
 				if(outputCharacterWidths < 0){ // non-first columns in multi-colun char
-					if(i-1 >= 0){
-						topColourCodes[xR][yR] = this.getColumnColourCodes(i-1, j);
-						solidCharacterChangedFlags[xR] = this.getColumnChanged(i-1, j);
-						colourCodeChangedFlags[xR][yR] = this.getColumnChanged(i-1, j);
+					int before_i = i-1;
+					if(before_i >= 0){
+						topColourCodes[xR][yR] = this.getColumnColourCodes(before_i, j);
+						trustedChangedFlags[xR] = this.getColumnChanged(before_i, j);
 					}
 				}
 
 				boolean hasChange = false;
 				if(trustChangedFlags){
-					hasChange = occludedChangeFlag || solidCharacterChangedFlags[xR] || colourCodeChangedFlags[xR][yR];
+					hasChange = trustedChangedFlags[xR] || occludedChangeFlag;
 				}else{
 					if(!isAtInitialColumnOfCharacter){
 						//  For multi-column characters, use changed flag from first column.
-						hasChange = occludedChangeFlag || solidCharacterChangedFlags[xR] || colourCodeChangedFlags[xR][yR];
+						hasChange = trustedChangedFlags[xR] || occludedChangeFlag;
 					}else{
-						hasChange = !(
-							(this.getColumnCharacterWidth(i, j) == outputCharacterWidths) &&
-							Arrays.equals(this.getColumnColourCodes(i, j), topColourCodes[xR][yR]) &&
-							Objects.equals(this.getColumnCharacter(i, j), outputCharacters)
+						hasChange = this.hasCharacterChanged(
+							i,
+							j,
+							outputCharacters,
+							outputCharacterWidths,
+							topColourCodes[xR][yR]
 						) || this.getColumnChanged(i, j); // if there is a pending changed flag that hasn't been printed yet.
 					}
 				}
@@ -666,6 +677,14 @@ public class ScreenLayer {
 				this.setColumnActive(i, j, finalActiveStates[xR][yR]);
 			}
 		}
+	}
+
+	public boolean hasCharacterChanged(final int i, final int j, final String character, final int characterWidth, final int [] colourCodes) throws Exception{
+		return !(
+			(this.getColumnCharacterWidth(i, j) == characterWidth) &&
+			Arrays.equals(this.getColumnColourCodes(i, j), colourCodes) &&
+			Objects.equals(this.getColumnCharacter(i, j), character)
+		);
 	}
 
 	public void resetChangedFlags(ScreenLayer [] screenLayers, Set<ScreenRegion> translatedExpandedRegions, int [] xO, int [] yO) throws Exception{
