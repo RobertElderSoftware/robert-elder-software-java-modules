@@ -11,7 +11,7 @@
   <name>Top Level Pom</name>
 
   <properties>
-    <revision>0.0.7</revision>
+    <revision>0.0.8</revision>
   </properties>
 
   <modules>

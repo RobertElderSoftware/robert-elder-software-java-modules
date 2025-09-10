@@ -35,8 +35,12 @@ import java.io.OutputStream;
 import java.io.FileOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.UnsatisfiedLinkError;
 
 public class LinuxBlockJNIInterface {
+
 	static {
 		try{
 			boolean loadInsideJar = true;
@@ -56,11 +60,16 @@ public class LinuxBlockJNIInterface {
 					inputStream.close();
 					outputStream.close();
 
-					System.load(file.getAbsolutePath());
+					try{
+						System.load(file.getAbsolutePath());
+					}catch(UnsatisfiedLinkError e){
+						System.out.println("The program did not run because it could not load the JNI library at " + file.getAbsolutePath() + ".");
+						System.out.println("");
+						System.out.println("Try running the jar again with the --disable-jni flag.  This might make the game start, but certain features like responding to window resize events won't work.");
+						e.printStackTrace();
+					}
 					file.deleteOnExit();
 				}
-
-
 			}else{ //  If loading the library as 'liblinux_block_jni.so' using -Djava.library.path=...
 				System.loadLibrary("linux_block_jni");
 			}
