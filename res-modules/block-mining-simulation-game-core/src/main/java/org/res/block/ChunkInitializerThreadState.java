@@ -70,7 +70,8 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 		Pyrite.class,
 		Ilmenite.class,
 		MetallicCopper.class,
-		IronOxide.class
+		IronOxide.class,
+		Hematite.class
 	};
 
 	public ChunkInitializerThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, InMemoryChunks inMemoryChunks) throws Exception{

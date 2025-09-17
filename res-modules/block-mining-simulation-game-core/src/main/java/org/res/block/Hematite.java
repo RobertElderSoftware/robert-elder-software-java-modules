@@ -46,22 +46,19 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonNull;
 import com.google.gson.reflect.TypeToken;
 
-public class UninitializedBlock extends IndividualBlock {
+public class Hematite extends IndividualBlock {
 
-	/*
-		A 'block' representing a region of space that is completely uninitialized,
-		and not recorded in the database.   Imagine choosing a random coordinate
-		with extremely high values.  Such a block is most likely uninitialized.
-	*/
+	private byte [] data;
 
-	public UninitializedBlock() throws Exception {
+	public Hematite(byte [] data) throws Exception {
+		this.data = data;
 	}
 
-	public byte [] getBlockData() throws Exception {
-		return null;
+	public byte [] getBlockData()throws Exception {
+		return this.data;
 	}
 
 	public boolean isMineable() throws Exception{
-		return false;
+		return true;
 	}
 }

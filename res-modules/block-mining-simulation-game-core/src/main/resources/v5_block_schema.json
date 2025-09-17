@@ -59,6 +59,12 @@
 		},
 		{
 			"match_type": "byte_comparison",
+			"byte_pattern_base_64": "Q0FTOjEzMTctNjAtOA==",
+			"block_class": "org.res.block.Hematite",
+			"dedication": "Adam M"
+		},
+		{
+			"match_type": "byte_comparison",
 			"byte_pattern_base_64": "Q0FTOjc0MzktODktNg==",
 			"block_class": "org.res.block.MetallicIron"
 		},
