@@ -30,20 +30,20 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.LinkedHashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
-import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import java.util.Date;
-import java.util.Set;
 import java.util.HashSet;
 import java.io.BufferedWriter;
 import java.text.SimpleDateFormat;
@@ -53,52 +53,24 @@ import java.io.FileOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
-import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class UserInterfaceSplit {
+public class ChangeSplitTypeHelpMenuOption extends SimpleHelpMenuOption {
 
-	private static final AtomicLong seq = new AtomicLong(0);
-	public final long splitId;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	public abstract void sendFrameChangeNotifies(ConsoleWriterThreadState cwts) throws Exception;
-	public abstract List<FrameDimensions> getOrderedSubframeDimensions(FrameDimensions frameDimensions) throws Exception;
-	public abstract Map<Long, FrameDimensions> collectFrameDimensions(FrameDimensions frameDimensions) throws Exception;
-	public abstract FrameBordersDescription collectAllConnectionPoints(FrameDimensions frameDimensions) throws Exception;
-	public abstract List<UserInterfaceFrameThreadState> collectUserInterfaceFrames() throws Exception;
-	public abstract void removeSplitAtIndex(int i)throws Exception;
+	private Long childSplitIdToChange;
+	private Long parentSplitId;
 
-	protected List<UserInterfaceSplit> splitParts = new ArrayList<UserInterfaceSplit>();;
-
-	public List<UserInterfaceSplit> getSplitParts() throws Exception{
-		return this.splitParts;
+	public ChangeSplitTypeHelpMenuOption(String title, HelpMenuOptionType helpMenuOptionType, Long parentSplitId, Long childSplitIdToChange) throws Exception {
+		super(title, helpMenuOptionType);
+		this.childSplitIdToChange = childSplitIdToChange;
+		this.parentSplitId = parentSplitId;
 	}
 
-	public int getIndexForChildSplitWithId(Long childId) {
-		for(int i = 0; i < this.splitParts.size(); i++){
-			if(childId.equals(this.splitParts.get(i).getSplitId())){
-				return i;
-			}
-		}
-		return -1;
+	public Long getChildSplitIdToChange(){
+		return this.childSplitIdToChange;
 	}
 
-	public void setSplitAtIndex(int index, UserInterfaceSplit child) {
-		this.splitParts.set(index, child);
-	}
-
-	public Long smarterRound(Double v, Long maxColumn){
-		//if(v > (Double.valueOf(maxColumn) / 2.0)){
-		//	return (long)Math.ceil(v);
-		//}else{
-			return (long)Math.floor(v);
-		//}
-	}
-
-	public UserInterfaceSplit() throws Exception {
-		this.splitId = seq.getAndIncrement();
-	}
-
-	public long getSplitId(){
-		return this.splitId;
+	public Long getParentSplitId(){
+		return this.parentSplitId;
 	}
 }

@@ -354,6 +354,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
+	public void destroySplitById(Long splitId) throws Exception{
+		this.userInterfaceSplits.remove(splitId);
+	}
+
 	public void destroyFrameStateById(Long frameId) throws Exception{
 		if(activeFrameStates.containsKey(frameId)){
 			activeFrameStates.remove(frameId);
@@ -386,6 +390,29 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		m.rotateChildWithId(childSplitIdToRotate, isForward);
 		logger.info("onRotateSplit Rotated isForward=" + isForward);
 		return 0L;
+	}
+
+	public EmptyWorkItemResult onChangeSplitType(Long parentSplitId, Long childSplitId) throws Exception{
+		UserInterfaceSplitMulti sourceSplit = (UserInterfaceSplitMulti)getUserInterfaceSplitById(childSplitId);
+		UserInterfaceSplitMulti destinationSplit = null;
+		if(sourceSplit instanceof UserInterfaceSplitVertical){
+			destinationSplit = (UserInterfaceSplitMulti)getUserInterfaceSplitById(this.makeHorizontalSplit());
+		}else if(sourceSplit instanceof UserInterfaceSplitHorizontal){
+			destinationSplit = (UserInterfaceSplitMulti)getUserInterfaceSplitById(this.makeVerticalSplit());
+		}
+		destinationSplit.addParts(sourceSplit.getSplitParts());
+		destinationSplit.setSplitPercentages(sourceSplit.getSplitPercentages());
+
+		if(parentSplitId == null){
+			this.setRootSplit(destinationSplit.getSplitId());
+		}else{
+			UserInterfaceSplitMulti parentSplit = (UserInterfaceSplitMulti)getUserInterfaceSplitById(parentSplitId);
+			int childIndex = parentSplit.getIndexForChildSplitWithId(childSplitId);
+		
+			parentSplit.setSplitAtIndex(childIndex, destinationSplit);
+		}
+		this.destroySplitById(childSplitId);
+		return new EmptyWorkItemResult();
 	}
 
 	public EmptyWorkItemResult onResizeFrame(Long frameId, Long deltaXColumns, Long deltaYColumns) throws Exception{

@@ -277,6 +277,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			this.updatePlayerOverlay(new CuboidAddress(newPosition, newPosition.add(Coordinate.makeUnitCoordinate(4L))));
 		}
 
+		this.drawBorders(); //  When frame coordinate decreases in size, clear outdated coordinate text.
 		this.updateFrameCoordinate();
 		this.onFinalizeFrame();
 	}

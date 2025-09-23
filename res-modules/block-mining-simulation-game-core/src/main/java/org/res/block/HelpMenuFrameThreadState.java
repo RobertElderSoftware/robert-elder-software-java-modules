@@ -118,6 +118,41 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		return rtn;
 	}
 
+	public List<HelpMenuOption> enumerateChangeSplitTypeOptions(String prefix, SplitInfoWorkItemResult parentSplitInfo, SplitInfoWorkItemResult childSplitInfo, int numSiblings) throws Exception{
+		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		List<HelpMenuOption> rtn = new ArrayList<HelpMenuOption>();
+		GetSplitChildrenInfoWorkItem getSplitChildrenInfoWorkItem = new GetSplitChildrenInfoWorkItem(cwts, childSplitInfo.getSplitId());
+		WorkItemResult getSplitChildrenInfoWorkItemResult = cwts.putBlockingWorkItem(getSplitChildrenInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
+		GetSplitChildrenInfoWorkItemResult childInfos = ((GetSplitChildrenInfoWorkItemResult)getSplitChildrenInfoWorkItemResult);
+		List<String> childFrameNames = new ArrayList<String>();
+		for(SplitInfoWorkItemResult info : childInfos.getSplitInfos()){
+			String splitDescription = info.getSplitClassType().getSimpleName() + "(" + info.getSplitId() + ")";
+			String menuTitle = prefix + splitDescription + "-> ";
+
+			rtn.addAll(this.enumerateChangeSplitTypeOptions(menuTitle, childSplitInfo, info, childInfos.getSplitInfos().size()));
+
+			if(info.getFrameId() == null){
+				childFrameNames.add(splitDescription);
+			}else{
+				GetFrameInfoWorkItem getFrameInfoWorkItem = new GetFrameInfoWorkItem(cwts, info.getFrameId());
+				FrameInfoWorkItemResult frameInfo = (FrameInfoWorkItemResult)cwts.putBlockingWorkItem(getFrameInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
+				String frameDesc = frameInfo.getFrameStateClassType().getSimpleName() + "(" + frameInfo.getFrameId() + ")";
+				childFrameNames.add(frameDesc);
+			}
+		}
+
+		if(
+			childSplitInfo.getSplitClassType() == UserInterfaceSplitVertical.class ||
+			childSplitInfo.getSplitClassType() == UserInterfaceSplitHorizontal.class
+		){
+			String newTypeName = childSplitInfo.getSplitClassType() == UserInterfaceSplitVertical.class ? "Horizontal" : "Vertical";
+			Long parentSplitId = parentSplitInfo == null ? null : parentSplitInfo.getSplitId();
+			rtn.add(new ChangeSplitTypeHelpMenuOption(prefix + "[" + String.join(", ", childFrameNames) + "]" + " Change Split To " + newTypeName, HelpMenuOptionType.CHANGE_SPLIT_TYPE, parentSplitId, childSplitInfo.getSplitId()));
+		}
+
+		return rtn;
+	}
+
 	public List<HelpMenuOption> getSplitMoveToOptionsList() throws Exception{
 		//  Get root split:
 		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
@@ -135,8 +170,26 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		return rtn;
 	}
 
+	public List<HelpMenuOption> getChangeSplitTypeOptionsList() throws Exception{
+		//  Get root split:
+		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		GetSplitInfoWorkItem getRootSplitInfoWorkItem = new GetSplitInfoWorkItem(cwts, null, true);
+		SplitInfoWorkItemResult getRootSplitInfoWorkItemResult = (SplitInfoWorkItemResult)cwts.putBlockingWorkItem(getRootSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
+		Long rootSplitId = getRootSplitInfoWorkItemResult.getSplitId();
+
+		List<HelpMenuOption> rtn = new ArrayList<HelpMenuOption>();
+		if(rootSplitId != null){
+			//  Find all child splits:
+			String rootSplitTitle = getRootSplitInfoWorkItemResult.getSplitClassType().getSimpleName() + "(" + rootSplitId + ", root)-> ";
+			rtn.addAll(this.enumerateChangeSplitTypeOptions(rootSplitTitle, null, getRootSplitInfoWorkItemResult, 1));
+		}
+		rtn.add(new SimpleHelpMenuOption("Back", HelpMenuOptionType.BACK_UP_LEVEL));
+		return rtn;
+	}
+
 	public void rebuildHelpMenu(HelpMenu previousHelpMenu) throws Exception{
 		List<HelpMenuOption> moveToOptionsList = this.getSplitMoveToOptionsList();
+		List<HelpMenuOption> changeSplitTypeOptionsList = this.getChangeSplitTypeOptionsList();
 
 		this.helpMenu = new HelpMenu(
 			previousHelpMenu,
@@ -160,6 +213,11 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 						"Move Split",
 						HelpMenuOptionType.DO_SUBMENU, 
 						new HelpMenuLevel(moveToOptionsList)
+					),
+					new SubMenuHelpMenuOption(
+						"Change Split Type",
+						HelpMenuOptionType.DO_SUBMENU, 
+						new HelpMenuLevel(changeSplitTypeOptionsList)
 					),
 					new SubMenuHelpMenuOption(
 						"Resize Current Frame",
@@ -205,6 +263,16 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			ResizeFrameWorkItem resizeFrameWorkItem = new ResizeFrameWorkItem(cwts, focusedFrameId, deltaXColumns, deltaYColumns);
 			cwts.putBlockingWorkItem(resizeFrameWorkItem, WorkItemPriority.PRIORITY_LOW);
 		}
+	}
+
+	public void onChangeSplitType(ChangeSplitTypeHelpMenuOption o) throws Exception {
+		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		ChangeSplitTypeWorkItem changeSplitTypeWorkItem = new ChangeSplitTypeWorkItem(cwts, o.getParentSplitId(), o.getChildSplitIdToChange());
+		
+		cwts.putBlockingWorkItem(changeSplitTypeWorkItem, WorkItemPriority.PRIORITY_LOW);
+
+		//  Update screen
+		this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void onRotateSplit(RotateSplitHelpMenuOption o) throws Exception {
@@ -357,6 +425,10 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 				break;
 			} case HelpMenuOptionType.RESIZE_FRAME_X_MINUS:{
 				this.onResizeFrame(-1L, 0L);
+				break;
+			} case HelpMenuOptionType.CHANGE_SPLIT_TYPE:{
+				this.onChangeSplitType((ChangeSplitTypeHelpMenuOption)option);
+				this.helpMenu.setActiveState(false);
 				break;
 			} case HelpMenuOptionType.QUIT_GAME:{
 				logger.info("Menu option to quit was selected.  Exiting...");

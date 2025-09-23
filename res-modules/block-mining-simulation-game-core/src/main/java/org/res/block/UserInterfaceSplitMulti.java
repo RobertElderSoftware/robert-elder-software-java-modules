@@ -166,6 +166,10 @@ public abstract class UserInterfaceSplitMulti extends UserInterfaceSplit {
 		}
 	}
 
+	public List<Double> getSplitPercentages() throws Exception {
+		return this.splitPercentages;
+	}
+
 	public void setSplitPercentages(List<Double> splitPercentages) throws Exception {
 		if(splitPercentages.size() == this.splitParts.size()){
 			this.splitPercentages = splitPercentages;
