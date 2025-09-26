@@ -43,11 +43,11 @@ import java.lang.invoke.MethodHandles;
 public class ScreenLayerMergeParameters {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private int bufferIndex;
+	private ScreenLayer screenLayer;
 	private ScreenLayerMergeType screenLayerMergeType;
 
-	public ScreenLayerMergeParameters(int bufferIndex, ScreenLayerMergeType screenLayerMergeType){
-	       	this.bufferIndex = bufferIndex;
+	public ScreenLayerMergeParameters(ScreenLayer screenLayer, ScreenLayerMergeType screenLayerMergeType){
+	       	this.screenLayer = screenLayer;
 		this.screenLayerMergeType = screenLayerMergeType;
 	}
 
@@ -55,7 +55,7 @@ public class ScreenLayerMergeParameters {
 		return this.screenLayerMergeType;
 	}
 
-	public int getBufferIndex(){
-		return this.bufferIndex;
+	public ScreenLayer getScreenLayer(){
+		return this.screenLayer;
 	}
 }

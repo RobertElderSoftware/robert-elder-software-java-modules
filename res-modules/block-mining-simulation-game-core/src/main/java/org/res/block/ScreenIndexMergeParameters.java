@@ -40,30 +40,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class ScreenLayerPrintParameters {
+public class ScreenIndexMergeParameters {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private ScreenLayer screenLayer;
-	private ScreenIndexMergeParameters screenIndexMergeParameters;
+	private int bufferIndex;
+	private ScreenLayerMergeType screenLayerMergeType;
 
-	public ScreenLayerPrintParameters(ScreenLayer screenLayer, ScreenIndexMergeParameters screenIndexMergeParameters){
-	       	this.screenLayer = screenLayer;
-		this.screenIndexMergeParameters = screenIndexMergeParameters;
-	}
-
-	public ScreenIndexMergeParameters getScreenIndexMergeParameters(){
-		return this.screenIndexMergeParameters;
-	}
-
-	public ScreenLayer getScreenLayer(){
-		return this.screenLayer;
-	}
-
-	public int getBufferIndex(){
-		return this.screenIndexMergeParameters.getBufferIndex();
+	public ScreenIndexMergeParameters(int bufferIndex, ScreenLayerMergeType screenLayerMergeType){
+	       	this.bufferIndex = bufferIndex;
+		this.screenLayerMergeType = screenLayerMergeType;
 	}
 
 	public ScreenLayerMergeType getScreenLayerMergeType(){
-		return this.screenIndexMergeParameters.getScreenLayerMergeType();
+		return this.screenLayerMergeType;
+	}
+
+	public int getBufferIndex(){
+		return this.bufferIndex;
 	}
 }

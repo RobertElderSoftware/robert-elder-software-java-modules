@@ -421,24 +421,23 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		return instructions;
 	}
 
-	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, boolean xDirection, int bufferIndex) throws Exception{
-		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.getFrameDimensions(), xDirection, new ScreenLayerMergeParameters(bufferIndex, ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
+	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, boolean xDirection, ScreenLayer bottomLayer) throws Exception{
+		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.getFrameDimensions(), xDirection, new ScreenLayerMergeParameters(bottomLayer, ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
 	}
 
 	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, boolean xDirection) throws Exception{
-		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.getFrameDimensions(), xDirection, new ScreenLayerMergeParameters(ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
+		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.getFrameDimensions(), xDirection, new ScreenLayerMergeParameters(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT], ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
 	}
 
-	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, boolean xDirection, int bufferIndex) throws Exception{
-		this.printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.getFrameDimensions(), xDirection, new ScreenLayerMergeParameters(bufferIndex, ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
+	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, boolean xDirection, ScreenLayer bottomLayer) throws Exception{
+		this.printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.getFrameDimensions(), xDirection, new ScreenLayerMergeParameters(bottomLayer, ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
 	}
 
 	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, boolean xDirection) throws Exception{
-		this.printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.getFrameDimensions(), xDirection, new ScreenLayerMergeParameters(ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
+		this.printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.getFrameDimensions(), xDirection, new ScreenLayerMergeParameters(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT], ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
 	}
 
 	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, FrameDimensions fd, boolean xDirection, ScreenLayerMergeParameters mergeParams) throws Exception{
-		int bufferIndex = mergeParams.getBufferIndex();
 		List<ColouredCharacter> colouredCharacters = colouredTextFragmentList.getColouredCharacters();
 		List<String> charactersToPrint = new ArrayList<String>();
 		int [][] newColourCodes = new int [colouredCharacters.size()][];
@@ -514,13 +513,13 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 	protected void executeLinePrintingInstructionsAtYOffset(List<LinePrintingInstruction> instructions, Long yOffset) throws Exception{
-		this.executeLinePrintingInstructionsAtYOffset(instructions, yOffset, ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT);
+		this.executeLinePrintingInstructionsAtYOffset(instructions, yOffset, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
 	}
 
-	protected void executeLinePrintingInstructionsAtYOffset(List<LinePrintingInstruction> instructions, Long yOffset, int bufferIndex) throws Exception{
+	protected void executeLinePrintingInstructionsAtYOffset(List<LinePrintingInstruction> instructions, Long yOffset, ScreenLayer bottomLayer) throws Exception{
 		for(int i = 0; i < instructions.size(); i++){
 			LinePrintingInstruction instruction = instructions.get(i);
-			this.printTextAtScreenXY(instruction.getColouredTextFragmentList(), instruction.getXOffsetInFrame(), yOffset + i, true, bufferIndex);
+			this.printTextAtScreenXY(instruction.getColouredTextFragmentList(), instruction.getXOffsetInFrame(), yOffset + i, true, bottomLayer);
 		}
 	}
 
@@ -543,11 +542,11 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	protected Long getInnerFrameWidth() throws Exception{
 		Long fchrw = this.getFrameCharacterWidth();
-		return getFrameWidth() - (hasLeftBorder() ? fchrw : 0L) - (hasRightBorder() ? fchrw: 0L);
+		return getFrameWidth() - this.getTotalXBorderSize();
 	}
 
 	protected Long getInnerFrameHeight() throws Exception{
-		return getFrameHeight() - (hasTopBorder() ? 1L : 0L) - (hasBottomBorder() ? 1L : 0L);
+		return getFrameHeight() - this.getTotalYBorderSize();
 	}
 
 	protected Long getFrameHeight() throws Exception{
@@ -820,9 +819,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	public void writeToLocalFrameBuffer(ScreenLayer changes, ScreenLayerMergeParameters mergeParams) throws Exception{
 
-		int bufferIndex = mergeParams.getBufferIndex();
+		ScreenLayer belowLayer = mergeParams.getScreenLayer();
 		ScreenLayerMergeType mergeType = mergeParams.getScreenLayerMergeType();
-		this.bufferedScreenLayers[bufferIndex].mergeDown(changes, false, mergeType);
+		belowLayer.mergeDown(changes, false, mergeType);
 	}
 
 	public boolean hasOtherFrameDimensionsChanged(FrameChangeWorkItemParams params){
@@ -869,7 +868,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		this.bufferedScreenLayers[bufferIndex].setIsLayerActive(isActive);
 	}
 
-	public List<ScreenLayerPrintParameters> makeScreenPrintParameters(ScreenLayer l, ScreenLayerMergeParameters mergeParams) throws Exception{
+	public List<ScreenLayerPrintParameters> makeScreenPrintParameters(ScreenLayer l, ScreenIndexMergeParameters mergeParams) throws Exception{
 		List<ScreenLayerPrintParameters> rtn = new ArrayList<ScreenLayerPrintParameters>();
 		rtn.add(new ScreenLayerPrintParameters(l, mergeParams));
 		return rtn;
@@ -883,7 +882,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			for(int i = 0; i < this.usedScreenLayers.length; i++){
 				int l = usedScreenLayers[i];
 				totalChangedRegions += this.bufferedScreenLayers[l].getChangedRegions().size();
-				ScreenLayerMergeParameters mergeParams = new ScreenLayerMergeParameters(l, this.usedScreenLayersMergeTypes[i]);
+				ScreenIndexMergeParameters mergeParams = new ScreenIndexMergeParameters(l, this.usedScreenLayersMergeTypes[i]);
 				params.addAll(
 					makeScreenPrintParameters(
 						this.bufferedScreenLayers[l],
@@ -901,7 +900,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 	public void sendCellUpdatesInScreenArea(CuboidAddress areaToUpdate, String [][] updatedCellContents, int [][][] updatedColourCodes, Long drawOffsetX, Long drawOffsetY, ScreenLayerMergeParameters mergeParams) throws Exception{
-		int bufferIndex = mergeParams.getBufferIndex();
 		//  Print a square of padded cells on the terminal.
 		int areaCellWidth = (int)areaToUpdate.getWidthForIndex(0L);
 		int areaCellHeight = (int)areaToUpdate.getWidthForIndex(2L);

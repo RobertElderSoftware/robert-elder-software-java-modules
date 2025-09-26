@@ -30,40 +30,35 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.Set;
 import java.util.List;
 import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
+import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
 
-public class ScreenLayerPrintParameters {
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonNull;
+import com.google.gson.reflect.TypeToken;
 
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private ScreenLayer screenLayer;
-	private ScreenIndexMergeParameters screenIndexMergeParameters;
+public class Malachite extends IndividualBlock {
 
-	public ScreenLayerPrintParameters(ScreenLayer screenLayer, ScreenIndexMergeParameters screenIndexMergeParameters){
-	       	this.screenLayer = screenLayer;
-		this.screenIndexMergeParameters = screenIndexMergeParameters;
+	private byte [] data;
+
+	public Malachite(byte [] data) throws Exception {
+		this.data = data;
 	}
 
-	public ScreenIndexMergeParameters getScreenIndexMergeParameters(){
-		return this.screenIndexMergeParameters;
+	public byte [] getBlockData()throws Exception {
+		return this.data;
 	}
 
-	public ScreenLayer getScreenLayer(){
-		return this.screenLayer;
-	}
-
-	public int getBufferIndex(){
-		return this.screenIndexMergeParameters.getBufferIndex();
-	}
-
-	public ScreenLayerMergeType getScreenLayerMergeType(){
-		return this.screenIndexMergeParameters.getScreenLayerMergeType();
+	public boolean isMineable() throws Exception{
+		return true;
 	}
 }

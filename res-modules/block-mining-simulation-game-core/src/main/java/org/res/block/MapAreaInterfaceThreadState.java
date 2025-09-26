@@ -184,16 +184,12 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
 		if(hasThisFrameDimensionsChanged){
-			FrameDimensions currentFrameDimensions = new FrameDimensions(this.getFrameDimensions());
-			Long totalXBorderSize = this.getTotalXBorderSize();
-			Long totalYBorderSize = this.getTotalYBorderSize();
-			Long printableInnerWidth = this.getFrameWidth() - totalXBorderSize;
-			this.mapAreaWidthInCells = printableInnerWidth / this.getMapAreaCellWidth();
-			this.mapAreaHeightInCells = this.getFrameHeight() - totalYBorderSize;
+			this.mapAreaWidthInCells = this.getInnerFrameWidth() / this.getMapAreaCellWidth();
+			this.mapAreaHeightInCells = this.getInnerFrameHeight();
 			//  Don't allow the map area to negative when the window is resized very small:
 			this.mapAreaWidthInCells = mapAreaWidthInCells < 1L ? 1L : mapAreaWidthInCells;
 			this.mapAreaHeightInCells = mapAreaHeightInCells < 1L ? 1L : mapAreaHeightInCells;
-			this.mapAreaPaddingColumnsRight = printableInnerWidth - (this.mapAreaWidthInCells * this.getMapAreaCellWidth());
+			this.mapAreaPaddingColumnsRight = this.getInnerFrameWidth() - (this.mapAreaWidthInCells * this.getMapAreaCellWidth());
 			logger.info("onRenderFrame calculated: mapAreaWidthInCells=" + mapAreaWidthInCells + ", mapAreaHeightInCells=" + mapAreaHeightInCells);
 			Long topRightHandX = mapAreaWidthInCells / 2L;
 			Long topRightHandZ = mapAreaHeightInCells / 2L;
@@ -339,7 +335,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		)));
 		pi.setAllChangedFlagStates(true);
 
-		ScreenLayerMergeParameters mergeParams = new ScreenLayerMergeParameters(ConsoleWriterThreadState.BUFFER_INDEX_OVERLAY, ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
+		ScreenLayerMergeParameters mergeParams = new ScreenLayerMergeParameters(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_OVERLAY], ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
 		this.writeToLocalFrameBuffer(pi, mergeParams);
 	}
 
@@ -435,7 +431,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			this.getMapXOffsetInScreenCoordinates(areaToUpdate),
 			this.getMapYOffsetInScreenCoordinates(areaToUpdate),
 			new ScreenLayerMergeParameters(
-				ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT,
+				this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT],
 				ScreenLayerMergeType.PREFER_BOTTOM_LAYER
 			)
 		);

@@ -202,6 +202,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 							Arrays.asList(
 								new OpenFrameClassHelpMenuOption("Open Help Menu", HelpMenuOptionType.OPEN_NEW_FRAME, HelpDetailsFrameThreadState.class),
 								new OpenFrameClassHelpMenuOption("Open Map Area", HelpMenuOptionType.OPEN_NEW_FRAME, MapAreaInterfaceThreadState.class),
+								new OpenFrameClassHelpMenuOption("Open Crafting Menu", HelpMenuOptionType.OPEN_NEW_FRAME, CraftingInterfaceThreadState.class),
 								new OpenFrameClassHelpMenuOption("Open Inventory", HelpMenuOptionType.OPEN_NEW_FRAME, InventoryInterfaceThreadState.class),
 								new OpenFrameClassHelpMenuOption("Empty Frame", HelpMenuOptionType.OPEN_NEW_FRAME, EmptyFrameThreadState.class),
 
@@ -521,11 +522,11 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 
 		ScreenRegion region = new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, terminalWidth, terminalHeight));
 		changes.addChangedRegion(region);
-		this.writeToLocalFrameBuffer(changes, new ScreenLayerMergeParameters(ConsoleWriterThreadState.BUFFER_INDEX_MENU, ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY));
+		this.writeToLocalFrameBuffer(changes, new ScreenLayerMergeParameters(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_MENU], ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY));
 
 		for(LinePrintingInstructionAtOffset instruction : instructions){
 			Long lineYOffset = instruction.getOffsetY() + yOffset;
-			this.executeLinePrintingInstructionsAtYOffset(Arrays.asList(instruction.getLinePrintingInstruction()), lineYOffset, ConsoleWriterThreadState.BUFFER_INDEX_MENU);
+			this.executeLinePrintingInstructionsAtYOffset(Arrays.asList(instruction.getLinePrintingInstruction()), lineYOffset, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_MENU]);
 		}
 
 		this.setScreenLayerState(ConsoleWriterThreadState.BUFFER_INDEX_MENU, this.helpMenu.getActiveState());

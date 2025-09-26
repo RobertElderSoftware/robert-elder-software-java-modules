@@ -168,10 +168,21 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				splits.add(makeLeafNodeSplit(inventoryInterfaceFrameId));
 				framePercents.add(0.25 / this.inventoryInterfaceFrameIds.size());
 			}
-			Long r = makeHorizontalSplit();
-			this.addSplitPartsByIds(r, splits);
-			((UserInterfaceSplitMulti)this.getUserInterfaceSplitById(r)).setSplitPercentages(framePercents);
-			this.setRootSplit(r);
+			Long subSplit = makeHorizontalSplit();
+			this.addSplitPartsByIds(subSplit, splits);
+			((UserInterfaceSplitMulti)this.getUserInterfaceSplitById(subSplit)).setSplitPercentages(framePercents);
+
+			Long root = makeVerticalSplit();
+			List<Long> topSplits = new ArrayList<Long>();
+			topSplits.add(subSplit);
+			topSplits.add(makeLeafNodeSplit(createFrameAndThread(CraftingInterfaceThreadState.class)));
+			List<Double> topSplitPercents = new ArrayList<Double>();
+			topSplitPercents.add(0.66);
+			topSplitPercents.add(0.34);
+			this.addSplitPartsByIds(root, topSplits);
+			((UserInterfaceSplitMulti)this.getUserInterfaceSplitById(root)).setSplitPercentages(topSplitPercents);
+
+			this.setRootSplit(root);
 		}
 	}
 
@@ -269,6 +280,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			frameStateClass == HelpMenuFrameThreadState.class ||
 			frameStateClass == HelpDetailsFrameThreadState.class ||
 			frameStateClass == EmptyFrameThreadState.class ||
+			frameStateClass == CraftingInterfaceThreadState.class ||
 			frameStateClass == MapAreaInterfaceThreadState.class ||
 			frameStateClass == InventoryInterfaceThreadState.class
 		){
@@ -330,6 +342,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}else if(frameStateClass == EmptyFrameThreadState.class){
 			return addFrameState(
 				new EmptyFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
+			);
+		}else if(frameStateClass == CraftingInterfaceThreadState.class){
+			return addFrameState(
+				new CraftingInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
 			);
 		}else if(frameStateClass == MapAreaInterfaceThreadState.class){
 			Long mapId = addFrameState(

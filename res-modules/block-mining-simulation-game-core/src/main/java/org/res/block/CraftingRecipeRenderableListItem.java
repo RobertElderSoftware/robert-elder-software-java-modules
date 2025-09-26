@@ -30,40 +30,26 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.Set;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
+
+import org.res.block.WorkItem;
+import org.res.block.BlockSession;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class ScreenLayerPrintParameters {
+public class CraftingRecipeRenderableListItem extends RenderableListItem{
 
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private ScreenLayer screenLayer;
-	private ScreenIndexMergeParameters screenIndexMergeParameters;
+	private String text;
 
-	public ScreenLayerPrintParameters(ScreenLayer screenLayer, ScreenIndexMergeParameters screenIndexMergeParameters){
-	       	this.screenLayer = screenLayer;
-		this.screenIndexMergeParameters = screenIndexMergeParameters;
+	public void render() throws Exception{
 	}
 
-	public ScreenIndexMergeParameters getScreenIndexMergeParameters(){
-		return this.screenIndexMergeParameters;
-	}
-
-	public ScreenLayer getScreenLayer(){
-		return this.screenLayer;
-	}
-
-	public int getBufferIndex(){
-		return this.screenIndexMergeParameters.getBufferIndex();
-	}
-
-	public ScreenLayerMergeType getScreenLayerMergeType(){
-		return this.screenIndexMergeParameters.getScreenLayerMergeType();
+	public CraftingRecipeRenderableListItem(String text) throws Exception{
+		this.text = text;
 	}
 }

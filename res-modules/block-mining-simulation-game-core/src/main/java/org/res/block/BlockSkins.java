@@ -58,6 +58,7 @@ public class BlockSkins {
 		patternsTmp.put(WoodenPick.class.getName(),"\u26CF\uFE0F");
 		patternsTmp.put(StonePick.class.getName(),"\u26CF\uFE0F");
 		patternsTmp.put(IronPick.class.getName(),"\u26CF\uFE0F");
+		patternsTmp.put(Malachite.class.getName(),"\uD83D\uDFE9");
 		patternsTmp.put(TitaniumDioxide.class.getName(),"\u2B1C");
 		patternsTmp.put(MetallicTitanium.class.getName(),"\u2B1C");
 		patternsTmp.put(SiliconDioxide.class.getName(),"\u2B1C");
@@ -84,6 +85,7 @@ public class BlockSkins {
 		descriptionsTmp.put(WoodenPick.class.getName(),"A wooden pick axe.  Capable of mining all blocks within a radius of 1 from the player.");
 		descriptionsTmp.put(StonePick.class.getName(),"A stone pick axe.  Capable of mining all blocks within a radius of 2 from the player.");
 		descriptionsTmp.put(IronPick.class.getName(),"An iron pick axe.  Capable of mining all blocks within a radius of 3 from the player.");
+		descriptionsTmp.put(Malachite.class.getName(),"One cubic meter of basic copper carbonate, chemical formula Cu₂CO₃(OH)₂.");
 		descriptionsTmp.put(TitaniumDioxide.class.getName(),"One cubic meter of titanium dioxide, chemical formula TiO₂");
 		descriptionsTmp.put(MetallicTitanium.class.getName(),"One cubic meter of metallic titanium, the element with atomic number 22.");
 		descriptionsTmp.put(SiliconDioxide.class.getName(),"One cubic meter of silicon dioxide, chemical formula SiO₂");

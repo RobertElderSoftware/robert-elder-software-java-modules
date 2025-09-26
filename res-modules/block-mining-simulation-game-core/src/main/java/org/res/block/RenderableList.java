@@ -30,40 +30,43 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.Set;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
+
+import org.res.block.WorkItem;
+import org.res.block.BlockSession;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class ScreenLayerPrintParameters {
+public class RenderableList<T extends RenderableListItem> {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private ScreenLayer screenLayer;
-	private ScreenIndexMergeParameters screenIndexMergeParameters;
+	private List<T> list = new ArrayList<T>();
+	private CuboidAddress renderableArea = new CuboidAddress(
+		new Coordinate(Arrays.asList(0L, 0L)),
+		new Coordinate(Arrays.asList(0L, 0L))
+	);
 
-	public ScreenLayerPrintParameters(ScreenLayer screenLayer, ScreenIndexMergeParameters screenIndexMergeParameters){
-	       	this.screenLayer = screenLayer;
-		this.screenIndexMergeParameters = screenIndexMergeParameters;
+	public RenderableList() throws Exception{
+
 	}
 
-	public ScreenIndexMergeParameters getScreenIndexMergeParameters(){
-		return this.screenIndexMergeParameters;
+	public void render() throws Exception{
+		for(T listItem : list){
+			listItem.render();
+		}
 	}
 
-	public ScreenLayer getScreenLayer(){
-		return this.screenLayer;
+	public void updateRenderableArea(CuboidAddress ca) throws Exception{
+		this.renderableArea = ca;
 	}
 
-	public int getBufferIndex(){
-		return this.screenIndexMergeParameters.getBufferIndex();
-	}
-
-	public ScreenLayerMergeType getScreenLayerMergeType(){
-		return this.screenIndexMergeParameters.getScreenLayerMergeType();
+	public void addItem(T item){
+		list.add(item);
 	}
 }
