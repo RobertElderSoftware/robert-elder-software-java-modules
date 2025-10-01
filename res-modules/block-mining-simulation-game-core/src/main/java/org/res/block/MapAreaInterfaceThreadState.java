@@ -335,8 +335,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		)));
 		pi.setAllChangedFlagStates(true);
 
-		ScreenLayerMergeParameters mergeParams = new ScreenLayerMergeParameters(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_OVERLAY], ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
-		this.writeToLocalFrameBuffer(pi, mergeParams);
+		this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_OVERLAY].mergeDown(pi, false, ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
 	}
 
 	public Long getMapXOffsetInCells(CuboidAddress ca) throws Exception{

@@ -39,6 +39,10 @@ public class ColouredTextFragment{
 	private String text;
 	private int [] ansiColourCodes;
 
+	public ColouredTextFragment(String text) throws Exception{
+		this(text, new int [] {});
+	}
+
 	public ColouredTextFragment(String text, int [] ansiColourCodes) throws Exception{
 		if(text == null || ansiColourCodes == null){
 			throw new Exception("text == null || ansiColourCodes == null");

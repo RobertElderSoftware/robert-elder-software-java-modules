@@ -46,7 +46,16 @@ public class CraftingRecipeRenderableListItem extends RenderableListItem{
 
 	private String text;
 
-	public void render() throws Exception{
+	public void render(UserInterfaceFrameThreadState frame, boolean isSelected, Coordinate placementOffset, ScreenLayer bottomLayer) throws Exception{
+
+
+		int bgColour = isSelected ? UserInterfaceFrameThreadState.RED_BG_COLOR : UserInterfaceFrameThreadState.GREEN_BG_COLOR;
+		this.displayLayer.initializeInRegion(1, "_", new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR, bgColour}, null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, this.displayLayer.getWidth(), this.displayLayer.getHeight())), true, true);
+
+
+		frame.printTextAtScreenXY(new ColouredTextFragment(this.text, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR, UserInterfaceFrameThreadState.YELLOW_BG_COLOR}), 1L, (long)(this.displayLayer.getHeight() / 2), true, this.displayLayer);
+		this.displayLayer.setPlacementOffset(placementOffset);
+		bottomLayer.mergeDown(this.displayLayer, true, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
 	}
 
 	public CraftingRecipeRenderableListItem(String text) throws Exception{

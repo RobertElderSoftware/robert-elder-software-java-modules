@@ -233,6 +233,14 @@ public class ScreenLayer {
 		return this.changedRegions;
 	}
 
+	public ScreenLayer() throws Exception{
+		this(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 0, 0));
+	}
+
+	public ScreenLayer(CuboidAddress dimensions) throws Exception{
+		this(new Coordinate(Arrays.asList(0L, 0L)), dimensions);
+	}
+
 	public ScreenLayer(Coordinate placementOffset, CuboidAddress dimensions) throws Exception{
 		int width = (int)dimensions.getWidth();
 		int height = (int)dimensions.getHeight();

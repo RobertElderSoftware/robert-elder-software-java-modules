@@ -44,9 +44,10 @@ import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
 public abstract class RenderableListItem {
-	public abstract void render() throws Exception;
+	public abstract void render(UserInterfaceFrameThreadState frame, boolean isSelected, Coordinate placementOffset, ScreenLayer bottomLayer) throws Exception;
+	protected ScreenLayer displayLayer = new ScreenLayer();
 
-	private CuboidAddress renderableArea = new CuboidAddress(
+	protected CuboidAddress renderableArea = new CuboidAddress(
 		new Coordinate(Arrays.asList(0L, 0L)),
 		new Coordinate(Arrays.asList(0L, 0L))
 	);
@@ -56,5 +57,12 @@ public abstract class RenderableListItem {
 
 	public void updateRenderableArea(CuboidAddress ca) throws Exception{
 		this.renderableArea = ca;
+		int width = (int)ca.getWidth();
+		int height = (int)ca.getHeight();
+
+		this.displayLayer = new ScreenLayer(this.displayLayer.getPlacementOffset(), ScreenLayer.makeDimensionsCA(0, 0, width, height));
+		//  Initialize to an obvious pattern.  Should be overwritten by child class:
+		this.displayLayer.initializeInRegion(1, "x", new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR, UserInterfaceFrameThreadState.BLUE_BG_COLOR}, null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, width, height)), true, true);
+
 	}
 }

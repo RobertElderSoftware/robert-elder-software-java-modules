@@ -491,7 +491,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			ScreenRegion.makeScreenRegionCA(0, 0, xDimSize, yDimSize)
 		);
 		changes.addChangedRegion(region);
-		this.writeToLocalFrameBuffer(changes, mergeParams);
+		mergeParams.getScreenLayer().mergeDown(changes, false, mergeParams.getScreenLayerMergeType());
 	}
 
 	public boolean sendConsolePrintMessage(List<ScreenLayerPrintParameters> params, FrameDimensions fd) throws Exception{
@@ -817,13 +817,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 	}
 
-	public void writeToLocalFrameBuffer(ScreenLayer changes, ScreenLayerMergeParameters mergeParams) throws Exception{
-
-		ScreenLayer belowLayer = mergeParams.getScreenLayer();
-		ScreenLayerMergeType mergeType = mergeParams.getScreenLayerMergeType();
-		belowLayer.mergeDown(changes, false, mergeType);
-	}
-
 	public boolean hasOtherFrameDimensionsChanged(FrameChangeWorkItemParams params){
 		Long previous = this.previousSuccessfullyPrintedFrameChangeWorkItemParams == null ? null : this.previousSuccessfullyPrintedFrameChangeWorkItemParams.getFrameDimensionsChangeId();
 		Long current = params == null ? null : params.getFrameDimensionsChangeId();
@@ -950,7 +943,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 		ScreenRegion region = new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, xSize, ySize));
 		changes.addChangedRegion(region);
-		this.writeToLocalFrameBuffer(changes, mergeParams);
+
+		mergeParams.getScreenLayer().mergeDown(changes, false, mergeParams.getScreenLayerMergeType());
 	}
 
 	public String whitespacePad(String presentedText, Long paddedWidth) throws Exception{

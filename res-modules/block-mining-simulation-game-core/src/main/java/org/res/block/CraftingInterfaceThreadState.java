@@ -60,7 +60,7 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
-	private RenderableList<CraftingRecipeRenderableListItem> recipeList = new RenderableList<CraftingRecipeRenderableListItem>();
+	private RenderableList<CraftingRecipeRenderableListItem> recipeList = new RenderableList<CraftingRecipeRenderableListItem>(4L);
 	private ClientBlockModelContext clientBlockModelContext;
 
 	public CraftingInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
@@ -68,7 +68,7 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 
-		for(int i = 0; i < 100; i++){
+		for(int i = 0; i < 44; i++){
 			this.recipeList.addItem(new CraftingRecipeRenderableListItem("Foo_" + i));
 		}
 	}
@@ -78,8 +78,21 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 	}
 
 	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{
-		logger.info("Crafting frame, discarding ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
+		ScreenLayer bottomLayer = this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT];
+		if(ansiEscapeSequence instanceof AnsiEscapeSequenceUpArrowKey){
+			this.recipeList.onUpArrowPressed(this, bottomLayer);
+		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceRightArrowKey){
+			this.recipeList.onRightArrowPressed(this, bottomLayer);
+		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceDownArrowKey){
+			this.recipeList.onDownArrowPressed(this, bottomLayer);
+		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceLeftArrowKey){
+			this.recipeList.onLeftArrowPressed(this, bottomLayer);
+		}else{
+			logger.info("CraftingInterfaceThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
+		}
+		this.onFinalizeFrame();
 	}
+
 
 	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
 		return this.blockManagerThreadCollection;
@@ -87,22 +100,17 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
 		
-		this.recipeList.updateRenderableArea(new CuboidAddress(
-			new Coordinate(Arrays.asList(0L, 0L)),
-			new Coordinate(Arrays.asList(this.getInnerFrameWidth(), this.getInnerFrameHeight()))
-		));
 
-		this.render();
-	}
+		this.recipeList.updateRenderableArea(
+			this,
+			new CuboidAddress(
+				new Coordinate(Arrays.asList(0L, 0L)),
+				new Coordinate(Arrays.asList(this.getInnerFrameWidth(), this.getInnerFrameHeight()))
+			)
+		);
 
-	public void render() throws Exception{
-		this.reprintFrame();
-	}
-
-	public void reprintFrame() throws Exception {
+		this.recipeList.render(this, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
 		this.drawBorders();
-		String theText = "Crafting Frame.";
-		this.printTextAtScreenXY(new ColouredTextFragment(theText, UserInterfaceFrameThreadState.getDefaultTextColors()), this.getFrameWidth() > theText.length() ? ((this.getFrameWidth() - theText.length()) / 2L) : 0L, this.getFrameHeight() / 2L, true);
 	}
 
 	public UIWorkItem takeWorkItem() throws Exception {
