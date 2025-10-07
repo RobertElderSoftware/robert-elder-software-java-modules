@@ -62,13 +62,16 @@ public class RenderableList<T extends RenderableListItem> {
 	private Long maxAdjacentLists;
 	protected ScreenLayer listAreaLayer = new ScreenLayer();
 
+	private Long verticalScrollBarWidth = 2L;
+	private Long horizontalScrollBarHeight = 1L;
+
 	public boolean hasVerticalOrientation(UserInterfaceFrameThreadState frame) throws Exception{
 		return (frame.getInnerFrameHeight() * 2L) > frame.getInnerFrameWidth();
 	}
 
 	public Long getListItemWidth(UserInterfaceFrameThreadState frame) throws Exception{
 		if(hasVerticalOrientation(frame)){
-			return frame.getInnerFrameWidth() / this.maxAdjacentLists;
+			return (frame.getInnerFrameWidth() - verticalScrollBarWidth - (this.maxAdjacentLists - 1)) / this.maxAdjacentLists;
 		}else{
 			return 10L;
 		}
@@ -78,32 +81,48 @@ public class RenderableList<T extends RenderableListItem> {
 		if(hasVerticalOrientation(frame)){
 			return 7L;
 		}else{
-			return frame.getInnerFrameHeight() / this.maxAdjacentLists;
+			return (frame.getInnerFrameHeight() - horizontalScrollBarHeight - (this.maxAdjacentLists - 1)) / this.maxAdjacentLists;
 		}
 	}
 
 	public void onUpArrowPressed(UserInterfaceFrameThreadState frame, ScreenLayer bottomLayer) throws Exception{
 		if(hasVerticalOrientation(frame)){
-			this.selectedIndex--;
-			if(this.selectedIndex < 0L){
-				this.selectedIndex = 0L;
+			Long moduloOffset = this.selectedIndex % this.maxItemsInAdjacentListColumn;
+			if(moduloOffset == 0L){
+				//  Do nothing, at top of list area.
+			}else{
+				this.selectedIndex--;
 			}
-			if(this.selectedIndex < firstVisibleItemIndex){
-				firstVisibleItemIndex = this.selectedIndex;
+			Long newModuloOffset = this.selectedIndex % this.maxItemsInAdjacentListColumn;
+			if(newModuloOffset < firstVisibleItemIndex){
+				firstVisibleItemIndex = newModuloOffset;
 			}
 		}else{
+			if(this.selectedIndex - maxItemsInAdjacentListColumn >= 0){
+				this.selectedIndex -= this.maxItemsInAdjacentListColumn;
+			}
 		}
 		render(frame, bottomLayer);
 	}
 
 	public void onRightArrowPressed(UserInterfaceFrameThreadState frame, ScreenLayer bottomLayer) throws Exception{
 		if(hasVerticalOrientation(frame)){
+			if(this.selectedIndex + maxItemsInAdjacentListColumn < list.size()){
+				this.selectedIndex += this.maxItemsInAdjacentListColumn;
+			}
 		}else{
-			this.selectedIndex++;
-			if(this.selectedIndex >= list.size()){
-				this.selectedIndex = (long)(list.size() -1);
+			Long moduloOffset = this.selectedIndex % this.maxItemsInAdjacentListColumn;
+			if(
+				//  Bottom boundary for list area
+				(moduloOffset == (this.maxItemsInAdjacentListColumn-1)) ||
+				//  Or, last element in list which may not be against bottom boundary
+				this.selectedIndex >= (list.size() -1)
+			){
+				//  Do nothing.
 			}else{
-				if(this.selectedIndex == (firstVisibleItemIndex + maxNumVisibleListItems)){
+				this.selectedIndex++;
+				Long newModuloOffset = this.selectedIndex % this.maxItemsInAdjacentListColumn;
+				if(newModuloOffset == (firstVisibleItemIndex + maxNumVisibleListItems)){
 					firstVisibleItemIndex++;
 				}
 			}
@@ -113,28 +132,45 @@ public class RenderableList<T extends RenderableListItem> {
 
 	public void onDownArrowPressed(UserInterfaceFrameThreadState frame, ScreenLayer bottomLayer) throws Exception{
 		if(hasVerticalOrientation(frame)){
-			this.selectedIndex++;
-			if(this.selectedIndex >= list.size()){
-				this.selectedIndex = (long)(list.size() -1);
+			Long moduloOffset = this.selectedIndex % this.maxItemsInAdjacentListColumn;
+			if(
+				//  Bottom boundary for list area
+				(moduloOffset == (this.maxItemsInAdjacentListColumn-1)) ||
+				//  Or, last element in list which may not be against bottom boundary
+				this.selectedIndex >= (list.size() -1)
+			){
+				//  Do nothing.
 			}else{
-				if(this.selectedIndex == (firstVisibleItemIndex + maxNumVisibleListItems)){
+				this.selectedIndex++;
+				Long newModuloOffset = this.selectedIndex % this.maxItemsInAdjacentListColumn;
+				if(newModuloOffset == (firstVisibleItemIndex + maxNumVisibleListItems)){
 					firstVisibleItemIndex++;
 				}
+
 			}
 		}else{
+			if(this.selectedIndex + maxItemsInAdjacentListColumn < list.size()){
+				this.selectedIndex += this.maxItemsInAdjacentListColumn;
+			}
 		}
 		render(frame, bottomLayer);
 	}
 
 	public void onLeftArrowPressed(UserInterfaceFrameThreadState frame, ScreenLayer bottomLayer) throws Exception{
 		if(hasVerticalOrientation(frame)){
-		}else{
-			this.selectedIndex--;
-			if(this.selectedIndex < 0L){
-				this.selectedIndex = 0L;
+			if(this.selectedIndex - maxItemsInAdjacentListColumn >= 0){
+				this.selectedIndex -= this.maxItemsInAdjacentListColumn;
 			}
-			if(this.selectedIndex < firstVisibleItemIndex){
-				firstVisibleItemIndex = this.selectedIndex;
+		}else{
+			Long moduloOffset = this.selectedIndex % this.maxItemsInAdjacentListColumn;
+			if(moduloOffset == 0L){
+				//  Do nothing, at top of list area.
+			}else{
+				this.selectedIndex--;
+			}
+			Long newModuloOffset = this.selectedIndex % this.maxItemsInAdjacentListColumn;
+			if(newModuloOffset < firstVisibleItemIndex){
+				firstVisibleItemIndex = newModuloOffset;
 			}
 		}
 		render(frame, bottomLayer);
@@ -142,6 +178,46 @@ public class RenderableList<T extends RenderableListItem> {
 
 	public RenderableList(Long maxAdjacentLists) throws Exception{
 		this.maxAdjacentLists = maxAdjacentLists;
+	}
+
+	public void renderEmptyItem(UserInterfaceFrameThreadState frame, Long x, Long y, Long itemWidth, Long itemHeight) throws Exception{
+
+		for(long l = 0; l < itemHeight; l++){
+			frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(itemWidth.intValue()), UserInterfaceFrameThreadState.getDefaultBGColors()), x, y + l, true, this.listAreaLayer);
+		}
+	}
+
+	public ColouredTextFragmentList makeScrollTextFragmentList(Long textColumnHeight) throws Exception{
+		ColouredTextFragmentList rtn = new ColouredTextFragmentList();
+
+		Long firstListIndex = 0L;
+		Long firstVisibleListIndex = firstVisibleItemIndex;
+		Long lastVisibleListIndex = firstVisibleItemIndex + maxNumVisibleListItems;
+		Long endListIndex = maxItemsInAdjacentListColumn;
+
+		Long firstColumnIndex = 0L;
+		Long firstVisibleColumnIndex = (long)Math.floor(((double)firstVisibleListIndex / (double)maxItemsInAdjacentListColumn) * (double)textColumnHeight);
+		Long lastVisibleColumnIndex = (long)Math.ceil(((double)lastVisibleListIndex / (double)maxItemsInAdjacentListColumn) * (double)textColumnHeight);
+		Long endColumnIndex = (long)Math.ceil(((double)endListIndex / (double)maxItemsInAdjacentListColumn) * (double)textColumnHeight);
+
+		//  Calculate coloured Areas:
+		Long beforeScrollBar = firstVisibleColumnIndex - firstColumnIndex;
+		Long inScrollBar = lastVisibleColumnIndex - firstVisibleColumnIndex;
+		Long afterScrollBar = endColumnIndex - lastVisibleColumnIndex;
+
+		rtn.add(
+			new ColouredTextFragment(" ".repeat(beforeScrollBar.intValue()), new int [] {UserInterfaceFrameThreadState.BLUE_BG_COLOR})
+		);
+
+		rtn.add(
+			new ColouredTextFragment(" ".repeat(inScrollBar.intValue()), new int [] {UserInterfaceFrameThreadState.RED_BG_COLOR})
+		);
+
+		rtn.add(
+			new ColouredTextFragment(" ".repeat(afterScrollBar.intValue()), new int [] {UserInterfaceFrameThreadState.BLUE_BG_COLOR})
+		);
+
+		return rtn;
 	}
 
 	public void renderInVerticalOrientation(UserInterfaceFrameThreadState frame, ScreenLayer bottomLayer, int lowerBound, int upperBound, boolean isLastItem) throws Exception{
@@ -158,18 +234,43 @@ public class RenderableList<T extends RenderableListItem> {
 		for(int adjacentListNumber = 0; adjacentListNumber < this.maxAdjacentLists; adjacentListNumber++){
 			for(int i = lowerBound; i < upperBound; i++){
 				int currentListItemIndex = i + (int)(adjacentListNumber * maxItemsInAdjacentListColumn);
+
+				boolean isSelected = currentListItemIndex == this.selectedIndex;
+				int visibleOffset = i - firstVisibleItemIndex.intValue();
+				Long x = adjustmentXOffset + (adjacentListNumber * (getListItemWidth(frame) + 1));
+				Long y = adjustmentYOffset + visibleOffset * (getListItemHeight(frame) + 1);
+				Coordinate placementOffset = new Coordinate(Arrays.asList(x,y));
 				if(currentListItemIndex >= 0 && currentListItemIndex < this.list.size()){
-					boolean isSelected = currentListItemIndex == this.selectedIndex;
 					RenderableListItem listItem = list.get(currentListItemIndex);
-					int visibleOffset = i - firstVisibleItemIndex.intValue();
-					Long x = adjustmentXOffset + (adjacentListNumber * (getListItemWidth(frame) + 1));
-					Long y = adjustmentYOffset + visibleOffset * (getListItemHeight(frame) + fchw);
-					Coordinate placementOffset = new Coordinate(Arrays.asList(x,y));
 					listItem.render(frame, isSelected, placementOffset, this.listAreaLayer);
-					frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(getListItemWidth(frame).intValue()), UserInterfaceFrameThreadState.getDefaultBGColors()), x, y + getListItemHeight(frame), true, this.listAreaLayer);
+				}else{
+					this.renderEmptyItem(
+						frame,
+						x,
+						y,
+						getListItemWidth(frame),
+						getListItemHeight(frame)
+					);
+				}
+				frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(getListItemWidth(frame).intValue()), UserInterfaceFrameThreadState.getDefaultBGColors()), x, y + getListItemHeight(frame), true, this.listAreaLayer);
+				if(adjacentListNumber < (this.maxAdjacentLists-1)){
 					frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(getListItemHeight(frame).intValue() + 1), UserInterfaceFrameThreadState.getDefaultBGColors()), x + getListItemWidth(frame), y, false, this.listAreaLayer);
 				}
 			}
+		}
+		Long areaUsedByList = (getListItemWidth(frame) * this.maxAdjacentLists) + (this.maxAdjacentLists -1L);
+		Long initializedArea = areaUsedByList + verticalScrollBarWidth;
+		Long uninitializedAreaWidth = frame.getInnerFrameWidth() - initializedArea;
+
+	
+		//  Scroll bar
+		for(long i = 0; i < verticalScrollBarWidth; i++){
+			frame.printTextAtScreenXY(makeScrollTextFragmentList(frame.getInnerFrameHeight() + 1L), areaUsedByList + i, 0L, false, this.listAreaLayer);
+		}
+
+		//  Initialize any empty area on right edge:
+		for(long i = 0; i < uninitializedAreaWidth; i++){
+			frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(frame.getInnerFrameHeight().intValue() + 1), UserInterfaceFrameThreadState.getDefaultBGColors()), initializedArea + i, 0L, false, this.listAreaLayer);
 		}
 	}
 
@@ -184,25 +285,52 @@ public class RenderableList<T extends RenderableListItem> {
 		Long adjustmentXOffset = (isLastItem ? offset : 0L);
 		Long adjustmentYOffset = 0L;
 
-		for(int i = lowerBound; i < upperBound; i++){
-			if(i >= 0){
-				boolean isSelected = i == this.selectedIndex;
-				RenderableListItem listItem = list.get(i);
+		for(int adjacentListNumber = 0; adjacentListNumber < this.maxAdjacentLists; adjacentListNumber++){
+			for(int i = lowerBound; i < upperBound; i++){
+				int currentListItemIndex = i + (int)(adjacentListNumber * maxItemsInAdjacentListColumn);
+				boolean isSelected = currentListItemIndex == this.selectedIndex;
 				int visibleOffset = i - firstVisibleItemIndex.intValue();
 				Long x = adjustmentXOffset + (visibleOffset * (getListItemWidth(frame) + fchw));
-				Long y = adjustmentYOffset + 0L;
+				Long y = adjustmentYOffset + (adjacentListNumber * (getListItemHeight(frame) + 1));
 				Coordinate placementOffset = new Coordinate(Arrays.asList(x,y));
-				listItem.render(frame, isSelected, placementOffset, this.listAreaLayer);
+				if(currentListItemIndex >= 0 && currentListItemIndex < this.list.size()){
+					RenderableListItem listItem = list.get(currentListItemIndex);
+					listItem.render(frame, isSelected, placementOffset, this.listAreaLayer);
+				}else{
+					this.renderEmptyItem(
+						frame,
+						x,
+						y,
+						getListItemWidth(frame),
+						getListItemHeight(frame)
+					);
+				}
 				frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(getListItemHeight(frame).intValue()), UserInterfaceFrameThreadState.getDefaultBGColors()), x + getListItemWidth(frame), y, false, this.listAreaLayer);
+				if(adjacentListNumber < (this.maxAdjacentLists-1)){
+					frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(getListItemWidth(frame).intValue() + 1), UserInterfaceFrameThreadState.getDefaultBGColors()), x, y + getListItemHeight(frame), true, this.listAreaLayer);
+				}
 			}
+		}
+		Long areaUsedByList = (getListItemHeight(frame) * this.maxAdjacentLists) + (this.maxAdjacentLists -1L);
+		Long initializedArea = areaUsedByList + horizontalScrollBarHeight;
+		Long uninitializedAreaHeight = frame.getInnerFrameHeight() - initializedArea;
+
+		//  Scroll bar
+		for(long i = 0; i < horizontalScrollBarHeight; i++){
+			frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(frame.getInnerFrameWidth().intValue() + 1), new int [] {UserInterfaceFrameThreadState.BLUE_BG_COLOR}), 0L, areaUsedByList + i, true, this.listAreaLayer);
+		}
+
+		//  Initialize any empty area on bottom edge:
+		for(long i = 0; i < uninitializedAreaHeight; i++){
+			frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(frame.getInnerFrameWidth().intValue() + 1), UserInterfaceFrameThreadState.getDefaultBGColors()), 0L, initializedArea + i, true, this.listAreaLayer);
 		}
 	}
 
 	public void render(UserInterfaceFrameThreadState frame, ScreenLayer bottomLayer) throws Exception{
 		boolean hasVerticalOrientation = hasVerticalOrientation(frame);
 
-		boolean hasFullItemList = list.size() > maxNumVisibleListItems.intValue();
-		boolean isLastItem = (this.firstVisibleItemIndex.intValue() == (list.size() -maxNumVisibleListItems.intValue())) && hasFullItemList;
+		boolean hasFullItemList = maxItemsInAdjacentListColumn > maxNumVisibleListItems.intValue();
+		boolean isLastItem = (this.firstVisibleItemIndex.intValue() == (maxItemsInAdjacentListColumn -maxNumVisibleListItems.intValue())) && hasFullItemList;
 		int lowerBound = firstVisibleItemIndex.intValue() + (isLastItem ? -1 : 0);
 		int upperBound = Math.min(list.size(), (int)(firstVisibleItemIndex + maxNumVisibleListItems + 1L));
 		if(hasVerticalOrientation){

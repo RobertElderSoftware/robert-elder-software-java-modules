@@ -177,8 +177,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			topSplits.add(subSplit);
 			topSplits.add(makeLeafNodeSplit(createFrameAndThread(CraftingInterfaceThreadState.class)));
 			List<Double> topSplitPercents = new ArrayList<Double>();
-			topSplitPercents.add(0.66);
-			topSplitPercents.add(0.34);
+			topSplitPercents.add(0.62);
+			topSplitPercents.add(0.38);
 			this.addSplitPartsByIds(root, topSplits);
 			((UserInterfaceSplitMulti)this.getUserInterfaceSplitById(root)).setSplitPercentages(topSplitPercents);
 
