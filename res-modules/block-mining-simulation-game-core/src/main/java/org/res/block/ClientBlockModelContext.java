@@ -125,12 +125,22 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		return defaultValue;
 	}
 
-	public Long getTerminalWidth(){
-		return this.getTerminalDimension(1, 80L);
+	public Long getTerminalWidth() throws Exception{
+		Integer fixedWidth = this.blockManagerThreadCollection.getFixedWidth();
+		if(fixedWidth == null){
+			return this.getTerminalDimension(1, 80L);
+		}else{
+			return (long)fixedWidth;
+		}
 	}
 
-	public Long getTerminalHeight(){
-		return this.getTerminalDimension(0, 30L);
+	public Long getTerminalHeight() throws Exception{
+		Integer fixedHeight = this.blockManagerThreadCollection.getFixedHeight();
+		if(fixedHeight == null){
+			return this.getTerminalDimension(0, 30L);
+		}else{
+			return (long)fixedHeight;
+		}
 	}
 
 	public Set<CuboidAddress> getRequiredRegionsSet() throws Exception{
@@ -320,12 +330,13 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 				//  If compatibility width is turned on
 				compatibilityWidth != null &&
 				//  and this character doesn't have a y displacement,
-				result.getDeltaY().equals(0L) &&
+				result.getDeltaY().equals(0L)
 				//  and it's not an ASCII character:
-				!(
-					text.length() == 1 &&
-					Character.codePointAt(text, 0) < 128
-				)
+				//  TODO:  Maybe make a separate option for this:
+				//!(
+				//	text.length() == 1 &&
+				//	Character.codePointAt(text, 0) < 128
+				//)
 			){
 				result = new TextWidthMeasurementWorkItemResult((long)compatibilityWidth, 0L);
 			}

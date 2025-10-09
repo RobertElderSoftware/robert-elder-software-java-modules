@@ -14,6 +14,20 @@ Having said this, please do file issues if you notice something broken or undesi
 
 This project contains the 'Terminal Block Mining Simulation Game', a video game where you simulate mining blocks of iron ore in the terminal.  The game uses procedural terrain generation and the game world itself is infinite.  The terrain will start generating automatically in the background near the player.  All generated terrain and player data is stored in a SQLite (or Postgres) database file.  The location of this world file defaults to the directory where you launch the game, but you can configure it with the '--block-world-file' flag.  You can also use the '--log-file' to set the location of a log file.  If the '--log-file' flag is omitted, logging will be disabled.
 
+#  Videos
+
+###  Shorts Overview Video
+
+[Terminal Block Mining Simulation Game](https://youtu.be/RQiNQfpacco)
+
+###  Overview Video For v0.0.7 Release
+
+[A Frame Based UI For Terminal Games - TBMSG v0.0.7](https://www.youtube.com/watch?v=0pePUFmaAtw)
+
+###  Overview Video For v0.0.6 Release
+
+[My Terminal Based Video Game For Linux](https://www.youtube.com/watch?v=nRGTXZQg5Gg)
+
 #  Player Movement
 
 You can use the 'w', 'a', 's' 'd' keys to move around on the screen.  You can use the space bar to go up and the 'x' key to move down (assuming there isn't a solid block in the way on a different level).
@@ -79,6 +93,8 @@ Block Mining Simulation Game - Available Command-line Arguments:
 --use-emojis                               - Explicitly try to use more advanced Unicode character graphics like emojis
 --right-to-left-print                      - Print screen updates from right to left instead of left to right.  Avoids display bugs in some terminals.
 --compatibility-width             <arg>    - Specify a fixed width for all non-ASCII characters.
+--fixed-width                     <arg>    - Specify a fixed width for the number of terminal columns.
+--fixed-height                    <arg>    - Specify a fixed height for the number of terminal columns.
 --allow-unrecognized-block-types           - Allow the game to run even when there are block types that aren't supported in the block schema.
 --block-world-file                <arg>    - The name of the sqlite database file (SQLITE only).
 --print-block-schema                       - Print current block schema and exit.

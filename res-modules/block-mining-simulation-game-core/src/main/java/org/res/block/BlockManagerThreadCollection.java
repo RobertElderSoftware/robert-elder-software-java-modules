@@ -122,13 +122,13 @@ public class BlockManagerThreadCollection {
 	}
 
 	public final void ensureStdinIsATTY() throws Exception {
-		if(System.console() == null){
+		/*if(System.console() == null){
 			String message = "System.Console() == null, stdin is probably not a tty!";
 			logger.info(message);
 			throw new Exception(message);
 		}else{
 			logger.info("System.Console() != null, stdin is probably a tty.");
-		}
+		}*/
 	}
 
 	public final String loadJarResourceIntoString(String filename) throws Exception{
@@ -182,6 +182,24 @@ public class BlockManagerThreadCollection {
 
 	public boolean getRightToLeftPrint() {
 		return this.commandLineArgumentCollection.hasUsedKey("--right-to-left-print");
+	}
+
+	public Integer getFixedWidth() throws Exception {
+		if(this.commandLineArgumentCollection.hasUsedKey("--fixed-width")){
+			return Integer.valueOf(this.commandLineArgumentCollection.getUsedSingleValue("--fixed-width"));
+			
+		}else{
+			return null;
+		}
+	}
+
+	public Integer getFixedHeight() throws Exception {
+		if(this.commandLineArgumentCollection.hasUsedKey("--fixed-height")){
+			return Integer.valueOf(this.commandLineArgumentCollection.getUsedSingleValue("--fixed-height"));
+			
+		}else{
+			return null;
+		}
 	}
 
 	public Integer getCompatibilityWidth() throws Exception {
