@@ -149,6 +149,12 @@
 			"byte_pattern_base_64": "Q0FTOjEyMDY5LTY5LTE=",
 			"block_class": "org.res.block.Malachite",
 			"dedication": "Squishy"
+		},
+		{
+			"match_type": "byte_comparison",
+			"byte_pattern_base_64": "Q0FTOjEyMjQ5LTI2LTI=",
+			"block_class": "org.res.block.Taconite",
+			"dedication": "misspellted"
 		}
 	]
 }

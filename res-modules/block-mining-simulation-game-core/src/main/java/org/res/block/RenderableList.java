@@ -146,7 +146,6 @@ public class RenderableList<T extends RenderableListItem> {
 				if(newModuloOffset == (firstVisibleItemIndex + maxNumVisibleListItems)){
 					firstVisibleItemIndex++;
 				}
-
 			}
 		}else{
 			if(this.selectedIndex + maxItemsInAdjacentListColumn < list.size()){
@@ -190,15 +189,17 @@ public class RenderableList<T extends RenderableListItem> {
 	public ColouredTextFragmentList makeScrollTextFragmentList(Long textColumnHeight) throws Exception{
 		ColouredTextFragmentList rtn = new ColouredTextFragmentList();
 
+		Long limitIndex = Math.max(0L, Math.min(((long)(list.size()-1)), maxItemsInAdjacentListColumn -1L));
+
 		Long firstListIndex = 0L;
 		Long firstVisibleListIndex = firstVisibleItemIndex;
-		Long lastVisibleListIndex = firstVisibleItemIndex + maxNumVisibleListItems;
-		Long endListIndex = maxItemsInAdjacentListColumn;
+		Long lastVisibleListIndex = Math.min(firstVisibleItemIndex + maxNumVisibleListItems - 1L, limitIndex);
+		Long endListIndex = limitIndex;
 
 		Long firstColumnIndex = 0L;
-		Long firstVisibleColumnIndex = (long)Math.floor(((double)firstVisibleListIndex / (double)maxItemsInAdjacentListColumn) * (double)textColumnHeight);
-		Long lastVisibleColumnIndex = (long)Math.ceil(((double)lastVisibleListIndex / (double)maxItemsInAdjacentListColumn) * (double)textColumnHeight);
-		Long endColumnIndex = (long)Math.ceil(((double)endListIndex / (double)maxItemsInAdjacentListColumn) * (double)textColumnHeight);
+		Long firstVisibleColumnIndex = (long)Math.floor(((double)firstVisibleListIndex / (double)limitIndex) * (double)textColumnHeight);
+		Long lastVisibleColumnIndex = (long)Math.ceil(((double)lastVisibleListIndex / (double)limitIndex) * (double)textColumnHeight);
+		Long endColumnIndex = (long)Math.ceil(((double)endListIndex / (double)limitIndex) * (double)textColumnHeight);
 
 		//  Calculate coloured Areas:
 		Long beforeScrollBar = firstVisibleColumnIndex - firstColumnIndex;
@@ -293,10 +294,12 @@ public class RenderableList<T extends RenderableListItem> {
 				Long x = adjustmentXOffset + (visibleOffset * (getListItemWidth(frame) + fchw));
 				Long y = adjustmentYOffset + (adjacentListNumber * (getListItemHeight(frame) + 1));
 				Coordinate placementOffset = new Coordinate(Arrays.asList(x,y));
-				if(currentListItemIndex >= 0 && currentListItemIndex < this.list.size()){
-					RenderableListItem listItem = list.get(currentListItemIndex);
-					listItem.render(frame, isSelected, placementOffset, this.listAreaLayer);
-				}else{
+				if(
+					//  Outside lower bound of entire list
+					currentListItemIndex < 0 ||
+					//  Outside lower bound of entire list
+					currentListItemIndex >= this.list.size()
+				){
 					this.renderEmptyItem(
 						frame,
 						x,
@@ -304,6 +307,9 @@ public class RenderableList<T extends RenderableListItem> {
 						getListItemWidth(frame),
 						getListItemHeight(frame)
 					);
+				}else{
+					RenderableListItem listItem = list.get(currentListItemIndex);
+					listItem.render(frame, isSelected, placementOffset, this.listAreaLayer);
 				}
 				frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(getListItemHeight(frame).intValue()), UserInterfaceFrameThreadState.getDefaultBGColors()), x + getListItemWidth(frame), y, false, this.listAreaLayer);
 				if(adjacentListNumber < (this.maxAdjacentLists-1)){
@@ -331,8 +337,11 @@ public class RenderableList<T extends RenderableListItem> {
 
 		boolean hasFullItemList = maxItemsInAdjacentListColumn > maxNumVisibleListItems.intValue();
 		boolean isLastItem = (this.firstVisibleItemIndex.intValue() == (maxItemsInAdjacentListColumn -maxNumVisibleListItems.intValue())) && hasFullItemList;
+		//  If there are a small number of items in list, don't show the partially
+		//  obscured item near the end of the list.  If there are many items, do show it:
+		Long nextItemPeekAdjustment = maxItemsInAdjacentListColumn > maxNumVisibleListItems ? 1L : 0L;
 		int lowerBound = firstVisibleItemIndex.intValue() + (isLastItem ? -1 : 0);
-		int upperBound = Math.min(list.size(), (int)(firstVisibleItemIndex + maxNumVisibleListItems + 1L));
+		int upperBound = Math.min(list.size(), (int)(firstVisibleItemIndex + maxNumVisibleListItems + nextItemPeekAdjustment));
 		if(hasVerticalOrientation){
 			renderInVerticalOrientation(frame, bottomLayer, lowerBound, upperBound, isLastItem);
 		}else{
@@ -344,20 +353,18 @@ public class RenderableList<T extends RenderableListItem> {
 
 	public void updateRenderableArea(UserInterfaceFrameThreadState frame, CuboidAddress ca) throws Exception{
 
-		boolean hasVerticalOrientation = hasVerticalOrientation(frame);
+		this.renderableArea = ca;
+		this.recalculateConstants(frame);
+
 		Long fchw = frame.getFrameCharacterWidth();
 		Long xOffset = fchw;
 		Long yOffset = 1L;
 		Coordinate placementOffset = new Coordinate(Arrays.asList(xOffset, yOffset));
 
-
-		Long width = ca.getWidth();
-		Long height = ca.getHeight();
-		this.listAreaLayer = new ScreenLayer(placementOffset, ScreenLayer.makeDimensionsCA(0, 0, width.intValue(), height.intValue()));
+		this.listAreaLayer = new ScreenLayer(placementOffset, ScreenLayer.makeDimensionsCA(0, 0, (int)ca.getWidth(), (int)ca.getHeight()));
 		//  Initialize to an obvious pattern for testing.  
-		this.listAreaLayer.initializeInRegion(1, "M", new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR, UserInterfaceFrameThreadState.YELLOW_BG_COLOR}, null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, width.intValue(), height.intValue())), true, true);
+		this.listAreaLayer.initializeInRegion(1, "M", new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR, UserInterfaceFrameThreadState.YELLOW_BG_COLOR}, null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, (int)ca.getWidth(), (int)ca.getHeight())), true, true);
 
-		this.renderableArea = ca;
 		for(int i = 0; i < list.size(); i++){
 			RenderableListItem listItem = list.get(i);
 			listItem.updateRenderableArea(
@@ -367,14 +374,42 @@ public class RenderableList<T extends RenderableListItem> {
 				)
 			);
 		}
+	}
 
-		if(hasVerticalOrientation){
-			maxNumVisibleListItems = height / (getListItemHeight(frame) + 1);
+	public void recalculateConstants(UserInterfaceFrameThreadState frame) throws Exception{
+		Long fchw = frame.getFrameCharacterWidth();
+		Long maxVisibleFloor;
+		Long maxVisibleCeil;
+		if(hasVerticalOrientation(frame)){
+			maxVisibleFloor = (long)Math.floor((double)this.renderableArea.getHeight() / (double)(getListItemHeight(frame) + 1));
+			maxVisibleCeil = (long)Math.ceil((double)this.renderableArea.getHeight() / (double)(getListItemHeight(frame) + 1));
 		}else{
-			maxNumVisibleListItems = width / (getListItemWidth(frame) + fchw);
+			maxVisibleFloor = (long)Math.floor((double)this.renderableArea.getWidth() / (double)(getListItemWidth(frame) + fchw));
+			maxVisibleCeil = (long)Math.ceil((double)this.renderableArea.getWidth() / (double)(getListItemWidth(frame) + fchw));
 		}
 
-		this.maxItemsInAdjacentListColumn = (long)Math.ceil((double)list.size() / (double)maxAdjacentLists);
+		this.maxNumVisibleListItems = maxVisibleFloor;
+
+		Long dividedListColumnLength = (long)Math.ceil((double)list.size() / (double)maxAdjacentLists);
+		this.maxItemsInAdjacentListColumn = Math.max(maxVisibleFloor, dividedListColumnLength);
+
+		//  Handle situations where frame size changes and visible area moves beyond
+		//  end of list:
+		Long moduloOffset = this.selectedIndex % this.maxItemsInAdjacentListColumn;
+		Long lowerScreenIndex = moduloOffset - this.firstVisibleItemIndex;
+		Long upperScreenIndex = this.firstVisibleItemIndex + this.maxNumVisibleListItems;
+		Long upperVisibleModuloIndex = this.firstVisibleItemIndex + this.maxNumVisibleListItems;
+		if(
+			//  Selected item is outside lower end of what's on screen
+			(lowerScreenIndex < 0L) ||
+			//  Selected item is outside upper end of what's on screen
+			(moduloOffset >= upperScreenIndex) ||
+			//  Showing items beyond end of list column:
+			(upperVisibleModuloIndex > this.maxItemsInAdjacentListColumn)
+		){
+			Long restrictedOffset = (moduloOffset - (this.maxNumVisibleListItems - 1L));
+			this.firstVisibleItemIndex = Math.max(0L, restrictedOffset);
+		}
 	}
 
 	public void addItem(T item){

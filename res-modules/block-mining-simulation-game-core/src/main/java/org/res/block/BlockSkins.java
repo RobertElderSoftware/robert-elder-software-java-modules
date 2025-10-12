@@ -63,6 +63,7 @@ public class BlockSkins {
 		patternsTmp.put(MetallicTitanium.class.getName(),"\u2B1C");
 		patternsTmp.put(SiliconDioxide.class.getName(),"\u2B1C");
 		patternsTmp.put(Ilmenite.class.getName(),"\u2B1B");
+		patternsTmp.put(Taconite.class.getName(),"\u2B1B");
 		patternsTmp.put(Rock.class.getName(),"\uD83E\uDEA8");
 		patternsTmp.put(Bauxite.class.getName(),"\uD83D\uDFEB");
 		patternsTmp.put(IronOxide.class.getName(),"\ud83d\udfe5");
@@ -90,6 +91,7 @@ public class BlockSkins {
 		descriptionsTmp.put(MetallicTitanium.class.getName(),"One cubic meter of metallic titanium, the element with atomic number 22.");
 		descriptionsTmp.put(SiliconDioxide.class.getName(),"One cubic meter of silicon dioxide, chemical formula SiO₂");
 		descriptionsTmp.put(Ilmenite.class.getName(),"One cubic meter of ilmenite, chemical formula FeTiO₃");
+		descriptionsTmp.put(Taconite.class.getName(),"One cubic meter of the mineral taconite.");
 		descriptionsTmp.put(Rock.class.getName(),"One cubic meter of limestone rocks (calcium carbonate), chemical formula CaCO₃");
 		descriptionsTmp.put(Bauxite.class.getName(),"One cubic meter of bauxite (aluminum ore), chemical formula Al₂H₂O₄");
 		descriptionsTmp.put(IronOxide.class.getName(),"One cubic meter of iron oxide, chemical formula Fe₂O₃");

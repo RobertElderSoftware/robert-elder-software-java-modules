@@ -68,7 +68,7 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 
-		for(int i = 0; i < 46; i++){
+		for(int i = 0; i < 500; i++){
 			this.recipeList.addItem(new CraftingRecipeRenderableListItem("Foo_" + i));
 		}
 	}

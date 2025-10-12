@@ -70,6 +70,7 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 		Malachite.class,
 		Pyrite.class,
 		Ilmenite.class,
+		Taconite.class,
 		MetallicCopper.class,
 		IronOxide.class,
 		Hematite.class
