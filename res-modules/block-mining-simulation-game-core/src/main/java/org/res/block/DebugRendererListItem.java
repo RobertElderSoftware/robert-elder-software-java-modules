@@ -1,0 +1,66 @@
+//  Copyright (c) 2025 Robert Elder Software Inc.
+//   
+//  Robert Elder Software Proprietary License
+//  
+//  In the context of this license, a 'Patron' means any individual who has made a 
+//  membership pledge, a purchase of merchandise, a donation, or any other 
+//  completed and committed financial contribution to Robert Elder Software Inc. 
+//  for an amount of money greater than $1.  For a list of ways to contribute 
+//  financially, visit https://blog.robertelder.org/patron
+//  
+//  Permission is hereby granted, to any 'Patron' the right to use this software 
+//  and associated documentation under the following conditions:
+//  
+//  1) The 'Patron' must be a natural person and NOT a commercial entity.
+//  2) The 'Patron' may use or modify the software for personal use only.
+//  3) The 'Patron' is NOT permitted to re-distribute this software in any way, 
+//  either unmodified, modified, or incorporated into another software product.
+//  
+//  An individual natural person may use this software for a temporary one-time 
+//  trial period of up to 30 calendar days without becoming a 'Patron'.  After 
+//  these 30 days have elapsed, the individual must either become a 'Patron' or 
+//  stop using the software.
+//  
+//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+//  SOFTWARE.
+package org.res.block;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
+
+import org.res.block.WorkItem;
+import org.res.block.BlockSession;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
+
+public class DebugRendererListItem extends RenderableListItem{
+
+	private String text;
+
+	public void render(UserInterfaceFrameThreadState frame, boolean isSelected, Coordinate placementOffset, ScreenLayer bottomLayer) throws Exception{
+
+
+		int bgColour = isSelected ? UserInterfaceFrameThreadState.RED_BG_COLOR : UserInterfaceFrameThreadState.GREEN_BG_COLOR;
+		this.displayLayer.initializeInRegion(1, "_", new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR, bgColour}, null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, this.displayLayer.getWidth(), this.displayLayer.getHeight())), true, true);
+
+		Long len = (long)this.text.length();
+		Long x = ((long)this.displayLayer.getWidth() / 2L) - (len / 2L);
+		Long y = ((long)this.displayLayer.getHeight() / 2L);
+		frame.printTextAtScreenXY(new ColouredTextFragment(this.text, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR, UserInterfaceFrameThreadState.YELLOW_BG_COLOR}), x, y, true, this.displayLayer);
+		this.displayLayer.setPlacementOffset(placementOffset);
+		bottomLayer.mergeDown(this.displayLayer, true, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
+	}
+
+	public DebugRendererListItem(String text) throws Exception{
+		this.text = text;
+	}
+}

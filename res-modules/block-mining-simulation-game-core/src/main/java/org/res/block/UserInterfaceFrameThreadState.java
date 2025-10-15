@@ -232,6 +232,18 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 	}
 
+	public static final int [] getScrollBarBGColor(boolean useAscii){
+		return UserInterfaceFrameThreadState.getUnderBlockBGColor(useAscii);
+	}
+
+	public static final int [] getVisibleAreaScrollBarBGColor(){
+		return UserInterfaceFrameThreadState.getExcitingBlockBGColors();
+	}
+
+	public static final int [] getDefaultListItemBGColor(boolean useAscii){
+		return UserInterfaceFrameThreadState.getUnderBlockBGColor(useAscii);
+	}
+
 	public static final int [] getEmptyBlockBGColor(boolean useAscii){
 		if(useAscii){
 			return getDefaultTextBGColors();
@@ -371,12 +383,12 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		return this.frameDimensionsChangeSeq.getAndIncrement();
 	}
 
-	protected List<LinePrintingInstruction> getLinePrintingInstructions(String text, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign, Long maxLineLength) throws Exception{
+	public List<LinePrintingInstruction> getLinePrintingInstructions(String text, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign, Long maxLineLength) throws Exception{
 		ColouredTextFragmentList tfl = new ColouredTextFragmentList(new ColouredTextFragment(text, getDefaultTextColors()));
 		return getLinePrintingInstructions(tfl, paddingLeft, paddingRight, leftAlign, rightAlign, maxLineLength);
 	}
 
-	protected List<LinePrintingInstruction> getLinePrintingInstructions(ColouredTextFragmentList tfl, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign, Long maxLineLength) throws Exception{
+	public List<LinePrintingInstruction> getLinePrintingInstructions(ColouredTextFragmentList tfl, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign, Long maxLineLength) throws Exception{
 		List<LinePrintingInstruction> instructions = new ArrayList<LinePrintingInstruction>();
 		List<MeasuredTextFragment> textFragments = this.getMeasuredTextFragments(tfl, maxLineLength - paddingLeft - paddingRight);
 		List<ColouredTextFragment> currentLineFragments = new ArrayList<ColouredTextFragment>();
@@ -520,6 +532,13 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		for(int i = 0; i < instructions.size(); i++){
 			LinePrintingInstruction instruction = instructions.get(i);
 			this.printTextAtScreenXY(instruction.getColouredTextFragmentList(), instruction.getXOffsetInFrame(), yOffset + i, true, bottomLayer);
+		}
+	}
+
+	protected void executeLinePrintingInstructionsAtYOffsett(List<LinePrintingInstructionAtOffset> instructions, Long yOffset, ScreenLayer bottomLayer) throws Exception{
+		for(LinePrintingInstructionAtOffset ins : instructions){
+			LinePrintingInstruction instruction = ins.getLinePrintingInstruction();
+			this.printTextAtScreenXY(instruction.getColouredTextFragmentList(), instruction.getXOffsetInFrame(), yOffset + ins.getOffsetY(), true, bottomLayer);
 		}
 	}
 
@@ -979,6 +998,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	}
 
 	private ClientBlockModelContext clientBlockModelContext;
+
+	public ClientBlockModelContext getClientBlockModelContext(){
+		return this.clientBlockModelContext;
+	}
 
 	public UserInterfaceFrameThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, int [] usedScreenLayers, ScreenLayerMergeType [] usedScreenLayersMergeTypes) throws Exception {
 		this.blockManagerThreadCollection = blockManagerThreadCollection;

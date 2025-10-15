@@ -60,7 +60,7 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
-	private RenderableList<CraftingRecipeRenderableListItem> recipeList = new RenderableList<CraftingRecipeRenderableListItem>(4L);
+	private RenderableList<CraftingRecipeRenderableListItem> recipeList = new RenderableList<CraftingRecipeRenderableListItem>(1L, 10L, 2L);
 	private ClientBlockModelContext clientBlockModelContext;
 
 	public CraftingInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
@@ -68,9 +68,32 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 
-		for(int i = 0; i < 500; i++){
-			this.recipeList.addItem(new CraftingRecipeRenderableListItem("Foo_" + i));
-		}
+		/*
+		byte [] rockData = this.getBlockDataForClass(Rock.class);
+		byte [] ironPickData = this.getBlockDataForClass(IronPick.class);
+		byte [] stonePickData = this.getBlockDataForClass(StonePick.class);
+		byte [] woodenPickData = this.getBlockDataForClass(WoodenPick.class);
+		byte [] ironOxideData = this.getBlockDataForClass(IronOxide.class);
+		byte [] woodenBlockData = this.getBlockDataForClass(WoodenBlock.class);
+		byte [] metallicIronBlockData = this.getBlockDataForClass(MetallicIron.class);
+		*/
+
+		this.recipeList.addItem(
+			new CraftingRecipeRenderableListItem(
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(MetallicIron.class), 3L),
+					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 2L)
+				}),
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(IronPick.class), 1L)
+
+				})
+			)
+		);
+	}
+
+	private byte [] gbd(Class<?> c) throws Exception {
+		return clientBlockModelContext.getBlockDataForClass(c);
 	}
 
 	public void onKeyboardInput(byte [] characters) throws Exception {

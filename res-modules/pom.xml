@@ -16,6 +16,8 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <VERSION-org.springframework.boot>2.7.18</VERSION-org.springframework.boot>
     <VERSION-org.springframework>5.3.39</VERSION-org.springframework>
+    <!--<VERSION-org.springframework.boot>3.2.0</VERSION-org.springframework.boot>   SPRINGBOOT3MIGRAION -->
+    <!--<VERSION-org.springframework>6.0.15</VERSION-org.springframework>             SPRINGBOOT3MIGRAION -->
   </properties>
 
   <packaging>pom</packaging>
@@ -142,24 +144,28 @@
      </dependency>
      <dependency>
         <groupId>org.slf4j</groupId>
-        <artifactId>jcl-over-slf4j</artifactId>
-        <version>1.7.32</version>
+	<artifactId>jcl-over-slf4j</artifactId>
+	<version>1.7.32</version>
+	<!--  <version>2.0.17</version> SPRINGBOOT3MIGRAION -->
      </dependency>
      <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
-        <version>1.7.32</version>
+	<version>1.7.32</version>
+	<!--  <version>2.0.17</version> SPRINGBOOT3MIGRAION -->
      </dependency>
      <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-simple</artifactId>
-        <version>1.7.32</version>
+	<version>1.7.32</version>
+	<!--  <version>2.0.17</version> SPRINGBOOT3MIGRAION -->
      </dependency>
      <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-log4j12</artifactId>
-        <version>1.7.32</version>
-     </dependency>
+	<version>1.7.32</version>
+	<!--  <version>2.0.17</version> SPRINGBOOT3MIGRAION -->
+      </dependency>
      <!--
      Use this when upgrading to spring 3:
      <dependency>

@@ -30,6 +30,7 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,21 +45,54 @@ import java.lang.invoke.MethodHandles;
 
 public class CraftingRecipeRenderableListItem extends RenderableListItem{
 
-	private String text;
+	private List<PlayerInventoryItemStack> inputItems;
+	private List<PlayerInventoryItemStack> outputItems;
 
 	public void render(UserInterfaceFrameThreadState frame, boolean isSelected, Coordinate placementOffset, ScreenLayer bottomLayer) throws Exception{
+		int [] titleAnsiCodes = UserInterfaceFrameThreadState.getHelpDetailsTitleColors();
+
+		GraphicsMode mode = frame.getBlockManagerThreadCollection().getGraphicsMode();
+		boolean useAscii = mode.equals(GraphicsMode.ASCII);
+
+		int [] bgColours = UserInterfaceFrameThreadState.getDefaultListItemBGColor(useAscii);
+		int [] initialColours = UserInterfaceFrameThreadState.concatIntArrays(new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR}, bgColours);
+
+		this.displayLayer.initializeInRegion(1, " ", initialColours, null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, this.displayLayer.getWidth(), this.displayLayer.getHeight())), true, true);
 
 
-		int bgColour = isSelected ? UserInterfaceFrameThreadState.RED_BG_COLOR : UserInterfaceFrameThreadState.GREEN_BG_COLOR;
-		this.displayLayer.initializeInRegion(1, "_", new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR, bgColour}, null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, this.displayLayer.getWidth(), this.displayLayer.getHeight())), true, true);
+		String text = getStackListDescription(inputItems, frame) + " " + getStackListDescription(outputItems, frame);
 
+		Long currentLine = 1L;
+		Long rightPadding = 1L;
+		Long leftPadding = 1L;
+		List<LinePrintingInstructionAtOffset> instructions = new ArrayList<LinePrintingInstructionAtOffset>();
 
-		frame.printTextAtScreenXY(new ColouredTextFragment(this.text, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR, UserInterfaceFrameThreadState.YELLOW_BG_COLOR}), 1L, (long)(this.displayLayer.getHeight() / 2), true, this.displayLayer);
+		ColouredTextFragmentList recipeFragments = new ColouredTextFragmentList();
+		recipeFragments.add(new ColouredTextFragment("RECIPE:", titleAnsiCodes));
+		recipeFragments.add(new ColouredTextFragment(" " + text, initialColours));
+		List<LinePrintingInstruction> keyDescriptionInstructions = frame.getLinePrintingInstructions(recipeFragments, leftPadding, rightPadding, true, false, (long)this.displayLayer.getWidth());
+		instructions.addAll(frame.wrapLinePrintingInstructionsAtOffset(keyDescriptionInstructions, currentLine, 1L));
+		currentLine += keyDescriptionInstructions.size() + 1;
+
+		Long offsetToPrintAt = 1L;
+		frame.executeLinePrintingInstructionsAtYOffsett(instructions, offsetToPrintAt, this.displayLayer);
+
 		this.displayLayer.setPlacementOffset(placementOffset);
 		bottomLayer.mergeDown(this.displayLayer, true, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
 	}
 
-	public CraftingRecipeRenderableListItem(String text) throws Exception{
-		this.text = text;
+	public String getStackListDescription(List<PlayerInventoryItemStack> itemStacks, UserInterfaceFrameThreadState frame) throws Exception{
+		BlockSchema blockSchema = frame.getClientBlockModelContext().getBlockSchema();
+		List<String> parts = new ArrayList<String>();
+		for(PlayerInventoryItemStack itemStack : itemStacks){
+			IndividualBlock block = itemStack.getBlock(blockSchema);
+			parts.add(block.getClass().getSimpleName() + " (" + itemStack.getQuantity() + ")");
+		}
+		return String.join(", ", parts);
+	}
+
+	public CraftingRecipeRenderableListItem(List<PlayerInventoryItemStack> inputItems, List<PlayerInventoryItemStack> outputItems) throws Exception{
+		this.inputItems = inputItems;
+		this.outputItems = outputItems;
 	}
 }
