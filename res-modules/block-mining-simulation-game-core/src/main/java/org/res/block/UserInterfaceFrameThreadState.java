@@ -202,6 +202,10 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		return concatIntArrays(getDefaultTextBGColors(), concatIntArrays(new int[] {BOLD_COLOR, UNDERLINE_COLOR}, getHighlightedTextFGColors()));
 	}
 
+	public static final int [] getRecipeTitleColors(boolean useAscii){
+		return concatIntArrays(getDefaultListItemBGColor(useAscii), concatIntArrays(new int[] {BOLD_COLOR, UNDERLINE_COLOR}, getHighlightedTextFGColors()));
+	}
+
 	public static final int [] getFrameClearBGColor(){
 		return getDefaultTextBGColors();
 	}
@@ -232,8 +236,11 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 	}
 
-	public static final int [] getScrollBarBGColor(boolean useAscii){
-		return UserInterfaceFrameThreadState.getUnderBlockBGColor(useAscii);
+	public static final int [] getScrollBarDefaultColors(boolean useAscii){
+		return UserInterfaceFrameThreadState.concatIntArrays(
+			UserInterfaceFrameThreadState.getUnderBlockBGColor(useAscii),
+			new int [] {UserInterfaceFrameThreadState.BLACK_FG_COLOR}
+		);
 	}
 
 	public static final int [] getVisibleAreaScrollBarBGColor(){

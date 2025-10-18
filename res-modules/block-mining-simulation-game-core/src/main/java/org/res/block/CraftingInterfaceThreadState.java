@@ -68,16 +68,6 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 
-		/*
-		byte [] rockData = this.getBlockDataForClass(Rock.class);
-		byte [] ironPickData = this.getBlockDataForClass(IronPick.class);
-		byte [] stonePickData = this.getBlockDataForClass(StonePick.class);
-		byte [] woodenPickData = this.getBlockDataForClass(WoodenPick.class);
-		byte [] ironOxideData = this.getBlockDataForClass(IronOxide.class);
-		byte [] woodenBlockData = this.getBlockDataForClass(WoodenBlock.class);
-		byte [] metallicIronBlockData = this.getBlockDataForClass(MetallicIron.class);
-		*/
-
 		this.recipeList.addItem(
 			new CraftingRecipeRenderableListItem(
 				Arrays.asList(new PlayerInventoryItemStack [] {
@@ -86,6 +76,68 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 				}),
 				Arrays.asList(new PlayerInventoryItemStack [] {
 					new PlayerInventoryItemStack(gbd(IronPick.class), 1L)
+
+				})
+			)
+		);
+
+		this.recipeList.addItem(
+			new CraftingRecipeRenderableListItem(
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(IronOxide.class), 5L),
+					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 5L)
+				}),
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(MetallicIron.class), 1L)
+
+				})
+			)
+		);
+
+		this.recipeList.addItem(
+			new CraftingRecipeRenderableListItem(
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(Rock.class), 3L),
+					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 2L)
+				}),
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(StonePick.class), 1L)
+
+				})
+			)
+		);
+
+		this.recipeList.addItem(
+			new CraftingRecipeRenderableListItem(
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 5L)
+				}),
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(WoodenPick.class), 1L)
+
+				})
+			)
+		);
+
+		this.recipeList.addItem(
+			new CraftingRecipeRenderableListItem(
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 999999995L)
+				}),
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(WoodenPick.class), 1L)
+
+				})
+			)
+		);
+
+		this.recipeList.addItem(
+			new CraftingRecipeRenderableListItem(
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 5L)
+				}),
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(WoodenPick.class), 88888881L)
 
 				})
 			)
