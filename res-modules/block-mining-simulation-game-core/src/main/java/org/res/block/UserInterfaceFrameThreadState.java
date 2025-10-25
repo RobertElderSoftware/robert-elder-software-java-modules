@@ -1049,4 +1049,8 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			}
 		}	
 	}
+
+	public Long textWidth(String text) throws Exception{
+		return this.clientBlockModelContext.measureTextLengthOnTerminal(text).getDeltaX();
+	}
 }

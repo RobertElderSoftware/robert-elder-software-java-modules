@@ -55,97 +55,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState {
+public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
-	private RenderableList<CraftingRecipeRenderableListItem> recipeList = new RenderableList<CraftingRecipeRenderableListItem>(1L, 10L, 2L);
+	private RenderableList<DebugRendererListItem> recipeList = new RenderableList<DebugRendererListItem>(3L, 10L, 4L);
 	private ClientBlockModelContext clientBlockModelContext;
 
-	public CraftingInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
+	public DebugListInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
 		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 
-		this.addRecipeItems();
+		this.addDebugRecipeItems();
 	}
 
-	private void addRecipeItems() throws Exception {
-		this.recipeList.addItem(
-			new CraftingRecipeRenderableListItem(
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(MetallicIron.class), 3L),
-					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 2L)
-				}),
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(IronPick.class), 1L)
-
-				})
-			)
-		);
-
-		this.recipeList.addItem(
-			new CraftingRecipeRenderableListItem(
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(IronOxide.class), 5L),
-					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 5L)
-				}),
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(MetallicIron.class), 1L)
-
-				})
-			)
-		);
-
-		this.recipeList.addItem(
-			new CraftingRecipeRenderableListItem(
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(Rock.class), 3L),
-					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 2L)
-				}),
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(StonePick.class), 1L)
-
-				})
-			)
-		);
-
-		this.recipeList.addItem(
-			new CraftingRecipeRenderableListItem(
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 5L)
-				}),
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(WoodenPick.class), 1L)
-
-				})
-			)
-		);
-
-		this.recipeList.addItem(
-			new CraftingRecipeRenderableListItem(
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 999999995L)
-				}),
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(WoodenPick.class), 1L)
-
-				})
-			)
-		);
-
-		this.recipeList.addItem(
-			new CraftingRecipeRenderableListItem(
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 5L)
-				}),
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(WoodenPick.class), 88888881L)
-
-				})
-			)
-		);
+	private void addDebugRecipeItems() throws Exception {
+		for(int i = 0; i < 0; i++){
+			this.recipeList.addItem(new DebugRendererListItem("Foo_" + i));
+		}
 	}
 
 	private byte [] gbd(Class<?> c) throws Exception {
@@ -153,7 +82,9 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 	}
 
 	public void onKeyboardInput(byte [] characters) throws Exception {
-		logger.info("Crafting frame, discarding keyboard input: " + new String(characters, "UTF-8"));
+		this.recipeList.addItem(new DebugRendererListItem("Foo_" + this.recipeList.size()));
+		this.onRenderFrame(false, false);
+		this.onFinalizeFrame();
 	}
 
 	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{

@@ -30,10 +30,7 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.Map;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Collections;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
@@ -49,29 +46,19 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonNull;
 import com.google.gson.reflect.TypeToken;
 
-public class CharacterConstants {
-	public static final String SPACE = " ";
-	public static final String PLUS_SIGN = "+";
-	public static final String EQUALS_SIGN = "=";
-	public static final String VERTICAL_LINE = "|";
-	public static final String BOX_DRAWINGS_LIGHT_VERTICAL_AND_HORIZONTAL = "\u253C"; // ┼
-	public static final String BOX_DRAWINGS_DOWN_DOUBLE_AND_HORIZONTAL_SINGLE = "\u2565"; // ╥
-	public static final String BOX_DRAWINGS_VERTICAL_SINGLE_AND_LEFT_DOUBLE = "\u2561"; // ╡
-	public static final String BOX_DRAWINGS_VERTICAL_SINGLE_AND_RIGHT_DOUBLE = "\u255E"; // ╞
-	public static final String BOX_DRAWINGS_UP_DOUBLE_AND_HORIZONTAL_SINGLE = "\u2568"; // ╨
-	public static final String BOX_DRAWINGS_DOUBLE_DOWN_AND_LEFT = "\u2557"; // ╗
-	public static final String BOX_DRAWINGS_DOUBLE_DOWN_AND_RIGHT = "\u2554"; // ╔
-	public static final String BOX_DRAWINGS_DOUBLE_HORIZONTAL = "\u2550";//═
-	public static final String BOX_DRAWINGS_DOUBLE_DOWN_AND_HORIZONTAL = "\u2566";//╦
-	public static final String BOX_DRAWINGS_DOUBLE_VERTICAL = "\u2551";//║
-	public static final String BOX_DRAWINGS_DOUBLE_UP_AND_LEFT = "\u255D";//╝
-	public static final String BOX_DRAWINGS_DOUBLE_VERTICAL_AND_LEFT = "\u2563";//╣
-	public static final String BOX_DRAWINGS_DOUBLE_UP_AND_RIGHT = "\u255A";//╚
-	public static final String BOX_DRAWINGS_DOUBLE_VERTICAL_AND_RIGHT = "\u2560";//╠
-	public static final String BOX_DRAWINGS_DOUBLE_UP_AND_HORIZONTAL = "\u2569";//╩
-	public static final String BOX_DRAWINGS_DOUBLE_VERTICAL_AND_HORIZONTAL = "\u256C";//╬
-											  //
-	public static final String INVENTORY_ARROW_EMOJI = "\u2501\u27A4";// ━➤
-	public static final String INVENTORY_ARROW_ASCII = "->";
-}
+public class Limonite extends IndividualBlock {
 
+	private byte [] data;
+
+	public Limonite(byte [] data) throws Exception {
+		this.data = data;
+	}
+
+	public byte [] getBlockData()throws Exception {
+		return this.data;
+	}
+
+	public boolean isMineable() throws Exception{
+		return true;
+	}
+}

@@ -175,7 +175,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			Long root = makeVerticalSplit();
 			List<Long> topSplits = new ArrayList<Long>();
 			topSplits.add(subSplit);
-			topSplits.add(makeLeafNodeSplit(createFrameAndThread(CraftingInterfaceThreadState.class)));
+			topSplits.add(makeLeafNodeSplit(createFrameAndThread(DebugListInterfaceThreadState.class)));
 			List<Double> topSplitPercents = new ArrayList<Double>();
 			topSplitPercents.add(0.62);
 			topSplitPercents.add(0.38);
@@ -280,6 +280,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			frameStateClass == HelpMenuFrameThreadState.class ||
 			frameStateClass == HelpDetailsFrameThreadState.class ||
 			frameStateClass == EmptyFrameThreadState.class ||
+			frameStateClass == DebugListInterfaceThreadState.class ||
 			frameStateClass == CraftingInterfaceThreadState.class ||
 			frameStateClass == MapAreaInterfaceThreadState.class ||
 			frameStateClass == InventoryInterfaceThreadState.class
@@ -342,6 +343,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}else if(frameStateClass == EmptyFrameThreadState.class){
 			return addFrameState(
 				new EmptyFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
+			);
+		}else if(frameStateClass == DebugListInterfaceThreadState.class){
+			return addFrameState(
+				new DebugListInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
 			);
 		}else if(frameStateClass == CraftingInterfaceThreadState.class){
 			return addFrameState(
