@@ -60,7 +60,7 @@ public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
-	private RenderableList<DebugRendererListItem> recipeList = new RenderableList<DebugRendererListItem>(3L, 10L, 4L);
+	private RenderableList<DebugRendererListItem> recipeList = new RenderableList<DebugRendererListItem>(3L, 8L, 10L, 4L);
 	private ClientBlockModelContext clientBlockModelContext;
 
 	public DebugListInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
@@ -108,11 +108,20 @@ public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState
 	}
 
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
+
+		Long fchw = this.getFrameCharacterWidth();
+		Long x1 = fchw;
+		Long y1 = 1L;
+		Long x2 = x1 + this.getInnerFrameWidth();
+		Long y2 = y1 + this.getInnerFrameHeight();
+		Coordinate topLeftCorner = new Coordinate(Arrays.asList(x1, y1));
+		Coordinate bottomRightCorner = new Coordinate(Arrays.asList(x2, y2));
+
 		this.recipeList.updateRenderableArea(
 			this,
 			new CuboidAddress(
-				new Coordinate(Arrays.asList(0L, 0L)),
-				new Coordinate(Arrays.asList(this.getInnerFrameWidth(), this.getInnerFrameHeight()))
+				topLeftCorner,
+				bottomRightCorner
 			)
 		);
 

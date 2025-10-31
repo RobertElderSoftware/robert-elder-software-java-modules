@@ -542,7 +542,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		}
 	}
 
-	protected void executeLinePrintingInstructionsAtYOffsett(List<LinePrintingInstructionAtOffset> instructions, Long yOffset, ScreenLayer bottomLayer) throws Exception{
+	protected void executeLinePrintingInstructions(List<LinePrintingInstructionAtOffset> instructions, Long yOffset, ScreenLayer bottomLayer) throws Exception{
 		for(LinePrintingInstructionAtOffset ins : instructions){
 			LinePrintingInstruction instruction = ins.getLinePrintingInstruction();
 			this.printTextAtScreenXY(instruction.getColouredTextFragmentList(), instruction.getXOffsetInFrame(), yOffset + ins.getOffsetY(), true, bottomLayer);

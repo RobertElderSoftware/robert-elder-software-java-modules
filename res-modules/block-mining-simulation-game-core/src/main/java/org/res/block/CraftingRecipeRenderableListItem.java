@@ -77,7 +77,7 @@ public class CraftingRecipeRenderableListItem extends RenderableListItem{
 		currentLine += producesInstructions.size() + 1;
 
 		ColouredTextFragmentList requiresFragments = new ColouredTextFragmentList();
-		requiresFragments.add(new ColouredTextFragment("REQUIRES:", titleColours));
+		requiresFragments.add(new ColouredTextFragment("CONSUMES:", titleColours));
 		requiresFragments.add(new ColouredTextFragment(" " + getStackListDescription(inputItems, frame), defaultColours));
 		List<LinePrintingInstruction> requiresInstructions = frame.getLinePrintingInstructions(requiresFragments, leftPadding, rightPadding, true, true, (long)this.displayLayer.getWidth());
 		instructions.addAll(frame.wrapLinePrintingInstructionsAtOffset(requiresInstructions, currentLine, 1L));
@@ -85,7 +85,7 @@ public class CraftingRecipeRenderableListItem extends RenderableListItem{
 
 
 		Long offsetToPrintAt = 0L;
-		frame.executeLinePrintingInstructionsAtYOffsett(instructions, offsetToPrintAt, this.displayLayer);
+		frame.executeLinePrintingInstructions(instructions, offsetToPrintAt, this.displayLayer);
 		this.displayLayer.setPlacementOffset(placementOffset);
 		bottomLayer.mergeDown(this.displayLayer, true, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
 	}

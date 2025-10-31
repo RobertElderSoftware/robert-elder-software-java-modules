@@ -60,7 +60,7 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
-	private RenderableList<CraftingRecipeRenderableListItem> recipeList = new RenderableList<CraftingRecipeRenderableListItem>(1L, 10L, 2L);
+	private RenderableList<CraftingRecipeRenderableListItem> recipeList = new RenderableList<CraftingRecipeRenderableListItem>(1L, 1L, 10L, 2L);
 	private ClientBlockModelContext clientBlockModelContext;
 
 	public CraftingInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
@@ -177,11 +177,32 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 	}
 
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
+
+
+		int [] titleAnsiCodes = UserInterfaceFrameThreadState.getHelpDetailsTitleColors();
+
+		ColouredTextFragmentList topTitlePart = new ColouredTextFragmentList();
+		topTitlePart.add(new ColouredTextFragment("Crafting Recipes", titleAnsiCodes));
+
+		List<LinePrintingInstruction> titleInstructions = this.getLinePrintingInstructions(topTitlePart, 1L, 1L, false, false, this.getInnerFrameWidth());
+
+		this.executeLinePrintingInstructionsAtYOffset(titleInstructions, 2L);
+
+		Long linesOnTop = 3L;
+		Long sidePadding = 0L;
+		Long fchw = this.getFrameCharacterWidth();
+		Long x1 = fchw + sidePadding;
+		Long y1 = 1L + linesOnTop;
+		Long x2 = x1 + this.getInnerFrameWidth() - 2L * sidePadding;
+		Long y2 = y1 + this.getInnerFrameHeight() - linesOnTop;
+		Coordinate topLeftCorner = new Coordinate(Arrays.asList(x1, y1));
+		Coordinate bottomRightCorner = new Coordinate(Arrays.asList(x2, y2));
+
 		this.recipeList.updateRenderableArea(
 			this,
 			new CuboidAddress(
-				new Coordinate(Arrays.asList(0L, 0L)),
-				new Coordinate(Arrays.asList(this.getInnerFrameWidth(), this.getInnerFrameHeight()))
+				topLeftCorner,
+				bottomRightCorner
 			)
 		);
 
