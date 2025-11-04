@@ -320,7 +320,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.onPlayerInventoryChange();
 	}
 
-	public TextWidthMeasurementWorkItemResult measureTextLengthOnTerminal(String text) throws Exception{
+	private TextWidthMeasurementWorkItemResult measureSingleCharacterDisplacement(String text) throws Exception{
 		if(!measuredTextLengths.containsKey(text)){
 			Integer compatibilityWidth = this.blockManagerThreadCollection.getCompatibilityWidth();
 
@@ -343,6 +343,22 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			measuredTextLengths.put(text, result);
 		}
 		return this.measuredTextLengths.get(text);
+	}
+
+	public TextWidthMeasurementWorkItemResult measureTextLengthOnTerminal(String text) throws Exception{
+		//  If there are any requests to measure longer text, split up the string first
+		//  because the text measurement method will encounter problems if the text
+		//  actually causes significant displacements/wrapps around etc.
+		List<String> individualCharacters = UserInterfaceFrameThreadState.splitStringIntoCharactersUnicodeAware(text);
+		Long totalX = 0L;	
+		Long totalY = 0L;	
+		for(String oneCharacter : individualCharacters){
+			TextWidthMeasurementWorkItemResult result = measureSingleCharacterDisplacement(oneCharacter);
+			totalX += result.getDeltaX();
+			totalY += result.getDeltaY();
+		}
+
+		return new TextWidthMeasurementWorkItemResult(totalX, totalY);
 	}
 
 	public void onUserInterfaceAction(UserInterfaceActionType action) throws Exception {

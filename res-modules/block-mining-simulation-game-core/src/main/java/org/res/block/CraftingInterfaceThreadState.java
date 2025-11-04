@@ -177,8 +177,6 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 	}
 
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
-
-
 		int [] titleAnsiCodes = UserInterfaceFrameThreadState.getHelpDetailsTitleColors();
 
 		ColouredTextFragmentList topTitlePart = new ColouredTextFragmentList();

@@ -78,6 +78,7 @@ public class CraftingRecipeRenderableListItem extends RenderableListItem{
 
 		ColouredTextFragmentList requiresFragments = new ColouredTextFragmentList();
 		requiresFragments.add(new ColouredTextFragment("CONSUMES:", titleColours));
+		//requiresFragments.add(new ColouredTextFragment(" ⚙️ (MetallicIron x3) + 🪵             (WoodenBlock x2)", defaultColours));
 		requiresFragments.add(new ColouredTextFragment(" " + getStackListDescription(inputItems, frame), defaultColours));
 		List<LinePrintingInstruction> requiresInstructions = frame.getLinePrintingInstructions(requiresFragments, leftPadding, rightPadding, true, true, (long)this.displayLayer.getWidth());
 		instructions.addAll(frame.wrapLinePrintingInstructionsAtOffset(requiresInstructions, currentLine, 1L));
@@ -107,3 +108,5 @@ public class CraftingRecipeRenderableListItem extends RenderableListItem{
 		this.outputItems = outputItems;
 	}
 }
+
+

@@ -47,16 +47,10 @@ public abstract class RenderableListItem {
 	public abstract void render(UserInterfaceFrameThreadState frame, boolean isSelected, Coordinate placementOffset, ScreenLayer bottomLayer) throws Exception;
 	protected ScreenLayer displayLayer = new ScreenLayer();
 
-	protected CuboidAddress renderableArea = new CuboidAddress(
-		new Coordinate(Arrays.asList(0L, 0L)),
-		new Coordinate(Arrays.asList(0L, 0L))
-	);
-
 	public RenderableListItem() throws Exception{
 	}
 
 	public void updateRenderableArea(CuboidAddress ca) throws Exception{
-		this.renderableArea = ca;
 		int width = (int)ca.getWidth();
 		int height = (int)ca.getHeight();
 

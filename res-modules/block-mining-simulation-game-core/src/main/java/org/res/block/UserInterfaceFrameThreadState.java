@@ -316,7 +316,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		return rtn;
 	}
 
-	protected static List<String> splitStringIntoCharactersUnicodeAware(String str){
+	public static List<String> splitStringIntoCharactersUnicodeAware(String str){
 		List<String> utf16CodePoints = str.codePoints().mapToObj(Character::toString).collect(Collectors.toList());
 		List<String> rtn = new ArrayList<String>();
 		for(String s : utf16CodePoints){
@@ -369,7 +369,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 						//  Add back any space characters between words
 						//  as long as they're not at the end of lines.
 						if(spaceDelimiter != null){
-							textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(spaceDelimiter, cf.getAnsiColourCodes()), this.clientBlockModelContext.measureTextLengthOnTerminal(spaceCharacter)));
+							textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(spaceDelimiter, cf.getAnsiColourCodes()), this.clientBlockModelContext.measureTextLengthOnTerminal(spaceDelimiter)));
 						}
 					}
 				}
@@ -406,7 +406,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			MeasuredTextFragment textFragment = i < textFragments.size() ? textFragments.get(i) : null;
 
 			if(flushBuffer){
-				Long centeredInExtraSpaceOffset = (this.getFrameWidth() / 2L) - (lineLengthSoFar / 2L);
+				Long centeredInExtraSpaceOffset = (maxLineLength / 2L) - (lineLengthSoFar / 2L);
 				Long textOffset = leftAlign ? paddingLeft : centeredInExtraSpaceOffset;
 				instructions.add(new LinePrintingInstruction(textOffset, new ColouredTextFragmentList(new ArrayList<ColouredTextFragment>(currentLineFragments))));
 				currentLineFragments = new ArrayList<ColouredTextFragment>();
@@ -415,7 +415,7 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 			}else if(textFragment.getTextDisplacement().getDeltaY() > 0L){ // A newline
 				flushBuffer = true;
 				i++;
-			}else if((textFragment.getTextDisplacement().getDeltaX() + lineLengthSoFar + paddingLeft + paddingRight) >= this.getInnerFrameWidth()){ // Line too long
+			}else if((textFragment.getTextDisplacement().getDeltaX() + lineLengthSoFar + paddingLeft + paddingRight) > maxLineLength){ // Line too long
 				if(currentLineFragments.size() == 0){ // Current line is empty, but we're already overflowing with one word?  Just add the word and let it overflow:
 					lineLengthSoFar += textFragment.getTextDisplacement().getDeltaX();
 					currentLineFragments.add(textFragment.getColouredTextFragment());
