@@ -345,13 +345,13 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				new EmptyFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
 			);
 		}else if(frameStateClass == DebugListInterfaceThreadState.class){
-			return addFrameState(
-				new DebugListInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
-			);
+			DebugListInterfaceThreadState thread = new DebugListInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
+			thread.init();
+			return addFrameState(thread);
 		}else if(frameStateClass == CraftingInterfaceThreadState.class){
-			return addFrameState(
-				new CraftingInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
-			);
+			CraftingInterfaceThreadState thread = new CraftingInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
+			thread.init();
+			return addFrameState(thread);
 		}else if(frameStateClass == MapAreaInterfaceThreadState.class){
 			Long mapId = addFrameState(
 				new MapAreaInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
@@ -1072,6 +1072,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public WorkItemResult putBlockingWorkItem(ConsoleWriterWorkItem workItem, WorkItemPriority priority) throws Exception {
+		// TODO:  Push this into a base class
 		BlockManagerThread t = this.blockManagerThreadCollection.getThreadById(Thread.currentThread().threadId());
 		if(t instanceof WorkItemProcessorTask){
 			Class<?> ct = ((WorkItemProcessorTask<?>)t).getWorkItemClass();

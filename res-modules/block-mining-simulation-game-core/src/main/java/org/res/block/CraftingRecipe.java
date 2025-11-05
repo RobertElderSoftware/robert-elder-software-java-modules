@@ -30,16 +30,34 @@
 //  SOFTWARE.
 package org.res.block;
 
-public abstract class BlockModelContextWorkItem extends WorkItem{
-	protected BlockModelContext blockModelContext;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
 
-	public BlockModelContextWorkItem(BlockModelContext blockModelContext){
-		super(false);
-		this.blockModelContext = blockModelContext;
+import org.res.block.WorkItem;
+import org.res.block.BlockSession;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
+
+public class CraftingRecipe {
+
+	private List<PlayerInventoryItemStack> consumedItems;
+	private List<PlayerInventoryItemStack> producedItems;
+
+	public List<PlayerInventoryItemStack> getConsumedItems(){
+		return this.consumedItems;
 	}
 
-	public BlockModelContextWorkItem(BlockModelContext blockModelContext, boolean isBlocking){
-		super(isBlocking);
-		this.blockModelContext = blockModelContext;
+	public List<PlayerInventoryItemStack> getProducedItems(){
+		return this.producedItems;
+	}
+
+	public CraftingRecipe(List<PlayerInventoryItemStack> consumedItems, List<PlayerInventoryItemStack> producedItems) throws Exception{
+		this.consumedItems = consumedItems;
+		this.producedItems = producedItems;
 	}
 }

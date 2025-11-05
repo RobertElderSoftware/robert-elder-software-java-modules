@@ -30,16 +30,20 @@
 //  SOFTWARE.
 package org.res.block;
 
-public abstract class BlockModelContextWorkItem extends WorkItem{
-	protected BlockModelContext blockModelContext;
+import java.util.List;
+import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 
-	public BlockModelContextWorkItem(BlockModelContext blockModelContext){
-		super(false);
-		this.blockModelContext = blockModelContext;
+public class GetCurrentCraftingRecipeSelectionWorkItemResult extends WorkItemResult {
+
+	private CraftingRecipe recipe;
+
+	public GetCurrentCraftingRecipeSelectionWorkItemResult(CraftingRecipe recipe){
+		this.recipe = recipe;
 	}
 
-	public BlockModelContextWorkItem(BlockModelContext blockModelContext, boolean isBlocking){
-		super(isBlocking);
-		this.blockModelContext = blockModelContext;
+	public CraftingRecipe getCraftingRecipe(){
+		return this.recipe;
 	}
 }

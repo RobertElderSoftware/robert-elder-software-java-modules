@@ -69,13 +69,25 @@ public class RenderableList<T extends RenderableListItem> {
 	private double aspectRatio;
 	private Long listItemHeight;
 	private Long listItemWidth;
+	private String emptyMessage;
+	private RenderableListContainer container;
 
-	public RenderableList(Long maxVisibleAdjacentLists, Long maxAdjacentLists, Long defaultWidth, Long defaultHeight) throws Exception{
+	public RenderableList(RenderableListContainer container, Long maxVisibleAdjacentLists, Long maxAdjacentLists, Long defaultWidth, Long defaultHeight, String emptyMessage) throws Exception{
+		this.container = container;
 		this.maxVisibleAdjacentLists = maxVisibleAdjacentLists;
 		this.maxAdjacentLists = maxAdjacentLists;
 		this.defaultWidth = defaultWidth;
 		this.defaultHeight = defaultHeight;
 		this.aspectRatio = (double)this.defaultWidth / (double)this.defaultHeight;
+		this.emptyMessage = emptyMessage;
+	}
+
+	public List<T> getListItems(){
+		return this.list;
+	}
+
+	public void notifySelectionChanged(UserInterfaceFrameThreadState frame) throws Exception{
+		this.container.onSelectionChange(this.gridPositionToListIndex(frame, this.selectedIndexX, this.selectedIndexY));
 	}
 
 	public boolean hasVerticalOrientation(UserInterfaceFrameThreadState frame) throws Exception{
@@ -129,6 +141,7 @@ public class RenderableList<T extends RenderableListItem> {
 		if(selectedItemOffset < yColumnOffset){
 			yColumnOffset = selectedItemOffset;
 		}
+		this.notifySelectionChanged(frame);
 		render(frame, bottomLayer);
 	}
 
@@ -164,6 +177,7 @@ public class RenderableList<T extends RenderableListItem> {
 				}
 			}
 		}
+		this.notifySelectionChanged(frame);
 		render(frame, bottomLayer);
 	}
 
@@ -199,6 +213,7 @@ public class RenderableList<T extends RenderableListItem> {
 				}
 			}
 		}
+		this.notifySelectionChanged(frame);
 		render(frame, bottomLayer);
 	}
 
@@ -214,6 +229,7 @@ public class RenderableList<T extends RenderableListItem> {
 		if(selectedItemOffset < xColumnOffset){
 			xColumnOffset = selectedItemOffset;
 		}
+		this.notifySelectionChanged(frame);
 		render(frame, bottomLayer);
 	}
 
@@ -362,7 +378,7 @@ public class RenderableList<T extends RenderableListItem> {
 		}
 
 		if(list.size() == 0){
-			String msg = "List is empty.";
+			String msg = this.emptyMessage;
 			int len = msg.length();
 			Long x = (listAreaLayer.getWidth() / 2L) - (((long)len) / 2L);
 			Long y = (listAreaLayer.getHeight() / 2L);

@@ -53,6 +53,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	private CuboidAddress mapAreaCuboidAddress;
 	private Class<?> selectedBlockClass = null;
+	private CraftingRecipe currentCraftingRecipe = null;
 
 	public ClientBlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ClientServerInterface clientServerInterface) throws Exception {
 		super(blockManagerThreadCollection, clientServerInterface);
@@ -89,6 +90,17 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		}
 		this.blockManagerThreadCollection.addThread(new StandardInputReaderTask(this, this.consoleWriterThreadState));
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(this, BlockModelContextWorkItem.class, this.getClass()));
+
+		//  Set up initial crafting recipe:
+		this.currentCraftingRecipe = new CraftingRecipe(
+			Arrays.asList(new PlayerInventoryItemStack [] {
+				new PlayerInventoryItemStack(this.getBlockDataForClass(WoodenBlock.class), 5L)
+			}),
+			Arrays.asList(new PlayerInventoryItemStack [] {
+				new PlayerInventoryItemStack(this.getBlockDataForClass(WoodenPick.class), 1L)
+
+			})
+		);
 	}
 
 
@@ -250,72 +262,32 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		}
 	}
 
+	public boolean hasEnoughForCraftingRecipe(CraftingRecipe recipe) throws Exception{
+		for(PlayerInventoryItemStack itemStack : recipe.getConsumedItems()){
+			if(!this.playerInventory.containsBlockCount(itemStack.getBlockData(), itemStack.getQuantity())){
+				return false;
+			}
+		}
+		return true;
+	}
+
+	public void applyItemChangeForCraftingRecipe(CraftingRecipe recipe) throws Exception{
+		//  Subtract consumed items:
+		for(PlayerInventoryItemStack itemStack : recipe.getConsumedItems()){
+			this.playerInventory.addItemCountToInventory(itemStack.getBlockData(), -itemStack.getQuantity());
+		}
+		//  Add produced items:
+		for(PlayerInventoryItemStack itemStack : recipe.getProducedItems()){
+			this.playerInventory.addItemCountToInventory(itemStack.getBlockData(), itemStack.getQuantity());
+		}
+	}
+
 	public void onTryCrafting() throws Exception{
-		byte [] rockData = this.getBlockDataForClass(Rock.class);
-		byte [] ironPickData = this.getBlockDataForClass(IronPick.class);
-		byte [] stonePickData = this.getBlockDataForClass(StonePick.class);
-		byte [] woodenPickData = this.getBlockDataForClass(WoodenPick.class);
-		byte [] ironOxideData = this.getBlockDataForClass(IronOxide.class);
-		byte [] woodenBlockData = this.getBlockDataForClass(WoodenBlock.class);
-		byte [] metallicIronBlockData = this.getBlockDataForClass(MetallicIron.class);
-		/*  Try to craft a pick: */
-		Long requiredMetallicIronForIronPick = 3L;
-		Long requiredWoodenBlocksForIronPick = 2L;
-		Long numIronPicksCreated = 1L;
-
-		Long requiredIronOxide = 5L;
-		Long requiredWoodenBlocks = 5L;
-		Long numMetallicIronCreated = 1L;
-
-		Long requiredRocksForStonePick = 3L;
-		Long requiredWoodenBlocksForStonePick = 2L;
-		Long numStonePicksCreated = 1L;
-
-		Long requiredWoodForWoodenPick = 5L;
-		Long numWoodenPicksCreated = 1L;
-
-		//  Try crafting iron pick axe
-		if(
-			this.playerInventory.containsBlockCount(metallicIronBlockData, requiredMetallicIronForIronPick) &&
-			this.playerInventory.containsBlockCount(woodenBlockData, requiredWoodenBlocksForIronPick)
-		){
-			this.playerInventory.addItemCountToInventory(metallicIronBlockData, -requiredMetallicIronForIronPick);
-			this.playerInventory.addItemCountToInventory(woodenBlockData, -requiredWoodenBlocksForIronPick);
-			this.playerInventory.addItemCountToInventory(ironPickData, numIronPicksCreated);
+		if(hasEnoughForCraftingRecipe(this.currentCraftingRecipe)){
+			this.applyItemChangeForCraftingRecipe(this.currentCraftingRecipe);
 			this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
 		}else{
-			/*  Try to craft metallic iron: */
-			if(
-				this.playerInventory.containsBlockCount(ironOxideData, requiredIronOxide) &&
-				this.playerInventory.containsBlockCount(woodenBlockData, requiredWoodenBlocks)
-			){
-				this.playerInventory.addItemCountToInventory(ironOxideData, -requiredIronOxide);
-				this.playerInventory.addItemCountToInventory(woodenBlockData, -requiredWoodenBlocks);
-				this.playerInventory.addItemCountToInventory(metallicIronBlockData, numMetallicIronCreated);
-				this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
-			}else{
-				//  Try crafting stone pick axe
-				if(
-					this.playerInventory.containsBlockCount(rockData, requiredRocksForStonePick) &&
-					this.playerInventory.containsBlockCount(woodenBlockData, requiredWoodenBlocksForStonePick)
-				){
-					this.playerInventory.addItemCountToInventory(rockData, -requiredRocksForStonePick);
-					this.playerInventory.addItemCountToInventory(woodenBlockData, -requiredWoodenBlocksForStonePick);
-					this.playerInventory.addItemCountToInventory(stonePickData, numStonePicksCreated);
-					this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
-				}else{
-					//  Try crafting wooden pick axe
-					if(
-						this.playerInventory.containsBlockCount(woodenBlockData, requiredWoodForWoodenPick)
-					){
-						this.playerInventory.addItemCountToInventory(woodenBlockData, -requiredWoodForWoodenPick);
-						this.playerInventory.addItemCountToInventory(woodenPickData, numWoodenPicksCreated);
-						this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
-					}else{
-						this.logMessage("Did not have enough reagents to craft anything.");
-					}
-				}
-			}
+			this.logMessage("Did not have enough reagents to craft anything.");
 		}
 		this.onPlayerInventoryChange();
 	}
@@ -597,6 +569,10 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.selectedBlockClass = blockClass;
 	}
 
+	public void onCraftingRecipeChange(CraftingRecipe recipe) throws Exception{
+		this.currentCraftingRecipe = recipe;
+	}
+
 	public void onMapAreaChange(CuboidAddress newMapArea) throws Exception{
 		this.mapAreaCuboidAddress = newMapArea;
 		//  The chunk initializer needs to know about the reachable area which extends beyond the viewport:
@@ -668,4 +644,26 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.chunkInitializerThreadState.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
 	}
 
+	public WorkItemResult putBlockingWorkItem(BlockModelContextWorkItem workItem, WorkItemPriority priority) throws Exception {
+		// TODO:  Push this into a base class
+		BlockManagerThread t = this.blockManagerThreadCollection.getThreadById(Thread.currentThread().threadId());
+		if(t instanceof WorkItemProcessorTask){
+			Class<?> ct = ((WorkItemProcessorTask<?>)t).getWorkItemClass();
+			if(ct == BlockModelContextWorkItem.class && workItem.getIsBlocking()){
+				throw new Exception("Current thread is instanceof WorkItemProcessorTask<BlockModelContextWorkItem>.  Attempting to block here will cause a deadlock.");
+			}else{
+				return this.workItemQueue.putBlockingWorkItem(workItem, priority);
+			}
+		}else{
+			return this.workItemQueue.putBlockingWorkItem(workItem, priority);
+		}
+	}
+
+	public void getCurrentCraftingRecipeSelection(WorkItem workItem) throws Exception{
+		if(this.currentCraftingRecipe == null){
+			throw new Exception("currentCraftingRecipe == null");
+		}else{
+			this.workItemQueue.addResultForThreadId(new GetCurrentCraftingRecipeSelectionWorkItemResult(this.currentCraftingRecipe), workItem.getThreadId());
+		}
+	}
 }

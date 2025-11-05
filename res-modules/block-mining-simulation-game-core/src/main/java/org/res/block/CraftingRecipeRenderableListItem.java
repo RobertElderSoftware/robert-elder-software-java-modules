@@ -45,8 +45,7 @@ import java.lang.invoke.MethodHandles;
 
 public class CraftingRecipeRenderableListItem extends RenderableListItem{
 
-	private List<PlayerInventoryItemStack> inputItems;
-	private List<PlayerInventoryItemStack> outputItems;
+	private CraftingRecipe recipe;
 
 	public void render(UserInterfaceFrameThreadState frame, boolean isSelected, Coordinate placementOffset, ScreenLayer bottomLayer) throws Exception{
 
@@ -71,15 +70,14 @@ public class CraftingRecipeRenderableListItem extends RenderableListItem{
 
 		ColouredTextFragmentList producesFragments = new ColouredTextFragmentList();
 		producesFragments.add(new ColouredTextFragment("PRODUCES:", titleColours));
-		producesFragments.add(new ColouredTextFragment(" " + getStackListDescription(outputItems, frame), defaultColours));
+		producesFragments.add(new ColouredTextFragment(" " + getStackListDescription(recipe.getProducedItems(), frame), defaultColours));
 		List<LinePrintingInstruction> producesInstructions = frame.getLinePrintingInstructions(producesFragments, leftPadding, rightPadding, true, true, (long)this.displayLayer.getWidth());
 		instructions.addAll(frame.wrapLinePrintingInstructionsAtOffset(producesInstructions, currentLine, 1L));
 		currentLine += producesInstructions.size() + 1;
 
 		ColouredTextFragmentList requiresFragments = new ColouredTextFragmentList();
 		requiresFragments.add(new ColouredTextFragment("CONSUMES:", titleColours));
-		//requiresFragments.add(new ColouredTextFragment(" ⚙️ (MetallicIron x3) + 🪵             (WoodenBlock x2)", defaultColours));
-		requiresFragments.add(new ColouredTextFragment(" " + getStackListDescription(inputItems, frame), defaultColours));
+		requiresFragments.add(new ColouredTextFragment(" " + getStackListDescription(recipe.getConsumedItems(), frame), defaultColours));
 		List<LinePrintingInstruction> requiresInstructions = frame.getLinePrintingInstructions(requiresFragments, leftPadding, rightPadding, true, true, (long)this.displayLayer.getWidth());
 		instructions.addAll(frame.wrapLinePrintingInstructionsAtOffset(requiresInstructions, currentLine, 1L));
 		currentLine += requiresInstructions.size() + 1;
@@ -103,9 +101,12 @@ public class CraftingRecipeRenderableListItem extends RenderableListItem{
 		return String.join(" + ", parts);
 	}
 
-	public CraftingRecipeRenderableListItem(List<PlayerInventoryItemStack> inputItems, List<PlayerInventoryItemStack> outputItems) throws Exception{
-		this.inputItems = inputItems;
-		this.outputItems = outputItems;
+	public CraftingRecipeRenderableListItem(CraftingRecipe recipe) throws Exception{
+		this.recipe = recipe;
+	}
+
+	public CraftingRecipe getCraftingRecipe(){
+		return this.recipe;
 	}
 }
 

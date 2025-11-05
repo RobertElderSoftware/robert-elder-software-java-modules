@@ -55,12 +55,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState {
+public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState implements RenderableListContainer{
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
-	private RenderableList<CraftingRecipeRenderableListItem> recipeList = new RenderableList<CraftingRecipeRenderableListItem>(1L, 1L, 10L, 2L);
+	private RenderableList<CraftingRecipeRenderableListItem> recipeList;
 	private ClientBlockModelContext clientBlockModelContext;
 
 	public CraftingInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
@@ -68,82 +68,84 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 
+	}
+
+	public void init() throws Exception{
+		this.recipeList = new RenderableList<CraftingRecipeRenderableListItem>(this, 1L, 1L, 10L, 2L, "There are no crafting recipes.");
 		this.addRecipeItems();
+
+		/*
+		GetCurrentCraftingRecipeSelectionWorkItemResult result = (GetCurrentCraftingRecipeSelectionWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(
+			new GetCurrentCraftingRecipeSelectionWorkItem(this.clientBlockModelContext),
+			WorkItemPriority.PRIORITY_LOW
+		);
+
+		CraftingRecipe currentlySelectedRecipe = result.getCraftingRecipe();
+		*/
+	}
+
+	public void onSelectionChange(Long selectedIndex) throws Exception{
+		CraftingRecipeRenderableListItem recipe = this.recipeList.getListItems().get(selectedIndex.intValue());
+		this.clientBlockModelContext.putWorkItem(new CraftingRecipeChangeWorkItem(this.clientBlockModelContext, recipe.getCraftingRecipe()), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	private void addRecipeItems() throws Exception {
 		this.recipeList.addItem(
 			new CraftingRecipeRenderableListItem(
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(MetallicIron.class), 3L),
-					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 2L)
-				}),
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(IronPick.class), 1L)
+				new CraftingRecipe(
+					Arrays.asList(new PlayerInventoryItemStack [] {
+						new PlayerInventoryItemStack(gbd(WoodenBlock.class), 5L)
+					}),
+					Arrays.asList(new PlayerInventoryItemStack [] {
+						new PlayerInventoryItemStack(gbd(WoodenPick.class), 1L)
 
-				})
+					})
+				)
 			)
 		);
 
 		this.recipeList.addItem(
 			new CraftingRecipeRenderableListItem(
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(IronOxide.class), 5L),
-					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 5L)
-				}),
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(MetallicIron.class), 1L)
+				new CraftingRecipe(
+					Arrays.asList(new PlayerInventoryItemStack [] {
+						new PlayerInventoryItemStack(gbd(Rock.class), 3L),
+						new PlayerInventoryItemStack(gbd(WoodenBlock.class), 2L)
+					}),
+					Arrays.asList(new PlayerInventoryItemStack [] {
+						new PlayerInventoryItemStack(gbd(StonePick.class), 1L)
 
-				})
+					})
+				)
 			)
 		);
 
 		this.recipeList.addItem(
 			new CraftingRecipeRenderableListItem(
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(Rock.class), 3L),
-					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 2L)
-				}),
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(StonePick.class), 1L)
+				new CraftingRecipe(
+					Arrays.asList(new PlayerInventoryItemStack [] {
+						new PlayerInventoryItemStack(gbd(IronOxide.class), 5L),
+						new PlayerInventoryItemStack(gbd(WoodenBlock.class), 5L)
+					}),
+					Arrays.asList(new PlayerInventoryItemStack [] {
+						new PlayerInventoryItemStack(gbd(MetallicIron.class), 1L)
 
-				})
+					})
+				)
 			)
 		);
 
 		this.recipeList.addItem(
 			new CraftingRecipeRenderableListItem(
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 5L)
-				}),
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(WoodenPick.class), 1L)
+				new CraftingRecipe(
+					Arrays.asList(new PlayerInventoryItemStack [] {
+						new PlayerInventoryItemStack(gbd(MetallicIron.class), 3L),
+						new PlayerInventoryItemStack(gbd(WoodenBlock.class), 2L)
+					}),
+					Arrays.asList(new PlayerInventoryItemStack [] {
+						new PlayerInventoryItemStack(gbd(IronPick.class), 1L)
 
-				})
-			)
-		);
-
-		this.recipeList.addItem(
-			new CraftingRecipeRenderableListItem(
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 999999995L)
-				}),
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(WoodenPick.class), 1L)
-
-				})
-			)
-		);
-
-		this.recipeList.addItem(
-			new CraftingRecipeRenderableListItem(
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 5L)
-				}),
-				Arrays.asList(new PlayerInventoryItemStack [] {
-					new PlayerInventoryItemStack(gbd(WoodenPick.class), 88888881L)
-
-				})
+					})
+				)
 			)
 		);
 	}
@@ -153,7 +155,28 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 	}
 
 	public void onKeyboardInput(byte [] characters) throws Exception {
-		logger.info("Crafting frame, discarding keyboard input: " + new String(characters, "UTF-8"));
+		UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
+		for(byte b : characters){
+			String actionString = new String(new byte [] {b}, "UTF-8");
+			UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
+
+			if(action == null){
+				logger.info("Ignoring " + b);
+			}else{
+				switch(action){
+					case ACTION_CRAFTING:{
+						this.clientBlockModelContext.putWorkItem(new TryCraftingWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+						break;
+					}case ACTION_ENTER:{
+						//  The clientBlockModelContext should already know what the currently selected recipe is:
+						this.clientBlockModelContext.putWorkItem(new TryCraftingWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+						break;
+					}default:{
+						logger.info("Crafting frame, discarding keyboard input: " + new String(characters, "UTF-8"));
+					}
+				}
+			}
+		}
 	}
 
 	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{

@@ -30,16 +30,18 @@
 //  SOFTWARE.
 package org.res.block;
 
-public abstract class BlockModelContextWorkItem extends WorkItem{
-	protected BlockModelContext blockModelContext;
+import java.util.List;
+import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 
-	public BlockModelContextWorkItem(BlockModelContext blockModelContext){
-		super(false);
-		this.blockModelContext = blockModelContext;
+public class TryCraftingWorkItem extends BlockModelContextWorkItem {
+
+	public TryCraftingWorkItem(BlockModelContext blockModelContext){
+		super(blockModelContext);
 	}
 
-	public BlockModelContextWorkItem(BlockModelContext blockModelContext, boolean isBlocking){
-		super(isBlocking);
-		this.blockModelContext = blockModelContext;
+	public void doWork() throws Exception{
+		((ClientBlockModelContext)this.blockModelContext).onTryCrafting();
 	}
 }

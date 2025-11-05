@@ -55,12 +55,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState {
+public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState implements RenderableListContainer {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
-	private RenderableList<DebugRendererListItem> recipeList = new RenderableList<DebugRendererListItem>(3L, 8L, 10L, 4L);
+	private RenderableList<DebugRendererListItem> recipeList;
 	private ClientBlockModelContext clientBlockModelContext;
 
 	public DebugListInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
@@ -68,7 +68,15 @@ public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 
+	}
+
+	public void init() throws Exception{
+		this.recipeList = new RenderableList<DebugRendererListItem>(this, 3L, 8L, 10L, 4L, "Default list is empty.");
 		this.addDebugRecipeItems();
+	}
+
+	public void onSelectionChange(Long selectedIndex) throws Exception{
+		
 	}
 
 	private void addDebugRecipeItems() throws Exception {

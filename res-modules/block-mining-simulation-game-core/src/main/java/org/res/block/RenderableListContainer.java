@@ -30,16 +30,10 @@
 //  SOFTWARE.
 package org.res.block;
 
-public abstract class BlockModelContextWorkItem extends WorkItem{
-	protected BlockModelContext blockModelContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
 
-	public BlockModelContextWorkItem(BlockModelContext blockModelContext){
-		super(false);
-		this.blockModelContext = blockModelContext;
-	}
-
-	public BlockModelContextWorkItem(BlockModelContext blockModelContext, boolean isBlocking){
-		super(isBlocking);
-		this.blockModelContext = blockModelContext;
-	}
+public interface RenderableListContainer {
+	public void onSelectionChange(Long selectedIndex) throws Exception;
 }
