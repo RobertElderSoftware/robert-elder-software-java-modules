@@ -67,21 +67,26 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
-
 	}
 
-	public void init() throws Exception{
+	protected void init() throws Exception{
 		this.recipeList = new RenderableList<CraftingRecipeRenderableListItem>(this, 1L, 1L, 10L, 2L, "There are no crafting recipes.");
 		this.addRecipeItems();
 
-		/*
+		//  Get the last known selected recipe:
 		GetCurrentCraftingRecipeSelectionWorkItemResult result = (GetCurrentCraftingRecipeSelectionWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(
 			new GetCurrentCraftingRecipeSelectionWorkItem(this.clientBlockModelContext),
 			WorkItemPriority.PRIORITY_LOW
 		);
 
+		//  Set that recipe as the selected one:
 		CraftingRecipe currentlySelectedRecipe = result.getCraftingRecipe();
-		*/
+		for(int i = 0; i < this.recipeList.getListItems().size(); i++){
+			if(this.recipeList.getListItems().get(i).getCraftingRecipe().equals(currentlySelectedRecipe)){
+				this.recipeList.recalculateConstants(this);
+				this.recipeList.setSelectedListIndex(this, (long)i);
+			}
+		}
 	}
 
 	public void onSelectionChange(Long selectedIndex) throws Exception{

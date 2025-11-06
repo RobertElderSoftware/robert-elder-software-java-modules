@@ -68,6 +68,9 @@ public class EmptyFrameThreadState extends UserInterfaceFrameThreadState {
 		this.clientBlockModelContext = clientBlockModelContext;
 	}
 
+	protected void init(){
+	}
+
 	public void onKeyboardInput(byte [] characters) throws Exception {
 		logger.info("Empty frame, discarding keyboard input: " + new String(characters, "UTF-8"));
 	}

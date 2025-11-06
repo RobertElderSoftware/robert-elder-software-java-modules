@@ -63,7 +63,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private TextWidthMeasurementWorkItem currentTextWidthMeasurement = null;
 	private final List<Long> mapAreaInterfaceFrameIds = new ArrayList<Long>();
-	private final List<Long> inventoryInterfaceFrameIds = new ArrayList<Long>();
 
 	private BlockingQueue<TextWidthMeasurementWorkItem> pendingTextWidthRequests = new LinkedBlockingDeque<TextWidthMeasurementWorkItem>();
 	private BlockingQueue<ConsoleQueueableWorkItem> pendingQueueableWorkItems = new LinkedBlockingDeque<ConsoleQueueableWorkItem>();
@@ -112,12 +111,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.initializeConsole(80L, 24L); // Early setup is necessary so we can do text width calculations before drawing frame
 
 		int numMapAreas = 1;
-		int numInventoryAreas = 1;
 		for(int i = 0; i < numMapAreas; i++){
 			this.createFrameAndThread(MapAreaInterfaceThreadState.class);
-		}
-		for(int i = 0; i < numInventoryAreas; i++){
-			this.createFrameAndThread(InventoryInterfaceThreadState.class);
 		}
 
 		boolean useMultiSplitDemo = false;
@@ -126,9 +121,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			for(Long mapAreaInterfaceFrameId : this.mapAreaInterfaceFrameIds){
 				splits1.add(makeLeafNodeSplit(mapAreaInterfaceFrameId));
 			}
-			for(Long inventoryInterfaceFrameId : this.inventoryInterfaceFrameIds){
-				splits1.add(makeLeafNodeSplit(inventoryInterfaceFrameId));
-			}
+			splits1.add(makeLeafNodeSplit(createFrameAndThread(InventoryInterfaceThreadState.class)));
 			splits1.add(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class)));
 
 			List<Long> splits2 = new ArrayList<Long>();
@@ -164,10 +157,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				splits.add(makeLeafNodeSplit(mapAreaInterfaceFrameId));
 				framePercents.add(0.75 / this.mapAreaInterfaceFrameIds.size());
 			}
-			for(Long inventoryInterfaceFrameId : this.inventoryInterfaceFrameIds){
-				splits.add(makeLeafNodeSplit(inventoryInterfaceFrameId));
-				framePercents.add(0.25 / this.inventoryInterfaceFrameIds.size());
-			}
+			splits.add(makeLeafNodeSplit(createFrameAndThread(InventoryInterfaceThreadState.class)));
+			framePercents.add(0.25);
+
 			Long subSplit = makeHorizontalSplit();
 			this.addSplitPartsByIds(subSplit, splits);
 			((UserInterfaceSplitMulti)this.getUserInterfaceSplitById(subSplit)).setSplitPercentages(framePercents);
@@ -346,11 +338,11 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			);
 		}else if(frameStateClass == DebugListInterfaceThreadState.class){
 			DebugListInterfaceThreadState thread = new DebugListInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
-			thread.init();
+			thread.putWorkItem(new InitializeYourselfUIWorkItem(thread), WorkItemPriority.PRIORITY_LOW);
 			return addFrameState(thread);
 		}else if(frameStateClass == CraftingInterfaceThreadState.class){
 			CraftingInterfaceThreadState thread = new CraftingInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
-			thread.init();
+			thread.putWorkItem(new InitializeYourselfUIWorkItem(thread), WorkItemPriority.PRIORITY_LOW);
 			return addFrameState(thread);
 		}else if(frameStateClass == MapAreaInterfaceThreadState.class){
 			Long mapId = addFrameState(
@@ -362,13 +354,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			}
 			return mapId;
 		}else if(frameStateClass == InventoryInterfaceThreadState.class){
-			Long inventoryId = addFrameState(
-				new InventoryInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
-			);
-			if(this.playerInventory != null){
-				this.onPlayerInventoryChange(this.playerInventory);
-			}
-			this.inventoryInterfaceFrameIds.add(inventoryId);
+			InventoryInterfaceThreadState thread = new InventoryInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
+			thread.putWorkItem(new InitializeYourselfUIWorkItem(thread), WorkItemPriority.PRIORITY_LOW);
+			Long inventoryId = addFrameState(thread);
 			return inventoryId;
 		}else{
 			throw new Exception("Unknown frame state type " + frameStateClass.getName());
@@ -486,7 +474,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public Long onCloseFrame(Long frameId) throws Exception{
 		this.destroyFrameStateAndThreadById(frameId);
 		this.focusedFrameId = null;
-		this.inventoryInterfaceFrameIds.remove(frameId);
 		this.mapAreaInterfaceFrameIds.remove(frameId);
 		return frameId;
 	}
@@ -621,14 +608,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			throw new Exception("Trying to set focused frame to a frame that does not exist: " + frameIdToFocusOn);
 		}
 		return previouslyFocusedFrameId;
-	}
-
-	public void onPlayerInventoryChange(PlayerInventory playerInventory) throws Exception{
-		this.playerInventory = playerInventory;
-		for(Long inventoryInterfaceFrameId : this.inventoryInterfaceFrameIds){
-			InventoryInterfaceThreadState inv = (InventoryInterfaceThreadState)this.getFrameStateById(inventoryInterfaceFrameId);
-			inv.putWorkItem(new PlayerInventoryChangeWorkItem(inv, new PlayerInventory(playerInventory.getBlockData())), WorkItemPriority.PRIORITY_LOW);
-		}
 	}
 
 	public void updateMapAreaFlags(CuboidAddress areaToUpdate) throws Exception {
@@ -1063,12 +1042,12 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 				TextWidthMeasurementWorkItemResult r = this.currentTextWidthMeasurement.getResult();
 				if(r != null){ //  Did we actually get a result yet?
 					this.addResultForThreadId(r, this.currentTextWidthMeasurement.getThreadId()); //  Unblock whatever thread was waiting.
-					logger.info("In CharacterWidthMeasurementThreadState, Added a text width result for '" + this.currentTextWidthMeasurement.getText() + "' with a value of deltaX=" + r.getDeltaX() + ", deltaY=" + r.getDeltaY() + ",  thread_id=" + this.currentTextWidthMeasurement.getThreadId());
+					logger.info("In ConsoleWriterThreadState, Added a text width result for '" + this.currentTextWidthMeasurement.getText() + "' with a value of deltaX=" + r.getDeltaX() + ", deltaY=" + r.getDeltaY() + ",  thread_id=" + this.currentTextWidthMeasurement.getThreadId());
 					this.currentTextWidthMeasurement = null; //  Allow for processing of next character width request.
 				}
 			}
+			return (pendingQueueableWorkItems.size() > 0) || (currentTextWidthMeasurement == null && this.pendingTextWidthRequests.size() > 0); // There is no additional work we can do until we get another work item.
 		}
-		return pendingQueueableWorkItems.size() > 0; // There is no additional work we can do until we get another work item.
 	}
 
 	public WorkItemResult putBlockingWorkItem(ConsoleWriterWorkItem workItem, WorkItemPriority priority) throws Exception {

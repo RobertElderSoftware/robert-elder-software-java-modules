@@ -85,6 +85,9 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 		this.inMemoryChunks = inMemoryChunks;
 	}
 
+	protected void init(){
+	}
+
 	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
 		return this.blockManagerThreadCollection;
 	}

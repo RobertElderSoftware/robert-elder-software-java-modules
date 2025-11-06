@@ -496,6 +496,21 @@ public class RenderableList<T extends RenderableListItem> {
 		}
 	}
 
+	public void setSelectedListIndex(UserInterfaceFrameThreadState frame, Long listIndex) throws Exception{
+		if(list.size() > 0){
+			if(hasVerticalOrientation(frame)){
+				this.selectedIndexX = listIndex / this.gridHeight;
+				this.selectedIndexY = listIndex % this.gridHeight;
+			}else{
+				this.selectedIndexX = listIndex % this.gridWidth;
+				this.selectedIndexY = listIndex / this.gridWidth;
+			}
+		}else{
+			this.selectedIndexX = 0L;
+			this.selectedIndexY = 0L;
+		}
+	}
+
 	public void recalculateConstants(UserInterfaceFrameThreadState frame) throws Exception{
 
 		this.listItemHeight = calculateListItemHeight(frame);

@@ -31,20 +31,19 @@
 package org.res.block;
 
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
 import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class CNPlayerInventoryChangeWorkItem extends ConsoleWriterWorkItem {
+public class InitializeYourselfUIWorkItem extends UIWorkItem {
 
-	private PlayerInventory playerInventory;
-
-	public CNPlayerInventoryChangeWorkItem(ConsoleWriterThreadState consoleWriterThreadState, PlayerInventory playerInventory){
-		super(consoleWriterThreadState, false);
-		this.playerInventory = playerInventory;
+	public InitializeYourselfUIWorkItem(UserInterfaceFrameThreadState userInterfaceFrameThreadState){
+		super(userInterfaceFrameThreadState, false);
 	}
 
 	public void doWork() throws Exception{
-		this.consoleWriterThreadState.onPlayerInventoryChange(playerInventory);
+		this.userInterfaceFrameThreadState.init();
 	}
 }

@@ -77,6 +77,9 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		this.helpMenu = new HelpMenu(false, new HelpMenuLevel(Arrays.asList()));
 	}
 
+	protected void init(){
+	}
+
 	public SubMenuHelpMenuOption makeMoveToSubmenu(String menuTitle, SplitInfoWorkItemResult parentSplitInfo, SplitInfoWorkItemResult info, int numSiblings) throws Exception{
 		List<HelpMenuOption> options = new ArrayList<HelpMenuOption>();
 		if(numSiblings > 0L){

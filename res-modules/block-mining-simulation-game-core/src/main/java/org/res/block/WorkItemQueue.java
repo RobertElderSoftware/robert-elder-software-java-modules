@@ -109,7 +109,7 @@ public class WorkItemQueue<T extends WorkItem> {
 	}
 
 	public void addResultForThreadId(WorkItemResult workItemResult, Long threadId) throws Exception {
-		logger.info("About to add a result queue item for blocking work items that will be returned to thread_id=" + threadId);
+		logger.info("About to return a blocking result " + workItemResult.getClass() + " to thread_id=" + threadId);
 		this.blockingWorkItemResults.get(threadId).put(workItemResult);
 	}
 }

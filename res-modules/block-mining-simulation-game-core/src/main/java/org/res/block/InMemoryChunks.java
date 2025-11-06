@@ -80,6 +80,9 @@ public class InMemoryChunks extends WorkItemQueueOwner<InMemoryChunksWorkItem> {
 		return this.blockModelContext;
 	}
 
+	protected void init(){
+	}
+
 	public boolean isChunkLoadedOrPending(CuboidAddress c) throws Exception{
 		synchronized(lock){
 			if(

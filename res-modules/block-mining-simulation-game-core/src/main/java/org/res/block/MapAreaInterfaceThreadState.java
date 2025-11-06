@@ -86,6 +86,9 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 	}
 
+	protected void init(){
+	}
+
 	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{
 		if(ansiEscapeSequence instanceof AnsiEscapeSequenceUpArrowKey){
 			this.onTryPositionChange(0L, 0L, 1L, true);

@@ -60,4 +60,33 @@ public class CraftingRecipe {
 		this.consumedItems = consumedItems;
 		this.producedItems = producedItems;
 	}
+
+	@Override
+	public final int hashCode(){
+		return 1;
+	}
+
+	@Override
+	public final boolean equals(Object o){
+		CraftingRecipe c = (CraftingRecipe)o;
+		if(c == null){
+			return false;
+		}else{
+			if(this.getConsumedItems().size() == c.getConsumedItems().size() && this.getProducedItems().size() == c.getProducedItems().size()){
+				for(int i = 0; i < this.getConsumedItems().size(); i++){
+					if(!this.getConsumedItems().get(i).equals(c.getConsumedItems().get(i))){
+						return false;
+					}
+				}
+				for(int i = 0; i < this.getProducedItems().size(); i++){
+					if(!this.getProducedItems().get(i).equals(c.getProducedItems().get(i))){
+						return false;
+					}
+				}
+				return true;
+			}else{
+				return false;
+			}
+		}
+	}
 }

@@ -73,6 +73,9 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 		this.clientBlockModelContext = clientBlockModelContext;
 	}
 
+	protected void init(){
+	}
+
 	public String getKeyPresentation(String s){
 		if(s.equals("\u001b")){
 			return "ESC";

@@ -32,6 +32,7 @@ package org.res.block;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 
 
@@ -85,11 +86,30 @@ public class PlayerInventoryItemStack {
 		return gson.toJson(this.asJsonElement());
 	}
 
-	public Long getQuantity() throws Exception {
+	public Long getQuantity() {
 		return this.quantity;
 	}
 
-	public byte [] getBlockData() throws Exception {
+	public byte [] getBlockData() {
 		return this.blockData;
+	}
+
+	@Override
+	public final int hashCode(){
+		return 1;
+	}
+
+	@Override
+	public boolean equals(Object o){
+		PlayerInventoryItemStack c = (PlayerInventoryItemStack)o;
+		if(c == null){
+			return false;
+		}else{
+			if(Arrays.equals(this.getBlockData(), c.getBlockData()) && this.getQuantity().equals(c.getQuantity())){
+				return true;
+			}else{
+				return false;
+			}
+		}
 	}
 }

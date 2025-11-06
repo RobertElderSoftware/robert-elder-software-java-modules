@@ -66,6 +66,17 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 		this.logMessage("Ran init of ClientBlockModelContext.");
 
+		//  Set up initial crafting recipe:
+		this.currentCraftingRecipe = new CraftingRecipe(
+			Arrays.asList(new PlayerInventoryItemStack [] {
+				new PlayerInventoryItemStack(this.getBlockDataForClass(WoodenBlock.class), 5L)
+			}),
+			Arrays.asList(new PlayerInventoryItemStack [] {
+				new PlayerInventoryItemStack(this.getBlockDataForClass(WoodenPick.class), 1L)
+
+			})
+		);
+
 		/*  This defines the dimensions of the 'chunks' that are loaded into memory as we move around */
 		CuboidAddress chunkSizeCuboidAddress = new CuboidAddress(new Coordinate(Arrays.asList(0L, 0L, 0L, 0L)), new Coordinate(Arrays.asList(3L, 3L, 5L, 1L)));
 		this.inMemoryChunks = new InMemoryChunks(blockManagerThreadCollection, this, chunkSizeCuboidAddress);
@@ -73,8 +84,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.chunkInitializerThreadState = new ChunkInitializerThreadState(blockManagerThreadCollection, this, this.inMemoryChunks);
 		this.consoleWriterThreadState = new ConsoleWriterThreadState(blockManagerThreadCollection, this);
 		this.consoleWriterThreadState.init();
-
-		
 
 		if(this.blockManagerThreadCollection.getIsJNIEnabled()){
 			this.sigwinchListenerThreadState = new SIGWINCHListenerThreadState(blockManagerThreadCollection, this);
@@ -91,16 +100,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.blockManagerThreadCollection.addThread(new StandardInputReaderTask(this, this.consoleWriterThreadState));
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(this, BlockModelContextWorkItem.class, this.getClass()));
 
-		//  Set up initial crafting recipe:
-		this.currentCraftingRecipe = new CraftingRecipe(
-			Arrays.asList(new PlayerInventoryItemStack [] {
-				new PlayerInventoryItemStack(this.getBlockDataForClass(WoodenBlock.class), 5L)
-			}),
-			Arrays.asList(new PlayerInventoryItemStack [] {
-				new PlayerInventoryItemStack(this.getBlockDataForClass(WoodenPick.class), 1L)
-
-			})
-		);
 	}
 
 
@@ -297,6 +296,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			Integer compatibilityWidth = this.blockManagerThreadCollection.getCompatibilityWidth();
 
 			TextWidthMeasurementWorkItem wm = new TextWidthMeasurementWorkItem(this.consoleWriterThreadState, text);
+			this.logMessage("ClientBlockModelContext sending blocking work item for width of text '" + text + "'...");
 			TextWidthMeasurementWorkItemResult result = (TextWidthMeasurementWorkItemResult)this.consoleWriterThreadState.putBlockingWorkItem(wm, WorkItemPriority.PRIORITY_LOW);
 			if(
 				//  If compatibility width is turned on
@@ -610,7 +610,8 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 
 	public void onPlayerInventoryChange() throws Exception{
-		this.consoleWriterThreadState.putWorkItem(new CNPlayerInventoryChangeWorkItem(this.consoleWriterThreadState, new PlayerInventory(this.playerInventory.getBlockData())), WorkItemPriority.PRIORITY_LOW);
+		//this.consoleWriterThreadState.putWorkItem(new CNPlayerInventoryChangeWorkItem(this.consoleWriterThreadState, new PlayerInventory(this.playerInventory.getBlockData())), WorkItemPriority.PRIORITY_LOW);
+		//TODO:  Send this even to subscribed inventories.
 	}
 
 	public void enqueueChunkUnsubscriptionForServer(List<CuboidAddress> cuboidAddresses, WorkItemPriority priority) throws Exception{
@@ -661,7 +662,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	public void getCurrentCraftingRecipeSelection(WorkItem workItem) throws Exception{
 		if(this.currentCraftingRecipe == null){
-			throw new Exception("currentCraftingRecipe == null");
+			throw new Exception("this.currentCraftingRecipe == null");
 		}else{
 			this.workItemQueue.addResultForThreadId(new GetCurrentCraftingRecipeSelectionWorkItemResult(this.currentCraftingRecipe), workItem.getThreadId());
 		}
