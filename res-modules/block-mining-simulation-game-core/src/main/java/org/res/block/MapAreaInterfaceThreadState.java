@@ -459,4 +459,12 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	public boolean doBackgroundProcessing() throws Exception{
 		return false;
 	}
+
+	public void onUIEventNotification(Object o, UINotificationType notificationType) throws Exception{
+		switch(notificationType){
+			default:{
+				throw new Exception("Unknown event notification type: " + notificationType);
+			}
+		}
+	}
 }

@@ -87,10 +87,10 @@ public class RenderableList<T extends RenderableListItem> {
 	}
 
 	public void notifySelectionChanged(UserInterfaceFrameThreadState frame) throws Exception{
-		this.container.onSelectionChange(this.gridPositionToListIndex(frame, this.selectedIndexX, this.selectedIndexY));
+		this.container.onSelectionChange(this.gridPositionToListIndex(this.selectedIndexX, this.selectedIndexY));
 	}
 
-	public boolean hasVerticalOrientation(UserInterfaceFrameThreadState frame) throws Exception{
+	public boolean hasVerticalOrientation() throws Exception{
 		//  The 'orientation' of the list will flip depending on the height/width ratio
 		//  of the list's draw area.  I measured the pixels on one individual character
 		//  column in my terminal and it was 22px wide by 10px tall:
@@ -115,7 +115,7 @@ public class RenderableList<T extends RenderableListItem> {
 	}
 
 	private Long calculateListItemWidth(UserInterfaceFrameThreadState frame) throws Exception{
-		if(hasVerticalOrientation(frame)){
+		if(hasVerticalOrientation()){
 			return Math.max(0L, (listAreaLayer.getWidth() - getRightScrollBarCrossSection(frame) - (this.maxVisibleAdjacentLists - spw(frame))) / this.maxVisibleAdjacentLists);
 		}else{
 			return Math.max(0L, (long)Math.ceil(this.defaultWidth * aspectRatio));
@@ -123,7 +123,7 @@ public class RenderableList<T extends RenderableListItem> {
 	}
 
 	private Long calculateListItemHeight(UserInterfaceFrameThreadState frame) throws Exception{
-		if(hasVerticalOrientation(frame)){
+		if(hasVerticalOrientation()){
 			return Math.max(0L, (long)Math.ceil(this.defaultHeight * aspectRatio));
 		}else{
 			return Math.max(0L, (listAreaLayer.getHeight() - getBottomScrollBarCrossSection(frame) - (this.maxVisibleAdjacentLists - lnh())) / this.maxVisibleAdjacentLists);
@@ -150,7 +150,7 @@ public class RenderableList<T extends RenderableListItem> {
 			//  Right boundary for list area
 			(selectedIndexX.equals(this.gridWidth-1L)) ||
 			//  Or, last element in list which may not be against bottom boundary
-			gridPositionToListIndex(frame, selectedIndexX + 1L, selectedIndexY) >= (list.size())
+			gridPositionToListIndex(selectedIndexX + 1L, selectedIndexY) >= (list.size())
 		){
 			//  Do nothing.
 		}else{
@@ -186,7 +186,7 @@ public class RenderableList<T extends RenderableListItem> {
 			//  Bottom boundary for list area
 			(this.selectedIndexY.equals(this.gridHeight-1L)) ||
 			//  Or, last element in list which may not be against bottom boundary
-			gridPositionToListIndex(frame, selectedIndexX, selectedIndexY + 1L) >= (list.size())
+			gridPositionToListIndex(selectedIndexX, selectedIndexY + 1L) >= (list.size())
 		){
 			//  Do nothing.
 		}else{
@@ -242,9 +242,9 @@ public class RenderableList<T extends RenderableListItem> {
 
 	/*
 	public Long getStartingOffsetForItemIndex(UserInterfaceFrameThreadState frame, Long n) throws Exception{
-		Long listItemCrossSection = hasVerticalOrientation(frame) ? listItemHeight : listItemWidth;
-		Long space = hasVerticalOrientation(frame) ? lnh() : spw(frame);
-		Long maxGridColumnSize = hasVerticalOrientation(frame) ? (long)this.gridHeight : (long)this.gridWidth;
+		Long listItemCrossSection = hasVerticalOrientation() ? listItemHeight : listItemWidth;
+		Long space = hasVerticalOrientation() ? lnh() : spw(frame);
+		Long maxGridColumnSize = hasVerticalOrientation() ? (long)this.gridHeight : (long)this.gridWidth;
 		Long itemsBefore = (n % maxGridColumnSize);
 		//  Width/height of each list item, plus the spaces in between all those items:
 		return ((itemsBefore * listItemCrossSection) + (itemsBefore * space));
@@ -403,7 +403,7 @@ public class RenderableList<T extends RenderableListItem> {
 	}
 
 	public int getLowerItemIndex(UserInterfaceFrameThreadState frame) throws Exception{
-		if(hasVerticalOrientation(frame)){
+		if(hasVerticalOrientation()){
 			return (int)(getLowerVisibleAreaColumnY() / (listItemHeight + lnh()));
 		}else{
 			return (int)(getLowerVisibleAreaColumnX() / (listItemWidth + spw(frame)));
@@ -411,7 +411,7 @@ public class RenderableList<T extends RenderableListItem> {
 	}
 
 	public int getUpperItemIndex(UserInterfaceFrameThreadState frame)throws Exception{
-		if(hasVerticalOrientation(frame)){
+		if(hasVerticalOrientation()){
 			return (int)Math.ceil((double)getUpperVisibleAreaColumnY() / (double)(listItemHeight + lnh()));
 		}else{
 			return (int)Math.ceil((double)getUpperVisibleAreaColumnX() / (double)(listItemWidth + spw(frame)));
@@ -425,6 +425,9 @@ public class RenderableList<T extends RenderableListItem> {
 
 	public void updateRenderableArea(UserInterfaceFrameThreadState frame, CuboidAddress ca) throws Exception{
 
+		//  Get index of selected list item from before:
+		Long selectedIndexBefore = gridPositionToListIndex(this.selectedIndexX, this.selectedIndexY);
+
 		Long xOffset = ca.getCanonicalLowerCoordinate().getX();
 		Long yOffset = ca.getCanonicalLowerCoordinate().getY();
 		Coordinate placementOffset = new Coordinate(Arrays.asList(xOffset, yOffset));
@@ -433,7 +436,7 @@ public class RenderableList<T extends RenderableListItem> {
 		//  Initialize to an obvious pattern for testing.  
 		this.listAreaLayer.initializeInRegion(1, "M", new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR, UserInterfaceFrameThreadState.YELLOW_BG_COLOR}, null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, (int)ca.getWidth(), (int)ca.getHeight())), true, true);
 
-		this.recalculateConstants(frame); //  Relies on current state of this.listAreaLayer
+		this.recalculateConstants(frame, selectedIndexBefore); //  Relies on current state of this.listAreaLayer
 
 		for(int i = 0; i < list.size(); i++){
 			RenderableListItem listItem = list.get(i);
@@ -480,8 +483,8 @@ public class RenderableList<T extends RenderableListItem> {
 		}
 	}
 
-	public Long gridPositionToListIndex(UserInterfaceFrameThreadState frame, Long x, Long y) throws Exception{
-		if(hasVerticalOrientation(frame)){
+	public Long gridPositionToListIndex(Long x, Long y) throws Exception{
+		if(hasVerticalOrientation()){
 			/* Vertical orientation list rendering order is
 			   0 3 6
 			   1 4 7 
@@ -498,7 +501,7 @@ public class RenderableList<T extends RenderableListItem> {
 
 	public void setSelectedListIndex(UserInterfaceFrameThreadState frame, Long listIndex) throws Exception{
 		if(list.size() > 0){
-			if(hasVerticalOrientation(frame)){
+			if(hasVerticalOrientation()){
 				this.selectedIndexX = listIndex / this.gridHeight;
 				this.selectedIndexY = listIndex % this.gridHeight;
 			}else{
@@ -511,15 +514,14 @@ public class RenderableList<T extends RenderableListItem> {
 		}
 	}
 
-	public void recalculateConstants(UserInterfaceFrameThreadState frame) throws Exception{
-
+	private void recalculateConstants(UserInterfaceFrameThreadState frame, Long selectedIndexBefore) throws Exception{
 		this.listItemHeight = calculateListItemHeight(frame);
 		this.listItemWidth = calculateListItemWidth(frame);
 
 		Long minRows = (long)Math.ceil((double)list.size() / (double)maxAdjacentLists);
 		Long minCols = (long)Math.ceil((double)list.size() / (double)Math.max(minRows, 1L));
 
-		if(hasVerticalOrientation(frame)){
+		if(hasVerticalOrientation()){
 			this.gridWidth = minCols.intValue();
 			this.gridHeight = minRows.intValue();
 		}else{
@@ -532,26 +534,36 @@ public class RenderableList<T extends RenderableListItem> {
 		this.hasRightScrollBar = this.getHasRightScrollBar(frame);
 		this.hasBottomScrollBar = this.getHasBottomScrollBar(frame);
 
+
 		for(int i = 0; i < this.gridWidth; i++){
 			for(int j = 0; j < this.gridHeight; j++){
-				int listIndex = this.gridPositionToListIndex(frame, (long)i, (long)j).intValue();
+				int listIndex = this.gridPositionToListIndex((long)i, (long)j).intValue();
 				if(listIndex < list.size()){
 					this.grid[i][j] = list.get(listIndex);
 				}else{
 					this.grid[i][j] = null;
 				}
+				if(selectedIndexBefore.equals((long)listIndex)){
+					//  Set new index which might have changed if orientation changed:
+					this.selectedIndexX = (long)i;
+					this.selectedIndexY = (long)j;
+				}
 			}
 		}
 
-		if(hasVerticalOrientation(frame)){
+		if(hasVerticalOrientation()){
 			//this.xColumnOffset = 0L;
 		}else{
 			//this.yColumnOffset = 0L;
 		}
 	}
 
+	public void clearList(){
+		this.list = new ArrayList<T>();
+	}
+
 	public void addItem(T item){
-		list.add(item);
+		this.list.add(item);
 	}
 
 	public int size(){

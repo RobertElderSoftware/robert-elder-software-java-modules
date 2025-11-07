@@ -74,16 +74,21 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 		this.addRecipeItems();
 
 		//  Get the last known selected recipe:
-		GetCurrentCraftingRecipeSelectionWorkItemResult result = (GetCurrentCraftingRecipeSelectionWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(
-			new GetCurrentCraftingRecipeSelectionWorkItem(this.clientBlockModelContext),
+		UIModelProbeWorkItemResult result = (UIModelProbeWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(
+			new UIModelProbeWorkItem(
+				this.clientBlockModelContext,
+				UINotificationType.CURRENTLY_SELECTED_CRAFTING_RECIPE,
+				UINotificationSubscriptionType.READ,
+				this
+			),
 			WorkItemPriority.PRIORITY_LOW
 		);
 
 		//  Set that recipe as the selected one:
-		CraftingRecipe currentlySelectedRecipe = result.getCraftingRecipe();
+		CraftingRecipe currentlySelectedRecipe = (CraftingRecipe)result.getObject();
 		for(int i = 0; i < this.recipeList.getListItems().size(); i++){
 			if(this.recipeList.getListItems().get(i).getCraftingRecipe().equals(currentlySelectedRecipe)){
-				this.recipeList.recalculateConstants(this);
+				this.updateListDisplayArea();
 				this.recipeList.setSelectedListIndex(this, (long)i);
 			}
 		}
@@ -204,16 +209,7 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 		return this.blockManagerThreadCollection;
 	}
 
-	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
-		int [] titleAnsiCodes = UserInterfaceFrameThreadState.getHelpDetailsTitleColors();
-
-		ColouredTextFragmentList topTitlePart = new ColouredTextFragmentList();
-		topTitlePart.add(new ColouredTextFragment("Crafting Recipes", titleAnsiCodes));
-
-		List<LinePrintingInstruction> titleInstructions = this.getLinePrintingInstructions(topTitlePart, 1L, 1L, false, false, this.getInnerFrameWidth());
-
-		this.executeLinePrintingInstructionsAtYOffset(titleInstructions, 2L);
-
+	public void updateListDisplayArea() throws Exception{
 		Long linesOnTop = 3L;
 		Long sidePadding = 0L;
 		Long fchw = this.getFrameCharacterWidth();
@@ -231,7 +227,18 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 				bottomRightCorner
 			)
 		);
+	}
 
+	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
+		int [] titleAnsiCodes = UserInterfaceFrameThreadState.getHelpDetailsTitleColors();
+
+		ColouredTextFragmentList topTitlePart = new ColouredTextFragmentList();
+		topTitlePart.add(new ColouredTextFragment("Crafting Recipes", titleAnsiCodes));
+
+		List<LinePrintingInstruction> titleInstructions = this.getLinePrintingInstructions(topTitlePart, 1L, 1L, false, false, this.getInnerFrameWidth());
+
+		this.executeLinePrintingInstructionsAtYOffset(titleInstructions, 2L);
+		this.updateListDisplayArea();
 		this.recipeList.render(this, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
 		this.drawBorders();
 	}
@@ -247,5 +254,13 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 
 	public boolean doBackgroundProcessing() throws Exception{
 		return false;
+	}
+
+	public void onUIEventNotification(Object o, UINotificationType notificationType)throws Exception{
+		switch(notificationType){
+			default:{
+				throw new Exception("Unknown event notification type: " + notificationType);
+			}
+		}
 	}
 }

@@ -49,11 +49,12 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	private final Coordinate playerPositionBlockAddress = new Coordinate(Arrays.asList(99999999L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's position will be stored.
 	private final Coordinate playerInventoryBlockAddress = new Coordinate(Arrays.asList(99999998L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's inventory will be stored.
 	private PlayerPositionXYZ playerPositionXYZ = null;
-	private PlayerInventory playerInventory = null;
+	private PlayerInventory playerInventory = new PlayerInventory();
 
 	private CuboidAddress mapAreaCuboidAddress;
 	private Class<?> selectedBlockClass = null;
 	private CraftingRecipe currentCraftingRecipe = null;
+	private Map<UINotificationType, Set<UserInterfaceFrameThreadState>> uiEventSubscriptions = new HashMap<UINotificationType, Set<UserInterfaceFrameThreadState>>();
 
 	public ClientBlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ClientServerInterface clientServerInterface) throws Exception {
 		super(blockManagerThreadCollection, clientServerInterface);
@@ -109,10 +110,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	public Coordinate getPlayerPosition(){
 		return this.playerPositionXYZ == null ? null : this.playerPositionXYZ.getPosition();
-	}
-
-	public PlayerInventory getPlayerInventory(){
-		return this.playerInventory;
 	}
 
 	public Long getTerminalDimension(int index, Long defaultValue){
@@ -242,7 +239,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			this.playerInventory.addItemCountToInventory(pickDataToUse, -1L);
 		}
 		if(numBlocksMined > 0L){
-			this.onPlayerInventoryChange();
+			this.onPlayerInventoryChangeNotify();
 		}
 		this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
 	}
@@ -252,7 +249,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			byte [] blockDataToPlace = this.getBlockDataForClass(this.selectedBlockClass);
 			if(this.playerInventory.containsBlockCount(blockDataToPlace, 1L)){
 				this.playerInventory.addItemCountToInventory(blockDataToPlace, -1L);
-				this.onPlayerInventoryChange();
+				this.onPlayerInventoryChangeNotify();
 				this.doBlockWriteAtPlayerPosition(blockDataToPlace, this.getPlayerPosition(), 0L);
 				this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
 			}else{
@@ -288,7 +285,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		}else{
 			this.logMessage("Did not have enough reagents to craft anything.");
 		}
-		this.onPlayerInventoryChange();
+		this.onPlayerInventoryChangeNotify();
 	}
 
 	private TextWidthMeasurementWorkItemResult measureSingleCharacterDisplacement(String text) throws Exception{
@@ -426,10 +423,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		String exampleFrameCharacter = mode.equals(GraphicsMode.ASCII) ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_HORIZONTAL;
 		Long frameCharacterWidth = this.measureTextLengthOnTerminal(exampleFrameCharacter).getDeltaX();
 		this.consoleWriterThreadState.putWorkItem(new TerminalDimensionsChangedWorkItem(this.consoleWriterThreadState, terminalWidth, terminalHeight, frameCharacterWidth), WorkItemPriority.PRIORITY_LOW);
-
-		if(this.playerInventory != null){
-			this.onPlayerInventoryChange();
-		}
 	}
 
 	public void checkForSpecialCoordinateUpdates(Coordinate currentCoordinate, byte [] blockData) throws Exception{
@@ -448,19 +441,16 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			}
 			consoleWriterThreadState.putWorkItem(new CNMapAreaNotifyPlayerPositionChangeWorkItem(consoleWriterThreadState, null, this.playerPositionXYZ.getPosition().copy()), WorkItemPriority.PRIORITY_LOW);
 			this.onTerminalWindowChanged();
-		}else if(this.playerInventory == null && currentCoordinate.equals(playerInventoryBlockAddress)){
+		}else if(currentCoordinate.equals(playerInventoryBlockAddress) && this.playerInventory.getInventoryItemStackList().size() == 0){
 
 			IndividualBlock blockWritten = blockData == null ? new UninitializedBlock() : this.deserializeBlockData(blockData);
 
 			if(blockWritten instanceof UninitializedBlock){
-				this.playerInventory = new PlayerInventory();
-				this.onPlayerInventoryChange();
+				this.onPlayerInventoryChange(new PlayerInventory());
 				this.logMessage("initialize an empty inventory.");
 			}else if(blockWritten instanceof PlayerInventory){
 				// Make a new copy of the position to operate on:
-				this.playerInventory = new PlayerInventory(new String(blockWritten.getBlockData(), "UTF-8"));
-
-				this.onPlayerInventoryChange();
+				this.onPlayerInventoryChange(new PlayerInventory(new String(blockWritten.getBlockData(), "UTF-8")));
 
 				this.logMessage("Loading this new inventory: " + new String(blockWritten.getBlockData(), "UTF-8"));
 			}else{
@@ -609,9 +599,13 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 
-	public void onPlayerInventoryChange() throws Exception{
-		//this.consoleWriterThreadState.putWorkItem(new CNPlayerInventoryChangeWorkItem(this.consoleWriterThreadState, new PlayerInventory(this.playerInventory.getBlockData())), WorkItemPriority.PRIORITY_LOW);
-		//TODO:  Send this even to subscribed inventories.
+	public void onPlayerInventoryChangeNotify() throws Exception{
+		this.sendUIEventsToSubscribedThreads(UINotificationType.CURRENT_INVENTORY, new PlayerInventory(this.playerInventory.getBlockData()));
+	}
+
+	public void onPlayerInventoryChange(PlayerInventory newInventory) throws Exception{
+		this.playerInventory = newInventory;
+		this.onPlayerInventoryChangeNotify();
 	}
 
 	public void enqueueChunkUnsubscriptionForServer(List<CuboidAddress> cuboidAddresses, WorkItemPriority priority) throws Exception{
@@ -660,11 +654,37 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		}
 	}
 
-	public void getCurrentCraftingRecipeSelection(WorkItem workItem) throws Exception{
-		if(this.currentCraftingRecipe == null){
-			throw new Exception("this.currentCraftingRecipe == null");
-		}else{
-			this.workItemQueue.addResultForThreadId(new GetCurrentCraftingRecipeSelectionWorkItemResult(this.currentCraftingRecipe), workItem.getThreadId());
+	public void sendUIEventsToSubscribedThreads(UINotificationType notificationType, Object o) throws Exception{
+		if(uiEventSubscriptions.containsKey(notificationType)){
+			Set<UserInterfaceFrameThreadState> subscribedThreads = uiEventSubscriptions.get(notificationType);
+			for(UserInterfaceFrameThreadState subscribedThread : subscribedThreads){
+				subscribedThread.putWorkItem(new UIEventNotificationWorkItem(subscribedThread, o, notificationType), WorkItemPriority.PRIORITY_LOW);
+			}
+		}
+	}
+
+	public void addUIEventSubscription(UINotificationType notificationType, UserInterfaceFrameThreadState userInterfaceFrameThreadState) throws Exception{
+		if(!uiEventSubscriptions.containsKey(notificationType)){
+			this.uiEventSubscriptions.put(notificationType, new HashSet<UserInterfaceFrameThreadState>());
+		}
+		Set<UserInterfaceFrameThreadState> subscribedThreadStates = uiEventSubscriptions.get(notificationType);
+		subscribedThreadStates.add(userInterfaceFrameThreadState);
+	}
+
+	public void doUIModelProbeWorkItem(WorkItem workItem, UINotificationType notificationType, UINotificationSubscriptionType subscriptionType, UserInterfaceFrameThreadState userInterfaceFrameThreadState) throws Exception{
+		switch(notificationType){
+			case CURRENTLY_SELECTED_CRAFTING_RECIPE:{
+				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(this.currentCraftingRecipe), workItem.getThreadId());
+				break;
+			}case CURRENT_INVENTORY:{
+				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(this.playerInventory), workItem.getThreadId());
+				break;
+			}default:{
+				throw new Exception("Unexpected notificationType=" + notificationType.toString());
+			}
+		}
+		if(subscriptionType.equals(UINotificationSubscriptionType.SUBSCRIBE)){
+			this.addUIEventSubscription(notificationType, userInterfaceFrameThreadState);
 		}
 	}
 }

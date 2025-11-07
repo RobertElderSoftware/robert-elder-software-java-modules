@@ -58,7 +58,6 @@ import java.lang.invoke.MethodHandles;
 public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState implements RenderableListContainer {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private PlayerInventory playerInventory = null;
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 	private Long selectedInventoryItemIndex = null;
 	private RenderableList<InventoryItemRenderableListItem> inventoryItemList;
@@ -73,15 +72,33 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	
 	protected void init() throws Exception{
 		this.inventoryItemList = new RenderableList<InventoryItemRenderableListItem>(this, 1L, 1L, 10L, 2L, "There are no inventory items.");
+
+		//  Get the last known selected recipe:
+		UIModelProbeWorkItemResult result = (UIModelProbeWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(
+			new UIModelProbeWorkItem(
+				this.clientBlockModelContext,
+				UINotificationType.CURRENT_INVENTORY,
+				UINotificationSubscriptionType.SUBSCRIBE,
+				this
+			),
+			WorkItemPriority.PRIORITY_LOW
+		);
+
+		//  Set that recipe as the selected one:
+		PlayerInventory playerInventory = (PlayerInventory)result.getObject();
+		for(PlayerInventoryItemStack stack : playerInventory.getInventoryItemStackList()){
+			this.inventoryItemList.addItem(new InventoryItemRenderableListItem(stack));
+		}
 	}
 
 	public void onSelectionChange(Long newSelection) throws Exception{
-		InventoryItemRenderableListItem renderer = this.inventoryItemList.getListItems().get(newSelection.intValue());
-		PlayerInventoryItemStack currentStack = renderer.getPlayerInventoryItemStack();
-		IndividualBlock blockFromStack = currentStack.getBlock(this.blockManagerThreadCollection.getBlockSchema());
-		this.clientBlockModelContext.putWorkItem(new InventoryItemSelectionChangeWorkItem(this.clientBlockModelContext, blockFromStack.getClass()), WorkItemPriority.PRIORITY_LOW);
+		if(this.inventoryItemList.getListItems().size() > 0){
+			InventoryItemRenderableListItem renderer = this.inventoryItemList.getListItems().get(newSelection.intValue());
+			PlayerInventoryItemStack currentStack = renderer.getPlayerInventoryItemStack();
+			IndividualBlock blockFromStack = currentStack.getBlock(this.blockManagerThreadCollection.getBlockSchema());
+			this.clientBlockModelContext.putWorkItem(new InventoryItemSelectionChangeWorkItem(this.clientBlockModelContext, blockFromStack.getClass()), WorkItemPriority.PRIORITY_LOW);
+		}
 	}
-
 
 	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{
 		ScreenLayer bottomLayer = this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT];
@@ -125,10 +142,6 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	}
 
 	public void onPlayerInventoryChange(PlayerInventory playerInventory) throws Exception{
-		this.playerInventory = playerInventory;
-		if(this.getFrameWidth() != null && this.getFrameHeight() != null){
-			this.reprintFrame();
-		}
 		this.onFinalizeFrame();
 	}
 
@@ -231,16 +244,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		*/
 	}
 
-	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
-		int [] titleAnsiCodes = UserInterfaceFrameThreadState.getHelpDetailsTitleColors();
-
-		ColouredTextFragmentList topTitlePart = new ColouredTextFragmentList();
-		topTitlePart.add(new ColouredTextFragment("Inventory Items", titleAnsiCodes));
-
-		List<LinePrintingInstruction> titleInstructions = this.getLinePrintingInstructions(topTitlePart, 1L, 1L, false, false, this.getInnerFrameWidth());
-
-		this.executeLinePrintingInstructionsAtYOffset(titleInstructions, 2L);
-
+	public void updateListDisplayArea() throws Exception{
 		Long linesOnTop = 3L;
 		Long sidePadding = 0L;
 		Long fchw = this.getFrameCharacterWidth();
@@ -258,7 +262,18 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 				bottomRightCorner
 			)
 		);
+	}
 
+	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
+		int [] titleAnsiCodes = UserInterfaceFrameThreadState.getHelpDetailsTitleColors();
+
+		ColouredTextFragmentList topTitlePart = new ColouredTextFragmentList();
+		topTitlePart.add(new ColouredTextFragment("Inventory Items", titleAnsiCodes));
+
+		List<LinePrintingInstruction> titleInstructions = this.getLinePrintingInstructions(topTitlePart, 1L, 1L, false, false, this.getInnerFrameWidth());
+
+		this.executeLinePrintingInstructionsAtYOffset(titleInstructions, 2L);
+		this.updateListDisplayArea();
 		this.inventoryItemList.render(this, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
 		this.drawBorders();
 	}
@@ -270,10 +285,6 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 
 	private Long getUsableFrameHeight() throws Exception{
 		return this.getInnerFrameHeight();
-	}
-
-	private PlayerInventory getPlayerInventory()throws Exception{
-		return this.playerInventory;
 	}
 
 	public UIWorkItem takeWorkItem() throws Exception {
@@ -291,5 +302,22 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 
 	public boolean doBackgroundProcessing() throws Exception{
 		return false;
+	}
+
+	public void onUIEventNotification(Object o, UINotificationType notificationType) throws Exception{
+		switch(notificationType){
+			case CURRENT_INVENTORY:{
+				PlayerInventory playerInventory = (PlayerInventory)o;
+				this.inventoryItemList.clearList();
+				for(PlayerInventoryItemStack stack : playerInventory.getInventoryItemStackList()){
+					this.inventoryItemList.addItem(new InventoryItemRenderableListItem(stack));
+				}
+				this.onRenderFrame(false, false);
+				this.onFinalizeFrame();
+				break;
+			}default:{
+				throw new Exception("Unknown event notification type: " + notificationType);
+			}
+		}
 	}
 }

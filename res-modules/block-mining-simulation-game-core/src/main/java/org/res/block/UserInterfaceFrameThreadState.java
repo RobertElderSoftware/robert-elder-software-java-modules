@@ -68,10 +68,9 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 	protected int [] usedScreenLayers;
 	protected ScreenLayerMergeType [] usedScreenLayersMergeTypes;
 
-
-
 	private final AtomicLong frameDimensionsChangeSeq = new AtomicLong(0);
 
+	public abstract void onUIEventNotification(Object o, UINotificationType notificationType) throws Exception;
 	public abstract void putWorkItem(UIWorkItem workItem, WorkItemPriority priority) throws Exception;
 	public abstract void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception;
 	public abstract void onKeyboardInput(byte [] characters) throws Exception;

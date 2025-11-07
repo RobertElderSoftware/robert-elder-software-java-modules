@@ -35,15 +35,25 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class GetCurrentCraftingRecipeSelectionWorkItemResult extends WorkItemResult {
 
-	private CraftingRecipe recipe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
 
-	public GetCurrentCraftingRecipeSelectionWorkItemResult(CraftingRecipe recipe){
-		this.recipe = recipe;
+public class UIModelProbeWorkItem extends BlockModelContextWorkItem {
+
+	private UINotificationType notificationType;
+	private UINotificationSubscriptionType subscriptionType;
+	private UserInterfaceFrameThreadState userInterfaceFrameThreadState;
+
+	public UIModelProbeWorkItem(BlockModelContext blockModelContext, UINotificationType notificationType, UINotificationSubscriptionType subscriptionType, UserInterfaceFrameThreadState userInterfaceFrameThreadState){
+		super(blockModelContext, true);
+		this.notificationType = notificationType;
+		this.subscriptionType = subscriptionType;
+		this.userInterfaceFrameThreadState = userInterfaceFrameThreadState;
 	}
 
-	public CraftingRecipe getCraftingRecipe(){
-		return this.recipe;
+	public void doWork() throws Exception{
+		((ClientBlockModelContext)this.blockModelContext).doUIModelProbeWorkItem(this, notificationType, subscriptionType, userInterfaceFrameThreadState);
 	}
 }
