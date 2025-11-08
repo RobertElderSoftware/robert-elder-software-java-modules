@@ -71,7 +71,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	}
 	
 	protected void init() throws Exception{
-		this.inventoryItemList = new RenderableList<InventoryItemRenderableListItem>(this, 1L, 1L, 10L, 2L, "There are no inventory items.");
+		this.inventoryItemList = new RenderableList<InventoryItemRenderableListItem>(this, 3L, 3L, 10L, 3L, "There are no inventory items.");
 
 		//  Get the last known selected recipe:
 		UIModelProbeWorkItemResult result = (UIModelProbeWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(
@@ -245,7 +245,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	}
 
 	public void updateListDisplayArea() throws Exception{
-		Long linesOnTop = 3L;
+		Long linesOnTop = 0L;
 		Long sidePadding = 0L;
 		Long fchw = this.getFrameCharacterWidth();
 		Long x1 = fchw + sidePadding;
@@ -265,14 +265,6 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	}
 
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
-		int [] titleAnsiCodes = UserInterfaceFrameThreadState.getHelpDetailsTitleColors();
-
-		ColouredTextFragmentList topTitlePart = new ColouredTextFragmentList();
-		topTitlePart.add(new ColouredTextFragment("Inventory Items", titleAnsiCodes));
-
-		List<LinePrintingInstruction> titleInstructions = this.getLinePrintingInstructions(topTitlePart, 1L, 1L, false, false, this.getInnerFrameWidth());
-
-		this.executeLinePrintingInstructionsAtYOffset(titleInstructions, 2L);
 		this.updateListDisplayArea();
 		this.inventoryItemList.render(this, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
 		this.drawBorders();

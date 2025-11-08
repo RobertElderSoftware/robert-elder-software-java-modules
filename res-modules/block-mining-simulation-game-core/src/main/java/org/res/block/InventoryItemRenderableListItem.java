@@ -52,18 +52,15 @@ public class InventoryItemRenderableListItem extends RenderableListItem{
 		GraphicsMode mode = frame.getBlockManagerThreadCollection().getGraphicsMode();
 		boolean useAscii = mode.equals(GraphicsMode.ASCII);
 
-		int [] bgColours = isSelected ? new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR} : UserInterfaceFrameThreadState.getDefaultListItemBGColor(useAscii);
+		int [] bgColours = isSelected ? new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR} : UserInterfaceFrameThreadState.getDefaultBGColors();
 
-		int [] titleFGColours = new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR, UserInterfaceFrameThreadState.BOLD_COLOR, UserInterfaceFrameThreadState.UNDERLINE_COLOR};
-		int [] titleColours = UserInterfaceFrameThreadState.concatIntArrays(titleFGColours, bgColours);
-
-		int [] defaultFGColours = isSelected ? new int [] {UserInterfaceFrameThreadState.WHITE_FG_COLOR} : new int [] {UserInterfaceFrameThreadState.YELLOW_FG_COLOR};
+		int [] defaultFGColours = isSelected ? new int [] {UserInterfaceFrameThreadState.WHITE_FG_COLOR} : new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR};
 		int [] defaultColours = UserInterfaceFrameThreadState.concatIntArrays(defaultFGColours, bgColours);
 
 		this.displayLayer.initializeInRegion(1, " ", defaultColours, null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, this.displayLayer.getWidth(), this.displayLayer.getHeight())), true, true);
 
 
-		Long currentLine = 1L;
+		Long currentLine = 0L;
 		Long rightPadding = 1L;
 		Long leftPadding = 1L;
 		List<LinePrintingInstructionAtOffset> instructions = new ArrayList<LinePrintingInstructionAtOffset>();
