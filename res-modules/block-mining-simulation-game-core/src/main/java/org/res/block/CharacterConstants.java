@@ -53,6 +53,7 @@ public class CharacterConstants {
 	public static final String SPACE = " ";
 	public static final String PLUS_SIGN = "+";
 	public static final String EQUALS_SIGN = "=";
+	public static final String ASTERISK = "*";
 	public static final String VERTICAL_LINE = "|";
 	public static final String BOX_DRAWINGS_LIGHT_VERTICAL_AND_HORIZONTAL = "\u253C"; // ┼
 	public static final String BOX_DRAWINGS_DOWN_DOUBLE_AND_HORIZONTAL_SINGLE = "\u2565"; // ╥

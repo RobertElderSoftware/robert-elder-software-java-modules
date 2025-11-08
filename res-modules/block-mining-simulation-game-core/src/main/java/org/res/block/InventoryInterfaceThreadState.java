@@ -71,7 +71,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	}
 	
 	protected void init() throws Exception{
-		this.inventoryItemList = new RenderableList<InventoryItemRenderableListItem>(this, 3L, 3L, 10L, 3L, "There are no inventory items.");
+		this.inventoryItemList = new RenderableList<InventoryItemRenderableListItem>(this, 3L, 3L, 25L, 1L, "There are no inventory items.");
 
 		//  Get the last known selected recipe:
 		UIModelProbeWorkItemResult result = (UIModelProbeWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(
@@ -184,64 +184,10 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		return rtn;
 	}
 
-	public void printInventoryColumn(List<ColouredTextFragmentList> column, Long offset) throws Exception{
-
-		Long yPaddingTop = this.getInnerFrameHeight() < 2L ? 1L : 2L;
-		
-		if(this.getInnerFrameWidth() > 0L){
-			List<LinePrintingInstructionAtOffset> instructionsAtOffset = new ArrayList<LinePrintingInstructionAtOffset>();
-			for(int i = 0; i < column.size(); i++){
-				ColouredTextFragmentList text = column.get(i);
-				Long yOffset = yPaddingTop + (i * 2L);
-				//this.printTextAtScreenXY(text, 2L + offset, yOffset, true);
-
-				Long xOffset = this.getMapAreaCellWidth() + offset;
-				Long paddingLeft = xOffset;
-				Long paddingRight = this.getInnerFrameWidth() - (xOffset + getInventoryColumnWidth()) + 2L;
-				paddingRight = Math.max(2L, paddingRight);
-				if((paddingLeft + 1L) < this.getInnerFrameWidth()){ // Don't print beyond the edge of the frame.
-					List<LinePrintingInstruction> instructions = this.getLinePrintingInstructions(text, paddingLeft, paddingRight, true, false, this.getInnerFrameWidth());
-					instructionsAtOffset.addAll(this.wrapLinePrintingInstructionsAtOffset(instructions, yOffset, 1L));
-				}
-			}
-			for(LinePrintingInstructionAtOffset instruction : instructionsAtOffset){
-				Long lineOffset = instruction.getOffsetY();
-				if((lineOffset >= 1L) && (lineOffset <= this.getFrameHeight() -2L)){
-					this.executeLinePrintingInstructionsAtYOffset(Arrays.asList(instruction.getLinePrintingInstruction()), lineOffset);
-				}
-			}
-		}
-	}
-
-	public Long getInventoryColumnWidth(){
-		return 30L;
-	}
-
 	public void reprintFrame() throws Exception {
 		this.drawBorders();
 
 		this.printTextAtScreenXY(new ColouredTextFragment("- Inventory -", UserInterfaceFrameThreadState.getDefaultTextColors()), 5L, 0L, true);
-
-		/*
-		List<ColouredTextFragmentList> inventoryItemTextLists = new ArrayList<ColouredTextFragmentList>();
-		PlayerInventory inventory = this.getPlayerInventory();
-		if(inventory != null){
-			List<PlayerInventoryItemStack> itemStacks = inventory.getInventoryItemStackList();
-			if(itemStacks.size() == 0){
-				inventoryItemTextLists.add(new ColouredTextFragmentList(new ColouredTextFragment("Empty.", UserInterfaceFrameThreadState.getDefaultTextColors())));
-			}else{
-				for(int i = 0; i < itemStacks.size(); i++){
-					PlayerInventoryItemStack stack = itemStacks.get(i);
-					inventoryItemTextLists.add(makeInventoryItemText(stack, i));
-				}
-			}
-		}
-
-		List<List<ColouredTextFragmentList>> columns = this.divideIntoColumns(inventoryItemTextLists, getMaxItemsInColumn());
-		for(int i = 0; i < columns.size(); i++){
-			this.printInventoryColumn(columns.get(i), getInventoryColumnWidth() * i);
-		}
-		*/
 	}
 
 	public void updateListDisplayArea() throws Exception{
@@ -260,7 +206,8 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 			new CuboidAddress(
 				topLeftCorner,
 				bottomRightCorner
-			)
+			),
+			true
 		);
 	}
 
@@ -268,15 +215,6 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		this.updateListDisplayArea();
 		this.inventoryItemList.render(this, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
 		this.drawBorders();
-	}
-
-	private Long getMaxItemsInColumn()throws Exception{
-		Long m = this.getUsableFrameHeight() / 2L; // Two rows per item
-		return m < 1L ? 1L : m;
-	}
-
-	private Long getUsableFrameHeight() throws Exception{
-		return this.getInnerFrameHeight();
 	}
 
 	public UIWorkItem takeWorkItem() throws Exception {
@@ -300,10 +238,12 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		switch(notificationType){
 			case CURRENT_INVENTORY:{
 				PlayerInventory playerInventory = (PlayerInventory)o;
-				this.inventoryItemList.clearList();
+				List<InventoryItemRenderableListItem> renderers = new ArrayList<InventoryItemRenderableListItem>();
 				for(PlayerInventoryItemStack stack : playerInventory.getInventoryItemStackList()){
-					this.inventoryItemList.addItem(new InventoryItemRenderableListItem(stack));
+					renderers.add(new InventoryItemRenderableListItem(stack));
 				}
+				this.inventoryItemList.replaceList(renderers);
+				this.onSelectionChange(this.inventoryItemList.getCurrentlySelectedListIndex());
 				this.onRenderFrame(false, false);
 				this.onFinalizeFrame();
 				break;

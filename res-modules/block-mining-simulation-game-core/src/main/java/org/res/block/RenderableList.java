@@ -119,13 +119,13 @@ public class RenderableList<T extends RenderableListItem> {
 			Long scrollBar = includeScrollBar ? getRightScrollBarCrossSection(frame) : 0L;
 			return Math.max(0L, (listAreaLayer.getWidth() - scrollBar - (this.maxVisibleAdjacentLists - spw(frame))) / this.maxVisibleAdjacentLists);
 		}else{
-			return Math.max(0L, (long)Math.ceil(this.defaultWidth * aspectRatio));
+			return Math.max(0L, (long)Math.ceil(this.defaultHeight * aspectRatio));
 		}
 	}
 
 	private Long calculateListItemHeight(UserInterfaceFrameThreadState frame, boolean includeScrollBar) throws Exception{
 		if(hasVerticalOrientation()){
-			return Math.max(0L, (long)Math.ceil(this.defaultHeight * aspectRatio));
+			return Math.max(0L, (long)Math.ceil(this.defaultHeight / aspectRatio));
 		}else{
 			Long scrollBar = includeScrollBar ? getBottomScrollBarCrossSection(frame) : 0L;
 			return Math.max(0L, (listAreaLayer.getHeight() - scrollBar - (this.maxVisibleAdjacentLists - lnh())) / this.maxVisibleAdjacentLists);
@@ -268,7 +268,7 @@ public class RenderableList<T extends RenderableListItem> {
 		return getOffsetForGridItem(n, this.listItemHeight, lnh(), (long)this.gridHeight, true);
 	}
 
-	public ColouredTextFragmentList makeScrollTextFragmentList(UserInterfaceFrameThreadState frame, Long textColumnHeight, boolean isVertical) throws Exception{
+	public ColouredTextFragmentList makeScrollTextFragmentList(UserInterfaceFrameThreadState frame, Long textColumnHeight, boolean isVertical, boolean useAscii) throws Exception{
 		ColouredTextFragmentList rtn = new ColouredTextFragmentList();
 
 		double visibleListAreaCrossSection = isVertical ? (double)listAreaLayer.getHeight() : (double)listAreaLayer.getWidth();
@@ -292,8 +292,6 @@ public class RenderableList<T extends RenderableListItem> {
 			throw new Exception("One of the scroll bar components was negative: beforeScrollBar=" + beforeScrollBar + " inScrollBar=" + inScrollBar + " afterScrollBar=" + afterScrollBar + "");
 		}
 
-		GraphicsMode mode = frame.getBlockManagerThreadCollection().getGraphicsMode();
-		boolean useAscii = mode.equals(GraphicsMode.ASCII);
 
 		String dc = isVertical ? RenderableList.VERTICAL_SCROLL_BAR_CHARACTER : CharacterConstants.EQUALS_SIGN;
 
@@ -313,6 +311,8 @@ public class RenderableList<T extends RenderableListItem> {
 	}
 
 	public void renderList(UserInterfaceFrameThreadState frame, ScreenLayer bottomLayer) throws Exception{
+		GraphicsMode mode = frame.getBlockManagerThreadCollection().getGraphicsMode();
+		boolean useAscii = mode.equals(GraphicsMode.ASCII);
 		for(int i = 0; i < this.gridWidth; i++){
 			for(int j = 0; j < this.gridHeight; j++){
 				Long x = getStartingOffsetForGridItemAtX(frame, (long)i) - xColumnOffset;
@@ -354,7 +354,7 @@ public class RenderableList<T extends RenderableListItem> {
 	
 		//  Right Scroll bar
 		for(long i = 0; i < actualRightScrollBarWidth; i++){
-			frame.printTextAtScreenXY(makeScrollTextFragmentList(frame, rightScrollBarCharacterHeight, true), rightScrollBarOffset + i, 0L, false, this.listAreaLayer);
+			frame.printTextAtScreenXY(makeScrollTextFragmentList(frame, rightScrollBarCharacterHeight, true, useAscii), rightScrollBarOffset + i, 0L, false, this.listAreaLayer);
 		}
 
 
@@ -363,7 +363,7 @@ public class RenderableList<T extends RenderableListItem> {
 		//  Bottom Scroll bar
 		Long bottomScrollBarOffset = listAreaLayer.getHeight() - actualBottomScrollBarHeight;
 		for(long i = 0; i < getBottomScrollBarCrossSection(frame); i++){
-			frame.printTextAtScreenXY(makeScrollTextFragmentList(frame, bottomScrollBarCharacterWidth, false), 0L, bottomScrollBarOffset + i, true, this.listAreaLayer);
+			frame.printTextAtScreenXY(makeScrollTextFragmentList(frame, bottomScrollBarCharacterWidth, false, useAscii), 0L, bottomScrollBarOffset + i, true, this.listAreaLayer);
 		}
 
 		//  Initialize any empty area to right of list any before any scroll bar/right edge of frame:
@@ -384,9 +384,19 @@ public class RenderableList<T extends RenderableListItem> {
 			frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(nSpacesUnderOnLeft), UserInterfaceFrameThreadState.getDefaultBGColors()), listBottomLeftEdgeX, listBottomEdgeY + i, true, this.listAreaLayer);
 		}
 
+		if(this.hasRightScrollBar && this.hasBottomScrollBar){
+			//  When both scroll bars are active there is
+			//  an unitialized area in the bottom right hand corner:
+			Long xDrawOffset = listAreaLayer.getWidth() - actualRightScrollBarWidth;
+			Long yDrawOffset = listAreaLayer.getHeight() - actualBottomScrollBarHeight;
+			for(long i = 0L; i < actualBottomScrollBarHeight; i++){
+				frame.printTextAtScreenXY(new ColouredTextFragment(CharacterConstants.ASTERISK.repeat(actualRightScrollBarWidth.intValue()), UserInterfaceFrameThreadState.getScrollBarDefaultColors(useAscii)), xDrawOffset, yDrawOffset + i, true, this.listAreaLayer);
+			}
+		}
+
 		if(list.size() == 0){
 			String msg = this.emptyMessage;
-			int len = msg.length();
+			Long len = frame.getClientBlockModelContext().measureTextLengthOnTerminal(msg).getDeltaX();
 			Long x = (listAreaLayer.getWidth() / 2L) - (((long)len) / 2L);
 			Long y = (listAreaLayer.getHeight() / 2L);
 			frame.printTextAtScreenXY(new ColouredTextFragment(msg, UserInterfaceFrameThreadState.getDefaultTextColors()), x, y, true, this.listAreaLayer);
@@ -415,6 +425,10 @@ public class RenderableList<T extends RenderableListItem> {
 	}
 
 	public void updateRenderableArea(UserInterfaceFrameThreadState frame, CuboidAddress ca) throws Exception{
+		this.updateRenderableArea(frame, ca, false);
+	}
+
+	public void updateRenderableArea(UserInterfaceFrameThreadState frame, CuboidAddress ca, boolean adjustAdjacentColumns) throws Exception{
 
 		//  Get index of selected list item from before:
 		Long selectedIndexBefore = gridPositionToListIndex(this.selectedIndexX, this.selectedIndexY);
@@ -426,6 +440,19 @@ public class RenderableList<T extends RenderableListItem> {
 		this.listAreaLayer = new ScreenLayer(placementOffset, ScreenLayer.makeDimensionsCA(0, 0, (int)ca.getWidth(), (int)ca.getHeight()));
 		//  Initialize to an obvious pattern for testing.  
 		this.listAreaLayer.initializeInRegion(1, "M", new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR, UserInterfaceFrameThreadState.YELLOW_BG_COLOR}, null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, (int)ca.getWidth(), (int)ca.getHeight())), true, true);
+
+		//  If this flag is set, automatically figure out # of adjacent columns based on available space:
+		if(adjustAdjacentColumns){
+			Long listCrossToUse = hasVerticalOrientation() ? (long)this.listAreaLayer.getWidth() : (long)this.listAreaLayer.getHeight();
+			Long itemCrossToUse = hasVerticalOrientation() ? this.defaultWidth : this.defaultHeight;
+			Long space = hasVerticalOrientation() ? spw(frame) : lnh();
+			Long scrollBar = hasVerticalOrientation() ? getRightScrollBarCrossSection(frame) : getBottomScrollBarCrossSection(frame);
+			Long calcMaxAdj = (listCrossToUse - scrollBar + space) / (space + itemCrossToUse);
+			Long defaultMaxAdj = Math.max(1L, calcMaxAdj);
+
+			this.maxVisibleAdjacentLists = defaultMaxAdj;
+			this.maxAdjacentLists = defaultMaxAdj;
+		}
 
 		this.recalculateConstants(frame, selectedIndexBefore); //  Relies on current state of this.listAreaLayer
 
@@ -480,6 +507,10 @@ public class RenderableList<T extends RenderableListItem> {
 			   6 7 8 */
 			return this.gridWidth * y + x;
 		}
+	}
+
+	public Long getCurrentlySelectedListIndex() throws Exception{
+		return this.gridPositionToListIndex(this.selectedIndexX, this.selectedIndexY);
 	}
 
 	public void setSelectedListIndex(UserInterfaceFrameThreadState frame, Long listIndex) throws Exception{
@@ -577,8 +608,11 @@ public class RenderableList<T extends RenderableListItem> {
 		}
 	}
 
-	public void clearList(){
-		this.list = new ArrayList<T>();
+	public void replaceList(List<T> renderers){
+		this.list.clear();
+		for(T r : renderers){
+			this.addItem(r);
+		}
 	}
 
 	public void addItem(T item){

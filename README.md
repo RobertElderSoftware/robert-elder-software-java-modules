@@ -10,23 +10,29 @@ Having said this, please do file issues if you notice something broken or undesi
 
 #  Terminal Block Mining Simulation Game
 
-![Terminal Block Mining Simulation Game](block-mining-simulation-game-thumbnail.png "Terminal Block Mining Simulation Game")
+![Terminal Block Mining Simulation Game](images/block-mining-simulation-game-thumbnail.png "Terminal Block Mining Simulation Game")
 
 This project contains the 'Terminal Block Mining Simulation Game', a video game where you simulate mining blocks of iron ore in the terminal.  The game uses procedural terrain generation and the game world itself is infinite.  The terrain will start generating automatically in the background near the player.  All generated terrain and player data is stored in a SQLite (or Postgres) database file.  The location of this world file defaults to the directory where you launch the game, but you can configure it with the '--block-world-file' flag.  You can also use the '--log-file' to set the location of a log file.  If the '--log-file' flag is omitted, logging will be disabled.
 
-#  Videos
+#  Devlog Videos
 
-###  Shorts Overview Video
-
-[Terminal Block Mining Simulation Game](https://youtu.be/RQiNQfpacco)
-
-###  Overview Video For v0.0.7 Release
+###  Overview Video For v0.0.7 Release (2025-07-25)
 
 [A Frame Based UI For Terminal Games - TBMSG v0.0.7](https://www.youtube.com/watch?v=0pePUFmaAtw)
 
-###  Overview Video For v0.0.6 Release
+[![A Frame Based UI For Terminal Games - TBMSG v0.0.7](images/0pePUFmaAtw.png)](http://www.youtube.com/watch?v=0pePUFmaAtw)
+
+###  Shorts Overview Video (2025-07-09)
+
+[Terminal Block Mining Simulation Game](https://youtu.be/RQiNQfpacco)
+
+[![Terminal Block Mining Simulation Game](images/RQiNQfpacco.png)](http://www.youtube.com/watch?v=RQiNQfpacco)
+
+###  Overview Video For v0.0.6 Release (2024-11-07)
 
 [My Terminal Based Video Game For Linux](https://www.youtube.com/watch?v=nRGTXZQg5Gg)
+
+[![My Terminal Based Video Game For Linux](images/nRGTXZQg5Gg.png)](http://www.youtube.com/watch?v=nRGTXZQg5Gg)
 
 #  Player Movement
 

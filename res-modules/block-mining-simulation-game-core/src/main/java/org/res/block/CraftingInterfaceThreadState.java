@@ -70,7 +70,7 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 	}
 
 	protected void init() throws Exception{
-		this.recipeList = new RenderableList<CraftingRecipeRenderableListItem>(this, 1L, 1L, 10L, 2L, "There are no crafting recipes.");
+		this.recipeList = new RenderableList<CraftingRecipeRenderableListItem>(this, 1L, 1L, 20L, 14L, "There are no crafting recipes.");
 		this.addRecipeItems();
 
 		//  Get the last known selected recipe:
@@ -225,7 +225,8 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 			new CuboidAddress(
 				topLeftCorner,
 				bottomRightCorner
-			)
+			),
+			true
 		);
 	}
 
@@ -235,7 +236,9 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 		ColouredTextFragmentList topTitlePart = new ColouredTextFragmentList();
 		topTitlePart.add(new ColouredTextFragment("Crafting Recipes", titleAnsiCodes));
 
-		List<LinePrintingInstruction> titleInstructions = this.getLinePrintingInstructions(topTitlePart, 1L, 1L, false, false, this.getInnerFrameWidth());
+		Long spaceWidth = clientBlockModelContext.measureTextLengthOnTerminal(CharacterConstants.SPACE).getDeltaX();
+
+		List<LinePrintingInstruction> titleInstructions = this.getLinePrintingInstructions(topTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
 
 		this.executeLinePrintingInstructionsAtYOffset(titleInstructions, 2L);
 		this.updateListDisplayArea();
