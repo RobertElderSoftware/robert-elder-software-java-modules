@@ -48,7 +48,7 @@ Press the 'm' key to mine blocks.
 
 #  Crafting
 
-You can press the 'c' key to try and craft new blocks, such as metallic iron, and an iron pickaxe.  Crafting will occur automatically if you have enough reagents. Currently, the game only supports four different crafting recipes:
+You can press the 'c' key to try and craft new blocks, such as metallic iron, and an iron pickaxe.  You can open up the crafting recipe list by pressing 'ESC' and 'Open Custom Frame'. Currently, the game only supports four different crafting recipes:
 
 -  Using wood to make a Wooden Pick Axe
 -  Using stone and wood to make a Stone Pick Axe
@@ -186,6 +186,8 @@ mvn -pl res-modules/block-mining-simulation-game-unit-tests -Dtest=BlockManagerU
 ```
 
 #  Building In IntelliJ IDEA
+
+NOTE:  Recent versions of the Intellij UI contain bugs that may prevent the game from running within the IDE.
 
 Select Menu option:  Run -> Edit Configurations -> Add New Configuration -> Maven
 
