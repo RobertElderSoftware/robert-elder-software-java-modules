@@ -72,7 +72,7 @@ You can switch focus between the 'frames' in the game's UI by pressing the 'TAB'
 You can run the .jar file with the '--help' flag to show a help menu:
 
 ```
-java -jar block-mining-simulation-game-single-player-client-0.0.8.jar --help
+java -jar block-mining-simulation-game-single-player-client-0.0.9.jar --help
 ```
 
 ```
@@ -112,7 +112,7 @@ the '--compatibility-width' flag set to 3.  This will force all non-ASCII charac
 width of 3 columns:
 
 ```
-java -jar block-mining-simulation-game-single-player-client-0.0.8.jar --compatibility-width 3
+java -jar block-mining-simulation-game-single-player-client-0.0.9.jar --compatibility-width 3
 ```
 
 #  Supported Platforms
@@ -124,8 +124,8 @@ Currently, the game has only been tested to work on a default installation of Ub
 Compiling the game from scratch is not necessary.  You can download pre-compiled .jar files from GitHub in the 'Releases' section for this repo:
 
 ```
-wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.8/block-mining-simulation-game-single-player-client-0.0.8.jar
-java -jar block-mining-simulation-game-single-player-client-0.0.8.jar
+wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.9/block-mining-simulation-game-single-player-client-0.0.9.jar
+java -jar block-mining-simulation-game-single-player-client-0.0.9.jar
 ```
 
 The game should immediately launch and fill up the terminal with graphics.  You can exit the game by pressing the 'q' key.  By default, the game saves it's world data into a SQLite database file that lives in the current directory.
@@ -135,11 +135,11 @@ The game should immediately launch and fill up the terminal with graphics.  You 
 If you are concerned about the authenticity of the .jar file, you can also verify the signature using GPG:
 
 ```
-wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.8/block-mining-simulation-game-single-player-client-0.0.8.jar.asc
+wget https://github.com/RobertElderSoftware/robert-elder-software-java-modules/releases/download/0.0.9/block-mining-simulation-game-single-player-client-0.0.9.jar.asc
 gpg --search-keys robert@robertelder.org
 #  Should match the key for 'robert@robertelder.org'
 gpg --recv-keys ECBD481DBCA5C48804FBD08720B9852CF0558BAA
-gpg --verify block-mining-simulation-game-single-player-client-0.0.8.jar.asc block-mining-simulation-game-single-player-client-0.0.8.jar
+gpg --verify block-mining-simulation-game-single-player-client-0.0.9.jar.asc block-mining-simulation-game-single-player-client-0.0.9.jar
 ```
 
 The output should look something like this:
@@ -226,7 +226,7 @@ Then, click 'run' icon to build and run single player client.
 Here is an example of how to run the game so that a debugger (such as IntelliJ) can be connected:
 
 ```
-java -agentlib:jdwp=transport=dt_socket,address=5005,server=y,suspend=y -jar res-modules/block-mining-simulation-game-single-player-client/target/block-mining-simulation-game-single-player-client-0.0.8.jar --log-file /tmp/single-player-block-client.log --block-world-file /tmp/single-player-world.sqlite
+java -agentlib:jdwp=transport=dt_socket,address=5005,server=y,suspend=y -jar res-modules/block-mining-simulation-game-single-player-client/target/block-mining-simulation-game-single-player-client-0.0.9.jar --log-file /tmp/single-player-block-client.log --block-world-file /tmp/single-player-world.sqlite
 ```
 
 #  Profiler Running Command
@@ -234,7 +234,7 @@ java -agentlib:jdwp=transport=dt_socket,address=5005,server=y,suspend=y -jar res
 Here is an example of how to run the game so that a profiler like 'visualvm' can be connected.  This is useful for profiling the efficiency of the game and determining which functions consume the most CPU cycles or memory:
 
 ```
-java -Dspring-boot.run.jvmArguments="-Xdebug -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=9010 -Dcom.sun.management.jmxremote.rmi.port=9010 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=localhost" -jar res-modules/block-mining-simulation-game-single-player-client/target/block-mining-simulation-game-single-player-client-0.0.8.jar --log-file /tmp/single-player-block-client.log --block-world-file /tmp/single-player-world.sqlite
+java -Dspring-boot.run.jvmArguments="-Xdebug -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=9010 -Dcom.sun.management.jmxremote.rmi.port=9010 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=localhost" -jar res-modules/block-mining-simulation-game-single-player-client/target/block-mining-simulation-game-single-player-client-0.0.9.jar --log-file /tmp/single-player-block-client.log --block-world-file /tmp/single-player-world.sqlite
 ```
 
 #  Alternative Key Mappings (Dvorak)
