@@ -173,6 +173,12 @@
 			"byte_pattern_base_64": "Q0FTOjEzMTctNjMtMQ==",
 			"block_class": "org.res.block.Limonite",
 			"dedication": "Stan-Stani"
-		}
+		},
+                {
+                        "match_type": "byte_comparison",
+                        "byte_pattern_base_64": "Q0FTOjE0NDc2LTE2LTU=",
+                        "block_class": "org.res.block.Siderite",
+                        "dedication": "ColdWolfActual"
+                }
 	]
 }

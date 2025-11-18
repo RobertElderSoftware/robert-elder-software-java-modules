@@ -30,38 +30,35 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.Map;
-import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
-public enum UINotificationType {
-        CURRENTLY_SELECTED_CRAFTING_RECIPE (1L),
-        CURRENT_INVENTORY (2L),
-        PLAYER_POSITION (3L),
-        UPDATE_MAP_AREA_FLAGS (4L);
 
-        private final long id;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonNull;
+import com.google.gson.reflect.TypeToken;
 
-        private UINotificationType(long i) {
-                id = i;
-        }
+public class Siderite extends IndividualBlock {
 
-        public boolean equalsId(long i) {
-                return id == i;
-        }
+	private byte [] data;
 
-        public long toLong() {
-                return this.id;
-        }
-
-	private static final Map<Long, UINotificationType> uiNotificationTypesByValue = new HashMap<Long, UINotificationType>();
-
-	static {
-		for(UINotificationType type : UINotificationType.values()) {
-			uiNotificationTypesByValue.put(type.toLong(), type);
-		}
+	public Siderite(byte [] data) throws Exception {
+		this.data = data;
 	}
 
-	public static UINotificationType forValue(long value) {
-		return uiNotificationTypesByValue.get(value);
+	public byte [] getBlockData()throws Exception {
+		return this.data;
+	}
+
+	public boolean isMineable() throws Exception{
+		return true;
 	}
 }

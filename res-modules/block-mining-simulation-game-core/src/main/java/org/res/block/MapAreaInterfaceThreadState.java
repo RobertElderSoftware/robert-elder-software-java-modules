@@ -86,7 +86,30 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 	}
 
-	protected void init(){
+	protected void init() throws Exception{
+		UIModelProbeWorkItemResult result = (UIModelProbeWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(
+			new UIModelProbeWorkItem(
+				this.clientBlockModelContext,
+				UINotificationType.PLAYER_POSITION,
+				UINotificationSubscriptionType.SUBSCRIBE,
+				this
+			),
+			WorkItemPriority.PRIORITY_LOW
+		);
+
+		//  Set initial player position:
+		this.onPlayerPositionChange(null, (Coordinate)result.getObject());
+
+		//  Subscribe to new map area flag updates:
+		this.clientBlockModelContext.putBlockingWorkItem(
+			new UIModelProbeWorkItem(
+				this.clientBlockModelContext,
+				UINotificationType.UPDATE_MAP_AREA_FLAGS,
+				UINotificationSubscriptionType.SUBSCRIBE,
+				this
+			),
+			WorkItemPriority.PRIORITY_LOW
+		);
 	}
 
 	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{
@@ -268,7 +291,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		}
 
 		//logger.info("Changed player position from " + (this.playerPosition == null ? "null" : this.playerPosition.toString()) + " to " + newPosition);
-		this.clientBlockModelContext.putWorkItem(new ClientNotifyPlayerPositionChangeWorkItem(this.clientBlockModelContext, this.playerPosition == null ? null : this.playerPosition.copy(), newPosition.copy()), WorkItemPriority.PRIORITY_LOW);
+		this.clientBlockModelContext.putWorkItem(new ClientNotifyPlayerPositionChangeWorkItem(this.clientBlockModelContext, this.playerPosition == null ? null : this.playerPosition.copy(), newPosition), WorkItemPriority.PRIORITY_LOW);
 		Coordinate lastGameInterfacePosition = this.playerPosition;
 		this.playerPosition = newPosition;
 
@@ -304,7 +327,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void updateFrameCoordinate() throws Exception {
-		String playerCoordinateString = "X=" + this.getPlayerPosition().getX() + ", Y=" + this.getPlayerPosition().getY() + ", Z=" + this.getPlayerPosition().getZ();
+		String playerCoordinateString = this.getPlayerPosition() == null ? "null" : "X=" + this.getPlayerPosition().getX() + ", Y=" + this.getPlayerPosition().getY() + ", Z=" + this.getPlayerPosition().getZ();
 		this.printTextAtScreenXY(new ColouredTextFragment(playerCoordinateString, UserInterfaceFrameThreadState.getDefaultTextColors()), 10L, 0L, true);
 	}
 
@@ -462,7 +485,13 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 	public void onUIEventNotification(Object o, UINotificationType notificationType) throws Exception{
 		switch(notificationType){
-			default:{
+			case PLAYER_POSITION:{
+				this.onPlayerPositionChange(null, (Coordinate)o);
+				break;
+			}case UPDATE_MAP_AREA_FLAGS:{
+				this.onUpdateMapAreaFlagsNotify((CuboidAddress)o);
+				break;
+			}default:{
 				throw new Exception("Unknown event notification type: " + notificationType);
 			}
 		}

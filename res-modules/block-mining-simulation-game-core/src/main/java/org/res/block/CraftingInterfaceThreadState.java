@@ -96,7 +96,7 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 
 	public void onSelectionChange(Long selectedIndex) throws Exception{
 		CraftingRecipeRenderableListItem recipe = this.recipeList.getListItems().get(selectedIndex.intValue());
-		this.clientBlockModelContext.putWorkItem(new CraftingRecipeChangeWorkItem(this.clientBlockModelContext, recipe.getCraftingRecipe()), WorkItemPriority.PRIORITY_LOW);
+		this.clientBlockModelContext.putWorkItem(new ClientModelNotificationWorkItem(this.clientBlockModelContext, recipe.getCraftingRecipe(), ClientModelNotificationType.CRAFTING_RECIPE_SELECTION_CHANGE), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	private void addRecipeItems() throws Exception {
@@ -175,11 +175,11 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 			}else{
 				switch(action){
 					case ACTION_CRAFTING:{
-						this.clientBlockModelContext.putWorkItem(new TryCraftingWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+						this.clientBlockModelContext.putWorkItem(new ClientModelNotificationWorkItem(this.clientBlockModelContext, new Object(), ClientModelNotificationType.DO_TRY_CRAFTING), WorkItemPriority.PRIORITY_LOW);
 						break;
 					}case ACTION_ENTER:{
 						//  The clientBlockModelContext should already know what the currently selected recipe is:
-						this.clientBlockModelContext.putWorkItem(new TryCraftingWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+						this.clientBlockModelContext.putWorkItem(new ClientModelNotificationWorkItem(this.clientBlockModelContext, new Object(), ClientModelNotificationType.DO_TRY_CRAFTING), WorkItemPriority.PRIORITY_LOW);
 						break;
 					}default:{
 						logger.info("Crafting frame, discarding keyboard input: " + new String(characters, "UTF-8"));

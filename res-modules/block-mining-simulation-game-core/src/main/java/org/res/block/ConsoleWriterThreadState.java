@@ -62,7 +62,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private ClientBlockModelContext clientBlockModelContext;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private TextWidthMeasurementWorkItem currentTextWidthMeasurement = null;
-	private final List<Long> mapAreaInterfaceFrameIds = new ArrayList<Long>();
 
 	private BlockingQueue<TextWidthMeasurementWorkItem> pendingTextWidthRequests = new LinkedBlockingDeque<TextWidthMeasurementWorkItem>();
 	private BlockingQueue<ConsoleQueueableWorkItem> pendingQueueableWorkItems = new LinkedBlockingDeque<ConsoleQueueableWorkItem>();
@@ -71,9 +70,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	private static final AtomicLong terminalDimensionsChangeSeq = new AtomicLong(0);
 
-	private Coordinate previousPosition;     //  For openning new map areas
-	private Coordinate newPosition;          //  For openning new map areas
-	private PlayerInventory playerInventory; //  For openning new inventories
 	private Long terminalWidth = null;
 	private Long terminalHeight = null;
 	private FrameDimensions currentTerminalFrameDimensions = null;
@@ -110,17 +106,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 		this.initializeConsole(80L, 24L); // Early setup is necessary so we can do text width calculations before drawing frame
 
-		int numMapAreas = 1;
-		for(int i = 0; i < numMapAreas; i++){
-			this.createFrameAndThread(MapAreaInterfaceThreadState.class);
-		}
-
 		boolean useMultiSplitDemo = false;
 		if(useMultiSplitDemo){
 			List<Long> splits1 = new ArrayList<Long>();
-			for(Long mapAreaInterfaceFrameId : this.mapAreaInterfaceFrameIds){
-				splits1.add(makeLeafNodeSplit(mapAreaInterfaceFrameId));
-			}
+			splits1.add(makeLeafNodeSplit(createFrameAndThread(MapAreaInterfaceThreadState.class)));
 			splits1.add(makeLeafNodeSplit(createFrameAndThread(InventoryInterfaceThreadState.class)));
 			splits1.add(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class)));
 
@@ -153,11 +142,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}else{
 			List<Double> framePercents = new ArrayList<Double>();
 			List<Long> splits = new ArrayList<Long>();
-			for(Long mapAreaInterfaceFrameId : this.mapAreaInterfaceFrameIds){
-				splits.add(makeLeafNodeSplit(mapAreaInterfaceFrameId));
-				framePercents.add(0.75 / this.mapAreaInterfaceFrameIds.size());
-			}
+			splits.add(makeLeafNodeSplit(createFrameAndThread(MapAreaInterfaceThreadState.class)));
 			splits.add(makeLeafNodeSplit(createFrameAndThread(InventoryInterfaceThreadState.class)));
+			framePercents.add(0.75);
 			framePercents.add(0.25);
 
 			Long subSplit = makeHorizontalSplit();
@@ -345,13 +332,9 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			thread.putWorkItem(new InitializeYourselfUIWorkItem(thread), WorkItemPriority.PRIORITY_LOW);
 			return addFrameState(thread);
 		}else if(frameStateClass == MapAreaInterfaceThreadState.class){
-			Long mapId = addFrameState(
-				new MapAreaInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
-			);
-			this.mapAreaInterfaceFrameIds.add(mapId);
-			if(this.newPosition != null){
-				this.onPlayerPositionChange(this.previousPosition, this.newPosition);
-			}
+			MapAreaInterfaceThreadState thread = new MapAreaInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
+			Long mapId = addFrameState(thread);
+			thread.putWorkItem(new InitializeYourselfUIWorkItem(thread), WorkItemPriority.PRIORITY_LOW);
 			return mapId;
 		}else if(frameStateClass == InventoryInterfaceThreadState.class){
 			InventoryInterfaceThreadState thread = new InventoryInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
@@ -474,7 +457,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public Long onCloseFrame(Long frameId) throws Exception{
 		this.destroyFrameStateAndThreadById(frameId);
 		this.focusedFrameId = null;
-		this.mapAreaInterfaceFrameIds.remove(frameId);
 		return frameId;
 	}
 
@@ -608,22 +590,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			throw new Exception("Trying to set focused frame to a frame that does not exist: " + frameIdToFocusOn);
 		}
 		return previouslyFocusedFrameId;
-	}
-
-	public void updateMapAreaFlags(CuboidAddress areaToUpdate) throws Exception {
-		for(Long mapAreaInterfaceFrameId : this.mapAreaInterfaceFrameIds){
-			MapAreaInterfaceThreadState m = (MapAreaInterfaceThreadState)this.getFrameStateById(mapAreaInterfaceFrameId);
-			m.putWorkItem(new UpdateMapAreaFlagsWorkItem(m, areaToUpdate.copy()), WorkItemPriority.PRIORITY_LOW);
-		}
-	}
-
-	public void onPlayerPositionChange(Coordinate previousPosition, Coordinate newPosition) throws Exception{
-		this.previousPosition = previousPosition;
-		this.newPosition = newPosition;
-		for(Long mapAreaInterfaceFrameId : this.mapAreaInterfaceFrameIds){
-			MapAreaInterfaceThreadState m = (MapAreaInterfaceThreadState)this.getFrameStateById(mapAreaInterfaceFrameId);
-			m.putWorkItem(new MapAreaNotifyPlayerPositionChangeWorkItem(m, previousPosition, newPosition), WorkItemPriority.PRIORITY_LOW);
-		}
 	}
 
 	public List<UserInterfaceFrameThreadState> collectAllUserInterfaceFrames() throws Exception{

@@ -127,7 +127,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 			}else{
 				switch(action){
 					case ACTION_CRAFTING:{
-						this.clientBlockModelContext.putWorkItem(new TryCraftingWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+						this.clientBlockModelContext.putWorkItem(new ClientModelNotificationWorkItem(this.clientBlockModelContext, new Object(), ClientModelNotificationType.DO_TRY_CRAFTING), WorkItemPriority.PRIORITY_LOW);
 						break;
 					}default:{
 						logger.info("Inventory frame, discarding keyboard input: " + new String(characters, "UTF-8"));

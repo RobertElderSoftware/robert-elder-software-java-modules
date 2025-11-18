@@ -30,23 +30,36 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
+import java.util.Map;
+import java.util.HashMap;
 
-public class CNMapAreaNotifyPlayerPositionChangeWorkItem extends ConsoleWriterWorkItem {
+public enum ClientModelNotificationType {
+        DO_TRY_CRAFTING (1L),
+	CRAFTING_RECIPE_SELECTION_CHANGE (2L);
 
-	private Coordinate previousPosition;
-	private Coordinate newPosition;
+        private final long id;
 
-	public CNMapAreaNotifyPlayerPositionChangeWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Coordinate previousPosition, Coordinate newPosition){
-		super(consoleWriterThreadState, false);
-		this.previousPosition = previousPosition;
-		this.newPosition = newPosition;
+        private ClientModelNotificationType(long i) {
+                id = i;
+        }
+
+        public boolean equalsId(long i) {
+                return id == i;
+        }
+
+        public long toLong() {
+                return this.id;
+        }
+
+	private static final Map<Long, ClientModelNotificationType> clientModelNotificationTypesByValue = new HashMap<Long, ClientModelNotificationType>();
+
+	static {
+		for(ClientModelNotificationType type : ClientModelNotificationType.values()) {
+			clientModelNotificationTypesByValue.put(type.toLong(), type);
+		}
 	}
 
-	public void doWork() throws Exception{
-		this.consoleWriterThreadState.onPlayerPositionChange(previousPosition, newPosition);
+	public static ClientModelNotificationType forValue(long value) {
+		return clientModelNotificationTypesByValue.get(value);
 	}
 }

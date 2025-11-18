@@ -103,6 +103,20 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	}
 
+	public void onClientModelNotification(Object o, ClientModelNotificationType notificationType) throws Exception{
+		switch(notificationType){
+			case DO_TRY_CRAFTING:{
+				this.onTryCrafting();
+				break;
+			}case CRAFTING_RECIPE_SELECTION_CHANGE:{
+				this.onCraftingRecipeChange((CraftingRecipe)o);
+				break;
+			}default:{
+				throw new Exception("Unknown event notification in onClientModelNotification: " + notificationType);
+			}
+		}
+	}
+
 
 	public ConsoleWriterThreadState getConsoleWriterThreadState(){
 		return consoleWriterThreadState;
@@ -439,7 +453,8 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			}else{
 				throw new Exception("Expected block to be of type PlayerPositionXYZ, but it was type " + blockWritten.getClass().getName());
 			}
-			consoleWriterThreadState.putWorkItem(new CNMapAreaNotifyPlayerPositionChangeWorkItem(consoleWriterThreadState, null, this.playerPositionXYZ.getPosition().copy()), WorkItemPriority.PRIORITY_LOW);
+
+			this.onPlayerPositionChangeNotify();
 			this.onTerminalWindowChanged();
 		}else if(currentCoordinate.equals(playerInventoryBlockAddress) && this.playerInventory.getInventoryItemStackList().size() == 0){
 
@@ -544,11 +559,11 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void inMemoryChunksCallbackOnChunkWasWritten(CuboidAddress ca) throws Exception{
-		this.consoleWriterThreadState.putWorkItem(new CNUpdateMapAreaFlagsWorkItem(consoleWriterThreadState, ca.copy()), WorkItemPriority.PRIORITY_LOW);
+		this.sendUIEventsToSubscribedThreads(UINotificationType.UPDATE_MAP_AREA_FLAGS, ca.copy());
 	}
 
 	public void inMemoryChunksCallbackOnChunkBecomesPending(CuboidAddress ca) throws Exception{
-		this.consoleWriterThreadState.putWorkItem(new CNUpdateMapAreaFlagsWorkItem(consoleWriterThreadState, ca.copy()), WorkItemPriority.PRIORITY_MEDIUM);
+		this.sendUIEventsToSubscribedThreads(UINotificationType.UPDATE_MAP_AREA_FLAGS, ca.copy());
 	}
 
 	public void postCuboidsWrite(Long numDimensions, List<CuboidAddress> cuboidAddresses) throws Exception{
@@ -571,6 +586,9 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void onPlayerPositionChange(Coordinate previousPosition, Coordinate newPosition) throws Exception{
+		if(newPosition == null){
+			return;
+		}
 		this.playerPositionXYZ = new PlayerPositionXYZ(this.playerPositionXYZ.getPlayerUUID(), newPosition.getX(), newPosition.getY(), newPosition.getZ());
 
 		this.writeSingleBlockAtPosition(this.playerPositionXYZ.asJsonString().getBytes("UTF-8"), playerPositionBlockAddress);
@@ -598,6 +616,9 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		}
 	}
 
+	public void onPlayerPositionChangeNotify() throws Exception{
+		this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, this.playerPositionXYZ.getPosition().copy());
+	}
 
 	public void onPlayerInventoryChangeNotify() throws Exception{
 		this.sendUIEventsToSubscribedThreads(UINotificationType.CURRENT_INVENTORY, new PlayerInventory(this.playerInventory.getBlockData()));
@@ -678,6 +699,13 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 				break;
 			}case CURRENT_INVENTORY:{
 				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(this.playerInventory), workItem.getThreadId());
+				break;
+			}case PLAYER_POSITION:{
+				Coordinate c = this.playerPositionXYZ == null ? null : this.playerPositionXYZ.getPosition().copy();
+				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(c), workItem.getThreadId());
+				break;
+			}case UPDATE_MAP_AREA_FLAGS:{
+				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(new Object()), workItem.getThreadId());
 				break;
 			}default:{
 				throw new Exception("Unexpected notificationType=" + notificationType.toString());

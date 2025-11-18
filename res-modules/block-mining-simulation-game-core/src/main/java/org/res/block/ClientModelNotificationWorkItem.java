@@ -35,16 +35,20 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class CNUpdateMapAreaFlagsWorkItem extends ConsoleWriterWorkItem {
+public class ClientModelNotificationWorkItem extends BlockModelContextWorkItem {
 
-	private CuboidAddress cuboidAddress;
+	private Object o;
+	private ClientModelNotificationType notificationType;
+	private ClientBlockModelContext clientBlockModelContext;
 
-	public CNUpdateMapAreaFlagsWorkItem(ConsoleWriterThreadState consoleWriterThreadState, CuboidAddress cuboidAddress){
-		super(consoleWriterThreadState, false);
-		this.cuboidAddress = cuboidAddress;
+	public ClientModelNotificationWorkItem(ClientBlockModelContext clientBlockModelContext, Object o, ClientModelNotificationType notificationType){
+		super(clientBlockModelContext, false);
+		this.o = o;
+		this.notificationType = notificationType;
+		this.clientBlockModelContext = clientBlockModelContext;
 	}
 
 	public void doWork() throws Exception{
-		this.consoleWriterThreadState.updateMapAreaFlags(this.cuboidAddress);
+		this.clientBlockModelContext.onClientModelNotification(o, notificationType);
 	}
 }
