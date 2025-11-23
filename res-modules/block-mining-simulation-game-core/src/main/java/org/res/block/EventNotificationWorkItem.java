@@ -35,18 +35,20 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class ClientNotifyPlayerPositionChangeWorkItem extends BlockModelContextWorkItem {
+public class EventNotificationWorkItem<T extends WorkItem> extends WorkItem {
 
-	private Coordinate previousPosition;
-	private Coordinate newPosition;
+	private Object o;
+	private UINotificationType notificationType;
+	private UIEventReceiverThreadState<T> eventReceiver;
 
-	public ClientNotifyPlayerPositionChangeWorkItem(BlockModelContext blockModelContext, Coordinate previousPosition, Coordinate newPosition){
-		super(blockModelContext);
-		this.previousPosition = previousPosition;
-		this.newPosition = newPosition;
+	public EventNotificationWorkItem(UIEventReceiverThreadState<T> eventReceiver, Object o, UINotificationType notificationType){
+		super(false);
+		this.o = o;
+		this.notificationType = notificationType;
+		this.eventReceiver = eventReceiver;
 	}
 
 	public void doWork() throws Exception{
-		((ClientBlockModelContext)this.blockModelContext).onPlayerPositionChange(previousPosition, newPosition);
+		this.eventReceiver.onUIEventNotification(o, notificationType);
 	}
 }

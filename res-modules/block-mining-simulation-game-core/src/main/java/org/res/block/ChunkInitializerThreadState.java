@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 import java.security.MessageDigest;
 
-public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitializerWorkItem> {
+public class ChunkInitializerThreadState extends UIEventReceiverThreadState<ChunkInitializerWorkItem> {
 
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 	private Set<Long> outstandingChunkWriteConversations = new HashSet<Long>();
@@ -59,6 +59,11 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 	private ClientBlockModelContext clientBlockModelContext;
 	private InMemoryChunks inMemoryChunks;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
+	public void receiveEventNotification(UINotificationType notificationType, Object o, WorkItemPriority priority) throws Exception{
+		this.putWorkItem(new ChunkInitializerWorkItemEventNotificationWorkItem(this, new EventNotificationWorkItem<ChunkInitializerWorkItem>(this, o, notificationType)), priority);
+
+	}
 
 	private static final Object [] interestingBlocks = new Object [] {
 		MetallicTitanium.class,
@@ -86,7 +91,19 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 		this.inMemoryChunks = inMemoryChunks;
 	}
 
-	protected void init(){
+	protected void init() throws Exception{
+		UIModelProbeWorkItemResult result = (UIModelProbeWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(
+			new UIModelProbeWorkItem(
+				this.clientBlockModelContext,
+				UINotificationType.PLAYER_POSITION,
+				UINotificationSubscriptionType.SUBSCRIBE,
+				this
+			),
+			WorkItemPriority.PRIORITY_LOW
+		);
+
+		//  Set initial player position:
+		this.onPlayerPositionChange((Coordinate)result.getObject());
 	}
 
 	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
@@ -102,7 +119,7 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 		this.workItemQueue.putWorkItem(workItem, priority);
 	}
 
-	public void onPlayerPositionChange(Coordinate previousPosition, Coordinate newPosition) throws Exception{
+	public void onPlayerPositionChange(Coordinate newPosition) throws Exception{
 		this.playerPosition = newPosition;
 	}
 
@@ -297,5 +314,16 @@ public class ChunkInitializerThreadState extends WorkItemQueueOwner<ChunkInitial
 
 	public boolean doBackgroundProcessing() throws Exception{
 		return false;
+	}
+
+	public void onUIEventNotification(Object o, UINotificationType notificationType) throws Exception{
+		switch(notificationType){
+			case PLAYER_POSITION:{
+				this.onPlayerPositionChange((Coordinate)o);
+				break;
+			}default:{
+				throw new Exception("Unknown event notification type: " + notificationType);
+			}
+		}
 	}
 }

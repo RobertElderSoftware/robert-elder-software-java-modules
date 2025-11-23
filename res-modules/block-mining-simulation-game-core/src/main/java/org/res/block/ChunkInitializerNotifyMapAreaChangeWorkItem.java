@@ -40,7 +40,7 @@ public class ChunkInitializerNotifyMapAreaChangeWorkItem extends ChunkInitialize
 	private CuboidAddress mapArea;
 
 	public ChunkInitializerNotifyMapAreaChangeWorkItem(ChunkInitializerThreadState chunkInitializerThreadState, CuboidAddress mapArea){
-		super(chunkInitializerThreadState);
+		super(chunkInitializerThreadState, false);
 		this.mapArea = mapArea;
 	}
 

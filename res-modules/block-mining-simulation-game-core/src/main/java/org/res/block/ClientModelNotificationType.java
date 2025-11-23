@@ -35,7 +35,9 @@ import java.util.HashMap;
 
 public enum ClientModelNotificationType {
         DO_TRY_CRAFTING (1L),
-	CRAFTING_RECIPE_SELECTION_CHANGE (2L);
+        DO_TRY_POSITION_CHANGE (2L),
+	CRAFTING_RECIPE_SELECTION_CHANGE (3L),
+        INVENTORY_ITEM_SELECTION_CHANGE (4L);
 
         private final long id;
 

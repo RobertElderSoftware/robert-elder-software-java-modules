@@ -35,18 +35,16 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class MapAreaNotifyPlayerPositionChangeWorkItem extends MapAreaWorkItem {
+public class ChunkInitializerWorkItemEventNotificationWorkItem extends ChunkInitializerWorkItem {
 
-	private Coordinate previousPosition;
-	private Coordinate newPosition;
+	private EventNotificationWorkItem<ChunkInitializerWorkItem> workItem;
 
-	public MapAreaNotifyPlayerPositionChangeWorkItem(MapAreaInterfaceThreadState mapAreaInterfaceThreadState, Coordinate previousPosition, Coordinate newPosition){
-		super(mapAreaInterfaceThreadState);
-		this.previousPosition = previousPosition;
-		this.newPosition = newPosition;
+	public ChunkInitializerWorkItemEventNotificationWorkItem(ChunkInitializerThreadState chunkInitializerThreadState, EventNotificationWorkItem<ChunkInitializerWorkItem> workItem){
+		super(chunkInitializerThreadState, false);
+		this.workItem = workItem;
 	}
 
 	public void doWork() throws Exception{
-		this.mapAreaInterfaceThreadState.onPlayerPositionChange(previousPosition, newPosition);
+		this.workItem.doWork();
 	}
 }

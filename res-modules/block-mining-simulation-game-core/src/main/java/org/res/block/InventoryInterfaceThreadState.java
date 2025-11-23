@@ -73,7 +73,6 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	protected void init() throws Exception{
 		this.inventoryItemList = new RenderableList<InventoryItemRenderableListItem>(this, 3L, 3L, 25L, 1L, "There are no inventory items.");
 
-		//  Get the last known selected recipe:
 		UIModelProbeWorkItemResult result = (UIModelProbeWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(
 			new UIModelProbeWorkItem(
 				this.clientBlockModelContext,
@@ -84,19 +83,27 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 			WorkItemPriority.PRIORITY_LOW
 		);
 
-		//  Set that recipe as the selected one:
 		PlayerInventory playerInventory = (PlayerInventory)result.getObject();
 		for(PlayerInventoryItemStack stack : playerInventory.getInventoryItemStackList()){
 			this.inventoryItemList.addItem(new InventoryItemRenderableListItem(stack));
 		}
+
+		//  Get initial remembered selection, and subscribe to updates from other frames:
+		UIModelProbeWorkItemResult selectedItemResult = (UIModelProbeWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(
+			new UIModelProbeWorkItem(
+				this.clientBlockModelContext,
+				UINotificationType.CURRENTLY_SELECTED_INVENTORY_ITEM,
+				UINotificationSubscriptionType.SUBSCRIBE,
+				this
+			),
+			WorkItemPriority.PRIORITY_LOW
+		);
+		this.onClientNotifySelectionChanged((Integer)selectedItemResult.getObject());
 	}
 
 	public void onSelectionChange(Long newSelection) throws Exception{
 		if(this.inventoryItemList.getListItems().size() > 0){
-			InventoryItemRenderableListItem renderer = this.inventoryItemList.getListItems().get(newSelection.intValue());
-			PlayerInventoryItemStack currentStack = renderer.getPlayerInventoryItemStack();
-			IndividualBlock blockFromStack = currentStack.getBlock(this.blockManagerThreadCollection.getBlockSchema());
-			this.clientBlockModelContext.putWorkItem(new InventoryItemSelectionChangeWorkItem(this.clientBlockModelContext, blockFromStack.getClass()), WorkItemPriority.PRIORITY_LOW);
+			this.clientBlockModelContext.putWorkItem(new ClientModelNotificationWorkItem(this.clientBlockModelContext, newSelection.intValue(), ClientModelNotificationType.INVENTORY_ITEM_SELECTION_CHANGE), WorkItemPriority.PRIORITY_LOW);
 		}
 	}
 
@@ -143,24 +150,6 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 
 	public void onPlayerInventoryChange(PlayerInventory playerInventory) throws Exception{
 		this.onFinalizeFrame();
-	}
-
-	public ColouredTextFragmentList makeInventoryItemText(PlayerInventoryItemStack stack, int itemIndex) throws Exception{
-		IndividualBlock blockFromStack = stack.getBlock(this.blockManagerThreadCollection.getBlockSchema());
-
-		GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
-		String blockPresentation = BlockSkins.getPresentation(blockFromStack.getClass(), mode.equals(GraphicsMode.ASCII));
-		String prefixCharacter = mode.equals(GraphicsMode.ASCII) ? CharacterConstants.INVENTORY_ARROW_ASCII : CharacterConstants.INVENTORY_ARROW_EMOJI;
-
-		int selectedIndex = 1;//Deleted
-		String prefix = itemIndex == selectedIndex ? prefixCharacter : "";
-		String paddedPrefix = this.whitespacePad(prefix, this.getMapAreaCellWidth(), false);
-
-		String inventoryItemText = this.whitespacePad(blockPresentation, this.getMapAreaCellWidth()) + "  (" + stack.getQuantity().toString() + ") " + blockFromStack.getClass().getSimpleName() + " ";
-		return new ColouredTextFragmentList(Arrays.asList(
-			new ColouredTextFragment(paddedPrefix, UserInterfaceFrameThreadState.getDefaultTextColors()),
-			new ColouredTextFragment(inventoryItemText, UserInterfaceFrameThreadState.getDefaultTextColors())
-		), true);
 	}
 
 	public List<List<ColouredTextFragmentList>> divideIntoColumns(List<ColouredTextFragmentList> inventoryItemTextLists, Long maxItemsInColumn){
@@ -234,6 +223,12 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		return false;
 	}
 
+	public void onClientNotifySelectionChanged(Integer newIndex) throws Exception{
+		if(newIndex != null && !this.inventoryItemList.getCurrentlySelectedListIndex().equals(newIndex)){
+			this.inventoryItemList.setSelectedListIndex(this, (long)newIndex);
+		}
+	}
+
 	public void onUIEventNotification(Object o, UINotificationType notificationType) throws Exception{
 		switch(notificationType){
 			case CURRENT_INVENTORY:{
@@ -244,6 +239,11 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 				}
 				this.inventoryItemList.replaceList(renderers);
 				this.onSelectionChange(this.inventoryItemList.getCurrentlySelectedListIndex());
+				this.onRenderFrame(false, false);
+				this.onFinalizeFrame();
+				break;
+			}case CURRENTLY_SELECTED_INVENTORY_ITEM:{
+				this.onClientNotifySelectionChanged((Integer)o);
 				this.onRenderFrame(false, false);
 				this.onFinalizeFrame();
 				break;

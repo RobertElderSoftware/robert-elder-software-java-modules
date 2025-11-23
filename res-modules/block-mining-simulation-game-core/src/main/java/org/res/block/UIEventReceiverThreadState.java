@@ -30,21 +30,36 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
 
-public class CraftingRecipeChangeWorkItem extends BlockModelContextWorkItem {
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-	private CraftingRecipe recipe;
+import java.util.Date;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.TreeSet;
+import java.io.BufferedWriter;
+import java.text.SimpleDateFormat;
+import java.io.File;
+import java.io.FileOutputStream;
 
-	public CraftingRecipeChangeWorkItem(BlockModelContext blockModelContext, CraftingRecipe recipe){
-		super(blockModelContext);
-		this.recipe = recipe;
-	}
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
+import java.util.concurrent.atomic.AtomicLong;
 
-	public void doWork() throws Exception{
-		((ClientBlockModelContext)this.blockModelContext).onCraftingRecipeChange(this.recipe);
-	}
+public abstract class UIEventReceiverThreadState<T extends WorkItem> extends WorkItemQueueOwner<T>{
+	public abstract void onUIEventNotification(Object o, UINotificationType notificationType) throws Exception;
+	public abstract void receiveEventNotification(UINotificationType notificationType, Object o, WorkItemPriority priority) throws Exception;
 }

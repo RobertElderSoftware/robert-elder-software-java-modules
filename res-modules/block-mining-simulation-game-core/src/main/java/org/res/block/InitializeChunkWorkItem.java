@@ -49,7 +49,7 @@ public class InitializeChunkWorkItem extends ChunkInitializerWorkItem {
 	private Cuboid cuboid;
 
 	public InitializeChunkWorkItem(ChunkInitializerThreadState chunkInitializerThreadState, Cuboid cuboid){
-		super(chunkInitializerThreadState);
+		super(chunkInitializerThreadState, false);
 		this.cuboid = cuboid;
 	}
 

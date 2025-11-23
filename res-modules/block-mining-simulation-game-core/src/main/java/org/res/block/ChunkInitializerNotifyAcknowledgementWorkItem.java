@@ -40,7 +40,7 @@ public class ChunkInitializerNotifyAcknowledgementWorkItem extends ChunkInitiali
 	private Long conversationId;
 
 	public ChunkInitializerNotifyAcknowledgementWorkItem(ChunkInitializerThreadState chunkInitializerThreadState, Long conversationId){
-		super(chunkInitializerThreadState);
+		super(chunkInitializerThreadState, false);
 		this.conversationId = conversationId;
 	}
 

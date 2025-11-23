@@ -111,6 +111,10 @@ public class Coordinate extends Vector{
 		return new Coordinate(super.add(other));
 	}
 
+	public Coordinate add(Vector other) throws Exception {
+		return new Coordinate(super.add(other));
+	}
+
 	public Coordinate changeValueAtIndex(Long i, Long v) throws Exception {
 		return new Coordinate(super.changeValueAtIndex(i, v));
 	}

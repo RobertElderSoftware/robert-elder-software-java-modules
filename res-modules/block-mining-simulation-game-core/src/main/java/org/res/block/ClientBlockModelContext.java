@@ -52,12 +52,26 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	private PlayerInventory playerInventory = new PlayerInventory();
 
 	private CuboidAddress mapAreaCuboidAddress;
-	private Class<?> selectedBlockClass = null;
-	private CraftingRecipe currentCraftingRecipe = null;
-	private Map<UINotificationType, Set<UserInterfaceFrameThreadState>> uiEventSubscriptions = new HashMap<UINotificationType, Set<UserInterfaceFrameThreadState>>();
+	private Integer selectedInventoryItemIndex = null;
+	private Integer selectedCraftingRecipeIndex = 0;
+	private Map<UINotificationType, Set<UIEventReceiverThreadState<?>>> uiEventSubscriptions = new HashMap<UINotificationType, Set<UIEventReceiverThreadState<?>>>();
 
 	public ClientBlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ClientServerInterface clientServerInterface) throws Exception {
 		super(blockManagerThreadCollection, clientServerInterface);
+	}
+
+	public Class<?> getSelectedInventoryItemClass() throws Exception{
+		if(playerInventory == null){
+			return null;
+		}else{
+			if(playerInventory.getInventoryItemStackList().size() == 0){
+				return null;
+			}else{
+				PlayerInventoryItemStack currentStack = playerInventory.getInventoryItemStackList().get(this.selectedInventoryItemIndex);
+				IndividualBlock blockFromStack = currentStack.getBlock(this.blockManagerThreadCollection.getBlockSchema());
+				return blockFromStack.getClass();
+			}
+		}
 	}
 
 	public void init() throws Exception{
@@ -67,16 +81,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 		this.logMessage("Ran init of ClientBlockModelContext.");
 
-		//  Set up initial crafting recipe:
-		this.currentCraftingRecipe = new CraftingRecipe(
-			Arrays.asList(new PlayerInventoryItemStack [] {
-				new PlayerInventoryItemStack(this.getBlockDataForClass(WoodenBlock.class), 5L)
-			}),
-			Arrays.asList(new PlayerInventoryItemStack [] {
-				new PlayerInventoryItemStack(this.getBlockDataForClass(WoodenPick.class), 1L)
-
-			})
-		);
 
 		/*  This defines the dimensions of the 'chunks' that are loaded into memory as we move around */
 		CuboidAddress chunkSizeCuboidAddress = new CuboidAddress(new Coordinate(Arrays.asList(0L, 0L, 0L, 0L)), new Coordinate(Arrays.asList(3L, 3L, 5L, 1L)));
@@ -103,13 +107,23 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	}
 
+	public CraftingRecipe getCurrentCraftingRecipe() throws Exception{
+		return getCraftingRecipesList().get(this.selectedCraftingRecipeIndex);
+	}
+
 	public void onClientModelNotification(Object o, ClientModelNotificationType notificationType) throws Exception{
 		switch(notificationType){
 			case DO_TRY_CRAFTING:{
 				this.onTryCrafting();
 				break;
+			}case DO_TRY_POSITION_CHANGE:{
+				this.onTryPositionChange((Vector)o);
+				break;
 			}case CRAFTING_RECIPE_SELECTION_CHANGE:{
-				this.onCraftingRecipeChange((CraftingRecipe)o);
+				this.onCraftingRecipeChange((Integer)o);
+				break;
+			}case INVENTORY_ITEM_SELECTION_CHANGE:{
+				this.onInventoryItemSelectionChange((Integer)o);
 				break;
 			}default:{
 				throw new Exception("Unknown event notification in onClientModelNotification: " + notificationType);
@@ -117,6 +131,87 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		}
 	}
 
+	private byte [] gbd(Class<?> c) throws Exception {
+		return this.getBlockDataForClass(c);
+	}
+
+	public List<CraftingRecipe> getCraftingRecipesList() throws Exception{
+		List<CraftingRecipe> rtn = new ArrayList<CraftingRecipe>();
+		rtn.add(
+			new CraftingRecipe(
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 5L)
+				}),
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(WoodenPick.class), 1L)
+
+				})
+			)
+		);
+
+		rtn.add(
+			new CraftingRecipe(
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(Rock.class), 3L),
+					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 2L)
+				}),
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(StonePick.class), 1L)
+
+				})
+			)
+		);
+
+		rtn.add(
+			new CraftingRecipe(
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(IronOxide.class), 5L),
+					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 5L)
+				}),
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(MetallicIron.class), 1L)
+
+				})
+			)
+		);
+
+		rtn.add(
+			new CraftingRecipe(
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(MetallicIron.class), 3L),
+					new PlayerInventoryItemStack(gbd(WoodenBlock.class), 2L)
+				}),
+				Arrays.asList(new PlayerInventoryItemStack [] {
+					new PlayerInventoryItemStack(gbd(IronPick.class), 1L)
+
+				})
+			)
+		);
+		return rtn;
+	}
+
+	public void onTryPositionChange(Vector delta) throws Exception{
+		Coordinate currentPosition = this.getPlayerPosition();
+		if(currentPosition != null){
+			Coordinate newCandiatePosition = currentPosition.copy().add(delta);
+
+			IndividualBlock blockAtCandidatePlayerPosition = this.readBlockAtCoordinate(newCandiatePosition);
+			if(blockAtCandidatePlayerPosition == null){
+				logger.info("Not moving to " + newCandiatePosition + " because block at that location is not loaded by client yet and we don't know what's there.");
+			}else{
+				boolean disableCollisionDetection = false;
+				if(
+					disableCollisionDetection ||
+					blockAtCandidatePlayerPosition instanceof EmptyBlock
+				){
+					this.onPlayerPositionChange(new PlayerPositionXYZ(this.playerPositionXYZ.getPlayerUUID(), newCandiatePosition.getX(), newCandiatePosition.getY(), newCandiatePosition.getZ()));
+				}else{
+					//  Don't move, there is something in the way.
+					logger.info("Not moving to " + newCandiatePosition + " because block at that location has class '" + blockAtCandidatePlayerPosition.getClass().getName() + "'");
+				}
+			}
+		}
+	}
 
 	public ConsoleWriterThreadState getConsoleWriterThreadState(){
 		return consoleWriterThreadState;
@@ -191,9 +286,9 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		boolean hasStonePick = this.playerInventory.containsBlockCount(stonePickData, 1L);
 		boolean hasIronPick = this.playerInventory.containsBlockCount(ironPickData, 1L);
 
-		boolean hasSelectedWoodenPick = this.selectedBlockClass != null && this.selectedBlockClass == WoodenPick.class;
-		boolean hasSelectedStonePick = this.selectedBlockClass != null && this.selectedBlockClass == StonePick.class;
-		boolean hasSelectedIronPick = this.selectedBlockClass != null && this.selectedBlockClass == IronPick.class;
+		boolean hasSelectedWoodenPick = this.getSelectedInventoryItemClass() != null && this.getSelectedInventoryItemClass() == WoodenPick.class;
+		boolean hasSelectedStonePick = this.getSelectedInventoryItemClass() != null && this.getSelectedInventoryItemClass() == StonePick.class;
+		boolean hasSelectedIronPick = this.getSelectedInventoryItemClass() != null && this.getSelectedInventoryItemClass() == IronPick.class;
 
 		byte [] pickDataToUse = null;
 		Long miningDistance = null;
@@ -259,8 +354,8 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void doPlaceItemAtPlayerPosition() throws Exception{
-		if(this.selectedBlockClass != null){
-			byte [] blockDataToPlace = this.getBlockDataForClass(this.selectedBlockClass);
+		if(this.getSelectedInventoryItemClass() != null){
+			byte [] blockDataToPlace = this.getBlockDataForClass(this.getSelectedInventoryItemClass());
 			if(this.playerInventory.containsBlockCount(blockDataToPlace, 1L)){
 				this.playerInventory.addItemCountToInventory(blockDataToPlace, -1L);
 				this.onPlayerInventoryChangeNotify();
@@ -293,8 +388,8 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void onTryCrafting() throws Exception{
-		if(hasEnoughForCraftingRecipe(this.currentCraftingRecipe)){
-			this.applyItemChangeForCraftingRecipe(this.currentCraftingRecipe);
+		if(hasEnoughForCraftingRecipe(getCurrentCraftingRecipe())){
+			this.applyItemChangeForCraftingRecipe(getCurrentCraftingRecipe());
 			this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
 		}else{
 			this.logMessage("Did not have enough reagents to craft anything.");
@@ -446,15 +541,14 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			IndividualBlock blockWritten = blockData == null ? new UninitializedBlock() : this.deserializeBlockData(blockData);
 
 			if(blockWritten instanceof UninitializedBlock){
-				this.playerPositionXYZ = new PlayerPositionXYZ("player:f7828de4-5e6e-4ff7-8b35-752734a2b59d", 0L, 0L, 0L); //  Initial value when world is started.
+				this.onPlayerPositionChange(new PlayerPositionXYZ("player:f7828de4-5e6e-4ff7-8b35-752734a2b59d", 0L, 0L, 0L)); //  Initial value when world is started.
 			}else if(blockWritten instanceof PlayerPositionXYZ){
 				// Make a new copy of the position to operate on:
-				this.playerPositionXYZ = new PlayerPositionXYZ(new String(blockWritten.getBlockData(), "UTF-8"));
+				this.onPlayerPositionChange(new PlayerPositionXYZ(new String(blockWritten.getBlockData(), "UTF-8")));
 			}else{
 				throw new Exception("Expected block to be of type PlayerPositionXYZ, but it was type " + blockWritten.getClass().getName());
 			}
 
-			this.onPlayerPositionChangeNotify();
 			this.onTerminalWindowChanged();
 		}else if(currentCoordinate.equals(playerInventoryBlockAddress) && this.playerInventory.getInventoryItemStackList().size() == 0){
 
@@ -570,12 +664,14 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	}
 
-	public void onInventoryItemSelectionChange(Class<?> blockClass) throws Exception{
-		this.selectedBlockClass = blockClass;
+	public void onInventoryItemSelectionChange(int index) throws Exception{
+		this.selectedInventoryItemIndex = index;
+		this.sendUIEventsToSubscribedThreads(UINotificationType.CURRENTLY_SELECTED_INVENTORY_ITEM, this.selectedInventoryItemIndex);
 	}
 
-	public void onCraftingRecipeChange(CraftingRecipe recipe) throws Exception{
-		this.currentCraftingRecipe = recipe;
+	public void onCraftingRecipeChange(Integer recipeIndex) throws Exception{
+		this.selectedCraftingRecipeIndex = recipeIndex;
+		this.sendUIEventsToSubscribedThreads(UINotificationType.CURRENTLY_SELECTED_CRAFTING_RECIPE, this.selectedCraftingRecipeIndex);
 	}
 
 	public void onMapAreaChange(CuboidAddress newMapArea) throws Exception{
@@ -585,18 +681,14 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.notifyLoadedRegionsChanged();
 	}
 
-	public void onPlayerPositionChange(Coordinate previousPosition, Coordinate newPosition) throws Exception{
-		if(newPosition == null){
-			return;
-		}
-		this.playerPositionXYZ = new PlayerPositionXYZ(this.playerPositionXYZ.getPlayerUUID(), newPosition.getX(), newPosition.getY(), newPosition.getZ());
+	public void onPlayerPositionChange(PlayerPositionXYZ newPosition) throws Exception{
+		Coordinate prev = this.playerPositionXYZ == null ? null : this.playerPositionXYZ.getPosition();
+		this.playerPositionXYZ = newPosition;
 
 		this.writeSingleBlockAtPosition(this.playerPositionXYZ.asJsonString().getBytes("UTF-8"), playerPositionBlockAddress);
 
-		Coordinate prev = previousPosition == null ? null : previousPosition.copy();
-		this.chunkInitializerThreadState.putWorkItem(new ChunkInitializerNotifyPlayerPositionChangeWorkItem(this.chunkInitializerThreadState, prev, newPosition.copy()), WorkItemPriority.PRIORITY_HIGH);
-		this.inMemoryChunks.putWorkItem(new InMemoryChunksNotifyPlayerPositionChangeWorkItem(this.inMemoryChunks, newPosition.copy()), WorkItemPriority.PRIORITY_HIGH);
-		this.logMessage("Client acknowledged player position update from " + previousPosition  + " to " + newPosition + ".");
+		this.inMemoryChunks.putWorkItem(new InMemoryChunksNotifyPlayerPositionChangeWorkItem(this.inMemoryChunks, newPosition.getPosition().copy()), WorkItemPriority.PRIORITY_HIGH);
+		this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, this.playerPositionXYZ.getPosition().copy());
 	}
 
 	public CuboidAddress getReachableMapAreaCuboidAddress() throws Exception{
@@ -614,10 +706,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			//  check what the adjacent block is, so we can check if it's possible to move there.
 			return new CuboidAddress(reachableLower, reachableUpper);
 		}
-	}
-
-	public void onPlayerPositionChangeNotify() throws Exception{
-		this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, this.playerPositionXYZ.getPosition().copy());
 	}
 
 	public void onPlayerInventoryChangeNotify() throws Exception{
@@ -677,25 +765,25 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	public void sendUIEventsToSubscribedThreads(UINotificationType notificationType, Object o) throws Exception{
 		if(uiEventSubscriptions.containsKey(notificationType)){
-			Set<UserInterfaceFrameThreadState> subscribedThreads = uiEventSubscriptions.get(notificationType);
-			for(UserInterfaceFrameThreadState subscribedThread : subscribedThreads){
-				subscribedThread.putWorkItem(new UIEventNotificationWorkItem(subscribedThread, o, notificationType), WorkItemPriority.PRIORITY_LOW);
+			Set<UIEventReceiverThreadState<?>> subscribedThreads = uiEventSubscriptions.get(notificationType);
+			for(UIEventReceiverThreadState<?> subscribedThread : subscribedThreads){
+				subscribedThread.receiveEventNotification(notificationType, o, WorkItemPriority.PRIORITY_LOW);
 			}
 		}
 	}
 
-	public void addUIEventSubscription(UINotificationType notificationType, UserInterfaceFrameThreadState userInterfaceFrameThreadState) throws Exception{
+	public void addUIEventSubscription(UINotificationType notificationType, UIEventReceiverThreadState<?> receiverThread) throws Exception{
 		if(!uiEventSubscriptions.containsKey(notificationType)){
-			this.uiEventSubscriptions.put(notificationType, new HashSet<UserInterfaceFrameThreadState>());
+			this.uiEventSubscriptions.put(notificationType, new HashSet<UIEventReceiverThreadState<?>>());
 		}
-		Set<UserInterfaceFrameThreadState> subscribedThreadStates = uiEventSubscriptions.get(notificationType);
-		subscribedThreadStates.add(userInterfaceFrameThreadState);
+		Set<UIEventReceiverThreadState<?>> subscribedThreadStates = uiEventSubscriptions.get(notificationType);
+		subscribedThreadStates.add(receiverThread);
 	}
 
-	public void doUIModelProbeWorkItem(WorkItem workItem, UINotificationType notificationType, UINotificationSubscriptionType subscriptionType, UserInterfaceFrameThreadState userInterfaceFrameThreadState) throws Exception{
+	public void doUIModelProbeWorkItem(WorkItem workItem, UINotificationType notificationType, UINotificationSubscriptionType subscriptionType, UIEventReceiverThreadState<?> receiverThread) throws Exception{
 		switch(notificationType){
 			case CURRENTLY_SELECTED_CRAFTING_RECIPE:{
-				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(this.currentCraftingRecipe), workItem.getThreadId());
+				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(this.selectedCraftingRecipeIndex), workItem.getThreadId());
 				break;
 			}case CURRENT_INVENTORY:{
 				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(this.playerInventory), workItem.getThreadId());
@@ -707,12 +795,18 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			}case UPDATE_MAP_AREA_FLAGS:{
 				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(new Object()), workItem.getThreadId());
 				break;
+			}case CURRENTLY_SELECTED_INVENTORY_ITEM:{
+				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(selectedInventoryItemIndex), workItem.getThreadId());
+				break;
+			}case CURRENT_RECIPE_LIST:{
+				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(getCraftingRecipesList()), workItem.getThreadId());
+				break;
 			}default:{
 				throw new Exception("Unexpected notificationType=" + notificationType.toString());
 			}
 		}
 		if(subscriptionType.equals(UINotificationSubscriptionType.SUBSCRIBE)){
-			this.addUIEventSubscription(notificationType, userInterfaceFrameThreadState);
+			this.addUIEventSubscription(notificationType, receiverThread);
 		}
 	}
 }

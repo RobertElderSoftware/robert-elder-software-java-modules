@@ -59,7 +59,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<UIWorkItem>{
+public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThreadState<UIWorkItem>{
 
 	private static final AtomicLong seq = new AtomicLong(0);
 	public final long frameId;
@@ -70,7 +70,6 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 
 	private final AtomicLong frameDimensionsChangeSeq = new AtomicLong(0);
 
-	public abstract void onUIEventNotification(Object o, UINotificationType notificationType) throws Exception;
 	public abstract void putWorkItem(UIWorkItem workItem, WorkItemPriority priority) throws Exception;
 	public abstract void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception;
 	public abstract void onKeyboardInput(byte [] characters) throws Exception;
@@ -294,6 +293,11 @@ public abstract class UserInterfaceFrameThreadState extends WorkItemQueueOwner<U
 		System.arraycopy(b, 0, result, a.length, b.length);
 		return result;
         }
+
+	public void receiveEventNotification(UINotificationType notificationType, Object o, WorkItemPriority priority) throws Exception{
+
+		this.putWorkItem(new UIWorkItemEventNotificationWorkItem(this, new EventNotificationWorkItem<UIWorkItem>(this, o, notificationType)), priority);
+	}
 
 	protected static List<String[]> splitStringByDelimiterPairs(String str, String delimiterRegex){
 		List<String[]> rtn = new ArrayList<String[]>();

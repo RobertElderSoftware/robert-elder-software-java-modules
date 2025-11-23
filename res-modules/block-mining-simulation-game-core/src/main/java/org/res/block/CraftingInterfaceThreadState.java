@@ -71,97 +71,52 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 
 	protected void init() throws Exception{
 		this.recipeList = new RenderableList<CraftingRecipeRenderableListItem>(this, 1L, 1L, 20L, 14L, "There are no crafting recipes.");
-		this.addRecipeItems();
+
+		UIModelProbeWorkItemResult recipeResult = (UIModelProbeWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(
+			new UIModelProbeWorkItem(
+				this.clientBlockModelContext,
+				UINotificationType.CURRENT_RECIPE_LIST,
+				UINotificationSubscriptionType.SUBSCRIBE,
+				this
+			),
+			WorkItemPriority.PRIORITY_LOW
+		);
+
+		List<?> recipesO = (List<?>)recipeResult.getObject();
+		List<CraftingRecipe> recipes = new ArrayList<CraftingRecipe>();
+		for(Object o : recipesO){
+			recipes.add((CraftingRecipe)o);
+		}
+
+		this.onRecipeListChanged(recipes);
 
 		//  Get the last known selected recipe:
 		UIModelProbeWorkItemResult result = (UIModelProbeWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(
 			new UIModelProbeWorkItem(
 				this.clientBlockModelContext,
 				UINotificationType.CURRENTLY_SELECTED_CRAFTING_RECIPE,
-				UINotificationSubscriptionType.READ,
+				UINotificationSubscriptionType.SUBSCRIBE,
 				this
 			),
 			WorkItemPriority.PRIORITY_LOW
 		);
 
 		//  Set that recipe as the selected one:
-		CraftingRecipe currentlySelectedRecipe = (CraftingRecipe)result.getObject();
-		for(int i = 0; i < this.recipeList.getListItems().size(); i++){
-			if(this.recipeList.getListItems().get(i).getCraftingRecipe().equals(currentlySelectedRecipe)){
-				this.updateListDisplayArea();
-				this.recipeList.setSelectedListIndex(this, (long)i);
-			}
+		this.updateListDisplayArea();
+		this.onClientNotifySelectionChanged((Integer)result.getObject());
+	}
+
+	public void onSelectionChange(Long newSelection) throws Exception{
+		if(this.recipeList.getListItems().size() > 0){
+			this.clientBlockModelContext.putWorkItem(new ClientModelNotificationWorkItem(this.clientBlockModelContext, newSelection.intValue(), ClientModelNotificationType.CRAFTING_RECIPE_SELECTION_CHANGE), WorkItemPriority.PRIORITY_LOW);
 		}
 	}
 
-	public void onSelectionChange(Long selectedIndex) throws Exception{
-		CraftingRecipeRenderableListItem recipe = this.recipeList.getListItems().get(selectedIndex.intValue());
-		this.clientBlockModelContext.putWorkItem(new ClientModelNotificationWorkItem(this.clientBlockModelContext, recipe.getCraftingRecipe(), ClientModelNotificationType.CRAFTING_RECIPE_SELECTION_CHANGE), WorkItemPriority.PRIORITY_LOW);
-	}
-
-	private void addRecipeItems() throws Exception {
-		this.recipeList.addItem(
-			new CraftingRecipeRenderableListItem(
-				new CraftingRecipe(
-					Arrays.asList(new PlayerInventoryItemStack [] {
-						new PlayerInventoryItemStack(gbd(WoodenBlock.class), 5L)
-					}),
-					Arrays.asList(new PlayerInventoryItemStack [] {
-						new PlayerInventoryItemStack(gbd(WoodenPick.class), 1L)
-
-					})
-				)
-			)
-		);
-
-		this.recipeList.addItem(
-			new CraftingRecipeRenderableListItem(
-				new CraftingRecipe(
-					Arrays.asList(new PlayerInventoryItemStack [] {
-						new PlayerInventoryItemStack(gbd(Rock.class), 3L),
-						new PlayerInventoryItemStack(gbd(WoodenBlock.class), 2L)
-					}),
-					Arrays.asList(new PlayerInventoryItemStack [] {
-						new PlayerInventoryItemStack(gbd(StonePick.class), 1L)
-
-					})
-				)
-			)
-		);
-
-		this.recipeList.addItem(
-			new CraftingRecipeRenderableListItem(
-				new CraftingRecipe(
-					Arrays.asList(new PlayerInventoryItemStack [] {
-						new PlayerInventoryItemStack(gbd(IronOxide.class), 5L),
-						new PlayerInventoryItemStack(gbd(WoodenBlock.class), 5L)
-					}),
-					Arrays.asList(new PlayerInventoryItemStack [] {
-						new PlayerInventoryItemStack(gbd(MetallicIron.class), 1L)
-
-					})
-				)
-			)
-		);
-
-		this.recipeList.addItem(
-			new CraftingRecipeRenderableListItem(
-				new CraftingRecipe(
-					Arrays.asList(new PlayerInventoryItemStack [] {
-						new PlayerInventoryItemStack(gbd(MetallicIron.class), 3L),
-						new PlayerInventoryItemStack(gbd(WoodenBlock.class), 2L)
-					}),
-					Arrays.asList(new PlayerInventoryItemStack [] {
-						new PlayerInventoryItemStack(gbd(IronPick.class), 1L)
-
-					})
-				)
-			)
-		);
-	}
-
-	private byte [] gbd(Class<?> c) throws Exception {
-		return clientBlockModelContext.getBlockDataForClass(c);
+	private void onRecipeListChanged(List<CraftingRecipe> recipes) throws Exception {
+		this.recipeList.clear();
+		for(CraftingRecipe r : recipes){
+			this.recipeList.addItem(new CraftingRecipeRenderableListItem(r));
+		}
 	}
 
 	public void onKeyboardInput(byte [] characters) throws Exception {
@@ -259,9 +214,20 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 		return false;
 	}
 
+	public void onClientNotifySelectionChanged(Integer newIndex) throws Exception{
+		if(newIndex != null && !this.recipeList.getCurrentlySelectedListIndex().equals(newIndex)){
+			this.recipeList.setSelectedListIndex(this, (long)newIndex);
+		}
+	}
+
 	public void onUIEventNotification(Object o, UINotificationType notificationType)throws Exception{
 		switch(notificationType){
-			default:{
+			case CURRENTLY_SELECTED_CRAFTING_RECIPE:{
+				this.onClientNotifySelectionChanged((Integer)o);
+				this.onRenderFrame(false, false);
+				this.onFinalizeFrame();
+				break;
+			}default:{
 				throw new Exception("Unknown event notification type: " + notificationType);
 			}
 		}

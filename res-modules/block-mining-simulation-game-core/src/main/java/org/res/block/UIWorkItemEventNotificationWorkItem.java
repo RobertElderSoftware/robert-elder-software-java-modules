@@ -35,16 +35,16 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class InventoryItemSelectionChangeWorkItem extends BlockModelContextWorkItem {
+public class UIWorkItemEventNotificationWorkItem extends UIWorkItem {
 
-	private Class<?> blockClass;
+	private EventNotificationWorkItem<UIWorkItem> workItem;
 
-	public InventoryItemSelectionChangeWorkItem(BlockModelContext blockModelContext, Class<?> blockClass){
-		super(blockModelContext);
-		this.blockClass = blockClass;
+	public UIWorkItemEventNotificationWorkItem(UserInterfaceFrameThreadState userInterfaceFrameThreadState, EventNotificationWorkItem<UIWorkItem> workItem){
+		super(userInterfaceFrameThreadState, false);
+		this.workItem = workItem;
 	}
 
 	public void doWork() throws Exception{
-		((ClientBlockModelContext)this.blockModelContext).onInventoryItemSelectionChange(this.blockClass);
+		this.workItem.doWork();
 	}
 }

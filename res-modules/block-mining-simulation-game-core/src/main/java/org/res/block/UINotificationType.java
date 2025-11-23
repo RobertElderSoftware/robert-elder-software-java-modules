@@ -36,8 +36,10 @@ import java.util.HashMap;
 public enum UINotificationType {
         CURRENTLY_SELECTED_CRAFTING_RECIPE (1L),
         CURRENT_INVENTORY (2L),
-        PLAYER_POSITION (3L),
-        UPDATE_MAP_AREA_FLAGS (4L);
+        CURRENTLY_SELECTED_INVENTORY_ITEM (3L),
+        PLAYER_POSITION (4L),
+        UPDATE_MAP_AREA_FLAGS (5L),
+        CURRENT_RECIPE_LIST (6L);
 
         private final long id;
 

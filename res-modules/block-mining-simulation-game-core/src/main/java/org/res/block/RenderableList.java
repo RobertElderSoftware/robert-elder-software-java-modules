@@ -53,6 +53,7 @@ public class RenderableList<T extends RenderableListItem> {
 	private static final Long LINE_HEIGHT = 1L;
 	private static final String VERTICAL_SCROLL_BAR_CHARACTER = CharacterConstants.VERTICAL_LINE;
 
+	private Long initialSelection = null;
 	private Long defaultWidth;
 	private Long defaultHeight;
 	private Long selectedIndexX = 0L;
@@ -494,18 +495,22 @@ public class RenderableList<T extends RenderableListItem> {
 	}
 
 	public Long gridPositionToListIndex(Long x, Long y) throws Exception{
-		if(hasVerticalOrientation()){
-			/* Vertical orientation list rendering order is
-			   0 3 6
-			   1 4 7 
-			   2 5 8 */
-			return this.gridHeight * x + y;
+		if(x == null || y == null){
+			return null;
 		}else{
-			/* Horizontal orientation list rendering order is
-			   0 1 2 
-			   3 4 5 
-			   6 7 8 */
-			return this.gridWidth * y + x;
+			if(hasVerticalOrientation()){
+				/* Vertical orientation list rendering order is
+				   0 3 6
+				   1 4 7 
+				   2 5 8 */
+				return this.gridHeight * x + y;
+			}else{
+				/* Horizontal orientation list rendering order is
+				   0 1 2 
+				   3 4 5 
+				   6 7 8 */
+				return this.gridWidth * y + x;
+			}
 		}
 	}
 
@@ -514,7 +519,7 @@ public class RenderableList<T extends RenderableListItem> {
 	}
 
 	public void setSelectedListIndex(UserInterfaceFrameThreadState frame, Long listIndex) throws Exception{
-		if(list.size() > 0){
+		if(list.size() > 0 && this.gridHeight > 0L && this.gridWidth > 0L){
 			if(hasVerticalOrientation()){
 				this.selectedIndexX = listIndex / this.gridHeight;
 				this.selectedIndexY = listIndex % this.gridHeight;
@@ -525,10 +530,17 @@ public class RenderableList<T extends RenderableListItem> {
 		}else{
 			this.selectedIndexX = 0L;
 			this.selectedIndexY = 0L;
+			this.initialSelection = listIndex;
 		}
 	}
 
 	private void recalculateConstants(UserInterfaceFrameThreadState frame, Long selectedIndexBefore) throws Exception{
+
+		//  For cases where initial selection index is lost due to empty list/zero width etc.
+		if(this.initialSelection != null){
+			selectedIndexBefore = this.initialSelection;
+			this.initialSelection = null;
+		}
 
 		Long minRows = (long)Math.ceil((double)list.size() / (double)maxAdjacentLists);
 		Long minCols = (long)Math.ceil((double)list.size() / (double)Math.max(minRows, 1L));
@@ -564,7 +576,7 @@ public class RenderableList<T extends RenderableListItem> {
 				}else{
 					this.grid[i][j] = null;
 				}
-				if(selectedIndexBefore.equals((long)listIndex)){
+				if(selectedIndexBefore != null && selectedIndexBefore.equals((long)listIndex)){
 					//  Set new index which might have changed if orientation changed:
 					this.selectedIndexX = (long)i;
 					this.selectedIndexY = (long)j;
@@ -613,6 +625,10 @@ public class RenderableList<T extends RenderableListItem> {
 		for(T r : renderers){
 			this.addItem(r);
 		}
+	}
+
+	public void clear(){
+		this.list.clear();
 	}
 
 	public void addItem(T item){

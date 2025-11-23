@@ -98,7 +98,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		);
 
 		//  Set initial player position:
-		this.onPlayerPositionChange(null, (Coordinate)result.getObject());
+		this.onPlayerPositionChange((Coordinate)result.getObject());
 
 		//  Subscribe to new map area flag updates:
 		this.clientBlockModelContext.putBlockingWorkItem(
@@ -114,13 +114,13 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{
 		if(ansiEscapeSequence instanceof AnsiEscapeSequenceUpArrowKey){
-			this.onTryPositionChange(0L, 0L, 1L, true);
+			this.sendTryPositionChange(new Vector(Arrays.asList(0L, 0L, 1L, 0L)));
 		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceRightArrowKey){
-			this.onTryPositionChange(1L, 0L, 0L, true);
+			this.sendTryPositionChange(new Vector(Arrays.asList(1L, 0L, 0L, 0L)));
 		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceDownArrowKey){
-			this.onTryPositionChange(0L, 0L, -1L, true);
+			this.sendTryPositionChange(new Vector(Arrays.asList(0L, 0L, -1L, 0L)));
 		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceLeftArrowKey){
-			this.onTryPositionChange(-1L, 0L, 0L, true);
+			this.sendTryPositionChange(new Vector(Arrays.asList(-1L, 0L, 0L, 0L)));
 		}else{
 			logger.info("MapAreaInterfaceThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
 		}
@@ -145,22 +145,22 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 				switch(action){
 
 					case ACTION_Y_PLUS:{
-						this.onTryPositionChange(0L, 0L, 1L, is_last);
+						this.sendTryPositionChange(new Vector(Arrays.asList(0L, 0L, 1L, 0L)));
 						break;
 					}case ACTION_X_MINUS:{
-						this.onTryPositionChange(-1L, 0L, 0L, is_last);
+						this.sendTryPositionChange(new Vector(Arrays.asList(-1L, 0L, 0L, 0L)));
 						break;
 					}case ACTION_Y_MINUS:{
-						this.onTryPositionChange(0L, 0L, -1L, is_last);
+						this.sendTryPositionChange(new Vector(Arrays.asList(0L, 0L, -1L, 0L)));
 						break;
 					}case ACTION_X_PLUS:{
-						this.onTryPositionChange(1L, 0L, 0L, is_last);
+						this.sendTryPositionChange(new Vector(Arrays.asList(1L, 0L, 0L, 0L)));
 						break;
 					}case ACTION_Z_MINUS:{
-						this.onTryPositionChange(0L, -1L, 0L, is_last);
+						this.sendTryPositionChange(new Vector(Arrays.asList(0L, -1L, 0L, 0L)));
 						break;
 					}case ACTION_Z_PLUS:{
-						this.onTryPositionChange(0L, 1L, 0L, is_last);
+						this.sendTryPositionChange(new Vector(Arrays.asList(0L, 1L, 0L, 0L)));
 						break;
 					}case ACTION_PLACE_BLOCK:{
 						this.clientBlockModelContext.putWorkItem(new ClientActionWorkItem(this.clientBlockModelContext, action), WorkItemPriority.PRIORITY_LOW);
@@ -181,27 +181,11 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		this.unprocessedInputBytes = new byte[0];
 	}
 
-	public void onTryPositionChange(Long deltaX, Long deltaY, Long deltaZ, boolean is_last) throws Exception{
-		Coordinate currentPosition = this.getPlayerPosition();
-		if(currentPosition != null){
-			Coordinate newCandiatePosition = currentPosition.copy().changeByDeltaXYZ(deltaX, deltaY, deltaZ);
-
-			IndividualBlock blockAtCandidatePlayerPosition = clientBlockModelContext.readBlockAtCoordinate(newCandiatePosition);
-			if(blockAtCandidatePlayerPosition == null){
-				logger.info("Not moving to " + newCandiatePosition + " because block at that location is not loaded by client yet and we don't know what's there.");
-			}else{
-				boolean disableCollisionDetection = false;
-				if(
-					disableCollisionDetection ||
-					blockAtCandidatePlayerPosition instanceof EmptyBlock
-				){
-					this.onPlayerPositionChange(currentPosition, newCandiatePosition);
-				}else{
-					//  Don't move, there is something in the way.
-					logger.info("Not moving to " + newCandiatePosition + " because block at that location has class '" + blockAtCandidatePlayerPosition.getClass().getName() + "'");
-				}
-			}
-		}
+	public void sendTryPositionChange(Vector delta) throws Exception{
+		//  This frame sends the event up to the client.  If the client model
+		//  agrees on position change, the actual change will be propagated
+		//  back down to this frame.
+		this.clientBlockModelContext.putWorkItem(new ClientModelNotificationWorkItem(this.clientBlockModelContext, delta, ClientModelNotificationType.DO_TRY_POSITION_CHANGE), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
@@ -282,16 +266,9 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		}
 	}
 
-	public void onPlayerPositionChange(Coordinate previousPosition, Coordinate newPosition) throws Exception{
+	public void onPlayerPositionChange(Coordinate newPosition) throws Exception{
 		this.updateMapAreaForPlayerPositionChange(this.playerPosition, newPosition);
-		if(this.playerPosition != null){
-			if(!this.playerPosition.equals(previousPosition)){
-				logger.info("Client player position " + (previousPosition == null ? "null" : previousPosition) + " was out of sync with game interface player position: " + this.playerPosition + ".  I don't think this is a problem right now, but log this in case it's important in the future.");
-			}
-		}
 
-		//logger.info("Changed player position from " + (this.playerPosition == null ? "null" : this.playerPosition.toString()) + " to " + newPosition);
-		this.clientBlockModelContext.putWorkItem(new ClientNotifyPlayerPositionChangeWorkItem(this.clientBlockModelContext, this.playerPosition == null ? null : this.playerPosition.copy(), newPosition), WorkItemPriority.PRIORITY_LOW);
 		Coordinate lastGameInterfacePosition = this.playerPosition;
 		this.playerPosition = newPosition;
 
@@ -486,7 +463,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	public void onUIEventNotification(Object o, UINotificationType notificationType) throws Exception{
 		switch(notificationType){
 			case PLAYER_POSITION:{
-				this.onPlayerPositionChange(null, (Coordinate)o);
+				this.onPlayerPositionChange((Coordinate)o);
 				break;
 			}case UPDATE_MAP_AREA_FLAGS:{
 				this.onUpdateMapAreaFlagsNotify((CuboidAddress)o);

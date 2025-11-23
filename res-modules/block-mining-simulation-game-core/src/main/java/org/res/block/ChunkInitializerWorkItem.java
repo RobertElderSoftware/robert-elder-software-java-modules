@@ -33,8 +33,8 @@ package org.res.block;
 public abstract class ChunkInitializerWorkItem extends WorkItem{
 	protected ChunkInitializerThreadState chunkInitializerThreadState;
 
-	public ChunkInitializerWorkItem(ChunkInitializerThreadState chunkInitializerThreadState){
-		super(false);
+	public ChunkInitializerWorkItem(ChunkInitializerThreadState chunkInitializerThreadState, boolean isBlocking){
+		super(isBlocking);
 		this.chunkInitializerThreadState = chunkInitializerThreadState;
 	}
 }

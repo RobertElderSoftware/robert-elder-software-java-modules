@@ -37,7 +37,7 @@ import java.nio.LongBuffer;
 
 public class UIModelProbeWorkItemResult extends WorkItemResult {
 
-	private Object o;
+	private Object o = null;
 
 	public UIModelProbeWorkItemResult(Object o){
 		this.o = o;
