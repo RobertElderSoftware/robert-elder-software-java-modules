@@ -35,26 +35,16 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-import java.util.Set;
-import java.util.HashSet;
+public class InMemoryChunksWorkItemEventNotificationWorkItem extends InMemoryChunksWorkItem {
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
+	private EventNotificationWorkItem<InMemoryChunksWorkItem> workItem;
 
-
-
-public class HandlePendingChunkWriteWorkItem extends InMemoryChunksWorkItem {
-
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private Cuboid cuboid;
-
-	public HandlePendingChunkWriteWorkItem(InMemoryChunks inMemoryChunks, Cuboid cuboid){
+	public InMemoryChunksWorkItemEventNotificationWorkItem(InMemoryChunks inMemoryChunks, EventNotificationWorkItem<InMemoryChunksWorkItem> workItem){
 		super(inMemoryChunks, false);
-		this.cuboid = cuboid;
+		this.workItem = workItem;
 	}
 
 	public void doWork() throws Exception{
-		this.inMemoryChunks.handlePendingChunkWrite(this.cuboid);
+		this.workItem.doWork();
 	}
 }

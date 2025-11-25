@@ -57,7 +57,7 @@ public abstract class WorkItemQueueOwner<T extends WorkItem> {
 	public abstract void putWorkItem(T workItem, WorkItemPriority workItemPriority) throws Exception;
 	public abstract BlockManagerThreadCollection getBlockManagerThreadCollection();
 	public abstract boolean doBackgroundProcessing() throws Exception;
-	protected abstract void init() throws Exception;
+	protected abstract void init(Object o) throws Exception;
 
 	protected WorkItemQueue<T> workItemQueue = new WorkItemQueue<T>();
 

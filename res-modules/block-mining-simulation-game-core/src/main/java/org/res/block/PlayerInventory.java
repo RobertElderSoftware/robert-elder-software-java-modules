@@ -76,21 +76,23 @@ public class PlayerInventory extends IndividualBlock {
 		this.initializeFromJson(new String(data, "UTF-8"));
 	}
 
-	public void addItemCountToInventory(byte [] blockData, Long quantity) throws Exception {
+	public int addItemCountToInventory(byte [] blockData, Long quantity) throws Exception {
 		boolean addedItem = false;
-		for(PlayerInventoryItemStack itemStack : this.inventoryItemList){
-			//logger.info("Searching for correct item in stack: " + BlockModelContext.convertToHex(itemStack.getBlockData()) + " versus " + BlockModelContext.convertToHex(blockData) + " = " + (itemStack.getBlockData().equals(blockData)));
+		int i = 0;
+		for(i = 0; i < this.inventoryItemList.size(); i++){
+			PlayerInventoryItemStack itemStack = this.inventoryItemList.get(i);
 			if(Arrays.equals(itemStack.getBlockData(), blockData)){
 				//logger.info("in was equals");
 				itemStack.addQuantity(quantity);
 				addedItem = true;
-				break;
+				return i;
 			}
 		}
 		if(!addedItem){
 			//logger.info("made a new item");
 			this.inventoryItemList.add(new PlayerInventoryItemStack(blockData.clone(), quantity));
 		}
+		return i;
 	}
 
 	public boolean containsBlockCount(byte [] blockData, Long expectedQuantity) throws Exception {

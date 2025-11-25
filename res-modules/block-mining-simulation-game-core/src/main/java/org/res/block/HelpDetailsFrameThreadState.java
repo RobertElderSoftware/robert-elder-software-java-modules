@@ -73,7 +73,7 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 		this.clientBlockModelContext = clientBlockModelContext;
 	}
 
-	protected void init(){
+	protected void init(Object o){
 	}
 
 	public String getKeyPresentation(String s){

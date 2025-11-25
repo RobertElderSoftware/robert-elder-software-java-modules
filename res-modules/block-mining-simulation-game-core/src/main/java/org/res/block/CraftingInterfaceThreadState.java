@@ -69,7 +69,7 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 		this.clientBlockModelContext = clientBlockModelContext;
 	}
 
-	protected void init() throws Exception{
+	protected void init(Object obj) throws Exception{
 		this.recipeList = new RenderableList<CraftingRecipeRenderableListItem>(this, 1L, 1L, 20L, 14L, "There are no crafting recipes.");
 
 		UIModelProbeWorkItemResult recipeResult = (UIModelProbeWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(

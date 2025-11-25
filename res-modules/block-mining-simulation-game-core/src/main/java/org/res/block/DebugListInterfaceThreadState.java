@@ -70,7 +70,7 @@ public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState
 
 	}
 
-	protected void init() throws Exception{
+	protected void init(Object o) throws Exception{
 		this.recipeList = new RenderableList<DebugRendererListItem>(this, 3L, 8L, 10L, 4L, "Default list is empty.");
 		this.addDebugRecipeItems();
 	}

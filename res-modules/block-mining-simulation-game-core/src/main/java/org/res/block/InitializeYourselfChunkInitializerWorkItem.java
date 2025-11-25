@@ -31,30 +31,19 @@
 package org.res.block;
 
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
 import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-import java.util.Set;
-import java.util.HashSet;
+public class InitializeYourselfChunkInitializerWorkItem extends ChunkInitializerWorkItem {
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
-
-
-
-public class HandlePendingChunkWriteWorkItem extends InMemoryChunksWorkItem {
-
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private Cuboid cuboid;
-
-	public HandlePendingChunkWriteWorkItem(InMemoryChunks inMemoryChunks, Cuboid cuboid){
-		super(inMemoryChunks, false);
-		this.cuboid = cuboid;
+	public InitializeYourselfChunkInitializerWorkItem(ChunkInitializerThreadState chunkInitializerThreadState){
+		super(chunkInitializerThreadState, false);
 	}
 
 	public void doWork() throws Exception{
-		this.inMemoryChunks.handlePendingChunkWrite(this.cuboid);
+		this.chunkInitializerThreadState.init(new Object());
 	}
 }

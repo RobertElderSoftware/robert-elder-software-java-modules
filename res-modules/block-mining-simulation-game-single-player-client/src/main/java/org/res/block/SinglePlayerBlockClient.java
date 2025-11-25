@@ -110,9 +110,13 @@ class SinglePlayerBlockClient {
 		);
 
 		ServerBlockModelContext serverBlockModelContext = new ServerBlockModelContext(blockManagerThreadCollection, clientServerInterface, dbParams);
-		serverBlockModelContext.init();
 		ClientBlockModelContext clientBlockModelContext = new ClientBlockModelContext(blockManagerThreadCollection, clientServerInterface);
-		clientBlockModelContext.init();
+
+		clientBlockModelContext.putWorkItem(new InitializeYourselfClientBlockModelContextWorkItem(clientBlockModelContext, serverBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+		serverBlockModelContext.putWorkItem(new InitializeYourselfServerBlockModelContextWorkItem(serverBlockModelContext, Arrays.asList(clientBlockModelContext)), WorkItemPriority.PRIORITY_LOW);
+
+		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(clientBlockModelContext, BlockModelContextWorkItem.class, ClientBlockModelContext.class));
+		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(serverBlockModelContext, BlockModelContextWorkItem.class, ServerBlockModelContext.class));
 
 		clientServerInterface.setServerBlockModelContext(serverBlockModelContext);
 		clientServerInterface.setClientBlockModelContext(clientBlockModelContext);

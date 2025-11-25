@@ -50,7 +50,7 @@ public class UpdateRequiredRegionsWorkItem extends InMemoryChunksWorkItem {
 	private Set<CuboidAddress> requiredRegions;
 
 	public UpdateRequiredRegionsWorkItem(InMemoryChunks inMemoryChunks, Set<CuboidAddress> requiredRegions){
-		super(inMemoryChunks);
+		super(inMemoryChunks, false);
 		this.requiredRegions = requiredRegions;
 	}
 

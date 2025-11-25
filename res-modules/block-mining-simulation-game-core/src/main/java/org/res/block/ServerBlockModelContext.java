@@ -76,7 +76,7 @@ public class ServerBlockModelContext extends BlockModelContext {
 		this.databaseConnectionParameters = databaseConnectionParameters;
 	}
 
-	public void init() throws Exception{
+	public void init(Object o) throws Exception{
 		this.blockModelInterface.setServerBlockModelInterface(this);
 		AnnotationConfigApplicationContext annotationConfigApplicationContext = new AnnotationConfigApplicationContext();
 		annotationConfigApplicationContext.register(BlockManagerServerApplicationContext.class);
@@ -92,7 +92,6 @@ public class ServerBlockModelContext extends BlockModelContext {
 
         	this.blockDAO.ensureBlockTableExists();
 		this.blockDAO.turnOffAutoCommit();
-		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(this, BlockModelContextWorkItem.class, this.getClass()));
 	}
 
 	public BlockDAO getBlockDAO(){

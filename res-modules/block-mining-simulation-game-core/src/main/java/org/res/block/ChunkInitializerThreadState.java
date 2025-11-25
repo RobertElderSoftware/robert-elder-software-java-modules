@@ -91,7 +91,7 @@ public class ChunkInitializerThreadState extends UIEventReceiverThreadState<Chun
 		this.inMemoryChunks = inMemoryChunks;
 	}
 
-	protected void init() throws Exception{
+	protected void init(Object o) throws Exception{
 		UIModelProbeWorkItemResult result = (UIModelProbeWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(
 			new UIModelProbeWorkItem(
 				this.clientBlockModelContext,

@@ -44,6 +44,6 @@ public class InitializeYourselfUIWorkItem extends UIWorkItem {
 	}
 
 	public void doWork() throws Exception{
-		this.userInterfaceFrameThreadState.init();
+		this.userInterfaceFrameThreadState.init(new Object());
 	}
 }

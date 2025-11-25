@@ -64,7 +64,7 @@ public class SIGWINCHListenerThreadState extends WorkItemQueueOwner<SIGWINCHList
 		this.blockManagerThreadCollection.getLinuxBlockJNIInterface().setupSIGWINCHSignalHandler();
 	}
 
-	protected void init(){
+	protected void init(Object o) throws Exception{
 	}
 
 	public BlockManagerThreadCollection getBlockManagerThreadCollection(){

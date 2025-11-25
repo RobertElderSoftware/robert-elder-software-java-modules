@@ -57,7 +57,6 @@ public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelCon
 
 	public abstract BlockModelInterface getBlockModelInterface();
 	public abstract boolean isServer();
-	public abstract void init() throws Exception;
 	public abstract void postCuboidsWrite(Long numDimensions, List<CuboidAddress> cuboidAddresses) throws Exception;
 	public abstract void onAcknowledgementMessage(Long conversationId) throws Exception;
 	public abstract void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception;

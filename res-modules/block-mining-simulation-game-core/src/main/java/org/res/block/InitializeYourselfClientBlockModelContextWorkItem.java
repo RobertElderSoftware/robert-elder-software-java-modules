@@ -31,30 +31,30 @@
 package org.res.block;
 
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
 import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-import java.util.Set;
-import java.util.HashSet;
+public class InitializeYourselfClientBlockModelContextWorkItem extends BlockModelContextWorkItem {
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
+	private ServerBlockModelContext serverBlockModelContext;
+	private ClientBlockModelContext clientBlockModelContext;
 
+	public InitializeYourselfClientBlockModelContextWorkItem(ClientBlockModelContext clientBlockModelContext, ServerBlockModelContext serverBlockModelContext){
+		super(clientBlockModelContext, false);
+		this.clientBlockModelContext = clientBlockModelContext;
+		this.serverBlockModelContext = serverBlockModelContext;
+	}
 
-
-public class HandlePendingChunkWriteWorkItem extends InMemoryChunksWorkItem {
-
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private Cuboid cuboid;
-
-	public HandlePendingChunkWriteWorkItem(InMemoryChunks inMemoryChunks, Cuboid cuboid){
-		super(inMemoryChunks, false);
-		this.cuboid = cuboid;
+	public InitializeYourselfClientBlockModelContextWorkItem(ClientBlockModelContext clientBlockModelContext){
+		super(clientBlockModelContext, false);
+		this.clientBlockModelContext = clientBlockModelContext;
+		this.serverBlockModelContext = null;
 	}
 
 	public void doWork() throws Exception{
-		this.inMemoryChunks.handlePendingChunkWrite(this.cuboid);
+		this.clientBlockModelContext.init(this.serverBlockModelContext == null ? new Object() : this.serverBlockModelContext);
 	}
 }

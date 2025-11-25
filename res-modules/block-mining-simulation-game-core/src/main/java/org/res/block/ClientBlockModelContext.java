@@ -48,6 +48,9 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	private SIGWINCHListenerThreadState sigwinchListenerThreadState;
 	private final Coordinate playerPositionBlockAddress = new Coordinate(Arrays.asList(99999999L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's position will be stored.
 	private final Coordinate playerInventoryBlockAddress = new Coordinate(Arrays.asList(99999998L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's inventory will be stored.
+
+	/*  This defines the dimensions of the 'chunks' that are loaded into memory as we move around */
+	private final CuboidAddress chunkSizeCuboidAddress = new CuboidAddress(new Coordinate(Arrays.asList(0L, 0L, 0L, 0L)), new Coordinate(Arrays.asList(3L, 3L, 5L, 1L)));
 	private PlayerPositionXYZ playerPositionXYZ = null;
 	private PlayerInventory playerInventory = new PlayerInventory();
 
@@ -74,21 +77,25 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		}
 	}
 
-	public void init() throws Exception{
+	public void init(Object o) throws Exception{
+		//  This is important and only used by multi-player client.  TODO:  Figure out how to simplify this:
 		this.clientServerInterface.setClientBlockModelContext(this);
+
+		//TODO: Actually assign this and delete it from client server interface:
+		//this.serverBlockModelContext = (ServerBlockModelContext)o;
+
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 		Date date = new Date();
 
 		this.logMessage("Ran init of ClientBlockModelContext.");
 
-
-		/*  This defines the dimensions of the 'chunks' that are loaded into memory as we move around */
-		CuboidAddress chunkSizeCuboidAddress = new CuboidAddress(new Coordinate(Arrays.asList(0L, 0L, 0L, 0L)), new Coordinate(Arrays.asList(3L, 3L, 5L, 1L)));
 		this.inMemoryChunks = new InMemoryChunks(blockManagerThreadCollection, this, chunkSizeCuboidAddress);
+		this.inMemoryChunks.putWorkItem(new InitializeYourselfInMemoryChunksWorkItem(this.inMemoryChunks), WorkItemPriority.PRIORITY_LOW);
 		this.notifyLoadedRegionsChanged();
 		this.chunkInitializerThreadState = new ChunkInitializerThreadState(blockManagerThreadCollection, this, this.inMemoryChunks);
+		this.chunkInitializerThreadState.putWorkItem(new InitializeYourselfChunkInitializerWorkItem(this.chunkInitializerThreadState), WorkItemPriority.PRIORITY_LOW);
 		this.consoleWriterThreadState = new ConsoleWriterThreadState(blockManagerThreadCollection, this);
-		this.consoleWriterThreadState.init();
+		this.consoleWriterThreadState.putWorkItem(new InitializeYourselfConsoleWriterWorkItem(this.consoleWriterThreadState), WorkItemPriority.PRIORITY_LOW);
 
 		if(this.blockManagerThreadCollection.getIsJNIEnabled()){
 			this.sigwinchListenerThreadState = new SIGWINCHListenerThreadState(blockManagerThreadCollection, this);
@@ -103,7 +110,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<SIGWINCHListenerWorkItem>(this.sigwinchListenerThreadState, SIGWINCHListenerWorkItem.class, this.sigwinchListenerThreadState.getClass()));
 		}
 		this.blockManagerThreadCollection.addThread(new StandardInputReaderTask(this, this.consoleWriterThreadState));
-		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(this, BlockModelContextWorkItem.class, this.getClass()));
 
 	}
 
@@ -383,7 +389,8 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		}
 		//  Add produced items:
 		for(PlayerInventoryItemStack itemStack : recipe.getProducedItems()){
-			this.playerInventory.addItemCountToInventory(itemStack.getBlockData(), itemStack.getQuantity());
+			int indexOfItem = this.playerInventory.addItemCountToInventory(itemStack.getBlockData(), itemStack.getQuantity());
+			onInventoryItemSelectionChange(indexOfItem);
 		}
 	}
 
@@ -653,11 +660,11 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void inMemoryChunksCallbackOnChunkWasWritten(CuboidAddress ca) throws Exception{
-		this.sendUIEventsToSubscribedThreads(UINotificationType.UPDATE_MAP_AREA_FLAGS, ca.copy());
+		this.sendUIEventsToSubscribedThreads(UINotificationType.UPDATE_MAP_AREA_FLAGS, ca.copy(), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void inMemoryChunksCallbackOnChunkBecomesPending(CuboidAddress ca) throws Exception{
-		this.sendUIEventsToSubscribedThreads(UINotificationType.UPDATE_MAP_AREA_FLAGS, ca.copy());
+		this.sendUIEventsToSubscribedThreads(UINotificationType.UPDATE_MAP_AREA_FLAGS, ca.copy(), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void postCuboidsWrite(Long numDimensions, List<CuboidAddress> cuboidAddresses) throws Exception{
@@ -666,12 +673,12 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	public void onInventoryItemSelectionChange(int index) throws Exception{
 		this.selectedInventoryItemIndex = index;
-		this.sendUIEventsToSubscribedThreads(UINotificationType.CURRENTLY_SELECTED_INVENTORY_ITEM, this.selectedInventoryItemIndex);
+		this.sendUIEventsToSubscribedThreads(UINotificationType.CURRENTLY_SELECTED_INVENTORY_ITEM, this.selectedInventoryItemIndex, WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void onCraftingRecipeChange(Integer recipeIndex) throws Exception{
 		this.selectedCraftingRecipeIndex = recipeIndex;
-		this.sendUIEventsToSubscribedThreads(UINotificationType.CURRENTLY_SELECTED_CRAFTING_RECIPE, this.selectedCraftingRecipeIndex);
+		this.sendUIEventsToSubscribedThreads(UINotificationType.CURRENTLY_SELECTED_CRAFTING_RECIPE, this.selectedCraftingRecipeIndex, WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void onMapAreaChange(CuboidAddress newMapArea) throws Exception{
@@ -687,8 +694,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 		this.writeSingleBlockAtPosition(this.playerPositionXYZ.asJsonString().getBytes("UTF-8"), playerPositionBlockAddress);
 
-		this.inMemoryChunks.putWorkItem(new InMemoryChunksNotifyPlayerPositionChangeWorkItem(this.inMemoryChunks, newPosition.getPosition().copy()), WorkItemPriority.PRIORITY_HIGH);
-		this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, this.playerPositionXYZ.getPosition().copy());
+		this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, this.playerPositionXYZ.getPosition().copy(), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public CuboidAddress getReachableMapAreaCuboidAddress() throws Exception{
@@ -709,7 +715,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void onPlayerInventoryChangeNotify() throws Exception{
-		this.sendUIEventsToSubscribedThreads(UINotificationType.CURRENT_INVENTORY, new PlayerInventory(this.playerInventory.getBlockData()));
+		this.sendUIEventsToSubscribedThreads(UINotificationType.CURRENT_INVENTORY, new PlayerInventory(this.playerInventory.getBlockData()), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void onPlayerInventoryChange(PlayerInventory newInventory) throws Exception{
@@ -763,11 +769,11 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		}
 	}
 
-	public void sendUIEventsToSubscribedThreads(UINotificationType notificationType, Object o) throws Exception{
+	public void sendUIEventsToSubscribedThreads(UINotificationType notificationType, Object o, WorkItemPriority priority) throws Exception{
 		if(uiEventSubscriptions.containsKey(notificationType)){
 			Set<UIEventReceiverThreadState<?>> subscribedThreads = uiEventSubscriptions.get(notificationType);
 			for(UIEventReceiverThreadState<?> subscribedThread : subscribedThreads){
-				subscribedThread.receiveEventNotification(notificationType, o, WorkItemPriority.PRIORITY_LOW);
+				subscribedThread.receiveEventNotification(notificationType, o, priority);
 			}
 		}
 	}

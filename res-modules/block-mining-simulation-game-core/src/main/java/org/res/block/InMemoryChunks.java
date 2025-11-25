@@ -45,7 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class InMemoryChunks extends WorkItemQueueOwner<InMemoryChunksWorkItem> {
+public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWorkItem> {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected Object lock = new Object();
@@ -80,7 +80,27 @@ public class InMemoryChunks extends WorkItemQueueOwner<InMemoryChunksWorkItem> {
 		return this.blockModelContext;
 	}
 
-	protected void init(){
+	public void receiveEventNotification(UINotificationType notificationType, Object o, WorkItemPriority priority) throws Exception{
+		this.putWorkItem(new InMemoryChunksWorkItemEventNotificationWorkItem(this, new EventNotificationWorkItem<InMemoryChunksWorkItem>(this, o, notificationType)), priority);
+
+	}
+
+	protected void init(Object o) throws Exception{
+		if(this.blockModelContext instanceof ClientBlockModelContext){
+			ClientBlockModelContext clientBlockModelContext = (ClientBlockModelContext)this.blockModelContext;
+			UIModelProbeWorkItemResult result = (UIModelProbeWorkItemResult)clientBlockModelContext.putBlockingWorkItem(
+				new UIModelProbeWorkItem(
+					clientBlockModelContext,
+					UINotificationType.PLAYER_POSITION,
+					UINotificationSubscriptionType.SUBSCRIBE,
+					this
+				),
+				WorkItemPriority.PRIORITY_LOW
+			);
+
+			//  Set initial player position:
+			this.onPlayerPositionChange((Coordinate)result.getObject());
+		}
 	}
 
 	public boolean isChunkLoadedOrPending(CuboidAddress c) throws Exception{
@@ -355,5 +375,16 @@ public class InMemoryChunks extends WorkItemQueueOwner<InMemoryChunksWorkItem> {
 
 	public boolean doBackgroundProcessing() throws Exception{
 		return false;
+	}
+
+	public void onUIEventNotification(Object o, UINotificationType notificationType) throws Exception{
+		switch(notificationType){
+			case PLAYER_POSITION:{
+				this.onPlayerPositionChange((Coordinate)o);
+				break;
+			}default:{
+				throw new Exception("Unknown event notification type: " + notificationType);
+			}
+		}
 	}
 }

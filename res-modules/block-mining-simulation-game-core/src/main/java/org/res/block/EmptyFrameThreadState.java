@@ -68,7 +68,7 @@ public class EmptyFrameThreadState extends UserInterfaceFrameThreadState {
 		this.clientBlockModelContext = clientBlockModelContext;
 	}
 
-	protected void init(){
+	protected void init(Object o){
 	}
 
 	public void onKeyboardInput(byte [] characters) throws Exception {

@@ -70,7 +70,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		this.clientBlockModelContext = clientBlockModelContext;
 	}
 	
-	protected void init() throws Exception{
+	protected void init(Object o) throws Exception{
 		this.inventoryItemList = new RenderableList<InventoryItemRenderableListItem>(this, 3L, 3L, 25L, 1L, "There are no inventory items.");
 
 		UIModelProbeWorkItemResult result = (UIModelProbeWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(

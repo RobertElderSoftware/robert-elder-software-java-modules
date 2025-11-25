@@ -31,20 +31,24 @@
 package org.res.block;
 
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
 import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class InMemoryChunksNotifyPlayerPositionChangeWorkItem extends InMemoryChunksWorkItem {
+public class InitializeYourselfServerBlockModelContextWorkItem extends BlockModelContextWorkItem {
 
-	private Coordinate newPosition;
+	private ServerBlockModelContext serverBlockModelContext;
+	private List<ClientBlockModelContext> clientBlockModelContexts;
 
-	public InMemoryChunksNotifyPlayerPositionChangeWorkItem(InMemoryChunks inMemoryChunks, Coordinate newPosition){
-		super(inMemoryChunks);
-		this.newPosition = newPosition;
+	public InitializeYourselfServerBlockModelContextWorkItem(ServerBlockModelContext serverBlockModelContext, List<ClientBlockModelContext> clientBlockModelContexts){
+		super(serverBlockModelContext, false);
+		this.clientBlockModelContexts = clientBlockModelContexts;
+		this.serverBlockModelContext = serverBlockModelContext;
 	}
 
 	public void doWork() throws Exception{
-		this.inMemoryChunks.onPlayerPositionChange(newPosition);
+		this.serverBlockModelContext.init(this.clientBlockModelContexts);
 	}
 }

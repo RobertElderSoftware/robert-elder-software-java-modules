@@ -96,7 +96,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.clientBlockModelContext = clientBlockModelContext;
 	}
 
-	public void init() throws Exception {
+	public void init(Object o) throws Exception {
 		Long helpMenuFrameId = this.createFrameAndThread(HelpMenuFrameThreadState.class);
 		this.helpMenuFrameThreadState = (HelpMenuFrameThreadState)this.getFrameStateById(helpMenuFrameId);
 

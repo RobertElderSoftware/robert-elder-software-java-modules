@@ -38,7 +38,7 @@ import java.nio.LongBuffer;
 public class InMemoryChunksHasPendingNotYetRequestedChunksWorkItem extends InMemoryChunksWorkItem {
 
 	public InMemoryChunksHasPendingNotYetRequestedChunksWorkItem(InMemoryChunks inMemoryChunks){
-		super(inMemoryChunks);
+		super(inMemoryChunks, false);
 	}
 
 	public void doWork() throws Exception{
