@@ -31,6 +31,9 @@
 package org.res.block;
 
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
+import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
@@ -45,50 +48,23 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonNull;
 import com.google.gson.reflect.TypeToken;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class BlockSchema {
+public class JsonPlayerPositionBlockMatchDescription extends BlockMatchDescription{
 
-	protected final Long version;
-	protected final String json;
-	protected final Gson gson = new GsonBuilder().serializeNulls().setPrettyPrinting().create();
-	protected final List<BlockMatchDescription> blockMatchDescriptions;
-	protected final boolean allowUnrecognizedBlockTypes;
+	private JsonSchema jsonSchema;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	public BlockSchema(String json, boolean allowUnrecognizedBlockTypes) throws Exception {
-		this.json = json;
-		this.allowUnrecognizedBlockTypes = allowUnrecognizedBlockTypes;
-		JsonElement topElement = new Gson().fromJson(json, JsonElement.class);
-		JsonObject blockSchemaObject = (JsonObject)topElement;
-
-		JsonArray blockMatchDescriptionsJson = (JsonArray)blockSchemaObject.get("block_match_descriptions");
-		List<BlockMatchDescription> l = new ArrayList<BlockMatchDescription>();
-		for(JsonElement e : blockMatchDescriptionsJson){
-			JsonObject o = (JsonObject)e;
-			if(o.get("match_type").getAsString().equals("json")){
-				l.add(new JsonBlockMatchDescription(e));
-			}else if(o.get("match_type").getAsString().equals("json_player_position")){
-				l.add(new JsonPlayerPositionBlockMatchDescription(e));
-			}else if(o.get("match_type").getAsString().equals("byte_comparison")){
-				l.add(new ByteComparisonBlockMatchDescription(e));
-			}else{
-				throw new Exception("Unknown match type:" + o.get("match_type").getAsString());
-			}
-		}
-		this.blockMatchDescriptions = l;
-		this.version = blockSchemaObject.get("version").getAsLong();
-	}
-
-	public String getInputJsonBlockSchema(){
-		return json;
+	public JsonPlayerPositionBlockMatchDescription(JsonElement e) {
+		super(e);
 	}
 
 	public JsonElement asJsonElement() throws Exception{
 		JsonObject o = new JsonObject();
-		o.add("version", new JsonPrimitive(this.version));
+		o.add("block_class", new JsonPrimitive(this.blockClass));
 		return o;
 	}
 
@@ -96,34 +72,56 @@ public class BlockSchema {
 		return gson.toJson(this.asJsonElement());
 	}
 
-	public List<BlockMatchDescription> getBlockMatchDescriptions(){
-		return this.blockMatchDescriptions;
-	}
-
-	public String getFirstBlockMatchDescriptionForByteArray(byte [] data) throws Exception{
-		for(BlockMatchDescription bmd : this.blockMatchDescriptions){
-			if(bmd.doesMatch(data)){
-				logger.info("Block class name is: " + bmd.getBlockInstanceClassName());
-				return bmd.getBlockInstanceClassName();
-			}
+	public boolean doesMatch(byte [] data) throws Exception{
+		JsonElement e = null;
+		try{
+			e = new Gson().fromJson(new String(data, "UTF-8"), JsonElement.class);
+		}catch(Exception ex){
+			logger.info("Caught exception trying to deserialize block, so it must not have been json.");
+			return false;
 		}
-		logger.info("No match found...");
-		if(this.allowUnrecognizedBlockTypes){
-			return UnrecognizedBlock.class.getName();
-		}else{
-			return null;
+		if(e == null){
+			return false;
 		}
-	}
-
-	public byte [] getBinaryDataForByteComparisonBlockForClass(Class<?> c) throws Exception{
-		for(BlockMatchDescription bmd : this.blockMatchDescriptions){
-			if(bmd instanceof ByteComparisonBlockMatchDescription){
-				ByteComparisonBlockMatchDescription bcbmd = (ByteComparisonBlockMatchDescription)bmd;
-				if(c.getName().equals(bmd.getBlockInstanceClassName())){
-					return bcbmd.getBytePattern();
+		if(e.isJsonObject()){
+			JsonObject o = (JsonObject)e;
+			Set<String> observedCoordinates = new HashSet<String>();
+			Set<String> observedPlayerUUIDs = new HashSet<String>();
+			for(Map.Entry<String, JsonElement> p: o.entrySet()){
+				String propertyKey = p.getKey();
+				JsonElement primitive = p.getValue();
+				if(
+					propertyKey.equals("x") ||
+					propertyKey.equals("y") ||
+					propertyKey.equals("z") ||
+					propertyKey.equals("x0") ||
+					propertyKey.equals("x1") ||
+					propertyKey.equals("x2") ||
+					propertyKey.equals("x3") ||
+					propertyKey.equals("x4")
+				){
+					if(!(primitive.isJsonPrimitive() && ((JsonPrimitive)primitive).isNumber())){
+						return false;
+					}
+					observedCoordinates.add(propertyKey);
+				}else if(propertyKey.equals("player_uuid")){
+					if(!(primitive.isJsonPrimitive() && ((JsonPrimitive)primitive).isString())){
+						return false;
+					}
+					observedPlayerUUIDs.add(propertyKey);
+				}else{
+					return false;
 				}
 			}
+			if(observedPlayerUUIDs.size() != 1){ //  Must be one player
+				return false;
+			}
+			if(observedCoordinates.size() < 1){ //  Must be at least one coordinate.
+				return false;
+			}
+		}else{
+			return false;
 		}
-		throw new Exception("Cannot get byte pattern for unknown class: " + c.getName());
+		return true;
 	}
 }
