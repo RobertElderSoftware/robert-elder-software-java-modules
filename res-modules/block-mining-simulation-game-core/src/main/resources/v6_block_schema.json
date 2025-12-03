@@ -2,11 +2,23 @@
 	"version": 1,
 	"block_match_descriptions": [
                 {
-                        "match_type": "json_player_position",
+                        "match_type": "json",
+                        "match_subtype": "player_position",
                         "block_class": "org.res.block.PlayerPositionXYZ"
+                },
+                {
+                        "match_type": "json",
+                        "match_subtype": "block_dictionary",
+                        "block_class": "org.res.block.BlockDictionary"
+                },
+                {
+                        "match_type": "regex_match",
+                        "regex": "player:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+                        "block_class": "org.res.block.PlayerCharacter"
                 },
 		{
 			"match_type": "json",
+                        "match_subtype": "generic",
 			"json_schema": {
 				"type": "array",
 				"items": {

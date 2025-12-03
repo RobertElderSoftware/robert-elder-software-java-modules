@@ -37,7 +37,21 @@ import java.util.stream.Collectors;
 import java.util.Random;
 import java.lang.Comparable;
 
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonNull;
+import com.google.gson.reflect.TypeToken;
+
 public class Coordinate extends Vector{
+
+	protected static final Gson gson = new GsonBuilder().serializeNulls().setPrettyPrinting().create();
 
 	public Coordinate(Vector v) {
 		super(v);
@@ -172,5 +186,13 @@ public class Coordinate extends Vector{
 			values.add((long)(rand.nextInt(maxCoordinateValue - minCoordinateValue) + minCoordinateValue));
 		}
 		return new Coordinate(values);
+	}
+
+	public JsonElement asJsonElement() throws Exception{
+		JsonObject o = new JsonObject();
+		for(long l = 0L; l < this.getNumDimensions(); l++){
+			o.add("x" + l, new JsonPrimitive(this.getValueAtIndex(l)));
+		}
+		return o;
 	}
 }

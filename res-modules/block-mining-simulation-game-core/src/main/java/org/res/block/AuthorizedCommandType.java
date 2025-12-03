@@ -33,16 +33,14 @@ package org.res.block;
 import java.util.Map;
 import java.util.HashMap;
 
-public enum BlockMessageType {
-        BLOCK_MESSAGE_TYPE_PROBE_REGIONS (1L),
-        BLOCK_MESSAGE_TYPE_DESCRIBE_REGIONS (2L),
-        BLOCK_MESSAGE_TYPE_ERROR_NOTIFICATION (3L),
-        BLOCK_MESSAGE_TYPE_ACKNOWLEDGEMENT (4L),
-        BLOCK_MESSAGE_TYPE_AUTHORIZED_COMMAND (5L);
+public enum AuthorizedCommandType {
+        COMMAND_TYPE_REQUEST_ROOT_DICTIONARY_ADDRESS (1L),
+        COMMAND_TYPE_RESPOND_ROOT_DICTIONARY_ADDRESS (2L),
+        COMMAND_TYPE_PROVISION_PLAYER (3L);
 
         private final long id;
 
-        private BlockMessageType(long i) {
+        private AuthorizedCommandType(long i) {
                 id = i;
         }
 
@@ -54,15 +52,15 @@ public enum BlockMessageType {
                 return this.id;
         }
 
-	private static final Map<Long, BlockMessageType> blockMessagesTypesByValue = new HashMap<Long, BlockMessageType>();
+	private static final Map<Long, AuthorizedCommandType> authorizedCommandTypesByValue = new HashMap<Long, AuthorizedCommandType>();
 
 	static {
-		for(BlockMessageType type : BlockMessageType.values()) {
-			blockMessagesTypesByValue.put(type.toLong(), type);
+		for(AuthorizedCommandType type : AuthorizedCommandType.values()) {
+			authorizedCommandTypesByValue.put(type.toLong(), type);
 		}
 	}
 
-	public static BlockMessageType forValue(long value) {
-		return blockMessagesTypesByValue.get(value);
+	public static AuthorizedCommandType forValue(long value) {
+		return authorizedCommandTypesByValue.get(value);
 	}
 }

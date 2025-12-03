@@ -30,39 +30,59 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.Map;
-import java.util.HashMap;
+import java.util.Arrays;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
+import java.util.Base64;
 
-public enum BlockMessageType {
-        BLOCK_MESSAGE_TYPE_PROBE_REGIONS (1L),
-        BLOCK_MESSAGE_TYPE_DESCRIBE_REGIONS (2L),
-        BLOCK_MESSAGE_TYPE_ERROR_NOTIFICATION (3L),
-        BLOCK_MESSAGE_TYPE_ACKNOWLEDGEMENT (4L),
-        BLOCK_MESSAGE_TYPE_AUTHORIZED_COMMAND (5L);
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonNull;
+import com.google.gson.reflect.TypeToken;
 
-        private final long id;
+public class RegexMatchBlockMatchDescription extends BlockMatchDescription{
 
-        private BlockMessageType(long i) {
-                id = i;
-        }
+	private byte [] bytePattern;
+	private String regex;
 
-        public boolean equalsId(long i) {
-                return id == i;
-        }
-
-        public long toLong() {
-                return this.id;
-        }
-
-	private static final Map<Long, BlockMessageType> blockMessagesTypesByValue = new HashMap<Long, BlockMessageType>();
-
-	static {
-		for(BlockMessageType type : BlockMessageType.values()) {
-			blockMessagesTypesByValue.put(type.toLong(), type);
-		}
+	public RegexMatchBlockMatchDescription(JsonElement e) {
+		super(e);
+		JsonObject o = (JsonObject)e;
+		this.regex = o.get("regex").getAsString();
 	}
 
-	public static BlockMessageType forValue(long value) {
-		return blockMessagesTypesByValue.get(value);
+	public JsonElement asJsonElement() throws Exception{
+		JsonObject o = new JsonObject();
+		o.add("regex", new JsonPrimitive(this.regex));
+		o.add("block_class", new JsonPrimitive(this.blockClass));
+		return o;
+	}
+
+	public String asJsonString() throws Exception {
+		return gson.toJson(this.asJsonElement());
+	}
+
+	public boolean doesMatch(byte [] data) throws Exception {
+		try{
+			String dataString = new String(data, "UTF-8");
+			Pattern pattern = Pattern.compile(this.regex);
+
+			if(pattern.matcher(dataString).find()){
+				return true;
+			}else{
+				return false;
+			}
+		}catch(Exception e){
+			return false;
+		}
 	}
 }

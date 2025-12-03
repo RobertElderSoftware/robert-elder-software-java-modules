@@ -69,6 +69,8 @@ public abstract class BlockMessage {
 				return new ErrorNotificationBlockMessage(blockModelContext, buffer, conversationId);
 			}case BLOCK_MESSAGE_TYPE_ACKNOWLEDGEMENT:{
 				return new AcknowledgementBlockMessage(blockModelContext, buffer, conversationId);
+			}case BLOCK_MESSAGE_TYPE_AUTHORIZED_COMMAND:{
+				return new AcknowledgementBlockMessage(blockModelContext, buffer, conversationId);
 			}default:{
 				throw new Exception("Unknown message type: " + blockMessageType.toString());
 			}

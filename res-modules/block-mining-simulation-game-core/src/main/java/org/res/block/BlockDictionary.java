@@ -31,6 +31,8 @@
 package org.res.block;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
@@ -46,68 +48,50 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonNull;
 import com.google.gson.reflect.TypeToken;
 
-public class PlayerPositionXYZ extends IndividualBlock {
+public class BlockDictionary extends IndividualBlock {
 
-	protected Coordinate position;
 	protected final Gson gson = new GsonBuilder().serializeNulls().setPrettyPrinting().create();
-	protected String playerUUID;
+	private Map<String, Coordinate> dictionary = new HashMap<String, Coordinate>();
 
-	public PlayerPositionXYZ(String playerUUID, Coordinate c) {
-		this.playerUUID = playerUUID;
-		this.position = c.copy();
-	}
+	public BlockDictionary() {
 
-	public String getPlayerUUID(){
-		return this.playerUUID;
 	}
 
 	public final void initializeFromJson(String json) {
-		JsonElement playerPositionElement = new Gson().fromJson(json, JsonElement.class);
-		JsonObject playerPositionObject = (JsonObject)playerPositionElement;
+		JsonElement rootElement = new Gson().fromJson(json, JsonElement.class);
+		JsonObject rootObject = (JsonObject)rootElement;
+		this.dictionary = new HashMap<String, Coordinate>();
 
-		List<Long> l = new ArrayList<Long>();
-		if(playerPositionObject.has("x")){
-			// Legacy x, y, z method
-			l.add(playerPositionObject.get("x").getAsLong());
-			l.add(playerPositionObject.get("y").getAsLong());
-			l.add(playerPositionObject.get("z").getAsLong());
-		}else{
+		for(Map.Entry<String, JsonElement> entry: rootObject.entrySet()){
+			JsonObject coordinateJsonObject = (JsonObject)entry.getValue();
+			List<Long> l = new ArrayList<Long>();
 			Long n = 0L;
 			while(true){
 				String key = "x" + n;
-				if(playerPositionObject.has(key)){
-					l.add(playerPositionObject.get(key).getAsLong());
+				if(coordinateJsonObject.has(key)){
+					l.add(coordinateJsonObject.get(key).getAsLong());
 				}else{
 					break; //  End of coordinate
 				}
 				n++;
 			}
+			this.dictionary.put(entry.getKey(), new Coordinate(l));
 		}
-		while(l.size() < 4L){ //  Keep coordinate as 4D
-			l.add(0L);
-		}
-		this.position = new Coordinate(l);
-		this.playerUUID = playerPositionObject.get("player_uuid").getAsString();
 	}
 
-	public PlayerPositionXYZ(String json) throws Exception {
+	public BlockDictionary(String json) throws Exception {
 		this.initializeFromJson(json);
 	}
 
-	public PlayerPositionXYZ(byte [] data) throws Exception {
+	public BlockDictionary(byte [] data) throws Exception {
 		this.initializeFromJson(new String(data, "UTF-8"));
-	}
-
-	public Coordinate getPosition(){
-		return this.position;
 	}
 
 	public JsonElement asJsonElement() throws Exception{
 		JsonObject o = new JsonObject();
-		for(long l = 0L; l < this.position.getNumDimensions(); l++){
-			o.add("x" + l, new JsonPrimitive(this.position.getValueAtIndex(l)));
+		for(Map.Entry<String, Coordinate> entry: this.dictionary.entrySet()){
+			o.add(entry.getKey(), entry.getValue().asJsonElement());
 		}
-		o.add("player_uuid", new JsonPrimitive(this.playerUUID));
 		return o;
 	}
 
@@ -115,7 +99,7 @@ public class PlayerPositionXYZ extends IndividualBlock {
 		return gson.toJson(this.asJsonElement());
 	}
 
-	public byte [] getBlockData()throws Exception {
+	public byte [] getBlockData() throws Exception {
 		return this.asJsonString().getBytes("UTF-8");
 	}
 

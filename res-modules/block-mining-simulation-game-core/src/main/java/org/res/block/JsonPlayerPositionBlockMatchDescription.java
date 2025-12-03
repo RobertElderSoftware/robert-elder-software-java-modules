@@ -38,6 +38,8 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -57,6 +59,7 @@ public class JsonPlayerPositionBlockMatchDescription extends BlockMatchDescripti
 
 	private JsonSchema jsonSchema;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+	public static final Pattern coordinatePattern = Pattern.compile("x[0-9]+");
 
 	public JsonPlayerPositionBlockMatchDescription(JsonElement e) {
 		super(e);
@@ -85,25 +88,29 @@ public class JsonPlayerPositionBlockMatchDescription extends BlockMatchDescripti
 		}
 		if(e.isJsonObject()){
 			JsonObject o = (JsonObject)e;
-			Set<String> observedCoordinates = new HashSet<String>();
+			Set<Long> observedCoordinates = new HashSet<Long>();
 			Set<String> observedPlayerUUIDs = new HashSet<String>();
 			for(Map.Entry<String, JsonElement> p: o.entrySet()){
 				String propertyKey = p.getKey();
 				JsonElement primitive = p.getValue();
+
 				if(
+					//  Legacy method
 					propertyKey.equals("x") ||
 					propertyKey.equals("y") ||
-					propertyKey.equals("z") ||
-					propertyKey.equals("x0") ||
-					propertyKey.equals("x1") ||
-					propertyKey.equals("x2") ||
-					propertyKey.equals("x3") ||
-					propertyKey.equals("x4")
+					propertyKey.equals("z")
 				){
 					if(!(primitive.isJsonPrimitive() && ((JsonPrimitive)primitive).isNumber())){
 						return false;
 					}
-					observedCoordinates.add(propertyKey);
+					observedCoordinates.add(
+						Long.valueOf(propertyKey.replace("x", "0").replace("y", "1").replace("z", "2"))
+					);
+				}else if(coordinatePattern.matcher(propertyKey).find()){
+					if(!(primitive.isJsonPrimitive() && ((JsonPrimitive)primitive).isNumber())){
+						return false;
+					}
+					observedCoordinates.add(Long.valueOf(propertyKey.replace("x", "")));
 				}else if(propertyKey.equals("player_uuid")){
 					if(!(primitive.isJsonPrimitive() && ((JsonPrimitive)primitive).isString())){
 						return false;
@@ -118,6 +125,13 @@ public class JsonPlayerPositionBlockMatchDescription extends BlockMatchDescripti
 			}
 			if(observedCoordinates.size() < 1){ //  Must be at least one coordinate.
 				return false;
+			}
+			//  Should contain one coordinate value for each position
+			//  with no missing coordinate values:
+			for(long l = 0L; l < observedCoordinates.size(); l++){
+				if(!observedCoordinates.contains(l)){
+					return false;
+				}
 			}
 		}else{
 			return false;

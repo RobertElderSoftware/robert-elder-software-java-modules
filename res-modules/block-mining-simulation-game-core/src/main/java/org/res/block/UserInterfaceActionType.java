@@ -43,6 +43,8 @@ public enum UserInterfaceActionType {
         ACTION_X_MINUS ("ACTION_X_MINUS"),
         ACTION_Z_PLUS ("ACTION_Z_PLUS"),
         ACTION_Z_MINUS ("ACTION_Z_MINUS"),
+        ACTION_W_PLUS ("ACTION_W_PLUS"),
+        ACTION_W_MINUS ("ACTION_W_MINUS"),
         ACTION_MINING ("ACTION_MINING"),
         ACTION_CRAFTING ("ACTION_CRAFTING"),
         ACTION_QUIT ("ACTION_QUIT"),

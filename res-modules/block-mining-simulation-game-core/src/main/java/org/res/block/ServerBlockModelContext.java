@@ -32,6 +32,7 @@ package org.res.block;
 
 
 import java.util.List;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -128,5 +129,58 @@ public class ServerBlockModelContext extends BlockModelContext {
 
 	public void onAcknowledgementMessage(Long conversationId) throws Exception{
 
+	}
+
+	public Coordinate getRootDictionaryAddressForAuthorizedClientId(Long authorizedClientId){
+		//  This function is where the server can determine how it actually lays out
+		//  the root dictionary blocks for each player based on the individual player's
+		//  authorized client id.  
+		return new Coordinate(Arrays.asList(100000000L, 99999999L, 99999999L - authorizedClientId, 99999999L));
+	}
+
+	public boolean isRootDictionaryInitialized(Cuboid c) throws Exception{
+		CuboidAddress cuboidAddress = c.getCuboidAddress();
+		CuboidDataLengths dataLengths = c.getCuboidDataLengths();
+		CuboidData data = c.getCuboidData();
+
+		long sizeOfBlock = dataLengths.getLengths()[0];
+		if(sizeOfBlock < 0L){ //  Block not initialized.
+			return false;
+		}else{
+			byte [] blockData = data.getDataAtOffset(0, sizeOfBlock);
+
+			String blockClassName = this.getBlockSchema().getFirstBlockMatchDescriptionForByteArray(blockData);
+			if(blockClassName == null){
+				throw new Exception("This should never happen.  Initialized, but invalid?");
+			}else if(!(IndividualBlock.makeBlockInstanceFromClassName(blockClassName, blockData) instanceof BlockDictionary)){
+				throw new Exception("This should never happen.  Initialized, but wrong class type?");
+			}else{
+				return true;
+			}
+		}
+	}
+
+	public void onAuthorizedCommandBlockMessage(BlockSession blockSession, Long conversationId, Long authorizedClientId, AuthorizedCommandType authorizedCommandType) throws Exception{
+		switch(authorizedCommandType){
+			case COMMAND_TYPE_REQUEST_ROOT_DICTIONARY_ADDRESS:{
+				Coordinate rootDictionaryAddress = getRootDictionaryAddressForAuthorizedClientId(authorizedClientId);
+				//  Read the single block where the root dictionary is supposed to be stored:
+				List<CuboidAddress> addresses = new ArrayList<CuboidAddress>();
+				addresses.add(new CuboidAddress(rootDictionaryAddress, rootDictionaryAddress.add(Coordinate.makeUnitCoordinate(4L))));
+				List<Cuboid> cuboids = this.getBlockModelInterface().getBlocksInRegions(addresses);
+				if(isRootDictionaryInitialized(cuboids.get(0))){
+					//  Send address
+				}else{
+					//  Send error
+					ErrorNotificationBlockMessage response = new ErrorNotificationBlockMessage(this, BlockMessageErrorType.ROOT_BLOCK_DICTIONARY_UNINITIALIZED, conversationId);
+					this.sendBlockMessage(response, blockSession);
+				}
+				break;
+			}case COMMAND_TYPE_PROVISION_PLAYER:{
+				throw new Exception("TODO");
+			}default:{
+				throw new Exception("Message type not expected: " + authorizedCommandType);
+			}
+		}
 	}
 }

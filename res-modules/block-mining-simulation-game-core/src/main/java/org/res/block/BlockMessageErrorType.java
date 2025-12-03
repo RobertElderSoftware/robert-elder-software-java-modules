@@ -35,7 +35,8 @@ import java.util.HashMap;
 
 public enum BlockMessageErrorType {
         MAX_REGION_SUBSCRPTIONS_EXCEEDED (1L),
-        IDENTICAL_SUBSCRIPTION (2L);
+        IDENTICAL_SUBSCRIPTION (2L),
+        ROOT_BLOCK_DICTIONARY_UNINITIALIZED (3L);
 
         private final long id;
 

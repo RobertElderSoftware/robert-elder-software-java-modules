@@ -54,6 +54,8 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	private PlayerPositionXYZ playerPositionXYZ = null;
 	private PlayerInventory playerInventory = new PlayerInventory();
 
+	private static final String playerUUID = "f7828de4-5e6e-4ff7-8b35-752734a2b59d";
+
 	private CuboidAddress mapAreaCuboidAddress;
 	private Integer selectedInventoryItemIndex = null;
 	private Integer selectedCraftingRecipeIndex = 0;
@@ -111,6 +113,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		}
 		this.blockManagerThreadCollection.addThread(new StandardInputReaderTask(this, this.consoleWriterThreadState));
 
+		this.requestRootBlockDictionary();
 	}
 
 	public CraftingRecipe getCurrentCraftingRecipe() throws Exception{
@@ -210,7 +213,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 					disableCollisionDetection ||
 					blockAtCandidatePlayerPosition instanceof EmptyBlock
 				){
-					this.onPlayerPositionChange(new PlayerPositionXYZ(this.playerPositionXYZ.getPlayerUUID(), newCandiatePosition.getX(), newCandiatePosition.getY(), newCandiatePosition.getZ()));
+					this.onPlayerPositionChange(new PlayerPositionXYZ(this.playerPositionXYZ.getPlayerUUID(), newCandiatePosition));
 				}else{
 					//  Don't move, there is something in the way.
 					logger.info("Not moving to " + newCandiatePosition + " because block at that location has class '" + blockAtCandidatePlayerPosition.getClass().getName() + "'");
@@ -548,7 +551,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			IndividualBlock blockWritten = blockData == null ? new UninitializedBlock() : this.deserializeBlockData(blockData);
 
 			if(blockWritten instanceof UninitializedBlock){
-				this.onPlayerPositionChange(new PlayerPositionXYZ("player:f7828de4-5e6e-4ff7-8b35-752734a2b59d", 0L, 0L, 0L)); //  Initial value when world is started.
+				this.onPlayerPositionChange(new PlayerPositionXYZ("player:" + playerUUID, Coordinate.makeOriginCoordinate(4L))); //  Initial value when world is started.
 			}else if(blockWritten instanceof PlayerPositionXYZ){
 				// Make a new copy of the position to operate on:
 				this.onPlayerPositionChange(new PlayerPositionXYZ(new String(blockWritten.getBlockData(), "UTF-8")));
@@ -706,8 +709,8 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 			//  Load some area outside the viewport to make moving around more pleasant.
 			Long paddingAroundMapArea = 20L;
-			Coordinate reachableLower = lower.changeByDeltaXYZ(-paddingAroundMapArea, - 1L, -paddingAroundMapArea);
-			Coordinate reachableUpper = upper.changeByDeltaXYZ(paddingAroundMapArea, 1L, paddingAroundMapArea);
+			Coordinate reachableLower = lower.add(new Coordinate(Arrays.asList(-paddingAroundMapArea, - 1L, -paddingAroundMapArea, -1L)));
+			Coordinate reachableUpper = upper.add(new Coordinate(Arrays.asList(paddingAroundMapArea, 1L, paddingAroundMapArea, 1L)));
 			//  We need to be able to load the entire 'reachable' area so that it's possible to 
 			//  check what the adjacent block is, so we can check if it's possible to move there.
 			return new CuboidAddress(reachableLower, reachableUpper);
@@ -749,9 +752,23 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.putWorkItem(workItem, priority);
 	}
 
+	public void requestRootBlockDictionary() throws Exception{
+		BlockSession bs = this.getSessionMap().get(this.clientServerInterface.getClientSessionId());
+
+		Long authorizedClientId = 0L; //  TODO:  change this for each player
+		AuthorizedCommandBlockMessage getRootMessage = new AuthorizedCommandBlockMessage(this, 12345L, authorizedClientId, AuthorizedCommandType.COMMAND_TYPE_REQUEST_ROOT_DICTIONARY_ADDRESS);
+
+		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, getRootMessage);
+		this.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
+	}
+
 	public void onAcknowledgementMessage(Long conversationId) throws Exception{
 		ChunkInitializerWorkItem workItem = new ChunkInitializerNotifyAcknowledgementWorkItem(this.chunkInitializerThreadState, conversationId);
 		this.chunkInitializerThreadState.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
+	}
+
+	public void onAuthorizedCommandBlockMessage(BlockSession blockSession, Long conversationId, Long authorizedClientId, AuthorizedCommandType authorizedCommandType) throws Exception{
+		throw new Exception("TODO.");
 	}
 
 	public WorkItemResult putBlockingWorkItem(BlockModelContextWorkItem workItem, WorkItemPriority priority) throws Exception {

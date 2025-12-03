@@ -69,11 +69,19 @@ public class BlockSchema {
 		for(JsonElement e : blockMatchDescriptionsJson){
 			JsonObject o = (JsonObject)e;
 			if(o.get("match_type").getAsString().equals("json")){
-				l.add(new JsonBlockMatchDescription(e));
-			}else if(o.get("match_type").getAsString().equals("json_player_position")){
-				l.add(new JsonPlayerPositionBlockMatchDescription(e));
+				if(o.get("match_subtype").getAsString().equals("generic")){
+					l.add(new JsonBlockMatchDescription(e));
+				}else if(o.get("match_subtype").getAsString().equals("player_position")){
+					l.add(new JsonPlayerPositionBlockMatchDescription(e));
+				}else if(o.get("match_subtype").getAsString().equals("block_dictionary")){
+					l.add(new JsonBlockDictionaryBlockMatchDescription(e));
+				}else{
+					throw new Exception("Unknown match sub type:" + o.get("match_subtype").getAsString());
+				}
 			}else if(o.get("match_type").getAsString().equals("byte_comparison")){
 				l.add(new ByteComparisonBlockMatchDescription(e));
+			}else if(o.get("match_type").getAsString().equals("regex_match")){
+				l.add(new RegexMatchBlockMatchDescription(e));
 			}else{
 				throw new Exception("Unknown match type:" + o.get("match_type").getAsString());
 			}

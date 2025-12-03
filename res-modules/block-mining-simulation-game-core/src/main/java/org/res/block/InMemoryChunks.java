@@ -320,7 +320,14 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 			if(blocksInChunk == null){ //  Chunk not loaded at all, and not even in a pending request to server.
 				return null;
 			}else{
-				return blocksInChunk[(int)blockOffsetInArray];
+				IndividualBlock b = blocksInChunk[(int)blockOffsetInArray];
+				if(b instanceof UninitializedBlock && !coordinate.getValueAtIndex(3L).equals(0L)){
+					// Special case for Uninitialized block
+					// outside the map plane:
+					return new EmptyBlock(new byte []{});
+				}else{
+					return b;
+				}
 			}
 		}
 	}

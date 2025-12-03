@@ -73,8 +73,10 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	private ClientBlockModelContext clientBlockModelContext;
 
 	private ThreeDimensionalCircularBuffer<IndividualBlock> mapAreaBlocks = new ThreeDimensionalCircularBuffer<IndividualBlock>(IndividualBlock.class, new PendingLoadBlock());
-	private Long edgeDistanceScreenX = 10L;
-	private Long edgeDistanceScreenY = 10L;
+
+	//  The buffer distance from the player position to the visible map edge 
+	//  for each dimension before the map area drags around:
+	private Coordinate edgeDistances = new Coordinate(Arrays.asList(10L, 1L, 10L, 1L));
 
 	private byte[] unprocessedInputBytes = new byte[0];
 	private ScreenLayer playerIcon;
@@ -162,6 +164,12 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 					}case ACTION_Z_PLUS:{
 						this.sendTryPositionChange(new Vector(Arrays.asList(0L, 1L, 0L, 0L)));
 						break;
+					}case ACTION_W_MINUS:{
+						this.sendTryPositionChange(new Vector(Arrays.asList(0L, 0L, 0L, -1L)));
+						break;
+					}case ACTION_W_PLUS:{
+						this.sendTryPositionChange(new Vector(Arrays.asList(0L, 0L, 0L, 1L)));
+						break;
 					}case ACTION_PLACE_BLOCK:{
 						this.clientBlockModelContext.putWorkItem(new ClientActionWorkItem(this.clientBlockModelContext, action), WorkItemPriority.PRIORITY_LOW);
 						break;
@@ -207,8 +215,8 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			Long bottomLeftHandZ = topRightHandZ - (mapAreaHeightInCells - 1L);
 			logger.info("onRenderFrame calculated: topRightHandX=" + topRightHandX + ", topRightHandZ=" + topRightHandZ + ", bottomLeftHandX=" + bottomLeftHandX + ", bottomLeftHandZ=" + bottomLeftHandZ);
 
-			Coordinate bottomleftHandCorner = new Coordinate(Arrays.asList(bottomLeftHandX + playerPosition.getX(), playerPosition.getY() -1L, bottomLeftHandZ + playerPosition.getZ(), 0L));
-			Coordinate topRightHandCorner = new Coordinate(Arrays.asList(topRightHandX + playerPosition.getX(), playerPosition.getY(), topRightHandZ + playerPosition.getZ(), 0L));
+			Coordinate bottomleftHandCorner = playerPosition.add(new Coordinate(Arrays.asList(bottomLeftHandX, -1L, bottomLeftHandZ, 0L)));
+			Coordinate topRightHandCorner = playerPosition.add(new Coordinate(Arrays.asList(topRightHandX, 0L, topRightHandZ, 0L)));
 
 			CuboidAddress newMapArea = new CuboidAddress(bottomleftHandCorner, topRightHandCorner.add(Coordinate.makeUnitCoordinate(4L)));
 			this.onMapAreaChange(newMapArea);
@@ -224,45 +232,25 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	public void updateMapAreaForPlayerPositionChange(Coordinate previousPosition, Coordinate newPosition) throws Exception{
 		if(previousPosition == null){
 		}else{
-			Long deltaX = newPosition.getX() - previousPosition.getX();
-			Long deltaY = newPosition.getY() - previousPosition.getY();
-			Long deltaZ = newPosition.getZ() - previousPosition.getZ();
+			Coordinate displacement = newPosition.subtract(previousPosition);
 
 			/*  Move camera around if the player tries to move out of bounds. */
 			Coordinate lower = this.mapAreaCuboidAddress.getCanonicalLowerCoordinate();
 			Coordinate upper = this.mapAreaCuboidAddress.getCanonicalUpperCoordinate();
+			Coordinate newLower = lower.copy();
+			Coordinate newUpper = upper.copy();
 
-			CuboidAddress mapAreaAfter = this.mapAreaCuboidAddress.copy();
-
-			if((deltaX < 0L) && (newPosition.getX() - lower.getValueAtIndex(0L) < this.edgeDistanceScreenX)){
-				Coordinate newLower = lower.changeValueAtIndex(0L, lower.getValueAtIndex(0L) + deltaX);
-				Coordinate newUpper = upper.changeValueAtIndex(0L, upper.getValueAtIndex(0L) + deltaX);
-				mapAreaAfter = new CuboidAddress(newLower, newUpper);
-			}
-			if((deltaX > 0L) && (upper.getValueAtIndex(0L) - 1L - newPosition.getX() < this.edgeDistanceScreenX)){
-				Coordinate newLower = lower.changeValueAtIndex(0L, lower.getValueAtIndex(0L) + deltaX);
-				Coordinate newUpper = upper.changeValueAtIndex(0L, upper.getValueAtIndex(0L) + deltaX);
-				mapAreaAfter = new CuboidAddress(newLower, newUpper);
-			}
-
-			if(deltaY != 0L){
-				Coordinate newLower = lower.changeValueAtIndex(1L, lower.getValueAtIndex(1L) + deltaY);
-				Coordinate newUpper = upper.changeValueAtIndex(1L, upper.getValueAtIndex(1L) + deltaY);
-				mapAreaAfter = new CuboidAddress(newLower, newUpper);
+			for(long l = 0; l < displacement.getNumDimensions(); l++){
+				if(
+					(newPosition.getValueAtIndex(l) - lower.getValueAtIndex(l) < this.edgeDistances.getValueAtIndex(l)) ||
+					(upper.getValueAtIndex(l) - 1L - newPosition.getValueAtIndex(l) < this.edgeDistances.getValueAtIndex(l))
+				){
+					newLower = newLower.changeValueAtIndex(l, lower.getValueAtIndex(l) + displacement.getValueAtIndex(l));
+					newUpper = newUpper.changeValueAtIndex(l, upper.getValueAtIndex(l) + displacement.getValueAtIndex(l));
+				}
 			}
 
-			if((deltaZ < 0L) && (newPosition.getZ() - lower.getValueAtIndex(2L) < this.edgeDistanceScreenY)){
-				Coordinate newLower = lower.changeValueAtIndex(2L, lower.getValueAtIndex(2L) + deltaZ);
-				Coordinate newUpper = upper.changeValueAtIndex(2L, upper.getValueAtIndex(2L) + deltaZ);
-				mapAreaAfter = new CuboidAddress(newLower, newUpper);
-			}
-
-			if((deltaZ > 0L) && (upper.getValueAtIndex(2L) - 1L - newPosition.getZ() < this.edgeDistanceScreenY)){
-				Coordinate newLower = lower.changeValueAtIndex(2L, lower.getValueAtIndex(2L) + deltaZ);
-				Coordinate newUpper = upper.changeValueAtIndex(2L, upper.getValueAtIndex(2L) + deltaZ);
-				mapAreaAfter = new CuboidAddress(newLower, newUpper);
-			}
-			this.onMapAreaChange(mapAreaAfter);
+			this.onMapAreaChange(new CuboidAddress(newLower, newUpper));
 		}
 	}
 
@@ -304,7 +292,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void updateFrameCoordinate() throws Exception {
-		String playerCoordinateString = this.getPlayerPosition() == null ? "null" : "X=" + this.getPlayerPosition().getX() + ", Y=" + this.getPlayerPosition().getY() + ", Z=" + this.getPlayerPosition().getZ();
+		String playerCoordinateString = this.getPlayerPosition() == null ? "null" : "X=" + this.getPlayerPosition().getX() + ", Y=" + this.getPlayerPosition().getY() + ", Z=" + this.getPlayerPosition().getZ() + ", W=" + this.getPlayerPosition().getValueAtIndex(3L);
 		this.printTextAtScreenXY(new ColouredTextFragment(playerCoordinateString, UserInterfaceFrameThreadState.getDefaultTextColors()), 10L, 0L, true);
 	}
 

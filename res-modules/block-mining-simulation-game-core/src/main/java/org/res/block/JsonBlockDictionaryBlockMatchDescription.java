@@ -31,10 +31,15 @@
 package org.res.block;
 
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
+import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -46,68 +51,21 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonNull;
 import com.google.gson.reflect.TypeToken;
 
-public class PlayerPositionXYZ extends IndividualBlock {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
 
-	protected Coordinate position;
-	protected final Gson gson = new GsonBuilder().serializeNulls().setPrettyPrinting().create();
-	protected String playerUUID;
+public class JsonBlockDictionaryBlockMatchDescription extends BlockMatchDescription{
 
-	public PlayerPositionXYZ(String playerUUID, Coordinate c) {
-		this.playerUUID = playerUUID;
-		this.position = c.copy();
-	}
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	public String getPlayerUUID(){
-		return this.playerUUID;
-	}
-
-	public final void initializeFromJson(String json) {
-		JsonElement playerPositionElement = new Gson().fromJson(json, JsonElement.class);
-		JsonObject playerPositionObject = (JsonObject)playerPositionElement;
-
-		List<Long> l = new ArrayList<Long>();
-		if(playerPositionObject.has("x")){
-			// Legacy x, y, z method
-			l.add(playerPositionObject.get("x").getAsLong());
-			l.add(playerPositionObject.get("y").getAsLong());
-			l.add(playerPositionObject.get("z").getAsLong());
-		}else{
-			Long n = 0L;
-			while(true){
-				String key = "x" + n;
-				if(playerPositionObject.has(key)){
-					l.add(playerPositionObject.get(key).getAsLong());
-				}else{
-					break; //  End of coordinate
-				}
-				n++;
-			}
-		}
-		while(l.size() < 4L){ //  Keep coordinate as 4D
-			l.add(0L);
-		}
-		this.position = new Coordinate(l);
-		this.playerUUID = playerPositionObject.get("player_uuid").getAsString();
-	}
-
-	public PlayerPositionXYZ(String json) throws Exception {
-		this.initializeFromJson(json);
-	}
-
-	public PlayerPositionXYZ(byte [] data) throws Exception {
-		this.initializeFromJson(new String(data, "UTF-8"));
-	}
-
-	public Coordinate getPosition(){
-		return this.position;
+	public JsonBlockDictionaryBlockMatchDescription(JsonElement e) {
+		super(e);
 	}
 
 	public JsonElement asJsonElement() throws Exception{
 		JsonObject o = new JsonObject();
-		for(long l = 0L; l < this.position.getNumDimensions(); l++){
-			o.add("x" + l, new JsonPrimitive(this.position.getValueAtIndex(l)));
-		}
-		o.add("player_uuid", new JsonPrimitive(this.playerUUID));
+		o.add("block_class", new JsonPrimitive(this.blockClass));
 		return o;
 	}
 
@@ -115,11 +73,59 @@ public class PlayerPositionXYZ extends IndividualBlock {
 		return gson.toJson(this.asJsonElement());
 	}
 
-	public byte [] getBlockData()throws Exception {
-		return this.asJsonString().getBytes("UTF-8");
-	}
-
-	public boolean isMineable() throws Exception{
-		return false;
+	public boolean doesMatch(byte [] data) throws Exception{
+		JsonElement e = null;
+		try{
+			e = new Gson().fromJson(new String(data, "UTF-8"), JsonElement.class);
+		}catch(Exception ex){
+			logger.info("Caught exception trying to deserialize block, so it must not have been json.");
+			return false;
+		}
+		if(e == null){
+			return false;
+		}
+		if(e.isJsonObject()){
+			JsonObject o = (JsonObject)e;
+			if(o.has("version")){
+				if(o.get("version").getAsLong() == 1L){
+				}else{
+					return false;
+				}
+			}else{
+				return false;
+			}
+			if(o.has("blocks")){
+				JsonObject blockObject = (JsonObject)o.get("blocks");
+				for(Map.Entry<String, JsonElement> entry: blockObject.entrySet()){
+					//  Should be an object that maps string keys to coordinate addresses:
+					JsonElement coordinateElement = entry.getValue();
+					if(coordinateElement.isJsonObject()){
+						JsonObject coordinateObject = (JsonObject)coordinateElement;
+						for(Map.Entry<String, JsonElement> coordinateEntry: coordinateObject.entrySet()){
+							String coordinateKey = coordinateEntry.getKey();
+							if(JsonPlayerPositionBlockMatchDescription.coordinatePattern.matcher(coordinateKey).find()){
+								JsonElement coordinateValue = coordinateEntry.getValue();
+								if(coordinateValue.isJsonPrimitive()){
+									if(((JsonPrimitive)coordinateValue).isNumber()){
+										//  Continue
+									}else{
+										return false;
+									}
+								}else{
+									return false;
+								}
+							}else{
+								return false;
+							}
+						}
+					}else{
+						return false;
+					}
+				}
+			}
+			return true;
+		}else{
+			return false;
+		}
 	}
 }
