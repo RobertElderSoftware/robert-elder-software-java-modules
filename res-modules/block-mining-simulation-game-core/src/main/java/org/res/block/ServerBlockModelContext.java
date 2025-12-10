@@ -31,6 +31,7 @@
 package org.res.block;
 
 
+import java.util.UUID;
 import java.util.List;
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -131,11 +132,11 @@ public class ServerBlockModelContext extends BlockModelContext {
 
 	}
 
-	public Coordinate getRootDictionaryAddressForAuthorizedClientId(Long authorizedClientId){
+	public Coordinate getPlayerModelBlockForAuthorizedClientId(PlayerDataModelBlockType blockType, Long authorizedClientId){
 		//  This function is where the server can determine how it actually lays out
 		//  the root dictionary blocks for each player based on the individual player's
 		//  authorized client id.  
-		return new Coordinate(Arrays.asList(100000000L, 99999999L, 99999999L - authorizedClientId, 99999999L));
+		return new Coordinate(Arrays.asList(100000000L - blockType.toLong(), 99999999L, 99999999L - authorizedClientId, 99999999L));
 	}
 
 	public boolean isRootDictionaryInitialized(Cuboid c) throws Exception{
@@ -160,24 +161,104 @@ public class ServerBlockModelContext extends BlockModelContext {
 		}
 	}
 
-	public void onAuthorizedCommandBlockMessage(BlockSession blockSession, Long conversationId, Long authorizedClientId, AuthorizedCommandType authorizedCommandType) throws Exception{
+	public void onErrorNotificationBlockMessage(BlockSession blockSession, Long conversationId, BlockMessageErrorType blockMessageErrorType) throws Exception{
+		switch(blockMessageErrorType){
+			default:{
+				throw new Exception("Message type not expected: " + blockMessageErrorType);
+			}
+		}
+	}
+
+	public void provisionNewPlayer(Long authorizedClientId) throws Exception{
+		UUID playerUUID = UUID.randomUUID();
+		String playerUUIDString = playerUUID.toString();
+
+		Coordinate rootDictionaryAddress = getPlayerModelBlockForAuthorizedClientId(PlayerDataModelBlockType.ROOT_DICTIONARY, authorizedClientId);
+		Coordinate spawnCoordinate = Coordinate.makeOriginCoordinate(4L);
+
+		PlayerObject newPlayerObject = new PlayerObject(
+			playerUUIDString,
+			PlayerObjectSkinType.HAPPY_FACE
+		);
+
+		this.writeSingleBlockAtPosition(
+			newPlayerObject.getBlockData(),
+			spawnCoordinate
+		);
+
+		BlockDictionary newRootDictionary = new BlockDictionary();
+		newRootDictionary.put(
+			"player_position",
+			getPlayerModelBlockForAuthorizedClientId(PlayerDataModelBlockType.PLAYER_POSITION, authorizedClientId)
+		);
+		newRootDictionary.put(
+			"player_inventory",
+			getPlayerModelBlockForAuthorizedClientId(PlayerDataModelBlockType.PLAYER_INVENTORY, authorizedClientId)
+		);
+
+		this.writeSingleBlockAtPosition(newRootDictionary.getBlockData(), rootDictionaryAddress);
+
+		this.writeSingleBlockAtPosition(
+			(new PlayerPositionXYZ("player:" + playerUUIDString, Coordinate.makeOriginCoordinate(4L))).getBlockData(),
+			getPlayerModelBlockForAuthorizedClientId(PlayerDataModelBlockType.PLAYER_POSITION, authorizedClientId)
+		);
+
+		this.writeSingleBlockAtPosition(
+			(new PlayerInventory()).getBlockData(),
+			getPlayerModelBlockForAuthorizedClientId(PlayerDataModelBlockType.PLAYER_INVENTORY, authorizedClientId)
+		);
+	}
+
+	public void writeSingleBlockAtPosition(byte [] data, Coordinate position) throws Exception{
+		Long numDimensions = position.getNumDimensions();
+
+		CuboidAddress blocksToChangeAddress = new CuboidAddress(position, position.add(Coordinate.makeUnitCoordinate(4L)));
+		BlockMessageBinaryBuffer dataForOneCuboid = new BlockMessageBinaryBuffer();
+
+		Long numBlocks = blocksToChangeAddress.getVolume();
+		long [] dataLengths = new long [numBlocks.intValue()];
+		for(int i = 0; i < numBlocks; i++){
+			dataLengths[i] = data.length;
+			dataForOneCuboid.writeBytes(data);
+		}
+
+		CuboidDataLengths currentCuboidDataLengths = new CuboidDataLengths(blocksToChangeAddress, dataLengths);
+		CuboidData currentCuboidData = new CuboidData(dataForOneCuboid.getUsedBuffer());
+
+		Cuboid c = new Cuboid(blocksToChangeAddress, currentCuboidDataLengths, currentCuboidData);
+		this.getBlockModelInterface().writeBlocksInRegion(c);
+	}
+
+	public void sendRootDictionaryAddress(BlockSession blockSession, Long conversationId, Long authorizedClientId, boolean allowError) throws Exception{
+		Coordinate rootDictionaryAddress = getPlayerModelBlockForAuthorizedClientId(PlayerDataModelBlockType.ROOT_DICTIONARY, authorizedClientId);
+		//  Read the single block where the root dictionary is supposed to be stored:
+		List<CuboidAddress> addresses = new ArrayList<CuboidAddress>();
+		addresses.add(new CuboidAddress(rootDictionaryAddress, rootDictionaryAddress.add(Coordinate.makeUnitCoordinate(4L))));
+		List<Cuboid> cuboids = this.getBlockModelInterface().getBlocksInRegions(addresses);
+		if(isRootDictionaryInitialized(cuboids.get(0))){
+			//  Send address back to client:
+			AuthorizedCommandBlockMessage response = new AuthorizedCommandBlockMessage(this, conversationId, authorizedClientId, AuthorizedCommandType.COMMAND_TYPE_RESPOND_ROOT_DICTIONARY_ADDRESS, rootDictionaryAddress);
+			this.sendBlockMessage(response, blockSession);
+		}else{
+			if(allowError){
+				//  Send error notification
+				ErrorNotificationBlockMessage response = new ErrorNotificationBlockMessage(this, BlockMessageErrorType.ROOT_BLOCK_DICTIONARY_UNINITIALIZED, conversationId);
+				this.sendBlockMessage(response, blockSession);
+			}else{
+				throw new Exception("Case not expected.");
+			}
+		}
+	}
+
+	public void onAuthorizedCommandBlockMessage(BlockSession blockSession, Long conversationId, Long authorizedClientId, AuthorizedCommandType authorizedCommandType, Coordinate coordinate) throws Exception{
 		switch(authorizedCommandType){
 			case COMMAND_TYPE_REQUEST_ROOT_DICTIONARY_ADDRESS:{
-				Coordinate rootDictionaryAddress = getRootDictionaryAddressForAuthorizedClientId(authorizedClientId);
-				//  Read the single block where the root dictionary is supposed to be stored:
-				List<CuboidAddress> addresses = new ArrayList<CuboidAddress>();
-				addresses.add(new CuboidAddress(rootDictionaryAddress, rootDictionaryAddress.add(Coordinate.makeUnitCoordinate(4L))));
-				List<Cuboid> cuboids = this.getBlockModelInterface().getBlocksInRegions(addresses);
-				if(isRootDictionaryInitialized(cuboids.get(0))){
-					//  Send address
-				}else{
-					//  Send error
-					ErrorNotificationBlockMessage response = new ErrorNotificationBlockMessage(this, BlockMessageErrorType.ROOT_BLOCK_DICTIONARY_UNINITIALIZED, conversationId);
-					this.sendBlockMessage(response, blockSession);
-				}
+				this.sendRootDictionaryAddress(blockSession, conversationId, authorizedClientId, true);
 				break;
 			}case COMMAND_TYPE_PROVISION_PLAYER:{
-				throw new Exception("TODO");
+				this.provisionNewPlayer(authorizedClientId);
+				this.sendRootDictionaryAddress(blockSession, conversationId, authorizedClientId, false);
+				break;
 			}default:{
 				throw new Exception("Message type not expected: " + authorizedCommandType);
 			}

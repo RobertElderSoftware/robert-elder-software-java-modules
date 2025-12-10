@@ -12,9 +12,9 @@
                         "block_class": "org.res.block.BlockDictionary"
                 },
                 {
-                        "match_type": "regex_match",
-                        "regex": "player:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
-                        "block_class": "org.res.block.PlayerCharacter"
+                        "match_type": "json",
+                        "match_subtype": "player_object",
+                        "block_class": "org.res.block.PlayerObject"
                 },
 		{
 			"match_type": "json",

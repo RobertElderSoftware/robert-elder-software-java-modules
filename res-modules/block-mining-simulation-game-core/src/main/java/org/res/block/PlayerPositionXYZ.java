@@ -122,4 +122,8 @@ public class PlayerPositionXYZ extends IndividualBlock {
 	public boolean isMineable() throws Exception{
 		return false;
 	}
+
+	public PlayerPositionXYZ copy() throws Exception{
+		return new PlayerPositionXYZ(this.asJsonString());
+	}
 }

@@ -31,15 +31,10 @@
 package org.res.block;
 
 import java.util.List;
-import java.util.Set;
-import java.util.Map;
-import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -51,21 +46,45 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonNull;
 import com.google.gson.reflect.TypeToken;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
+public class PlayerObject extends IndividualBlock {
 
-public class JsonBlockDictionaryBlockMatchDescription extends BlockMatchDescription{
+	protected final Gson gson = new GsonBuilder().serializeNulls().setPrettyPrinting().create();
+	protected String playerUUID;
+	protected PlayerObjectSkinType playerSkinType;
 
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+	public PlayerObject(String playerUUID, PlayerObjectSkinType playerSkinType) {
+		this.playerUUID = playerUUID;
+		this.playerSkinType = playerSkinType;
+	}
 
-	public JsonBlockDictionaryBlockMatchDescription(JsonElement e) {
-		super(e);
+	public String getPlayerUUID(){
+		return this.playerUUID;
+	}
+
+	public final void initializeFromJson(String json) {
+		JsonElement playerPositionElement = new Gson().fromJson(json, JsonElement.class);
+		JsonObject playerPositionObject = (JsonObject)playerPositionElement;
+
+		this.playerUUID = playerPositionObject.get("player_uuid").getAsString();
+		this.playerSkinType = PlayerObjectSkinType.forValue(playerPositionObject.get("player_skin_id").getAsLong());
+	}
+
+	public PlayerObject(String json) throws Exception {
+		this.initializeFromJson(json);
+	}
+
+	public PlayerObject(byte [] data) throws Exception {
+		this.initializeFromJson(new String(data, "UTF-8"));
+	}
+
+	public PlayerObjectSkinType getPlayerSkinType(){
+		return this.playerSkinType;
 	}
 
 	public JsonElement asJsonElement() throws Exception{
 		JsonObject o = new JsonObject();
-		o.add("block_class", new JsonPrimitive(this.blockClass));
+		o.add("player_uuid", new JsonPrimitive(this.playerUUID));
+		o.add("player_skin_id", new JsonPrimitive(this.playerSkinType.toLong()));
 		return o;
 	}
 
@@ -73,48 +92,11 @@ public class JsonBlockDictionaryBlockMatchDescription extends BlockMatchDescript
 		return gson.toJson(this.asJsonElement());
 	}
 
-	public boolean doesMatch(byte [] data) throws Exception{
-		JsonElement e = null;
-		try{
-			e = new Gson().fromJson(new String(data, "UTF-8"), JsonElement.class);
-		}catch(Exception ex){
-			logger.info("Caught exception trying to deserialize block, so it must not have been json.");
-			return false;
-		}
-		if(e == null){
-			return false;
-		}
-		if(e.isJsonObject()){
-			JsonObject blockObject = (JsonObject)e;
-			for(Map.Entry<String, JsonElement> entry: blockObject.entrySet()){
-				//  Should be an object that maps string keys to coordinate addresses:
-				JsonElement coordinateElement = entry.getValue();
-				if(coordinateElement.isJsonObject()){
-					JsonObject coordinateObject = (JsonObject)coordinateElement;
-					for(Map.Entry<String, JsonElement> coordinateEntry: coordinateObject.entrySet()){
-						String coordinateKey = coordinateEntry.getKey();
-						if(JsonPlayerPositionBlockMatchDescription.coordinatePattern.matcher(coordinateKey).find()){
-							JsonElement coordinateValue = coordinateEntry.getValue();
-							if(coordinateValue.isJsonPrimitive()){
-								if(((JsonPrimitive)coordinateValue).isNumber()){
-									//  Continue
-								}else{
-									return false;
-								}
-							}else{
-								return false;
-							}
-						}else{
-							return false;
-						}
-					}
-				}else{
-					return false;
-				}
-			}
-			return true;
-		}else{
-			return false;
-		}
+	public byte [] getBlockData()throws Exception {
+		return this.asJsonString().getBytes("UTF-8");
+	}
+
+	public boolean isMineable() throws Exception{
+		return false;
 	}
 }

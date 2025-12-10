@@ -33,6 +33,7 @@ package org.res.block;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 import java.util.List;
+import java.util.Arrays;
 import java.util.ArrayList;
 
 import org.slf4j.Logger;
@@ -44,11 +45,22 @@ public class AuthorizedCommandBlockMessage extends BlockMessage {
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private Long authorizedClientId;
 	private AuthorizedCommandType authorizedCommandType;
+	//  By default, coordinate is not used:
+	private Long numDimensions = 0L;
+	private Coordinate coordinate = new Coordinate(Arrays.asList());
 
 	public AuthorizedCommandBlockMessage(BlockModelContext blockModelContext, Long conversationId, Long authorizedClientId, AuthorizedCommandType authorizedCommandType){
 		super(blockModelContext, conversationId);
 		this.authorizedClientId = authorizedClientId;
 		this.authorizedCommandType = authorizedCommandType;
+	}
+
+	public AuthorizedCommandBlockMessage(BlockModelContext blockModelContext, Long conversationId, Long authorizedClientId, AuthorizedCommandType authorizedCommandType, Coordinate c){
+		super(blockModelContext, conversationId);
+		this.authorizedClientId = authorizedClientId;
+		this.authorizedCommandType = authorizedCommandType;
+		this.numDimensions = c.getNumDimensions();
+		this.coordinate = c.copy();
 	}
 
 	public byte [] asByteArray() throws Exception{
@@ -57,6 +69,8 @@ public class AuthorizedCommandBlockMessage extends BlockMessage {
 		BlockMessage.writeConversationId(buffer, this.conversationId);
 		buffer.writeOneLongValue(authorizedClientId);
 		buffer.writeOneLongValue(authorizedCommandType.toLong());
+		buffer.writeOneLongValue(this.numDimensions);
+		Coordinate.writeCoordinate(buffer, this.coordinate);
 		return buffer.getUsedBuffer();
 	}
 
@@ -65,10 +79,12 @@ public class AuthorizedCommandBlockMessage extends BlockMessage {
 		this.authorizedClientId = buffer.readOneLongValue();
 		long authorizedCommandTypeLong = buffer.readOneLongValue();
 		this.authorizedCommandType = AuthorizedCommandType.forValue(authorizedCommandTypeLong);
+		this.numDimensions = buffer.readOneLongValue();
+		this.coordinate = Coordinate.readCoordinate(buffer, numDimensions);
 	}
 
 	public void doWork(BlockSession blockSession) throws Exception{
-		this.blockModelContext.onAuthorizedCommandBlockMessage(blockSession, this.conversationId, this.authorizedClientId, this.authorizedCommandType);
+		this.blockModelContext.onAuthorizedCommandBlockMessage(blockSession, this.conversationId, this.authorizedClientId, this.authorizedCommandType, this.coordinate);
 		logger.info("In doWork for AuthorizedCommandBlockMessage conversationId=" + this.conversationId + ".");
 	}
 }

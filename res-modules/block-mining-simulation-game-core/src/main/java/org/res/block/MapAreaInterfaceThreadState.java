@@ -82,7 +82,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	private ScreenLayer playerIcon;
 
 	public MapAreaInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
-		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT, ConsoleWriterThreadState.BUFFER_INDEX_OVERLAY}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER, ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY});
+		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER, ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 
@@ -100,7 +100,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		);
 
 		//  Set initial player position:
-		this.onPlayerPositionChange((Coordinate)result.getObject());
+		this.onPlayerPositionChange((PlayerPositionXYZ)result.getObject());
 
 		//  Subscribe to new map area flag updates:
 		this.clientBlockModelContext.putBlockingWorkItem(
@@ -254,15 +254,12 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		}
 	}
 
-	public void onPlayerPositionChange(Coordinate newPosition) throws Exception{
-		this.updateMapAreaForPlayerPositionChange(this.playerPosition, newPosition);
+	public void onPlayerPositionChange(PlayerPositionXYZ newPosition) throws Exception{
+		Coordinate newCoordinate = newPosition == null ? null : newPosition.getPosition();
+		this.updateMapAreaForPlayerPositionChange(this.playerPosition, newCoordinate);
 
 		Coordinate lastGameInterfacePosition = this.playerPosition;
-		this.playerPosition = newPosition;
-
-		if(newPosition != null){
-			this.updatePlayerOverlay(new CuboidAddress(newPosition, newPosition.add(Coordinate.makeUnitCoordinate(4L))));
-		}
+		this.playerPosition = newCoordinate;
 
 		this.drawBorders(); //  When frame coordinate decreases in size, clear outdated coordinate text.
 		this.updateFrameCoordinate();
@@ -273,8 +270,6 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		this.clientBlockModelContext.putWorkItem(new MapAreaChangeWorkItem(this.clientBlockModelContext, newMapArea), WorkItemPriority.PRIORITY_LOW);
 		CuboidAddress previousMapArea = this.mapAreaCuboidAddress;
 		this.mapAreaCuboidAddress = newMapArea;
-		this.updatePlayerOverlay(new CuboidAddress(this.playerPosition, this.playerPosition.add(Coordinate.makeUnitCoordinate(4L))));
-
 		this.mapAreaBlocks.updateBufferRegion(newMapArea.getSubDimensions(0L, 3L));
 		this.loadMapAreaBlocksFromMemory(newMapArea, previousMapArea);
 		this.printMapAreaUpdates(newMapArea);
@@ -294,39 +289,6 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	public void updateFrameCoordinate() throws Exception {
 		String playerCoordinateString = this.getPlayerPosition() == null ? "null" : "X=" + this.getPlayerPosition().getX() + ", Y=" + this.getPlayerPosition().getY() + ", Z=" + this.getPlayerPosition().getZ() + ", W=" + this.getPlayerPosition().getValueAtIndex(3L);
 		this.printTextAtScreenXY(new ColouredTextFragment(playerCoordinateString, UserInterfaceFrameThreadState.getDefaultTextColors()), 10L, 0L, true);
-	}
-
-	public final ScreenLayer getPlayerCharacterIcon() throws Exception{
-		if(this.playerIcon != null){
-			return this.playerIcon;
-		}
-
-		GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
-		boolean useASCII = mode.equals(GraphicsMode.ASCII);
-		String playerIconString = useASCII ? "P" : "\uD83D\uDE0A";
-		int [] playerColour = useASCII ? UserInterfaceFrameThreadState.getPlayerBGColors() : new int [] {};
-
-		int iconWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(playerIconString).getDeltaX().intValue();
-		if(iconWidth > this.getMapAreaCellWidth()){
-			throw new Exception("iconWidth > this.getMapAreaCellWidth()");
-		}
-
-		Coordinate screenOffset = new Coordinate(Arrays.asList(0L, 0L)); //  Initialze to 0,0
-		CuboidAddress screenDimensions = ScreenLayer.makeDimensionsCA(0, 0, iconWidth, 1);
-		ScreenLayer pi = new ScreenLayer(screenOffset, screenDimensions);
-		pi.setMultiColumnCharacter(0, 0, playerIconString, iconWidth, playerColour, true, true);
-		return pi;
-	}
-
-	public void updatePlayerOverlay(CuboidAddress playerPositionCA) throws Exception{
-		ScreenLayer pi = this.getPlayerCharacterIcon();
-		pi.setPlacementOffset(new Coordinate(Arrays.asList(
-			this.getMapXOffsetInScreenCoordinates(playerPositionCA),
-			this.getMapYOffsetInScreenCoordinates(playerPositionCA)
-		)));
-		pi.setAllChangedFlagStates(true);
-
-		this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_OVERLAY].mergeDown(pi, false, ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY);
 	}
 
 	public Long getMapXOffsetInCells(CuboidAddress ca) throws Exception{
@@ -401,7 +363,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 				underBlock instanceof Rock
 			);
 
-			String stringToWrite = overStillLoadingBlock ? BlockSkins.getPresentation(underBlock.getClass(), useASCII) : BlockSkins.getPresentation(currentMapAreaCell.getClass(), useASCII);
+			String stringToWrite = overStillLoadingBlock ? BlockSkins.getPresentation(underBlock, useASCII) : BlockSkins.getPresentation(currentMapAreaCell, useASCII);
 			int [] colourCodes = UserInterfaceFrameThreadState.getColourCodesForMapCell(useASCII, overStillLoadingBlock, overExcitingBlock, overSolidBlock);
 
 			Long xCellOffsetInUpdateArea = currentMapAreaCoordinate.getX() - areaToUpdate.getCanonicalLowerCoordinate().getX();
@@ -451,7 +413,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	public void onUIEventNotification(Object o, UINotificationType notificationType) throws Exception{
 		switch(notificationType){
 			case PLAYER_POSITION:{
-				this.onPlayerPositionChange((Coordinate)o);
+				this.onPlayerPositionChange((PlayerPositionXYZ)o);
 				break;
 			}case UPDATE_MAP_AREA_FLAGS:{
 				this.onUpdateMapAreaFlagsNotify((CuboidAddress)o);

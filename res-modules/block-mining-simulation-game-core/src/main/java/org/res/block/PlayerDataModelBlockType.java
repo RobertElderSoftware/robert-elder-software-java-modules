@@ -30,35 +30,38 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
-import java.util.List;
-import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
 
-public class ErrorNotificationBlockMessage extends BlockMessage {
+public enum PlayerDataModelBlockType {
+        //  Values describes offset in x dimensions:
+        ROOT_DICTIONARY (0L),
+        PLAYER_POSITION (1L),
+        PLAYER_INVENTORY (2L);
 
-	private BlockMessageErrorType blockMessageErrorType;
+        private final long id;
 
-	public ErrorNotificationBlockMessage(BlockModelContext blockModelContext, BlockMessageErrorType blockMessageErrorType, Long conversationId){
-		super(blockModelContext, conversationId);
-		this.blockMessageErrorType = blockMessageErrorType;
+        private PlayerDataModelBlockType(long i) {
+                id = i;
+        }
+
+        public boolean equalsId(long i) {
+                return id == i;
+        }
+
+        public long toLong() {
+                return this.id;
+        }
+
+	private static final Map<Long, PlayerDataModelBlockType> playerDataModelBlockTypesByValue = new HashMap<Long, PlayerDataModelBlockType>();
+
+	static {
+		for(PlayerDataModelBlockType type : PlayerDataModelBlockType.values()) {
+			playerDataModelBlockTypesByValue.put(type.toLong(), type);
+		}
 	}
 
-	public byte [] asByteArray() throws Exception{
-		BlockMessageBinaryBuffer buffer = new BlockMessageBinaryBuffer();
-		BlockMessage.writeBlockMessageType(buffer, BlockMessageType.BLOCK_MESSAGE_TYPE_ERROR_NOTIFICATION);
-		BlockMessage.writeConversationId(buffer, this.conversationId);
-		buffer.writeOneLongValue(this.blockMessageErrorType.toLong());
-		return buffer.getUsedBuffer();
-	}
-
-	public ErrorNotificationBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer, Long conversationId) throws Exception {
-		super(blockModelContext, conversationId);
-		long blockMessageErrorTypeLong = buffer.readOneLongValue();
-		this.blockMessageErrorType = BlockMessageErrorType.forValue(blockMessageErrorTypeLong);
-	}
-
-	public void doWork(BlockSession blockSession) throws Exception{
-		this.blockModelContext.onErrorNotificationBlockMessage(blockSession, conversationId, blockMessageErrorType);
+	public static PlayerDataModelBlockType forValue(long value) {
+		return playerDataModelBlockTypesByValue.get(value);
 	}
 }

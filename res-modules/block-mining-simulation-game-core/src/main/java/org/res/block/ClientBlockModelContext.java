@@ -46,20 +46,20 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	private ChunkInitializerThreadState chunkInitializerThreadState;
 	private ConsoleWriterThreadState consoleWriterThreadState;
 	private SIGWINCHListenerThreadState sigwinchListenerThreadState;
-	private final Coordinate playerPositionBlockAddress = new Coordinate(Arrays.asList(99999999L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's position will be stored.
-	private final Coordinate playerInventoryBlockAddress = new Coordinate(Arrays.asList(99999998L, 99999999L, 99999999L, 99999999L)); //  The location of the block where the player's inventory will be stored.
+	private Coordinate rootBlockDictionaryAddress = null;
+	private BlockDictionary rootBlockDictionary = null;
 
 	/*  This defines the dimensions of the 'chunks' that are loaded into memory as we move around */
 	private final CuboidAddress chunkSizeCuboidAddress = new CuboidAddress(new Coordinate(Arrays.asList(0L, 0L, 0L, 0L)), new Coordinate(Arrays.asList(3L, 3L, 5L, 1L)));
 	private PlayerPositionXYZ playerPositionXYZ = null;
 	private PlayerInventory playerInventory = new PlayerInventory();
-
-	private static final String playerUUID = "f7828de4-5e6e-4ff7-8b35-752734a2b59d";
+	private PlayerObject playerObject = null;
 
 	private CuboidAddress mapAreaCuboidAddress;
 	private Integer selectedInventoryItemIndex = null;
 	private Integer selectedCraftingRecipeIndex = 0;
 	private Map<UINotificationType, Set<UIEventReceiverThreadState<?>>> uiEventSubscriptions = new HashMap<UINotificationType, Set<UIEventReceiverThreadState<?>>>();
+	private Long authorizedClientId = 0L; //  TODO:  change this for each player
 
 	public ClientBlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ClientServerInterface clientServerInterface) throws Exception {
 		super(blockManagerThreadCollection, clientServerInterface);
@@ -213,7 +213,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 					disableCollisionDetection ||
 					blockAtCandidatePlayerPosition instanceof EmptyBlock
 				){
-					this.onPlayerPositionChange(new PlayerPositionXYZ(this.playerPositionXYZ.getPlayerUUID(), newCandiatePosition));
+					this.onPlayerPositionMove(new PlayerPositionXYZ(this.playerPositionXYZ.getPlayerUUID(), newCandiatePosition));
 				}else{
 					//  Don't move, there is something in the way.
 					logger.info("Not moving to " + newCandiatePosition + " because block at that location has class '" + blockAtCandidatePlayerPosition.getClass().getName() + "'");
@@ -275,13 +275,19 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		if(reachableMapArea != null){
 			requiredRegions.add(reachableMapArea.copy());
 		}
-		requiredRegions.add(new CuboidAddress(playerPositionBlockAddress.copy(), playerPositionBlockAddress.add(Coordinate.makeUnitCoordinate(4L)).copy()));
-		requiredRegions.add(new CuboidAddress(playerInventoryBlockAddress.copy(), playerInventoryBlockAddress.add(Coordinate.makeUnitCoordinate(4L)).copy()));
+		if(rootBlockDictionaryAddress != null){
+			requiredRegions.add(new CuboidAddress(rootBlockDictionaryAddress.copy(), rootBlockDictionaryAddress.add(Coordinate.makeUnitCoordinate(4L)).copy()));
+		}
+		if(rootBlockDictionary != null){
+			for(Map.Entry<String, Coordinate> e : this.rootBlockDictionary.entrySet()){
+				Coordinate c = e.getValue();
+				requiredRegions.add(new CuboidAddress(c.copy(), c.copy().add(Coordinate.makeUnitCoordinate(4L))));
+			}
+		}
 		return requiredRegions;
 	}
 
 	public void notifyLoadedRegionsChanged() throws Exception{
-		Coordinate playerPosition = this.getPlayerPosition();
 		this.inMemoryChunks.putWorkItem(new UpdateRequiredRegionsWorkItem(this.inMemoryChunks, getRequiredRegionsSet()), WorkItemPriority.PRIORITY_LOW);
 		this.logMessage("Just sent an update required regions work item request with " + String.valueOf(getRequiredRegionsSet()));
 	}
@@ -359,7 +365,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		if(numBlocksMined > 0L){
 			this.onPlayerInventoryChangeNotify();
 		}
-		this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
+		this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), getPlayerInventoryBlockAddress());
 	}
 
 	public void doPlaceItemAtPlayerPosition() throws Exception{
@@ -369,7 +375,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 				this.playerInventory.addItemCountToInventory(blockDataToPlace, -1L);
 				this.onPlayerInventoryChangeNotify();
 				this.doBlockWriteAtPlayerPosition(blockDataToPlace, this.getPlayerPosition(), 0L);
-				this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
+				this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), getPlayerInventoryBlockAddress());
 			}else{
 				//  Does not have any more of these blocks.
 			}
@@ -400,7 +406,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	public void onTryCrafting() throws Exception{
 		if(hasEnoughForCraftingRecipe(getCurrentCraftingRecipe())){
 			this.applyItemChangeForCraftingRecipe(getCurrentCraftingRecipe());
-			this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), playerInventoryBlockAddress);
+			this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), getPlayerInventoryBlockAddress());
 		}else{
 			this.logMessage("Did not have enough reagents to craft anything.");
 		}
@@ -466,7 +472,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		}
 	}
 
-	public void writeSingleBlockAtPosition(byte [] data, Coordinate position) throws Exception{
+	public Cuboid getCuboidForSingleBlock(byte [] data, Coordinate position) throws Exception{
 		Long numDimensions = position.getNumDimensions();
 
 		CuboidAddress blocksToChangeAddress = new CuboidAddress(position, position.add(Coordinate.makeUnitCoordinate(4L)));
@@ -482,8 +488,13 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		CuboidDataLengths currentCuboidDataLengths = new CuboidDataLengths(blocksToChangeAddress, dataLengths);
 		CuboidData currentCuboidData = new CuboidData(dataForOneCuboid.getUsedBuffer());
 
-		Cuboid c = new Cuboid(blocksToChangeAddress, currentCuboidDataLengths, currentCuboidData);
-		this.submitChunkToServer(c, WorkItemPriority.PRIORITY_HIGH, 12345L);
+		return new Cuboid(blocksToChangeAddress, currentCuboidDataLengths, currentCuboidData);
+	}
+
+	public void writeSingleBlockAtPosition(byte [] data, Coordinate position) throws Exception{
+		List<Cuboid> cuboids = new ArrayList<Cuboid>();
+		cuboids.add(getCuboidForSingleBlock(data, position));
+		this.submitChunkToServer(position.getNumDimensions(), cuboids, WorkItemPriority.PRIORITY_HIGH, 12345L);
 	}
 
 	public void doBlockWriteAtPlayerPosition(byte [] data, Coordinate position, Long radius) throws Exception{
@@ -504,8 +515,9 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		CuboidDataLengths currentCuboidDataLengths = new CuboidDataLengths(blocksToChangeAddress, dataLengths);
 		CuboidData currentCuboidData = new CuboidData(dataForOneCuboid.getUsedBuffer());
 
-		Cuboid c = new Cuboid(blocksToChangeAddress, currentCuboidDataLengths, currentCuboidData);
-		this.submitChunkToServer(c, WorkItemPriority.PRIORITY_HIGH, 12345L);
+		List<Cuboid> cuboids = new ArrayList<Cuboid>();
+		cuboids.add(new Cuboid(blocksToChangeAddress, currentCuboidDataLengths, currentCuboidData));
+		this.submitChunkToServer(numDimensions, cuboids, WorkItemPriority.PRIORITY_HIGH, 12345L);
 	}
 
 	public boolean isServer(){
@@ -544,42 +556,53 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.consoleWriterThreadState.putWorkItem(new TerminalDimensionsChangedWorkItem(this.consoleWriterThreadState, terminalWidth, terminalHeight, frameCharacterWidth), WorkItemPriority.PRIORITY_LOW);
 	}
 
-	public void checkForSpecialCoordinateUpdates(Coordinate currentCoordinate, byte [] blockData) throws Exception{
-		//  TODO:  Figure out a better way to have custom event handlers for specific blocks of interest like this:
-		if(this.playerPositionXYZ == null && currentCoordinate.equals(playerPositionBlockAddress)){
-
-			IndividualBlock blockWritten = blockData == null ? new UninitializedBlock() : this.deserializeBlockData(blockData);
-
-			if(blockWritten instanceof UninitializedBlock){
-				this.onPlayerPositionChange(new PlayerPositionXYZ("player:" + playerUUID, Coordinate.makeOriginCoordinate(4L))); //  Initial value when world is started.
-			}else if(blockWritten instanceof PlayerPositionXYZ){
-				// Make a new copy of the position to operate on:
-				this.onPlayerPositionChange(new PlayerPositionXYZ(new String(blockWritten.getBlockData(), "UTF-8")));
-			}else{
-				throw new Exception("Expected block to be of type PlayerPositionXYZ, but it was type " + blockWritten.getClass().getName());
-			}
-
-			this.onTerminalWindowChanged();
-		}else if(currentCoordinate.equals(playerInventoryBlockAddress) && this.playerInventory.getInventoryItemStackList().size() == 0){
-
-			IndividualBlock blockWritten = blockData == null ? new UninitializedBlock() : this.deserializeBlockData(blockData);
-
-			if(blockWritten instanceof UninitializedBlock){
-				this.onPlayerInventoryChange(new PlayerInventory());
-				this.logMessage("initialize an empty inventory.");
-			}else if(blockWritten instanceof PlayerInventory){
-				// Make a new copy of the position to operate on:
-				this.onPlayerInventoryChange(new PlayerInventory(new String(blockWritten.getBlockData(), "UTF-8")));
-
-				this.logMessage("Loading this new inventory: " + new String(blockWritten.getBlockData(), "UTF-8"));
-			}else{
-				throw new Exception("Expected block to be of type PlayerInventory, but it was type " + blockWritten.getClass().getName());
-			}
+	public Coordinate getPlayerInventoryBlockAddress() throws Exception {
+		if(this.rootBlockDictionary == null){
+			throw new Exception("Not expected.");
+		}else{
+			return this.rootBlockDictionary.get("player_inventory");
 		}
 	}
 
+	public Coordinate getPlayerPositionBlockAddress() throws Exception {
+		if(this.rootBlockDictionary == null){
+			throw new Exception("Not expected.");
+		}else{
+			return this.rootBlockDictionary.get("player_position");
+		}
+	}
 
+	public void checkForSpecialCoordinateUpdates(Coordinate currentCoordinate, byte [] blockData) throws Exception{
+		if(currentCoordinate.equals(this.rootBlockDictionaryAddress)){
+			BlockDictionary dictionaryBlock = (BlockDictionary)this.deserializeBlockData(blockData);
+			this.rootBlockDictionary = dictionaryBlock;
 
+			//  This is just a hack to unload all chunks that are currently loaded
+			//  in order to make sure that all client events are triggered for
+			//  the newly considered player model blocks.
+			//  There is currently a bug in the 'InMemoryChunks' class where if you
+			//  specify a new set of 'required regions' that includes a block that's
+			//  inside an existing already-loaded chunk, then the post loading events
+			//  that would otherwise have been triggered for that block never happen
+			//  (since the block is already loaded, and the update signal was missed).
+			//  TODO:  Fix this event issue in the general case.
+			this.inMemoryChunks.putWorkItem(new UpdateRequiredRegionsWorkItem(this.inMemoryChunks, new HashSet<CuboidAddress>()), WorkItemPriority.PRIORITY_LOW);
+			this.notifyLoadedRegionsChanged();
+		}
+		if(this.rootBlockDictionary != null){
+			if(this.playerPositionXYZ == null && currentCoordinate.equals(getPlayerPositionBlockAddress())){
+				this.playerPositionXYZ = (PlayerPositionXYZ)this.deserializeBlockData(blockData);
+				this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, this.playerPositionXYZ.copy(), WorkItemPriority.PRIORITY_LOW);
+				this.onTerminalWindowChanged();
+			}else if(currentCoordinate.equals(getPlayerInventoryBlockAddress()) && this.playerInventory.getInventoryItemStackList().size() == 0){
+
+				PlayerInventory playerInventory = (PlayerInventory)this.deserializeBlockData(blockData);
+				this.onPlayerInventoryChange(new PlayerInventory(new String(playerInventory.getBlockData(), "UTF-8")));
+			}else if(this.playerPositionXYZ != null && currentCoordinate.equals(this.playerPositionXYZ.getPosition())){
+				this.playerObject = (PlayerObject)this.deserializeBlockData(blockData);
+			}
+		}
+	}
 
 	public void writeTestBlocks() throws Exception{
 		/*
@@ -611,8 +634,9 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		CuboidDataLengths currentCuboidDataLengths = new CuboidDataLengths(ca, dataLengths);
 		CuboidData currentCuboidData = new CuboidData(cuboidData.getUsedBuffer());
 
-		Cuboid c = new Cuboid(ca, currentCuboidDataLengths, currentCuboidData);
-		this.submitChunkToServer(c, WorkItemPriority.PRIORITY_LOW, 12345L);
+		List<Cuboid> cuboids = new ArrayList<Cuboid>();
+		cuboids.add(new Cuboid(ca, currentCuboidDataLengths, currentCuboidData));
+		this.submitChunkToServer(numDimensions, cuboids, WorkItemPriority.PRIORITY_LOW, 12345L);
 	}
 
 	public void writeBlocksInRegion(Cuboid cuboid) throws Exception{
@@ -691,13 +715,16 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.notifyLoadedRegionsChanged();
 	}
 
-	public void onPlayerPositionChange(PlayerPositionXYZ newPosition) throws Exception{
-		Coordinate prev = this.playerPositionXYZ == null ? null : this.playerPositionXYZ.getPosition();
+	public void onPlayerPositionMove(PlayerPositionXYZ newPosition) throws Exception{
+		List<Cuboid> cuboids = new ArrayList<Cuboid>();
+		cuboids.add(getCuboidForSingleBlock("".getBytes("UTF-8"), this.playerPositionXYZ.getPosition()));
 		this.playerPositionXYZ = newPosition;
+		cuboids.add(getCuboidForSingleBlock(this.playerObject.getBlockData(), this.playerPositionXYZ.getPosition()));
+		cuboids.add(getCuboidForSingleBlock(this.playerPositionXYZ.asJsonString().getBytes("UTF-8"), getPlayerPositionBlockAddress()));
 
-		this.writeSingleBlockAtPosition(this.playerPositionXYZ.asJsonString().getBytes("UTF-8"), playerPositionBlockAddress);
+		this.submitChunkToServer(this.playerPositionXYZ.getPosition().getNumDimensions(), cuboids, WorkItemPriority.PRIORITY_HIGH, 12345L);
 
-		this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, this.playerPositionXYZ.getPosition().copy(), WorkItemPriority.PRIORITY_LOW);
+		this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, this.playerPositionXYZ.copy(), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public CuboidAddress getReachableMapAreaCuboidAddress() throws Exception{
@@ -745,17 +772,25 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.putWorkItem(workItem, priority);
 	}
 
-	public void submitChunkToServer(Cuboid cuboid, WorkItemPriority priority, Long conversationId) throws Exception{
+	public void submitChunkToServer(Long numDimensions, List<Cuboid> cuboids, WorkItemPriority priority, Long conversationId) throws Exception{
 		BlockSession bs = this.getSessionMap().get(this.clientServerInterface.getClientSessionId());
-		DescribeRegionsBlockMessage response = new DescribeRegionsBlockMessage(this, cuboid.getNumDimensions(), Arrays.asList(cuboid), conversationId);
+		DescribeRegionsBlockMessage response = new DescribeRegionsBlockMessage(this, numDimensions, cuboids, conversationId);
 		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, response);
 		this.putWorkItem(workItem, priority);
+	}
+
+	public void requestPlayerProvisioning() throws Exception{
+		BlockSession bs = this.getSessionMap().get(this.clientServerInterface.getClientSessionId());
+
+		AuthorizedCommandBlockMessage getRootMessage = new AuthorizedCommandBlockMessage(this, 12345L, authorizedClientId, AuthorizedCommandType.COMMAND_TYPE_PROVISION_PLAYER);
+
+		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, getRootMessage);
+		this.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void requestRootBlockDictionary() throws Exception{
 		BlockSession bs = this.getSessionMap().get(this.clientServerInterface.getClientSessionId());
 
-		Long authorizedClientId = 0L; //  TODO:  change this for each player
 		AuthorizedCommandBlockMessage getRootMessage = new AuthorizedCommandBlockMessage(this, 12345L, authorizedClientId, AuthorizedCommandType.COMMAND_TYPE_REQUEST_ROOT_DICTIONARY_ADDRESS);
 
 		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, getRootMessage);
@@ -767,8 +802,27 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.chunkInitializerThreadState.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
 	}
 
-	public void onAuthorizedCommandBlockMessage(BlockSession blockSession, Long conversationId, Long authorizedClientId, AuthorizedCommandType authorizedCommandType) throws Exception{
-		throw new Exception("TODO.");
+	public void onErrorNotificationBlockMessage(BlockSession blockSession, Long conversationId, BlockMessageErrorType blockMessageErrorType) throws Exception{
+		switch(blockMessageErrorType){
+			case ROOT_BLOCK_DICTIONARY_UNINITIALIZED:{
+				this.requestPlayerProvisioning();
+				break;
+			}default:{
+				throw new Exception("Message type not expected: " + blockMessageErrorType);
+			}
+		}
+	}
+
+	public void onAuthorizedCommandBlockMessage(BlockSession blockSession, Long conversationId, Long authorizedClientId, AuthorizedCommandType authorizedCommandType, Coordinate coordinate) throws Exception{
+		switch(authorizedCommandType){
+			case COMMAND_TYPE_RESPOND_ROOT_DICTIONARY_ADDRESS:{
+				this.rootBlockDictionaryAddress = coordinate;
+				this.notifyLoadedRegionsChanged();
+				break;
+			}default:{
+				throw new Exception("Message type not expected: " + authorizedCommandType);
+			}
+		}
 	}
 
 	public WorkItemResult putBlockingWorkItem(BlockModelContextWorkItem workItem, WorkItemPriority priority) throws Exception {
@@ -812,8 +866,8 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(this.playerInventory), workItem.getThreadId());
 				break;
 			}case PLAYER_POSITION:{
-				Coordinate c = this.playerPositionXYZ == null ? null : this.playerPositionXYZ.getPosition().copy();
-				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(c), workItem.getThreadId());
+				PlayerPositionXYZ p = this.playerPositionXYZ == null ? null : this.playerPositionXYZ.copy();
+				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(p), workItem.getThreadId());
 				break;
 			}case UPDATE_MAP_AREA_FLAGS:{
 				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(new Object()), workItem.getThreadId());

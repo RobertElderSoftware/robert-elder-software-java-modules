@@ -50,7 +50,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected Object lock = new Object();
 
-	private Coordinate playerPosition = null;
+	private PlayerPositionXYZ playerPosition = null;
 
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 	private BlockModelContext blockModelContext;
@@ -99,7 +99,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 			);
 
 			//  Set initial player position:
-			this.onPlayerPositionChange((Coordinate)result.getObject());
+			this.onPlayerPositionChange((PlayerPositionXYZ)result.getObject());
 		}
 	}
 
@@ -237,12 +237,13 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 		}
 	}
 
-	public void onPlayerPositionChange(Coordinate newPosition) throws Exception{
+	public void onPlayerPositionChange(PlayerPositionXYZ newPosition) throws Exception{
 		this.playerPosition = newPosition;
 	}
 
-	private List<CuboidAddress> getClosestCuboidAddressList(Set<CuboidAddress> cuboidAddresses, Coordinate currentCoordinate) throws Exception {
+	private List<CuboidAddress> getClosestCuboidAddressList(Set<CuboidAddress> cuboidAddresses, PlayerPositionXYZ pxyz) throws Exception {
 
+		Coordinate currentCoordinate = pxyz == null ? null : pxyz.getPosition();
 		if(currentCoordinate == null){
 			currentCoordinate = new Coordinate(Arrays.asList(0L, 0L, 0L, 0L));
 		}
@@ -387,7 +388,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 	public void onUIEventNotification(Object o, UINotificationType notificationType) throws Exception{
 		switch(notificationType){
 			case PLAYER_POSITION:{
-				this.onPlayerPositionChange((Coordinate)o);
+				this.onPlayerPositionChange((PlayerPositionXYZ)o);
 				break;
 			}default:{
 				throw new Exception("Unknown event notification type: " + notificationType);

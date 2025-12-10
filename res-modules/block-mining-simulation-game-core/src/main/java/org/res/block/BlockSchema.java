@@ -73,6 +73,8 @@ public class BlockSchema {
 					l.add(new JsonBlockMatchDescription(e));
 				}else if(o.get("match_subtype").getAsString().equals("player_position")){
 					l.add(new JsonPlayerPositionBlockMatchDescription(e));
+				}else if(o.get("match_subtype").getAsString().equals("player_object")){
+					l.add(new JsonPlayerObjectBlockMatchDescription(e));
 				}else if(o.get("match_subtype").getAsString().equals("block_dictionary")){
 					l.add(new JsonBlockDictionaryBlockMatchDescription(e));
 				}else{

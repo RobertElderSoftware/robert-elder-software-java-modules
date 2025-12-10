@@ -55,11 +55,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class JsonBlockDictionaryBlockMatchDescription extends BlockMatchDescription{
+public class JsonPlayerObjectBlockMatchDescription extends BlockMatchDescription{
 
+	private JsonSchema jsonSchema;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+	public static final Pattern playerUUIDPattern = Pattern.compile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
 
-	public JsonBlockDictionaryBlockMatchDescription(JsonElement e) {
+	public JsonPlayerObjectBlockMatchDescription(JsonElement e) {
 		super(e);
 	}
 
@@ -85,36 +87,33 @@ public class JsonBlockDictionaryBlockMatchDescription extends BlockMatchDescript
 			return false;
 		}
 		if(e.isJsonObject()){
-			JsonObject blockObject = (JsonObject)e;
-			for(Map.Entry<String, JsonElement> entry: blockObject.entrySet()){
-				//  Should be an object that maps string keys to coordinate addresses:
-				JsonElement coordinateElement = entry.getValue();
-				if(coordinateElement.isJsonObject()){
-					JsonObject coordinateObject = (JsonObject)coordinateElement;
-					for(Map.Entry<String, JsonElement> coordinateEntry: coordinateObject.entrySet()){
-						String coordinateKey = coordinateEntry.getKey();
-						if(JsonPlayerPositionBlockMatchDescription.coordinatePattern.matcher(coordinateKey).find()){
-							JsonElement coordinateValue = coordinateEntry.getValue();
-							if(coordinateValue.isJsonPrimitive()){
-								if(((JsonPrimitive)coordinateValue).isNumber()){
-									//  Continue
-								}else{
-									return false;
-								}
-							}else{
-								return false;
-							}
-						}else{
-							return false;
-						}
+			JsonObject o = (JsonObject)e;
+			if(o.has("player_uuid")){
+				JsonElement s = o.get("player_uuid");
+				if(s.isJsonPrimitive() && ((JsonPrimitive)s).isString()){
+					String playerUUID = ((JsonPrimitive)s).getAsString();
+					if(playerUUIDPattern.matcher(playerUUID).find()){
+					}else{
+						return false;
 					}
 				}else{
 					return false;
 				}
+			}else{
+				return false;
 			}
-			return true;
+			if(o.has("player_skin_id")){
+				JsonElement s = o.get("player_skin_id");
+				if(s.isJsonPrimitive() && ((JsonPrimitive)s).isNumber()){
+				}else{
+					return false;
+				}
+			}else{
+				return false;
+			}
 		}else{
 			return false;
 		}
+		return true;
 	}
 }

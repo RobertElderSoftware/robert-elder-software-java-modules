@@ -103,7 +103,7 @@ public class ChunkInitializerThreadState extends UIEventReceiverThreadState<Chun
 		);
 
 		//  Set initial player position:
-		this.onPlayerPositionChange((Coordinate)result.getObject());
+		this.onPlayerPositionChange((PlayerPositionXYZ)result.getObject());
 	}
 
 	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
@@ -119,8 +119,8 @@ public class ChunkInitializerThreadState extends UIEventReceiverThreadState<Chun
 		this.workItemQueue.putWorkItem(workItem, priority);
 	}
 
-	public void onPlayerPositionChange(Coordinate newPosition) throws Exception{
-		this.playerPosition = newPosition;
+	public void onPlayerPositionChange(PlayerPositionXYZ newPosition) throws Exception{
+		this.playerPosition = newPosition == null ? null : newPosition.getPosition();
 	}
 
 	public void onMapAreaChange(CuboidAddress reachableMapArea) throws Exception{
@@ -197,7 +197,7 @@ public class ChunkInitializerThreadState extends UIEventReceiverThreadState<Chun
 
 		if(numBlocksThatWereInitialized > 0L){ //  Only send the update back when there is actually something to initialize (otherwise, we get stuck in a loop)
 			Long conversationId = this.getUnusedOustandingChunkWriteConversationId();
-			clientBlockModelContext.submitChunkToServer(newGeneratedCuboid, WorkItemPriority.PRIORITY_LOW, conversationId);
+			clientBlockModelContext.submitChunkToServer(cuboidAddress.getNumDimensions(), Arrays.asList(newGeneratedCuboid), WorkItemPriority.PRIORITY_LOW, conversationId);
 			outstandingChunkWriteConversations.add(conversationId);
 		}
 	}
@@ -319,7 +319,7 @@ public class ChunkInitializerThreadState extends UIEventReceiverThreadState<Chun
 	public void onUIEventNotification(Object o, UINotificationType notificationType) throws Exception{
 		switch(notificationType){
 			case PLAYER_POSITION:{
-				this.onPlayerPositionChange((Coordinate)o);
+				this.onPlayerPositionChange((PlayerPositionXYZ)o);
 				break;
 			}default:{
 				throw new Exception("Unknown event notification type: " + notificationType);

@@ -30,6 +30,7 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.Set;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -79,12 +80,24 @@ public class BlockDictionary extends IndividualBlock {
 		}
 	}
 
+	public void put(String key, Coordinate value){
+		this.dictionary.put(key, value.copy());
+	}
+
+	public Coordinate get(String key){
+		return this.dictionary.get(key);
+	}
+
 	public BlockDictionary(String json) throws Exception {
 		this.initializeFromJson(json);
 	}
 
 	public BlockDictionary(byte [] data) throws Exception {
 		this.initializeFromJson(new String(data, "UTF-8"));
+	}
+
+	public Set<Map.Entry<String, Coordinate>> entrySet(){
+		return this.dictionary.entrySet();
 	}
 
 	public JsonElement asJsonElement() throws Exception{

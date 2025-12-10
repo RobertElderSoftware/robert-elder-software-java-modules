@@ -143,4 +143,25 @@ public class BlockSkins {
 			throw new Exception("Did not find an entry for " + c.getName());
 		}
 	}
+
+	public static String getPresentation(IndividualBlock b, boolean useASCII) throws Exception{
+		if(b instanceof PlayerObject){
+			if(useASCII){
+				return "P";
+			}else{
+				PlayerObject o = (PlayerObject)b;
+				switch(o.getPlayerSkinType()){
+					case HAPPY_FACE:{
+						return "\uD83D\uDE0A";
+					}case ANGRY_FACE:{
+						return "\uD83D\uDE20";
+					}default:{
+						throw new Exception("Unknown skin type.");
+					}
+				}
+			}
+		}else{
+			return getPresentation(b.getClass(), useASCII);
+		}
+	}
 }
