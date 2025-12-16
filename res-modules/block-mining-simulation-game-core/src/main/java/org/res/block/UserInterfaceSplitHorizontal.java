@@ -69,7 +69,7 @@ public class UserInterfaceSplitHorizontal extends UserInterfaceSplitMulti {
 		if(this.splitParts.size() > 0){
 			Long numSplits = (long)this.splitParts.size();
 			Long yOffsetSoFar = 0L;
-			Long fcw = frameDimensions.getFrameCharacterWidth();
+			Long fcw = 1L;  //  TODO: this is wrong!
 			//  In wide character mode, must be two column aligned:
 			Long allowableFrameWidth = fcw.equals(1L) ? frameDimensions.getFrameWidth() : (frameDimensions.getFrameWidth() / fcw) * fcw;
 			for(int i = 0; i < this.splitParts.size(); i++){
@@ -87,7 +87,6 @@ public class UserInterfaceSplitHorizontal extends UserInterfaceSplitMulti {
 				Long y2 = y1 + currentFrameHeight;
 
 				FrameDimensions subFrameDimensions = new FrameDimensions(
-					frameDimensions.getFrameCharacterWidth(),
 					new CuboidAddress(
 						new Coordinate(Arrays.asList(x1, y1)),
 						new Coordinate(Arrays.asList(x2, y2))

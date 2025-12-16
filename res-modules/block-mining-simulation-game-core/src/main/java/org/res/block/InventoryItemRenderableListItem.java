@@ -79,7 +79,7 @@ public class InventoryItemRenderableListItem extends RenderableListItem{
 
 	public String getStackDescription(PlayerInventoryItemStack stack, UserInterfaceFrameThreadState frame) throws Exception{
 		GraphicsMode mode = frame.getBlockManagerThreadCollection().getGraphicsMode();
-		BlockSchema blockSchema = frame.getClientBlockModelContext().getBlockSchema();
+		BlockSchema blockSchema = frame.getBlockManagerThreadCollection().getBlockSchema();
 		List<String> parts = new ArrayList<String>();
 		IndividualBlock block = stack.getBlock(blockSchema);
 		String blockPresentation = BlockSkins.getPresentation(block.getClass(), mode.equals(GraphicsMode.ASCII));

@@ -41,7 +41,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ClientBlockModelContext extends BlockModelContext implements BlockModelInterface {
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private final Map<String, TextWidthMeasurementWorkItemResult> measuredTextLengths = new ConcurrentHashMap<String, TextWidthMeasurementWorkItemResult>();
 	private InMemoryChunks inMemoryChunks;
 	private ChunkInitializerThreadState chunkInitializerThreadState;
 	private ConsoleWriterThreadState consoleWriterThreadState;
@@ -69,7 +68,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		if(playerInventory == null){
 			return null;
 		}else{
-			if(playerInventory.getInventoryItemStackList().size() == 0){
+			if(playerInventory.getInventoryItemStackList().size() == 0 || this.selectedInventoryItemIndex == null){
 				return null;
 			}else{
 				PlayerInventoryItemStack currentStack = playerInventory.getInventoryItemStackList().get(this.selectedInventoryItemIndex);
@@ -93,7 +92,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 		this.inMemoryChunks = new InMemoryChunks(blockManagerThreadCollection, this, chunkSizeCuboidAddress);
 		this.inMemoryChunks.putWorkItem(new InitializeYourselfInMemoryChunksWorkItem(this.inMemoryChunks), WorkItemPriority.PRIORITY_LOW);
-		this.notifyLoadedRegionsChanged();
 		this.chunkInitializerThreadState = new ChunkInitializerThreadState(blockManagerThreadCollection, this, this.inMemoryChunks);
 		this.chunkInitializerThreadState.putWorkItem(new InitializeYourselfChunkInitializerWorkItem(this.chunkInitializerThreadState), WorkItemPriority.PRIORITY_LOW);
 		this.consoleWriterThreadState = new ConsoleWriterThreadState(blockManagerThreadCollection, this);
@@ -111,9 +109,67 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		if(this.blockManagerThreadCollection.getIsJNIEnabled()){
 			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<SIGWINCHListenerWorkItem>(this.sigwinchListenerThreadState, SIGWINCHListenerWorkItem.class, this.sigwinchListenerThreadState.getClass()));
 		}
-		this.blockManagerThreadCollection.addThread(new StandardInputReaderTask(this, this.consoleWriterThreadState));
+		this.blockManagerThreadCollection.addThread(new StandardInputReaderTask(this.consoleWriterThreadState));
 
 		this.requestRootBlockDictionary();
+
+		boolean useMultiSplitDemo = false;
+		if(useMultiSplitDemo){
+			List<Long> splits1 = new ArrayList<Long>();
+			splits1.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(MapAreaInterfaceThreadState.class, this)));
+			splits1.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(InventoryInterfaceThreadState.class, this)));
+			splits1.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(EmptyFrameThreadState.class, this)));
+
+			List<Long> splits2 = new ArrayList<Long>();
+			splits2.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(EmptyFrameThreadState.class, this)));
+			splits2.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(EmptyFrameThreadState.class, this)));
+			splits2.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(EmptyFrameThreadState.class, this)));
+
+			List<Long> splits3 = new ArrayList<Long>();
+			splits3.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(EmptyFrameThreadState.class, this)));
+			splits3.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(EmptyFrameThreadState.class, this)));
+			splits3.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(EmptyFrameThreadState.class, this)));
+
+			List<Long> topSplits = new ArrayList<Long>();
+			Long h1 = this.consoleWriterThreadState.makeHorizontalSplit();
+			this.consoleWriterThreadState.addSplitPartsByIds(h1, splits1);
+			topSplits.add(h1);
+
+			Long h2 = this.consoleWriterThreadState.makeHorizontalSplit();
+			this.consoleWriterThreadState.addSplitPartsByIds(h2, splits2);
+			topSplits.add(h2);
+
+			Long h3 = this.consoleWriterThreadState.makeHorizontalSplit();
+			this.consoleWriterThreadState.addSplitPartsByIds(h3, splits3);
+			topSplits.add(h3);
+
+			Long top = this.consoleWriterThreadState.makeVerticalSplit();
+			this.consoleWriterThreadState.addSplitPartsByIds(top, topSplits);
+			this.consoleWriterThreadState.setRootSplit(top);
+		}else{
+			List<Double> framePercents = new ArrayList<Double>();
+			List<Long> splits = new ArrayList<Long>();
+			splits.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(MapAreaInterfaceThreadState.class, this)));
+			splits.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(InventoryInterfaceThreadState.class, this)));
+			framePercents.add(0.75);
+			framePercents.add(0.25);
+
+			Long subSplit = this.consoleWriterThreadState.makeHorizontalSplit();
+			this.consoleWriterThreadState.addSplitPartsByIds(subSplit, splits);
+			((UserInterfaceSplitMulti)this.consoleWriterThreadState.getUserInterfaceSplitById(subSplit)).setSplitPercentages(framePercents);
+
+			Long root = this.consoleWriterThreadState.makeVerticalSplit();
+			List<Long> topSplits = new ArrayList<Long>();
+			topSplits.add(subSplit);
+			topSplits.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(CraftingInterfaceThreadState.class, this)));
+			List<Double> topSplitPercents = new ArrayList<Double>();
+			topSplitPercents.add(0.75);
+			topSplitPercents.add(0.25);
+			this.consoleWriterThreadState.addSplitPartsByIds(root, topSplits);
+			((UserInterfaceSplitMulti)this.consoleWriterThreadState.getUserInterfaceSplitById(root)).setSplitPercentages(topSplitPercents);
+
+			this.consoleWriterThreadState.setRootSplit(root);
+		}
 	}
 
 	public CraftingRecipe getCurrentCraftingRecipe() throws Exception{
@@ -230,44 +286,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		return this.playerPositionXYZ == null ? null : this.playerPositionXYZ.getPosition();
 	}
 
-	public Long getTerminalDimension(int index, Long defaultValue){
-		try{
-			List<String> commandParts = Arrays.asList("stty", "size", "-F", "/dev/tty");
-			ShellProcessRunner r = new ShellProcessRunner(commandParts);
-			ShellProcessFinalResult result = r.getFinalResult();
-			if(result.getReturnValue() == 0){
-				this.logMessage("Command '" + commandParts + "' ran with success:");
-				this.logMessage(new String(result.getOutput().getStdoutOutput(), "UTF-8"));
-				return Long.valueOf(new String(result.getOutput().getStdoutOutput(), "UTF-8").trim().split(" ")[index]);
-			}else{
-				this.logMessage(new String(result.getOutput().getStdoutOutput(), "UTF-8"));
-				this.logMessage(new String(result.getOutput().getStderrOutput(), "UTF-8"));
-				this.logMessage("Command " + commandParts + " returned non zero: " + String.valueOf(result.getReturnValue()) + ". stdout was: " + new String(result.getOutput().getStdoutOutput(), "UTF-8") +  ". stderr was: " + new String(result.getOutput().getStderrOutput(), "UTF-8"));
-			}
-		}catch(Exception e){
-			this.logException(e);
-		}
-		this.logMessage("Something went wrong trying to get terminal dimension. Return default value of " + defaultValue);
-		return defaultValue;
-	}
 
-	public Long getTerminalWidth() throws Exception{
-		Integer fixedWidth = this.blockManagerThreadCollection.getFixedWidth();
-		if(fixedWidth == null){
-			return this.getTerminalDimension(1, 80L);
-		}else{
-			return (long)fixedWidth;
-		}
-	}
-
-	public Long getTerminalHeight() throws Exception{
-		Integer fixedHeight = this.blockManagerThreadCollection.getFixedHeight();
-		if(fixedHeight == null){
-			return this.getTerminalDimension(0, 30L);
-		}else{
-			return (long)fixedHeight;
-		}
-	}
 
 	public Set<CuboidAddress> getRequiredRegionsSet() throws Exception{
 		Set<CuboidAddress> requiredRegions = new HashSet<CuboidAddress>();
@@ -324,6 +343,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			}
 		}
 
+		//  Top left hand corner of area to mine:
 		Coordinate startingPosition = centerPosition.changeByDeltaXYZ(-miningDistance, 0L, -miningDistance);
 		CuboidAddress regionToMine = new CuboidAddress(startingPosition, startingPosition.changeByDeltaXYZ(2L * miningDistance, 0L, 2L * miningDistance).add(Coordinate.makeUnitCoordinate(4L)));
 		
@@ -347,16 +367,16 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 				this.logMessage("Writing inventory as " + this.playerInventory.asJsonString());
 				numBlocksMined++;
 				if(pickDataToUse == null){ //  If they don't have a pick, only mine a single block around the player:
-					this.doBlockWriteAtPlayerPosition("".getBytes("UTF-8"), c, 0L);
+					this.doBlockWriteAtPosition("".getBytes("UTF-8"), c, 0L);
 					break;
 				}
 			}
 		}
 		if(pickDataToUse != null){
 			if(numBlocksMined.equals(1L)){
-				this.doBlockWriteAtPlayerPosition("".getBytes("UTF-8"), underBlock, 0L);
+				this.doBlockWriteAtPosition("".getBytes("UTF-8"), underBlock, 0L);
 			}else{
-				this.doBlockWriteAtPlayerPosition("".getBytes("UTF-8"), centerPosition, miningDistance);
+				this.doBlockWriteAtPosition("".getBytes("UTF-8"), centerPosition, miningDistance);
 			}
 		}
 		if(numBlocksMined > 1L){
@@ -374,7 +394,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			if(this.playerInventory.containsBlockCount(blockDataToPlace, 1L)){
 				this.playerInventory.addItemCountToInventory(blockDataToPlace, -1L);
 				this.onPlayerInventoryChangeNotify();
-				this.doBlockWriteAtPlayerPosition(blockDataToPlace, this.getPlayerPosition(), 0L);
+				this.doBlockWriteAtPosition(blockDataToPlace, this.getPlayerPosition(), 0L);
 				this.writeSingleBlockAtPosition(this.playerInventory.asJsonString().getBytes("UTF-8"), getPlayerInventoryBlockAddress());
 			}else{
 				//  Does not have any more of these blocks.
@@ -413,47 +433,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.onPlayerInventoryChangeNotify();
 	}
 
-	private TextWidthMeasurementWorkItemResult measureSingleCharacterDisplacement(String text) throws Exception{
-		if(!measuredTextLengths.containsKey(text)){
-			Integer compatibilityWidth = this.blockManagerThreadCollection.getCompatibilityWidth();
 
-			TextWidthMeasurementWorkItem wm = new TextWidthMeasurementWorkItem(this.consoleWriterThreadState, text);
-			this.logMessage("ClientBlockModelContext sending blocking work item for width of text '" + text + "'...");
-			TextWidthMeasurementWorkItemResult result = (TextWidthMeasurementWorkItemResult)this.consoleWriterThreadState.putBlockingWorkItem(wm, WorkItemPriority.PRIORITY_LOW);
-			if(
-				//  If compatibility width is turned on
-				compatibilityWidth != null &&
-				//  and this character doesn't have a y displacement,
-				result.getDeltaY().equals(0L)
-				//  and it's not an ASCII character:
-				//  TODO:  Maybe make a separate option for this:
-				//!(
-				//	text.length() == 1 &&
-				//	Character.codePointAt(text, 0) < 128
-				//)
-			){
-				result = new TextWidthMeasurementWorkItemResult((long)compatibilityWidth, 0L);
-			}
-			measuredTextLengths.put(text, result);
-		}
-		return this.measuredTextLengths.get(text);
-	}
-
-	public TextWidthMeasurementWorkItemResult measureTextLengthOnTerminal(String text) throws Exception{
-		//  If there are any requests to measure longer text, split up the string first
-		//  because the text measurement method will encounter problems if the text
-		//  actually causes significant displacements/wrapps around etc.
-		List<String> individualCharacters = UserInterfaceFrameThreadState.splitStringIntoCharactersUnicodeAware(text);
-		Long totalX = 0L;	
-		Long totalY = 0L;	
-		for(String oneCharacter : individualCharacters){
-			TextWidthMeasurementWorkItemResult result = measureSingleCharacterDisplacement(oneCharacter);
-			totalX += result.getDeltaX();
-			totalY += result.getDeltaY();
-		}
-
-		return new TextWidthMeasurementWorkItemResult(totalX, totalY);
-	}
 
 	public void onUserInterfaceAction(UserInterfaceActionType action) throws Exception {
 		switch(action){
@@ -494,30 +474,25 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	public void writeSingleBlockAtPosition(byte [] data, Coordinate position) throws Exception{
 		List<Cuboid> cuboids = new ArrayList<Cuboid>();
 		cuboids.add(getCuboidForSingleBlock(data, position));
-		this.submitChunkToServer(position.getNumDimensions(), cuboids, WorkItemPriority.PRIORITY_HIGH, 12345L);
+		this.submitChunkToServer(position.getNumDimensions(), cuboids, WorkItemPriority.PRIORITY_LOW, 12345L);
 	}
 
-	public void doBlockWriteAtPlayerPosition(byte [] data, Coordinate position, Long radius) throws Exception{
+	public void doBlockWriteAtPosition(byte [] data, Coordinate position, Long radius) throws Exception{
 		Long numDimensions = position.getNumDimensions();
 
 		Coordinate lower = position.changeX(position.getX() - radius).changeZ(position.getZ() - radius);
 		Coordinate upper = position.changeX(position.getX() + radius).changeZ(position.getZ() + radius);
 		CuboidAddress blocksToChangeAddress = new CuboidAddress(lower, upper.add(Coordinate.makeUnitCoordinate(4L)));
-		BlockMessageBinaryBuffer dataForOneCuboid = new BlockMessageBinaryBuffer();
-
-		Long numBlocks = blocksToChangeAddress.getVolume();
-		long [] dataLengths = new long [numBlocks.intValue()];
-		for(int i = 0; i < numBlocks; i++){
-			dataLengths[i] = data.length;
-			dataForOneCuboid.writeBytes(data);
-		}
-
-		CuboidDataLengths currentCuboidDataLengths = new CuboidDataLengths(blocksToChangeAddress, dataLengths);
-		CuboidData currentCuboidData = new CuboidData(dataForOneCuboid.getUsedBuffer());
 
 		List<Cuboid> cuboids = new ArrayList<Cuboid>();
-		cuboids.add(new Cuboid(blocksToChangeAddress, currentCuboidDataLengths, currentCuboidData));
-		this.submitChunkToServer(numDimensions, cuboids, WorkItemPriority.PRIORITY_HIGH, 12345L);
+		RegionIteration regionIteration = new RegionIteration(blocksToChangeAddress.getCanonicalLowerCoordinate(), blocksToChangeAddress);
+		do{
+			Coordinate currentCoordinate = regionIteration.getCurrentCoordinate();
+			if(!currentCoordinate.equals(this.playerPositionXYZ.getPosition())){
+				cuboids.add(getCuboidForSingleBlock(data, currentCoordinate));
+			}
+		}while (regionIteration.incrementCoordinateWithinCuboidAddress());
+		this.submitChunkToServer(numDimensions, cuboids, WorkItemPriority.PRIORITY_LOW, 12345L);
 	}
 
 	public boolean isServer(){
@@ -543,17 +518,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void notifyOfSIGWINCH() throws Exception{
-		this.onTerminalWindowChanged();
-	}
-
-	public void onTerminalWindowChanged() throws Exception{
-		Long terminalWidth = this.getTerminalWidth();
-		Long terminalHeight = this.getTerminalHeight();
-		
-		GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
-		String exampleFrameCharacter = mode.equals(GraphicsMode.ASCII) ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_HORIZONTAL;
-		Long frameCharacterWidth = this.measureTextLengthOnTerminal(exampleFrameCharacter).getDeltaX();
-		this.consoleWriterThreadState.putWorkItem(new TerminalDimensionsChangedWorkItem(this.consoleWriterThreadState, terminalWidth, terminalHeight, frameCharacterWidth), WorkItemPriority.PRIORITY_LOW);
+		this.consoleWriterThreadState.putWorkItem(new TellClientTerminalChangedWorkItem(this.consoleWriterThreadState), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public Coordinate getPlayerInventoryBlockAddress() throws Exception {
@@ -593,7 +558,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			if(this.playerPositionXYZ == null && currentCoordinate.equals(getPlayerPositionBlockAddress())){
 				this.playerPositionXYZ = (PlayerPositionXYZ)this.deserializeBlockData(blockData);
 				this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, this.playerPositionXYZ.copy(), WorkItemPriority.PRIORITY_LOW);
-				this.onTerminalWindowChanged();
+				this.consoleWriterThreadState.putWorkItem(new TellClientTerminalChangedWorkItem(this.consoleWriterThreadState), WorkItemPriority.PRIORITY_LOW);
 			}else if(currentCoordinate.equals(getPlayerInventoryBlockAddress()) && this.playerInventory.getInventoryItemStackList().size() == 0){
 
 				PlayerInventory playerInventory = (PlayerInventory)this.deserializeBlockData(blockData);
@@ -722,7 +687,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		cuboids.add(getCuboidForSingleBlock(this.playerObject.getBlockData(), this.playerPositionXYZ.getPosition()));
 		cuboids.add(getCuboidForSingleBlock(this.playerPositionXYZ.asJsonString().getBytes("UTF-8"), getPlayerPositionBlockAddress()));
 
-		this.submitChunkToServer(this.playerPositionXYZ.getPosition().getNumDimensions(), cuboids, WorkItemPriority.PRIORITY_HIGH, 12345L);
+		this.submitChunkToServer(this.playerPositionXYZ.getPosition().getNumDimensions(), cuboids, WorkItemPriority.PRIORITY_LOW, 12345L);
 
 		this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, this.playerPositionXYZ.copy(), WorkItemPriority.PRIORITY_LOW);
 	}
@@ -857,33 +822,48 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		subscribedThreadStates.add(receiverThread);
 	}
 
+	public void removeUIEventSubscription(UINotificationType notificationType, UIEventReceiverThreadState<?> receiverThread) throws Exception{
+		if(uiEventSubscriptions.containsKey(notificationType)){
+			uiEventSubscriptions.get(notificationType).remove(receiverThread);
+		}
+	}
+
 	public void doUIModelProbeWorkItem(WorkItem workItem, UINotificationType notificationType, UINotificationSubscriptionType subscriptionType, UIEventReceiverThreadState<?> receiverThread) throws Exception{
-		switch(notificationType){
-			case CURRENTLY_SELECTED_CRAFTING_RECIPE:{
-				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(this.selectedCraftingRecipeIndex), workItem.getThreadId());
-				break;
-			}case CURRENT_INVENTORY:{
-				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(this.playerInventory), workItem.getThreadId());
-				break;
-			}case PLAYER_POSITION:{
-				PlayerPositionXYZ p = this.playerPositionXYZ == null ? null : this.playerPositionXYZ.copy();
-				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(p), workItem.getThreadId());
-				break;
-			}case UPDATE_MAP_AREA_FLAGS:{
-				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(new Object()), workItem.getThreadId());
-				break;
-			}case CURRENTLY_SELECTED_INVENTORY_ITEM:{
-				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(selectedInventoryItemIndex), workItem.getThreadId());
-				break;
-			}case CURRENT_RECIPE_LIST:{
-				this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(getCraftingRecipesList()), workItem.getThreadId());
-				break;
-			}default:{
-				throw new Exception("Unexpected notificationType=" + notificationType.toString());
+		if(subscriptionType.equals(UINotificationSubscriptionType.UNSUBSCRIBE)){
+			this.removeUIEventSubscription(notificationType, receiverThread);
+			this.workItemQueue.addResultForThreadId(new EmptyWorkItemResult(), workItem.getThreadId());
+		}else{
+			switch(notificationType){
+				case CURRENTLY_SELECTED_CRAFTING_RECIPE:{
+					this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(this.selectedCraftingRecipeIndex), workItem.getThreadId());
+					break;
+				}case CURRENT_INVENTORY:{
+					this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(this.playerInventory), workItem.getThreadId());
+					break;
+				}case PLAYER_POSITION:{
+					PlayerPositionXYZ p = this.playerPositionXYZ == null ? null : this.playerPositionXYZ.copy();
+					this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(p), workItem.getThreadId());
+					break;
+				}case UPDATE_MAP_AREA_FLAGS:{
+					this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(new Object()), workItem.getThreadId());
+					break;
+				}case CURRENTLY_SELECTED_INVENTORY_ITEM:{
+					this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(selectedInventoryItemIndex), workItem.getThreadId());
+					break;
+				}case CURRENT_RECIPE_LIST:{
+					this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(getCraftingRecipesList()), workItem.getThreadId());
+					break;
+				}default:{
+					throw new Exception("Unexpected notificationType=" + notificationType.toString());
+				}
+			}
+			if(subscriptionType.equals(UINotificationSubscriptionType.SUBSCRIBE)){
+				this.addUIEventSubscription(notificationType, receiverThread);
 			}
 		}
-		if(subscriptionType.equals(UINotificationSubscriptionType.SUBSCRIBE)){
-			this.addUIEventSubscription(notificationType, receiverThread);
-		}
+	}
+
+	public void destroy(Object o) throws Exception{
+
 	}
 }

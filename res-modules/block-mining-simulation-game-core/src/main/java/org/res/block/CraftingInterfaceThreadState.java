@@ -63,8 +63,8 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 	private RenderableList<CraftingRecipeRenderableListItem> recipeList;
 	private ClientBlockModelContext clientBlockModelContext;
 
-	public CraftingInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
-		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
+	public CraftingInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
+		super(blockManagerThreadCollection, consoleWriterThreadState, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
 	}
@@ -191,7 +191,7 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 		ColouredTextFragmentList topTitlePart = new ColouredTextFragmentList();
 		topTitlePart.add(new ColouredTextFragment("Crafting Recipes", titleAnsiCodes));
 
-		Long spaceWidth = clientBlockModelContext.measureTextLengthOnTerminal(CharacterConstants.SPACE).getDeltaX();
+		Long spaceWidth = getConsoleWriterThreadState().measureTextLengthOnTerminal(CharacterConstants.SPACE).getDeltaX();
 
 		List<LinePrintingInstruction> titleInstructions = this.getLinePrintingInstructions(topTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
 

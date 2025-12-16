@@ -96,6 +96,10 @@ public class ServerBlockModelContext extends BlockModelContext {
 		this.blockDAO.turnOffAutoCommit();
 	}
 
+	public void destroy(Object o) throws Exception{
+
+	}
+
 	public BlockDAO getBlockDAO(){
 		return this.blockDAO;
 	}

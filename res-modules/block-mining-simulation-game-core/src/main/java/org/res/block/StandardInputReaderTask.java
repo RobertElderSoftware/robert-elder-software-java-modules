@@ -55,13 +55,11 @@ import java.lang.invoke.MethodHandles;
 public class StandardInputReaderTask extends BlockManagerThread {
 
 	private BlockModelContext blockModelContext;
-	private ClientBlockModelContext clientBlockModelContext;
 	private ConsoleWriterThreadState consoleWriterThreadState;
 	private AnsiEscapeSequenceExtractor ansiEscapeSequenceExtractor = new AnsiEscapeSequenceExtractor();
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	public StandardInputReaderTask(ClientBlockModelContext clientBlockModelContext, ConsoleWriterThreadState consoleWriterThreadState) throws Exception{
-		this.clientBlockModelContext = clientBlockModelContext;
+	public StandardInputReaderTask(ConsoleWriterThreadState consoleWriterThreadState) throws Exception{
 		this.consoleWriterThreadState = consoleWriterThreadState;
 	}
 
@@ -132,7 +130,7 @@ public class StandardInputReaderTask extends BlockManagerThread {
 
 	@Override
 	public void run() {
-		logger.info("Begin running StandardInputReaderTask (" + Thread.currentThread() + ") for " + this.clientBlockModelContext.getClass().getName());
+		logger.info("Begin running StandardInputReaderTask (" + Thread.currentThread() + ") for " + this.getClass().getName());
 		try{
 			try{
 				this.setToRawMode();
@@ -157,7 +155,7 @@ public class StandardInputReaderTask extends BlockManagerThread {
 						logger.info("Bytes read are " + BlockModelContext.convertToHex(bytes_read));
 						inputReadingFinished = this.onInputBytes(bytes_read);
 					}
-				}while (!inputReadingFinished && !clientBlockModelContext.getBlockManagerThreadCollection().getIsProcessFinished() && !Thread.currentThread().isInterrupted());
+				}while (!inputReadingFinished && !consoleWriterThreadState.getBlockManagerThreadCollection().getIsProcessFinished() && !Thread.currentThread().isInterrupted());
 			}catch(AsynchronousCloseException e){
 				//  This is expected during normal shutdown.
 			}
@@ -170,12 +168,12 @@ public class StandardInputReaderTask extends BlockManagerThread {
 			}
 
 			logger.info("run method terminated with an exception.");
-			clientBlockModelContext.getBlockManagerThreadCollection().setIsProcessFinished(true, e);
+			consoleWriterThreadState.getBlockManagerThreadCollection().setIsProcessFinished(true, e);
 		}
 
 		//  Put cursor position to top of screen:
 		System.out.println("\033[1;1H\033[0m");
 
-		logger.info("Finished running StandardInputReaderTask, exiting thread for " + this.clientBlockModelContext.getClass().getName());
+		logger.info("Finished running StandardInputReaderTask, exiting thread for " + this.getClass().getName());
 	}
 }

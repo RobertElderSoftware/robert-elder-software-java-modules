@@ -66,14 +66,12 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
-	private ClientBlockModelContext clientBlockModelContext;
 	private Long previousRootSplitId = null;
 	private HelpMenu helpMenu = null;
 
-	public HelpMenuFrameThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception {
-		super(blockManagerThreadCollection, clientBlockModelContext, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_MENU}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY});
+	public HelpMenuFrameThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
+		super(blockManagerThreadCollection, consoleWriterThreadState, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_MENU}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
-		this.clientBlockModelContext = clientBlockModelContext;
 		this.helpMenu = new HelpMenu(false, new HelpMenuLevel(Arrays.asList()));
 	}
 
@@ -99,7 +97,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public List<HelpMenuOption> enumerateMoveFromOptions(String prefix, SplitInfoWorkItemResult currentSplitInfo, int numSiblings) throws Exception{
-		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
 		List<HelpMenuOption> rtn = new ArrayList<HelpMenuOption>();
 		GetSplitChildrenInfoWorkItem getSplitChildrenInfoWorkItem = new GetSplitChildrenInfoWorkItem(cwts, currentSplitInfo.getSplitId());
 		WorkItemResult getSplitChildrenInfoWorkItemResult = cwts.putBlockingWorkItem(getSplitChildrenInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
@@ -122,7 +120,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public List<HelpMenuOption> enumerateChangeSplitTypeOptions(String prefix, SplitInfoWorkItemResult parentSplitInfo, SplitInfoWorkItemResult childSplitInfo, int numSiblings) throws Exception{
-		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
 		List<HelpMenuOption> rtn = new ArrayList<HelpMenuOption>();
 		GetSplitChildrenInfoWorkItem getSplitChildrenInfoWorkItem = new GetSplitChildrenInfoWorkItem(cwts, childSplitInfo.getSplitId());
 		WorkItemResult getSplitChildrenInfoWorkItemResult = cwts.putBlockingWorkItem(getSplitChildrenInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
@@ -158,7 +156,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 
 	public List<HelpMenuOption> getSplitMoveToOptionsList() throws Exception{
 		//  Get root split:
-		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
 		GetSplitInfoWorkItem getRootSplitInfoWorkItem = new GetSplitInfoWorkItem(cwts, null, true);
 		SplitInfoWorkItemResult getRootSplitInfoWorkItemResult = (SplitInfoWorkItemResult)cwts.putBlockingWorkItem(getRootSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
 		Long rootSplitId = getRootSplitInfoWorkItemResult.getSplitId();
@@ -175,7 +173,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 
 	public List<HelpMenuOption> getChangeSplitTypeOptionsList() throws Exception{
 		//  Get root split:
-		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
 		GetSplitInfoWorkItem getRootSplitInfoWorkItem = new GetSplitInfoWorkItem(cwts, null, true);
 		SplitInfoWorkItemResult getRootSplitInfoWorkItemResult = (SplitInfoWorkItemResult)cwts.putBlockingWorkItem(getRootSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
 		Long rootSplitId = getRootSplitInfoWorkItemResult.getSplitId();
@@ -256,7 +254,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void onResizeFrame(Long deltaXColumns, Long deltaYColumns) throws Exception {
-		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
 
 		//  Get id of currently focused frame
 		GetFocusedFrameWorkItem getFocusedFrameWorkItem = new GetFocusedFrameWorkItem(cwts);
@@ -271,28 +269,28 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void onChangeSplitType(ChangeSplitTypeHelpMenuOption o) throws Exception {
-		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
 		ChangeSplitTypeWorkItem changeSplitTypeWorkItem = new ChangeSplitTypeWorkItem(cwts, o.getParentSplitId(), o.getChildSplitIdToChange());
 		
 		cwts.putBlockingWorkItem(changeSplitTypeWorkItem, WorkItemPriority.PRIORITY_LOW);
 
 		//  Update screen
-		this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+		cwts.putWorkItem(new TellClientTerminalChangedWorkItem(cwts), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void onRotateSplit(RotateSplitHelpMenuOption o) throws Exception {
-		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
 		logger.info("onRotateSplit Rotated o.getIsForward()=" + o.getIsForward());
 		RotateSplitWorkItem rotateSplitWorkItem = new RotateSplitWorkItem(cwts, o.getParentSplitId(), o.getChildSplitIdToRotate(), o.getIsForward());
 		
 		cwts.putBlockingWorkItem(rotateSplitWorkItem, WorkItemPriority.PRIORITY_LOW);
 
 		//  Update screen
-		this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+		cwts.putWorkItem(new TellClientTerminalChangedWorkItem(cwts), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void removeSplitWithFrameId(Long splitId, Long frameId) throws Exception {
-		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
 
 		GetSplitInfoWorkItem getSplitInfoWorkItem = new GetSplitInfoWorkItem(cwts, splitId, false);
 		WorkItemResult getSplitInfoWorkItemResult = cwts.putBlockingWorkItem(getSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
@@ -312,8 +310,10 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void onCloseCurrentFrame() throws Exception {
-		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
 
+		//  TODO:  This needs to be generalized once there are multiple clients:
+		ClientBlockModelContext client = this.blockManagerThreadCollection.getClientBlockModelContexts().get(0);
 		//  Get id of currently focused frame
 		GetFocusedFrameWorkItem getFocusedFrameWorkItem = new GetFocusedFrameWorkItem(cwts);
 		WorkItemResult getFocusedFrameWorkItemResult = cwts.putBlockingWorkItem(getFocusedFrameWorkItem, WorkItemPriority.PRIORITY_LOW);
@@ -330,18 +330,22 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			this.removeSplitWithFrameId(rootSplitId, focusedFrameId);
 
 			//  Close the focused frame
-			ConsoleWriterWorkItem w = new CloseFrameWorkItem(cwts, focusedFrameId);
+			ConsoleWriterWorkItem w = new CloseFrameWorkItem(cwts, focusedFrameId, client);
 			cwts.putBlockingWorkItem(w, WorkItemPriority.PRIORITY_LOW);
 		}
 
 		//  Update screen
-		this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+		cwts.putWorkItem(new TellClientTerminalChangedWorkItem(cwts), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void onOpenFrame(Class<?> frameStateClass) throws Exception {
-		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+
+		//  TODO:  This needs to be generalized once there are multiple clients:
+		ClientBlockModelContext client = this.blockManagerThreadCollection.getClientBlockModelContexts().get(0);
+
+		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
 		//  Open the required frame:
-		OpenFrameWorkItem openFrameWorkItem = new OpenFrameWorkItem(cwts, frameStateClass);
+		OpenFrameWorkItem openFrameWorkItem = new OpenFrameWorkItem(cwts, frameStateClass, client);
 		WorkItemResult openFrameWorkItemResult = cwts.putBlockingWorkItem(openFrameWorkItem, WorkItemPriority.PRIORITY_LOW);
 		Long newFrameId = ((OpenFrameWorkItemResult)openFrameWorkItemResult).getFrameId();
 
@@ -386,7 +390,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		SetFocusedFrameWorkItem setFocusedFrameWorkItem = new SetFocusedFrameWorkItem(cwts, newFrameId);
 		WorkItemResult setFocusedFrameWorkItemResult = cwts.putBlockingWorkItem(setFocusedFrameWorkItem, WorkItemPriority.PRIORITY_LOW);
 
-		this.clientBlockModelContext.putWorkItem(new TellClientTerminalChangedWorkItem(this.clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+		cwts.putWorkItem(new TellClientTerminalChangedWorkItem(cwts), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void onEnterKeyPressed() throws Exception {
@@ -480,7 +484,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public void render() throws Exception{
-		ConsoleWriterThreadState cwts = this.clientBlockModelContext.getConsoleWriterThreadState();
+		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
 
 		int terminalWidth = this.getFrameDimensions().getTerminalWidth().intValue();
 		int terminalHeight = this.getFrameDimensions().getTerminalHeight().intValue();
@@ -516,7 +520,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 				if(this.helpMenu.getActiveState() && isInMenuBox){
 					int [] colours = UserInterfaceFrameThreadState.getHelpMenuBackgroundColours();
 					String character = " ";
-					int characterWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(character).getDeltaX().intValue();;
+					int characterWidth = getConsoleWriterThreadState().measureTextLengthOnTerminal(character).getDeltaX().intValue();;
 					changes.setMultiColumnCharacter(i, j, character, characterWidth, colours, true, true);
 				}else{
 					changes.setToEmpty(i, j, true, true);

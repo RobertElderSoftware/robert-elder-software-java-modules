@@ -35,17 +35,13 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class TellClientTerminalChangedWorkItem extends BlockModelContextWorkItem {
+public class TellClientTerminalChangedWorkItem extends ConsoleWriterWorkItem {
 
-	public TellClientTerminalChangedWorkItem(BlockModelContext blockModelContext){
-		super(blockModelContext);
+	public TellClientTerminalChangedWorkItem(ConsoleWriterThreadState consoleWriterThreadState){
+		super(consoleWriterThreadState, false);
 	}
 
 	public void doWork() throws Exception{
-		if(this.blockModelContext instanceof ClientBlockModelContext){
-			((ClientBlockModelContext)blockModelContext).onTerminalWindowChanged();
-		}else{
-			throw new Exception("Cannot send help menu open to server block model context.");
-		}
+		consoleWriterThreadState.onTerminalWindowChanged();
 	}
 }

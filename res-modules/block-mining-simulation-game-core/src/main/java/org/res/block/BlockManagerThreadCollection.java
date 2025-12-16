@@ -84,6 +84,7 @@ public class BlockManagerThreadCollection {
 	private BlockSchema blockSchema = null;
 	private UserInteractionConfig userInteractionConfig = null;
 	private Boolean assumeEmojisAreSupported = null;
+	private List<ClientBlockModelContext> clientBlockModelContexts = new ArrayList<ClientBlockModelContext>();
 
 	public BlockManagerThreadCollection(CommandLineArgumentCollection commandLineArgumentCollection, boolean ensureStdinIsATTY) throws Exception {
 		//  This is not very portable, but I actually don't know how many terminals
@@ -119,6 +120,14 @@ public class BlockManagerThreadCollection {
 		if(ensureStdinIsATTY){
 			this.ensureStdinIsATTY();
 		}
+	}
+
+	public final void addClientBlockModelContext(ClientBlockModelContext clientBlockModelContext){
+		this.clientBlockModelContexts.add(clientBlockModelContext);
+	}
+
+	public final List<ClientBlockModelContext> getClientBlockModelContexts(){
+		return this.clientBlockModelContexts;
 	}
 
 	public final void ensureStdinIsATTY() throws Exception {

@@ -106,6 +106,10 @@ public class ChunkInitializerThreadState extends UIEventReceiverThreadState<Chun
 		this.onPlayerPositionChange((PlayerPositionXYZ)result.getObject());
 	}
 
+	public void destroy(Object o) throws Exception{
+
+	}
+
 	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
 		return this.blockManagerThreadCollection;
 	}

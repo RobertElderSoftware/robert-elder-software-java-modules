@@ -99,12 +99,12 @@ public class UserInterfaceSplitLeafNode extends UserInterfaceSplit {
 
 	public FrameBordersDescription collectAllConnectionPoints(FrameDimensions fd) throws Exception{
 		Set<Coordinate> connectionPoints = new TreeSet<Coordinate>();
-		Long fcw = fd.getFrameCharacterWidth();
+		Long fcw = 1L;  //  TODO: this is wrong!
 
 		//  End of the frame that connect to whatever is on the right:
 		//  Frames that are on the right edge of the terminal are responsible for drawing the right border,
 		//  and frames that are on the bottom edge must draw their own lower border:
-		boolean hasRightTerminalBorder = (fd.getFrameOffsetX() + fd.getFrameWidth() + fd.getFrameCharacterWidth()) >= fd.getTerminalWidth();
+		boolean hasRightTerminalBorder = (fd.getFrameOffsetX() + fd.getFrameWidth() + fcw) >= fd.getTerminalWidth();
 		boolean hasBottomTerminalBorder = fd.getTerminalHeight().equals(fd.getFrameOffsetY() + fd.getFrameHeight());
 		logger.info("getTerminalWidth()=" + fd.getTerminalWidth() + " fd.getFrameOffsetX()=" + fd.getFrameOffsetX() + " fd.getFrameWidth()=" + fd.getFrameWidth() + " hasBottomTerminalBorder=" + hasRightTerminalBorder);
 		Long fid = this.userInterfaceFrameThreadState.getFrameId();

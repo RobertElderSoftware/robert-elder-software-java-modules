@@ -58,7 +58,6 @@ import java.util.Objects;
 public class FrameDimensions {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private Long frameCharacterWidth;
 	private CuboidAddress frame = new CuboidAddress(
 		Coordinate.makeDiagonalCoordinate(0L, 2L),
 		Coordinate.makeDiagonalCoordinate(0L, 2L)
@@ -72,24 +71,19 @@ public class FrameDimensions {
 
 	}
 
-	public FrameDimensions(Long frameCharacterWidth, CuboidAddress frame, CuboidAddress terminal) throws Exception {
-		this.frameCharacterWidth = frameCharacterWidth;
+	public FrameDimensions(CuboidAddress frame, CuboidAddress terminal) throws Exception {
 		this.frame = frame;
 		this.terminal = terminal;
 		this.sanityCheck();
 	}
 
 	public FrameDimensions(FrameDimensions f) throws Exception {
-		this.frameCharacterWidth = f.getFrameCharacterWidth();
 		this.frame = f.getFrame();
 		this.terminal = f.getTerminal();
 		this.sanityCheck();
 	}
 
 	public final void sanityCheck() throws Exception{
-		if(this.frameCharacterWidth < 0L){
-			throw new Exception("this.frameCharacterWidth < 0L");
-		}
 		if(this.frame.getWidth() < 0L){
 			throw new Exception("this..getWidth() < 0L");
 		}
@@ -108,10 +102,6 @@ public class FrameDimensions {
 		if(this.terminal.getHeight() < 0L){
 			throw new Exception("this.terminal.getHeight() < 0L");
 		}
-	}
-
-	public Long getFrameCharacterWidth(){
-		return this.frameCharacterWidth;
 	}
 
 	public CuboidAddress getFrame(){
@@ -153,7 +143,7 @@ public class FrameDimensions {
 
 	@Override
 	public String toString(){
-		return "frameCharacterWidth=" + String.valueOf(this.frameCharacterWidth) + "frame=" + String.valueOf(this.frame) + "terminal=" + String.valueOf(this.terminal);
+		return "frame=" + String.valueOf(this.frame) + "terminal=" + String.valueOf(this.terminal);
 	}
 
 	@Override
@@ -163,7 +153,6 @@ public class FrameDimensions {
 			return false;
 		}else{
 			return (
-				Objects.equals(o.getFrameCharacterWidth(), this.frameCharacterWidth) &&
 				Objects.equals(o.getFrame(), this.frame) &&
 				Objects.equals(o.getTerminal(), this.terminal)
 			);

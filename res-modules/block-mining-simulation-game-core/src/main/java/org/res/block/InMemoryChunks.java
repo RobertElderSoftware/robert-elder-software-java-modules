@@ -103,6 +103,10 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 		}
 	}
 
+	public void destroy(Object o) throws Exception{
+
+	}
+
 	public boolean isChunkLoadedOrPending(CuboidAddress c) throws Exception{
 		synchronized(lock){
 			if(
@@ -395,4 +399,5 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 			}
 		}
 	}
+
 }

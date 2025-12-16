@@ -44,14 +44,16 @@ public class OpenFrameWorkItem extends ConsoleQueueableWorkItem {
 
 	private Class<?> frameStateClass;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+	private ClientBlockModelContext clientBlockModelContext;
 
-	public OpenFrameWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Class<?> frameStateClass){
+	public OpenFrameWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Class<?> frameStateClass, ClientBlockModelContext clientBlockModelContext){
 		super(consoleWriterThreadState, true);
 		this.frameStateClass = frameStateClass;
+		this.clientBlockModelContext = clientBlockModelContext;
 	}
 
 	public WorkItemResult executeQueuedWork() throws Exception{
-		return new OpenFrameWorkItemResult(this.consoleWriterThreadState.onOpenFrame(this.frameStateClass));
+		return new OpenFrameWorkItemResult(this.consoleWriterThreadState.onOpenFrame(this.frameStateClass, this.clientBlockModelContext));
 	}
 
 	public void doWork() throws Exception{

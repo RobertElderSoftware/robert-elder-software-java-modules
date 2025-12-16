@@ -91,7 +91,7 @@ public class CraftingRecipeRenderableListItem extends RenderableListItem{
 
 	public String getStackListDescription(List<PlayerInventoryItemStack> itemStacks, UserInterfaceFrameThreadState frame) throws Exception{
 		GraphicsMode mode = frame.getBlockManagerThreadCollection().getGraphicsMode();
-		BlockSchema blockSchema = frame.getClientBlockModelContext().getBlockSchema();
+		BlockSchema blockSchema = frame.getBlockManagerThreadCollection().getBlockSchema();
 		List<String> parts = new ArrayList<String>();
 		for(PlayerInventoryItemStack itemStack : itemStacks){
 			IndividualBlock block = itemStack.getBlock(blockSchema);

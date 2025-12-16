@@ -35,7 +35,8 @@ import java.util.HashMap;
 
 public enum UINotificationSubscriptionType {
         READ (1L),
-        SUBSCRIBE (2L);
+        SUBSCRIBE (2L),
+        UNSUBSCRIBE (3L);
 
         private final long id;
 

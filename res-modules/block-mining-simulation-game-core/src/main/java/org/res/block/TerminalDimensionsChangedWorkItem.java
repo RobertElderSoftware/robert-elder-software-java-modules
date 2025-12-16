@@ -44,16 +44,14 @@ public class TerminalDimensionsChangedWorkItem extends ConsoleWriterWorkItem {
 
 	private Long width;
 	private Long height;
-	private Long frameCharacterWidth;
 
-	public TerminalDimensionsChangedWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Long width, Long height, Long frameCharacterWidth){
+	public TerminalDimensionsChangedWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Long width, Long height){
 		super(consoleWriterThreadState, false);
 		this.width = width;
 		this.height = height;
-		this.frameCharacterWidth = frameCharacterWidth;
 	}
 
 	public void doWork() throws Exception{
-		this.consoleWriterThreadState.onTerminalDimensionsChanged(width, height, frameCharacterWidth);
+		this.consoleWriterThreadState.onTerminalDimensionsChanged(width, height);
 	}
 }

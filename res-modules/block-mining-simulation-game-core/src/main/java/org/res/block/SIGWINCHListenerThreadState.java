@@ -67,6 +67,10 @@ public class SIGWINCHListenerThreadState extends WorkItemQueueOwner<SIGWINCHList
 	protected void init(Object o) throws Exception{
 	}
 
+	public void destroy(Object o) throws Exception{
+
+	}
+
 	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
 		return this.blockManagerThreadCollection;
 	}

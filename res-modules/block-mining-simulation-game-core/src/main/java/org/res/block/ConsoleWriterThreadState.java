@@ -55,6 +55,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWorkItem> {
 	protected Object lock = new Object();
@@ -89,6 +90,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private Map<Long, FrameDimensions> currentFrameDimensionsCollection = new HashMap<Long, FrameDimensions>();
 	private Map<Long, UserInterfaceSplit> userInterfaceSplits = new HashMap<Long, UserInterfaceSplit>();
 	private Long rootSplitId;
+	private final Map<String, TextWidthMeasurementWorkItemResult> measuredTextLengths = new ConcurrentHashMap<String, TextWidthMeasurementWorkItemResult>();
 
 
 	public ConsoleWriterThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception{
@@ -97,7 +99,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public void init(Object o) throws Exception {
-		Long helpMenuFrameId = this.createFrameAndThread(HelpMenuFrameThreadState.class);
+		Long helpMenuFrameId = this.createFrameAndThread(HelpMenuFrameThreadState.class, null);
 		this.helpMenuFrameThreadState = (HelpMenuFrameThreadState)this.getFrameStateById(helpMenuFrameId);
 
 		for(int i = 0; i < ConsoleWriterThreadState.numScreenLayers; i++){
@@ -106,63 +108,53 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 		this.initializeConsole(80L, 24L); // Early setup is necessary so we can do text width calculations before drawing frame
 
-		boolean useMultiSplitDemo = false;
-		if(useMultiSplitDemo){
-			List<Long> splits1 = new ArrayList<Long>();
-			splits1.add(makeLeafNodeSplit(createFrameAndThread(MapAreaInterfaceThreadState.class)));
-			splits1.add(makeLeafNodeSplit(createFrameAndThread(InventoryInterfaceThreadState.class)));
-			splits1.add(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class)));
 
-			List<Long> splits2 = new ArrayList<Long>();
-			splits2.add(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class)));
-			splits2.add(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class)));
-			splits2.add(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class)));
+	}
 
-			List<Long> splits3 = new ArrayList<Long>();
-			splits3.add(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class)));
-			splits3.add(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class)));
-			splits3.add(makeLeafNodeSplit(createFrameAndThread(EmptyFrameThreadState.class)));
+	public void destroy(Object o) throws Exception{
 
-			List<Long> topSplits = new ArrayList<Long>();
-			Long h1 = makeHorizontalSplit();
-			this.addSplitPartsByIds(h1, splits1);
-			topSplits.add(h1);
+	}
 
-			Long h2 = makeHorizontalSplit();
-			this.addSplitPartsByIds(h2, splits2);
-			topSplits.add(h2);
+	private TextWidthMeasurementWorkItemResult measureSingleCharacterDisplacement(String text) throws Exception{
+		if(!measuredTextLengths.containsKey(text)){
+			Integer compatibilityWidth = this.blockManagerThreadCollection.getCompatibilityWidth();
 
-			Long h3 = makeHorizontalSplit();
-			this.addSplitPartsByIds(h3, splits3);
-			topSplits.add(h3);
-
-			Long top = makeVerticalSplit();
-			this.addSplitPartsByIds(top, topSplits);
-			this.setRootSplit(top);
-		}else{
-			List<Double> framePercents = new ArrayList<Double>();
-			List<Long> splits = new ArrayList<Long>();
-			splits.add(makeLeafNodeSplit(createFrameAndThread(MapAreaInterfaceThreadState.class)));
-			splits.add(makeLeafNodeSplit(createFrameAndThread(InventoryInterfaceThreadState.class)));
-			framePercents.add(0.75);
-			framePercents.add(0.25);
-
-			Long subSplit = makeHorizontalSplit();
-			this.addSplitPartsByIds(subSplit, splits);
-			((UserInterfaceSplitMulti)this.getUserInterfaceSplitById(subSplit)).setSplitPercentages(framePercents);
-
-			Long root = makeVerticalSplit();
-			List<Long> topSplits = new ArrayList<Long>();
-			topSplits.add(subSplit);
-			topSplits.add(makeLeafNodeSplit(createFrameAndThread(CraftingInterfaceThreadState.class)));
-			List<Double> topSplitPercents = new ArrayList<Double>();
-			topSplitPercents.add(0.75);
-			topSplitPercents.add(0.25);
-			this.addSplitPartsByIds(root, topSplits);
-			((UserInterfaceSplitMulti)this.getUserInterfaceSplitById(root)).setSplitPercentages(topSplitPercents);
-
-			this.setRootSplit(root);
+			TextWidthMeasurementWorkItem wm = new TextWidthMeasurementWorkItem(this, text);
+			logger.info("sending blocking work item for width of text '" + text + "'...");
+			TextWidthMeasurementWorkItemResult result = (TextWidthMeasurementWorkItemResult)this.putBlockingWorkItem(wm, WorkItemPriority.PRIORITY_LOW);
+			if(
+				//  If compatibility width is turned on
+				compatibilityWidth != null &&
+				//  and this character doesn't have a y displacement,
+				result.getDeltaY().equals(0L)
+				//  and it's not an ASCII character:
+				//  TODO:  Maybe make a separate option for this:
+				//!(
+				//	text.length() == 1 &&
+				//	Character.codePointAt(text, 0) < 128
+				//)
+			){
+				result = new TextWidthMeasurementWorkItemResult((long)compatibilityWidth, 0L);
+			}
+			measuredTextLengths.put(text, result);
 		}
+		return this.measuredTextLengths.get(text);
+	}
+
+	public TextWidthMeasurementWorkItemResult measureTextLengthOnTerminal(String text) throws Exception{
+		//  If there are any requests to measure longer text, split up the string first
+		//  because the text measurement method will encounter problems if the text
+		//  actually causes significant displacements/wrapps around etc.
+		List<String> individualCharacters = UserInterfaceFrameThreadState.splitStringIntoCharactersUnicodeAware(text);
+		Long totalX = 0L;	
+		Long totalY = 0L;	
+		for(String oneCharacter : individualCharacters){
+			TextWidthMeasurementWorkItemResult result = measureSingleCharacterDisplacement(oneCharacter);
+			totalX += result.getDeltaX();
+			totalY += result.getDeltaY();
+		}
+
+		return new TextWidthMeasurementWorkItemResult(totalX, totalY);
 	}
 
 	public void addSplitPartsByIds(Long parentSplitId, List<Long> childrenToAdd) throws Exception{
@@ -310,34 +302,34 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		return frameId;
 	}
 
-	public Long createFrameState(Class<?> frameStateClass) throws Exception{
+	public Long createFrameState(Class<?> frameStateClass, ClientBlockModelContext clientBlockModelContext) throws Exception{
 		if(frameStateClass == HelpMenuFrameThreadState.class){
 			return addFrameState(
-				new HelpMenuFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
+				new HelpMenuFrameThreadState(this.blockManagerThreadCollection, this)
 			);
 		}else if(frameStateClass == HelpDetailsFrameThreadState.class){
 			return addFrameState(
-				new HelpDetailsFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
+				new HelpDetailsFrameThreadState(this.blockManagerThreadCollection, clientBlockModelContext, this)
 			);
 		}else if(frameStateClass == EmptyFrameThreadState.class){
 			return addFrameState(
-				new EmptyFrameThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext)
+				new EmptyFrameThreadState(this.blockManagerThreadCollection, clientBlockModelContext, this)
 			);
 		}else if(frameStateClass == DebugListInterfaceThreadState.class){
-			DebugListInterfaceThreadState thread = new DebugListInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
+			DebugListInterfaceThreadState thread = new DebugListInterfaceThreadState(this.blockManagerThreadCollection, clientBlockModelContext, this);
 			thread.putWorkItem(new InitializeYourselfUIWorkItem(thread), WorkItemPriority.PRIORITY_LOW);
 			return addFrameState(thread);
 		}else if(frameStateClass == CraftingInterfaceThreadState.class){
-			CraftingInterfaceThreadState thread = new CraftingInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
+			CraftingInterfaceThreadState thread = new CraftingInterfaceThreadState(this.blockManagerThreadCollection, clientBlockModelContext, this);
 			thread.putWorkItem(new InitializeYourselfUIWorkItem(thread), WorkItemPriority.PRIORITY_LOW);
 			return addFrameState(thread);
 		}else if(frameStateClass == MapAreaInterfaceThreadState.class){
-			MapAreaInterfaceThreadState thread = new MapAreaInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
+			MapAreaInterfaceThreadState thread = new MapAreaInterfaceThreadState(this.blockManagerThreadCollection, clientBlockModelContext, this);
 			Long mapId = addFrameState(thread);
 			thread.putWorkItem(new InitializeYourselfUIWorkItem(thread), WorkItemPriority.PRIORITY_LOW);
 			return mapId;
 		}else if(frameStateClass == InventoryInterfaceThreadState.class){
-			InventoryInterfaceThreadState thread = new InventoryInterfaceThreadState(this.blockManagerThreadCollection, this.clientBlockModelContext);
+			InventoryInterfaceThreadState thread = new InventoryInterfaceThreadState(this.blockManagerThreadCollection, clientBlockModelContext, this);
 			thread.putWorkItem(new InitializeYourselfUIWorkItem(thread), WorkItemPriority.PRIORITY_LOW);
 			Long inventoryId = addFrameState(thread);
 			return inventoryId;
@@ -350,17 +342,33 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.userInterfaceSplits.remove(splitId);
 	}
 
-	public void destroyFrameStateById(Long frameId) throws Exception{
+	public void destroyFrameStateById(Long frameId, ClientBlockModelContext clientBlockModelContext) throws Exception{
 		if(activeFrameStates.containsKey(frameId)){
+			//  Unsubscribe that frame from all events, otherwise
+			//  the client will continue to send events to a dead 
+			//  frame and the work item queue will overflow:
+			for(UINotificationType n : UINotificationType.values()){
+				UserInterfaceFrameThreadState ui = getFrameStateById(frameId);
+				clientBlockModelContext.putBlockingWorkItem(
+					new UIModelProbeWorkItem(
+						clientBlockModelContext,
+						n,
+						UINotificationSubscriptionType.UNSUBSCRIBE,
+						ui
+					),
+					WorkItemPriority.PRIORITY_LOW
+				);
+			}
+
 			activeFrameStates.remove(frameId);
 		}else{
 			throw new Exception("destroyFrameStateById: Frame id for thread: " + frameId);
 		}
 	}
 
-	public void destroyFrameStateAndThreadById(Long frameId) throws Exception{
+	public void destroyFrameStateAndThreadById(Long frameId, ClientBlockModelContext clientBlockModelContext) throws Exception{
+		this.destroyFrameStateById(frameId, clientBlockModelContext);
 		this.destroyFrameThreadById(frameId);
-		this.destroyFrameStateById(frameId);
 	}
 
 	public UserInterfaceFrameThreadState getFrameStateById(Long frameId) throws Exception{
@@ -371,8 +379,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
-	public Long createFrameAndThread(Class<?> frameStateClass) throws Exception{
-		Long frameId = createFrameState(frameStateClass);
+	public Long createFrameAndThread(Class<?> frameStateClass, ClientBlockModelContext clientBlockModelContext) throws Exception{
+		Long frameId = createFrameState(frameStateClass, clientBlockModelContext);
 		UserInterfaceFrameThreadState frame = this.getFrameStateById(frameId);
 		return this.createFrameThread(frameId, frameStateClass);
 	}
@@ -454,8 +462,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		return new EmptyWorkItemResult();
 	}
 
-	public Long onCloseFrame(Long frameId) throws Exception{
-		this.destroyFrameStateAndThreadById(frameId);
+	public Long onCloseFrame(Long frameId, ClientBlockModelContext clientBlockModelContext) throws Exception{
+		this.destroyFrameStateAndThreadById(frameId, clientBlockModelContext);
 		this.focusedFrameId = null;
 		return frameId;
 	}
@@ -574,8 +582,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
-	public Long onOpenFrame(Class<?> frameStateClass) throws Exception{
-		return createFrameAndThread(frameStateClass);
+	public Long onOpenFrame(Class<?> frameStateClass, ClientBlockModelContext clientBlockModelContext) throws Exception{
+		return createFrameAndThread(frameStateClass, clientBlockModelContext);
 	}
 
 	public Long onSetFocusedFrame() throws Exception{
@@ -877,7 +885,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		return terminalDimensionsChangeSeq.get();
 	}
 
-	public void onTerminalDimensionsChanged(Long terminalWidth, Long terminalHeight, Long frameCharacterWidth) throws Exception{
+	public void onTerminalDimensionsChanged(Long terminalWidth, Long terminalHeight) throws Exception{
 		terminalDimensionsChangeSeq.getAndIncrement();
 		this.initializeConsole(terminalWidth, terminalHeight);
 
@@ -885,7 +893,6 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			this.focusOnNextFrame();
 		}
 		this.currentTerminalFrameDimensions = new FrameDimensions(
-			frameCharacterWidth,
 			new CuboidAddress(
 				new Coordinate(Arrays.asList(0L, 0L)),
 				new Coordinate(Arrays.asList(0L + terminalWidth, 0L + terminalHeight))
@@ -1033,5 +1040,51 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	public void addResultForThreadId(WorkItemResult workItemResult, Long threadId) throws Exception {
 		this.workItemQueue.addResultForThreadId(workItemResult, threadId);
+	}
+
+	public Long getTerminalDimension(int index, Long defaultValue){
+		try{
+			List<String> commandParts = Arrays.asList("stty", "size", "-F", "/dev/tty");
+			ShellProcessRunner r = new ShellProcessRunner(commandParts);
+			ShellProcessFinalResult result = r.getFinalResult();
+			if(result.getReturnValue() == 0){
+				logger.info("Command '" + commandParts + "' ran with success:");
+				logger.info(new String(result.getOutput().getStdoutOutput(), "UTF-8"));
+				return Long.valueOf(new String(result.getOutput().getStdoutOutput(), "UTF-8").trim().split(" ")[index]);
+			}else{
+				logger.info(new String(result.getOutput().getStdoutOutput(), "UTF-8"));
+				logger.info(new String(result.getOutput().getStderrOutput(), "UTF-8"));
+				logger.info("Command " + commandParts + " returned non zero: " + String.valueOf(result.getReturnValue()) + ". stdout was: " + new String(result.getOutput().getStdoutOutput(), "UTF-8") +  ". stderr was: " + new String(result.getOutput().getStderrOutput(), "UTF-8"));
+			}
+		}catch(Exception e){
+			logger.info("Error getting terminal dimension: ", e);
+		}
+		logger.info("Something went wrong trying to get terminal dimension. Return default value of " + defaultValue);
+		return defaultValue;
+	}
+
+	public Long getTerminalWidth() throws Exception{
+		Integer fixedWidth = this.blockManagerThreadCollection.getFixedWidth();
+		if(fixedWidth == null){
+			return this.getTerminalDimension(1, 80L);
+		}else{
+			return (long)fixedWidth;
+		}
+	}
+
+	public Long getTerminalHeight() throws Exception{
+		Integer fixedHeight = this.blockManagerThreadCollection.getFixedHeight();
+		if(fixedHeight == null){
+			return this.getTerminalDimension(0, 30L);
+		}else{
+			return (long)fixedHeight;
+		}
+	}
+
+	public void onTerminalWindowChanged() throws Exception{
+		Long terminalWidth = this.getTerminalWidth();
+		Long terminalHeight = this.getTerminalHeight();
+		
+		this.putWorkItem(new TerminalDimensionsChangedWorkItem(this, terminalWidth, terminalHeight), WorkItemPriority.PRIORITY_LOW);
 	}
 }

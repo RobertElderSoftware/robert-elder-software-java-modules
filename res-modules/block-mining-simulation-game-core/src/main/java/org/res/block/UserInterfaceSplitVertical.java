@@ -70,7 +70,7 @@ public class UserInterfaceSplitVertical extends UserInterfaceSplitMulti {
 		if(this.splitParts.size() > 0){
 			Long numSplits = (long)this.splitParts.size();
 			Long xOffsetSoFar = 0L;
-			Long fcw = frameDimensions.getFrameCharacterWidth();
+			Long fcw = 1L;  //  TODO: this is wrong!
 			//  For wide character mode, must make sure that vertical splitParts have an even number of columns:
 			Long usedFrameArea = fcw.equals(1L) ? frameDimensions.getFrameWidth() : ((frameDimensions.getFrameWidth() / numSplits) / fcw) * numSplits * fcw;
 			for(int i = 0; i < this.splitParts.size(); i++){
@@ -86,7 +86,6 @@ public class UserInterfaceSplitVertical extends UserInterfaceSplitMulti {
 				Long y2 = y1 + frameDimensions.getFrameHeight();
 
 				FrameDimensions subFrameDimensions = new FrameDimensions(
-					frameDimensions.getFrameCharacterWidth(),
 					new CuboidAddress(
 						new Coordinate(Arrays.asList(x1, y1)),
 						new Coordinate(Arrays.asList(x2, y2))

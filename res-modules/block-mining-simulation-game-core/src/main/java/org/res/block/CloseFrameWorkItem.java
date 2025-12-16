@@ -45,14 +45,16 @@ public class CloseFrameWorkItem extends ConsoleQueueableWorkItem {
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
 	private Long frameId;
+	private ClientBlockModelContext clientBlockModelContext;
 
-	public CloseFrameWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Long frameId){
+	public CloseFrameWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Long frameId, ClientBlockModelContext clientBlockModelContext){
 		super(consoleWriterThreadState, true);
 		this.frameId = frameId;
+		this.clientBlockModelContext = clientBlockModelContext;
 	}
 
 	public WorkItemResult executeQueuedWork() throws Exception{
-		return new CloseFrameWorkItemResult(this.consoleWriterThreadState.onCloseFrame(this.frameId));
+		return new CloseFrameWorkItemResult(this.consoleWriterThreadState.onCloseFrame(this.frameId, this.clientBlockModelContext));
 	}
 
 	public void doWork() throws Exception{

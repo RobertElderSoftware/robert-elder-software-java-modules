@@ -397,7 +397,7 @@ public class RenderableList<T extends RenderableListItem> {
 
 		if(list.size() == 0){
 			String msg = this.emptyMessage;
-			Long len = frame.getClientBlockModelContext().measureTextLengthOnTerminal(msg).getDeltaX();
+			Long len = frame.getConsoleWriterThreadState().measureTextLengthOnTerminal(msg).getDeltaX();
 			Long x = (listAreaLayer.getWidth() / 2L) - (((long)len) / 2L);
 			Long y = (listAreaLayer.getHeight() / 2L);
 			frame.printTextAtScreenXY(new ColouredTextFragment(msg, UserInterfaceFrameThreadState.getDefaultTextColors()), x, y, true, this.listAreaLayer);

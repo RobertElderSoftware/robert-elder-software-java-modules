@@ -122,6 +122,10 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 
 	public ScreenLayer[] bufferedScreenLayers = new ScreenLayer [ConsoleWriterThreadState.numScreenLayers];
 
+	public ConsoleWriterThreadState getConsoleWriterThreadState(){
+		return this.consoleWriterThreadState;
+	}
+
 	public static final int [] getDefaultBGColors(){
 		switch(currentTheme){
 			case PINK:{
@@ -353,7 +357,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 					Long wordHeight = 0L;
 					List<String> wordParts = new ArrayList<String>();
 					for(String c : characters){
-						TextWidthMeasurementWorkItemResult m = this.clientBlockModelContext.measureTextLengthOnTerminal(c);
+						TextWidthMeasurementWorkItemResult m = getConsoleWriterThreadState().measureTextLengthOnTerminal(c);
 						wordLength += m.getDeltaX();
 						wordHeight += m.getDeltaY();
 						charactersSoFar.add(c);
@@ -372,12 +376,12 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 						//  Add back any space characters between words
 						//  as long as they're not at the end of lines.
 						if(spaceDelimiter != null){
-							textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(spaceDelimiter, cf.getAnsiColourCodes()), this.clientBlockModelContext.measureTextLengthOnTerminal(spaceDelimiter)));
+							textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(spaceDelimiter, cf.getAnsiColourCodes()), getConsoleWriterThreadState().measureTextLengthOnTerminal(spaceDelimiter)));
 						}
 					}
 				}
 				if(i != lines.length -1){
-					textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(newlineCharacter, cf.getAnsiColourCodes()), this.clientBlockModelContext.measureTextLengthOnTerminal(newlineCharacter)));
+					textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(newlineCharacter, cf.getAnsiColourCodes()), getConsoleWriterThreadState().measureTextLengthOnTerminal(newlineCharacter)));
 				}
 			}
 		}
@@ -477,7 +481,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		int totalWidth = 0;
 		int maximumCharacterWidth = 0;
 		for(String s : charactersToPrint){
-			int chrWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(s).getDeltaX().intValue();
+			int chrWidth = getConsoleWriterThreadState().measureTextLengthOnTerminal(s).getDeltaX().intValue();
 			if(chrWidth > maximumCharacterWidth){
 				maximumCharacterWidth = chrWidth;
 			}
@@ -496,7 +500,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		int currentYOffset = 0;
 		for(int i = 0; i < charactersToPrint.size(); i++){
 			String s = charactersToPrint.get(i);
-			int chrWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(s).getDeltaX().intValue();
+			int chrWidth = getConsoleWriterThreadState().measureTextLengthOnTerminal(s).getDeltaX().intValue();
 			if(xDirection){
 				changes.setMultiColumnCharacter(currentXOffset, currentYOffset, s, chrWidth, newColourCodes[i], true, true);
 				currentXOffset += chrWidth;
@@ -517,7 +521,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 	}
 
 	public boolean sendConsolePrintMessage(List<ScreenLayerPrintParameters> params, FrameDimensions fd) throws Exception{
-		WorkItemResult workItemResult = this.clientBlockModelContext.getConsoleWriterThreadState().putBlockingWorkItem(new ConsoleWriteWorkItem(this.clientBlockModelContext.getConsoleWriterThreadState(), params, fd, this.currentFrameChangeWorkItemParams), WorkItemPriority.PRIORITY_LOW);
+		WorkItemResult workItemResult = getConsoleWriterThreadState().putBlockingWorkItem(new ConsoleWriteWorkItem(getConsoleWriterThreadState(), params, fd, this.currentFrameChangeWorkItemParams), WorkItemPriority.PRIORITY_LOW);
 
 		if(workItemResult instanceof FrameChangeWorkItemParams){
 			//  This scenario happens when the write was discarded and 
@@ -601,7 +605,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 	public Long getMapAreaCellWidth() throws Exception{
 		if(this.mapAreaCellWidth == null){
 			GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
-			Long ironOxideBlockWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(BlockSkins.getPresentation(IronOxide.class, mode.equals(GraphicsMode.ASCII))).getDeltaX();
+			Long ironOxideBlockWidth = getConsoleWriterThreadState().measureTextLengthOnTerminal(BlockSkins.getPresentation(IronOxide.class, mode.equals(GraphicsMode.ASCII))).getDeltaX();
 
 			Integer compatibilityWidth = this.blockManagerThreadCollection.getCompatibilityWidth();
 			this.mapAreaCellWidth = Math.max(ironOxideBlockWidth, compatibilityWidth == null ? 0 : compatibilityWidth);
@@ -614,7 +618,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 			GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
 
 			String exampleFrameCharacter = mode.equals(GraphicsMode.ASCII) ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_HORIZONTAL;
-			this.frameCharacterWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(exampleFrameCharacter).getDeltaX();
+			this.frameCharacterWidth = getConsoleWriterThreadState().measureTextLengthOnTerminal(exampleFrameCharacter).getDeltaX();
 		}
 		return this.frameCharacterWidth;
 	}
@@ -940,14 +944,14 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 					int paddedWidthSoFar = 0;
 					while(paddedWidthSoFar < this.getMapAreaCellWidth()){
 						String character = "X";
-						int chrWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(character).getDeltaX().intValue();
+						int chrWidth = getConsoleWriterThreadState().measureTextLengthOnTerminal(character).getDeltaX().intValue();
 						changes.setMultiColumnCharacter(currentOffset, j, character, chrWidth, new int [] {GREEN_FG_COLOR, RED_BG_COLOR}, true, true);
 						currentOffset += 1;
 						paddedWidthSoFar += 1;
 					}
 				}else{
 					// The character in the cell
-					int chrWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(updatedCellContents[i][j]).getDeltaX().intValue();
+					int chrWidth = getConsoleWriterThreadState().measureTextLengthOnTerminal(updatedCellContents[i][j]).getDeltaX().intValue();
 					changes.setMultiColumnCharacter(currentOffset, j, updatedCellContents[i][j], chrWidth, updatedColourCodes[i][j], true, true);
 					currentOffset += chrWidth;
 
@@ -955,7 +959,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 					int paddedWidthSoFar = chrWidth;
 					while(paddedWidthSoFar < this.getMapAreaCellWidth()){
 						String space = " ";
-						int spaceWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(space).getDeltaX().intValue();
+						int spaceWidth = getConsoleWriterThreadState().measureTextLengthOnTerminal(space).getDeltaX().intValue();
 						changes.setMultiColumnCharacter(currentOffset, j, space, spaceWidth, updatedColourCodes[i][j], true, true);
 						currentOffset += spaceWidth;
 						paddedWidthSoFar += spaceWidth;
@@ -984,14 +988,14 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		//  An empty cell with zero byte length will otherwise render to nothing causing the last cell to not get overprinted.
 		//  Adding the extra space after the Rocks because the 'rock' emoji only takes up one space for the background colour, and BG colour won't update correctly otherwise.
 
-		Long presentedTextWidth = this.clientBlockModelContext.measureTextLengthOnTerminal(presentedText).getDeltaX();
+		Long presentedTextWidth = getConsoleWriterThreadState().measureTextLengthOnTerminal(presentedText).getDeltaX();
 		if(checkWidth && presentedTextWidth > paddedWidth){
 			throw new Exception("Text has terminal width of " + presentedTextWidth + " which is wider than allowed paddedWidth value of " + paddedWidth);
 		}
 
 		while(presentedTextWidth < paddedWidth){
 			presentedText += " ";
-			presentedTextWidth += this.clientBlockModelContext.measureTextLengthOnTerminal(" ").getDeltaX().intValue();
+			presentedTextWidth += getConsoleWriterThreadState().measureTextLengthOnTerminal(" ").getDeltaX().intValue();
 		}
 
 		return presentedText;
@@ -1007,15 +1011,12 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		}
 	}
 
-	private ClientBlockModelContext clientBlockModelContext;
+	private ConsoleWriterThreadState consoleWriterThreadState;
 
-	public ClientBlockModelContext getClientBlockModelContext(){
-		return this.clientBlockModelContext;
-	}
 
-	public UserInterfaceFrameThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, int [] usedScreenLayers, ScreenLayerMergeType [] usedScreenLayersMergeTypes) throws Exception {
+	public UserInterfaceFrameThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ConsoleWriterThreadState consoleWriterThreadState, int [] usedScreenLayers, ScreenLayerMergeType [] usedScreenLayersMergeTypes) throws Exception {
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
-		this.clientBlockModelContext = clientBlockModelContext;
+		this.consoleWriterThreadState = consoleWriterThreadState;
 		this.frameId = seq.getAndIncrement();
 		this.usedScreenLayers = usedScreenLayers;
 		this.usedScreenLayersMergeTypes = usedScreenLayersMergeTypes;
@@ -1054,6 +1055,10 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 	}
 
 	public Long textWidth(String text) throws Exception{
-		return this.clientBlockModelContext.measureTextLengthOnTerminal(text).getDeltaX();
+		return getConsoleWriterThreadState().measureTextLengthOnTerminal(text).getDeltaX();
+	}
+
+	public void destroy(Object o) throws Exception{
+
 	}
 }
