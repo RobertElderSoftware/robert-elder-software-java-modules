@@ -81,6 +81,8 @@ public class BlockManagerThreadCollection {
 	protected ClientServerInterface clientServerInterface = null;
 	private LinuxBlockJNIInterface linuxBlockJNIInterface = null;
 
+	private ConsoleWriterThreadState consoleWriterThreadState;
+	private SIGWINCHListenerThreadState sigwinchListenerThreadState;
 	private BlockSchema blockSchema = null;
 	private UserInteractionConfig userInteractionConfig = null;
 	private Boolean assumeEmojisAreSupported = null;
@@ -120,6 +122,26 @@ public class BlockManagerThreadCollection {
 		if(ensureStdinIsATTY){
 			this.ensureStdinIsATTY();
 		}
+	}
+
+	public final void init() throws Exception {
+		//  Console Writer Thread
+		this.consoleWriterThreadState = new ConsoleWriterThreadState(this);
+		this.consoleWriterThreadState.putWorkItem(new InitializeYourselfConsoleWriterWorkItem(this.consoleWriterThreadState), WorkItemPriority.PRIORITY_LOW);
+		this.addThread(new WorkItemProcessorTask<ConsoleWriterWorkItem>(this.consoleWriterThreadState, ConsoleWriterWorkItem.class, this.consoleWriterThreadState.getClass()));
+
+		//  Console Reader Thread
+		this.addThread(new StandardInputReaderTask(getConsoleWriterThreadState()));
+
+		//  SIGWINCHListener Thread
+		if(this.getIsJNIEnabled()){
+			this.sigwinchListenerThreadState = new SIGWINCHListenerThreadState(this);
+			this.addThread(new WorkItemProcessorTask<SIGWINCHListenerWorkItem>(this.sigwinchListenerThreadState, SIGWINCHListenerWorkItem.class, this.sigwinchListenerThreadState.getClass()));
+		}
+	}
+
+	public ConsoleWriterThreadState getConsoleWriterThreadState(){
+		return this.consoleWriterThreadState;
 	}
 
 	public final void addClientBlockModelContext(ClientBlockModelContext clientBlockModelContext){
@@ -388,5 +410,67 @@ public class BlockManagerThreadCollection {
 
 	public boolean getIsProcessFinished(){
 		return this.isProcessFinished;
+	}
+
+	public void setupDefaultUIForClient(ClientBlockModelContext client) throws Exception{
+
+		boolean useMultiSplitDemo = false;
+		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
+		if(useMultiSplitDemo){
+			List<Long> splits1 = new ArrayList<Long>();
+			splits1.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(MapAreaInterfaceThreadState.class, client)));
+			splits1.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(InventoryInterfaceThreadState.class, client)));
+			splits1.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(EmptyFrameThreadState.class, client)));
+
+			List<Long> splits2 = new ArrayList<Long>();
+			splits2.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(EmptyFrameThreadState.class, client)));
+			splits2.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(EmptyFrameThreadState.class, client)));
+			splits2.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(EmptyFrameThreadState.class, client)));
+
+			List<Long> splits3 = new ArrayList<Long>();
+			splits3.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(EmptyFrameThreadState.class, client)));
+			splits3.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(EmptyFrameThreadState.class, client)));
+			splits3.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(EmptyFrameThreadState.class, client)));
+
+			List<Long> topSplits = new ArrayList<Long>();
+			Long h1 = cwts.makeHorizontalSplit();
+			cwts.addSplitPartsByIds(h1, splits1);
+			topSplits.add(h1);
+
+			Long h2 = cwts.makeHorizontalSplit();
+			cwts.addSplitPartsByIds(h2, splits2);
+			topSplits.add(h2);
+
+			Long h3 = cwts.makeHorizontalSplit();
+			cwts.addSplitPartsByIds(h3, splits3);
+			topSplits.add(h3);
+
+			Long top = cwts.makeVerticalSplit();
+			cwts.addSplitPartsByIds(top, topSplits);
+			cwts.setRootSplit(top);
+		}else{
+			List<Double> framePercents = new ArrayList<Double>();
+			List<Long> splits = new ArrayList<Long>();
+			splits.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(MapAreaInterfaceThreadState.class, client)));
+			splits.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(InventoryInterfaceThreadState.class, client)));
+			framePercents.add(0.75);
+			framePercents.add(0.25);
+
+			Long subSplit = cwts.makeHorizontalSplit();
+			cwts.addSplitPartsByIds(subSplit, splits);
+			((UserInterfaceSplitMulti)cwts.getUserInterfaceSplitById(subSplit)).setSplitPercentages(framePercents);
+
+			Long root = cwts.makeVerticalSplit();
+			List<Long> topSplits = new ArrayList<Long>();
+			topSplits.add(subSplit);
+			topSplits.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(CraftingInterfaceThreadState.class, client)));
+			List<Double> topSplitPercents = new ArrayList<Double>();
+			topSplitPercents.add(0.75);
+			topSplitPercents.add(0.25);
+			cwts.addSplitPartsByIds(root, topSplits);
+			((UserInterfaceSplitMulti)cwts.getUserInterfaceSplitById(root)).setSplitPercentages(topSplitPercents);
+
+			cwts.setRootSplit(root);
+		}
 	}
 }

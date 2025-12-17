@@ -43,8 +43,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private InMemoryChunks inMemoryChunks;
 	private ChunkInitializerThreadState chunkInitializerThreadState;
-	private ConsoleWriterThreadState consoleWriterThreadState;
-	private SIGWINCHListenerThreadState sigwinchListenerThreadState;
 	private Coordinate rootBlockDictionaryAddress = null;
 	private BlockDictionary rootBlockDictionary = null;
 
@@ -94,82 +92,14 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.inMemoryChunks.putWorkItem(new InitializeYourselfInMemoryChunksWorkItem(this.inMemoryChunks), WorkItemPriority.PRIORITY_LOW);
 		this.chunkInitializerThreadState = new ChunkInitializerThreadState(blockManagerThreadCollection, this, this.inMemoryChunks);
 		this.chunkInitializerThreadState.putWorkItem(new InitializeYourselfChunkInitializerWorkItem(this.chunkInitializerThreadState), WorkItemPriority.PRIORITY_LOW);
-		this.consoleWriterThreadState = new ConsoleWriterThreadState(blockManagerThreadCollection, this);
-		this.consoleWriterThreadState.putWorkItem(new InitializeYourselfConsoleWriterWorkItem(this.consoleWriterThreadState), WorkItemPriority.PRIORITY_LOW);
 
-		if(this.blockManagerThreadCollection.getIsJNIEnabled()){
-			this.sigwinchListenerThreadState = new SIGWINCHListenerThreadState(blockManagerThreadCollection, this);
-		}
 
 		this.clientServerInterface.Connect();
 
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(this.inMemoryChunks, InMemoryChunksWorkItem.class, this.inMemoryChunks.getClass()));
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ChunkInitializerWorkItem>(this.chunkInitializerThreadState, ChunkInitializerWorkItem.class, this.chunkInitializerThreadState.getClass()));
-		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ConsoleWriterWorkItem>(this.consoleWriterThreadState, ConsoleWriterWorkItem.class, this.consoleWriterThreadState.getClass()));
-		if(this.blockManagerThreadCollection.getIsJNIEnabled()){
-			this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<SIGWINCHListenerWorkItem>(this.sigwinchListenerThreadState, SIGWINCHListenerWorkItem.class, this.sigwinchListenerThreadState.getClass()));
-		}
-		this.blockManagerThreadCollection.addThread(new StandardInputReaderTask(this.consoleWriterThreadState));
 
 		this.requestRootBlockDictionary();
-
-		boolean useMultiSplitDemo = false;
-		if(useMultiSplitDemo){
-			List<Long> splits1 = new ArrayList<Long>();
-			splits1.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(MapAreaInterfaceThreadState.class, this)));
-			splits1.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(InventoryInterfaceThreadState.class, this)));
-			splits1.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(EmptyFrameThreadState.class, this)));
-
-			List<Long> splits2 = new ArrayList<Long>();
-			splits2.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(EmptyFrameThreadState.class, this)));
-			splits2.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(EmptyFrameThreadState.class, this)));
-			splits2.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(EmptyFrameThreadState.class, this)));
-
-			List<Long> splits3 = new ArrayList<Long>();
-			splits3.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(EmptyFrameThreadState.class, this)));
-			splits3.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(EmptyFrameThreadState.class, this)));
-			splits3.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(EmptyFrameThreadState.class, this)));
-
-			List<Long> topSplits = new ArrayList<Long>();
-			Long h1 = this.consoleWriterThreadState.makeHorizontalSplit();
-			this.consoleWriterThreadState.addSplitPartsByIds(h1, splits1);
-			topSplits.add(h1);
-
-			Long h2 = this.consoleWriterThreadState.makeHorizontalSplit();
-			this.consoleWriterThreadState.addSplitPartsByIds(h2, splits2);
-			topSplits.add(h2);
-
-			Long h3 = this.consoleWriterThreadState.makeHorizontalSplit();
-			this.consoleWriterThreadState.addSplitPartsByIds(h3, splits3);
-			topSplits.add(h3);
-
-			Long top = this.consoleWriterThreadState.makeVerticalSplit();
-			this.consoleWriterThreadState.addSplitPartsByIds(top, topSplits);
-			this.consoleWriterThreadState.setRootSplit(top);
-		}else{
-			List<Double> framePercents = new ArrayList<Double>();
-			List<Long> splits = new ArrayList<Long>();
-			splits.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(MapAreaInterfaceThreadState.class, this)));
-			splits.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(InventoryInterfaceThreadState.class, this)));
-			framePercents.add(0.75);
-			framePercents.add(0.25);
-
-			Long subSplit = this.consoleWriterThreadState.makeHorizontalSplit();
-			this.consoleWriterThreadState.addSplitPartsByIds(subSplit, splits);
-			((UserInterfaceSplitMulti)this.consoleWriterThreadState.getUserInterfaceSplitById(subSplit)).setSplitPercentages(framePercents);
-
-			Long root = this.consoleWriterThreadState.makeVerticalSplit();
-			List<Long> topSplits = new ArrayList<Long>();
-			topSplits.add(subSplit);
-			topSplits.add(this.consoleWriterThreadState.makeLeafNodeSplit(this.consoleWriterThreadState.createFrameAndThread(CraftingInterfaceThreadState.class, this)));
-			List<Double> topSplitPercents = new ArrayList<Double>();
-			topSplitPercents.add(0.75);
-			topSplitPercents.add(0.25);
-			this.consoleWriterThreadState.addSplitPartsByIds(root, topSplits);
-			((UserInterfaceSplitMulti)this.consoleWriterThreadState.getUserInterfaceSplitById(root)).setSplitPercentages(topSplitPercents);
-
-			this.consoleWriterThreadState.setRootSplit(root);
-		}
 	}
 
 	public CraftingRecipe getCurrentCraftingRecipe() throws Exception{
@@ -279,14 +209,12 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public ConsoleWriterThreadState getConsoleWriterThreadState(){
-		return consoleWriterThreadState;
+		return this.blockManagerThreadCollection.getConsoleWriterThreadState();
 	}
 
 	public Coordinate getPlayerPosition(){
 		return this.playerPositionXYZ == null ? null : this.playerPositionXYZ.getPosition();
 	}
-
-
 
 	public Set<CuboidAddress> getRequiredRegionsSet() throws Exception{
 		Set<CuboidAddress> requiredRegions = new HashSet<CuboidAddress>();
@@ -517,10 +445,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.logMessage("Ran shutdown of ClientBlockModelContext.");
 	}
 
-	public void notifyOfSIGWINCH() throws Exception{
-		this.consoleWriterThreadState.putWorkItem(new TellClientTerminalChangedWorkItem(this.consoleWriterThreadState), WorkItemPriority.PRIORITY_LOW);
-	}
-
 	public Coordinate getPlayerInventoryBlockAddress() throws Exception {
 		if(this.rootBlockDictionary == null){
 			throw new Exception("Not expected.");
@@ -558,7 +482,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			if(this.playerPositionXYZ == null && currentCoordinate.equals(getPlayerPositionBlockAddress())){
 				this.playerPositionXYZ = (PlayerPositionXYZ)this.deserializeBlockData(blockData);
 				this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, this.playerPositionXYZ.copy(), WorkItemPriority.PRIORITY_LOW);
-				this.consoleWriterThreadState.putWorkItem(new TellClientTerminalChangedWorkItem(this.consoleWriterThreadState), WorkItemPriority.PRIORITY_LOW);
+				getConsoleWriterThreadState().putWorkItem(new TellClientTerminalChangedWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
 			}else if(currentCoordinate.equals(getPlayerInventoryBlockAddress()) && this.playerInventory.getInventoryItemStackList().size() == 0){
 
 				PlayerInventory playerInventory = (PlayerInventory)this.deserializeBlockData(blockData);

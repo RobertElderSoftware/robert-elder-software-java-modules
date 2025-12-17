@@ -93,9 +93,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	private final Map<String, TextWidthMeasurementWorkItemResult> measuredTextLengths = new ConcurrentHashMap<String, TextWidthMeasurementWorkItemResult>();
 
 
-	public ConsoleWriterThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception{
+	public ConsoleWriterThreadState(BlockManagerThreadCollection blockManagerThreadCollection) throws Exception{
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
-		this.clientBlockModelContext = clientBlockModelContext;
 	}
 
 	public void init(Object o) throws Exception {

@@ -96,6 +96,7 @@ class SinglePlayerBlockClient {
 			blockManagerThreadCollection.printUserInteractionConfig();
 			return;
 		}
+		blockManagerThreadCollection.init();
 
 		SinglePlayerClientServerInterface clientServerInterface = new SinglePlayerClientServerInterface();
 
@@ -135,6 +136,8 @@ class SinglePlayerBlockClient {
 		//  Connection the sessions to each others' remote endpoint:
 		serverToClientSession.setRemoteSession(clientToServerSession);
 		clientToServerSession.setRemoteSession(serverToClientSession);
+
+		blockManagerThreadCollection.setupDefaultUIForClient(clientBlockModelContext);
 
 		//  Start the game loading process
 		blockManagerThreadCollection.blockUntilAllTasksHaveTerminated();

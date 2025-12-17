@@ -76,10 +76,6 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 	/*  The map of chunks that currently resides in memory. */
 	private Map<CuboidAddress, IndividualBlock[]> blockChunks = new TreeMap<CuboidAddress, IndividualBlock[]>();
 
-	public BlockModelContext getBlockModelContext(){
-		return this.blockModelContext;
-	}
-
 	public void receiveEventNotification(UINotificationType notificationType, Object o, WorkItemPriority priority) throws Exception{
 		this.putWorkItem(new InMemoryChunksWorkItemEventNotificationWorkItem(this, new EventNotificationWorkItem<InMemoryChunksWorkItem>(this, o, notificationType)), priority);
 
@@ -183,7 +179,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 				}
 
 				if(recentlyDiscardedChunks.size() > 0){
-					((ClientBlockModelContext)this.getBlockModelContext()).enqueueChunkUnsubscriptionForServer(recentlyDiscardedChunks, WorkItemPriority.PRIORITY_LOW);
+					((ClientBlockModelContext)this.blockModelContext).enqueueChunkUnsubscriptionForServer(recentlyDiscardedChunks, WorkItemPriority.PRIORITY_LOW);
 				}
 
 				if(this.pendingNotYetRequestedChunks.size() > 0){
@@ -228,7 +224,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 							this.pendingNotYetRequestedChunks.remove(cuboidAddress);
 
 							/*  TODO: Eventually make this generic so it could work on client or server: */
-							((ClientBlockModelContext)this.getBlockModelContext()).enqueueChunkRequestToServer(cuboidAddress.copy(), WorkItemPriority.PRIORITY_LOW);
+							((ClientBlockModelContext)this.blockModelContext).enqueueChunkRequestToServer(cuboidAddress.copy(), WorkItemPriority.PRIORITY_LOW);
 							logger.info("Inside updateRequiredRegions just put a work item into block client for cuboidAddress=" + String.valueOf(cuboidAddress));
 						}
 					}else{
@@ -255,7 +251,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 		Map<Double, CuboidAddress> distanceSortedTreemap = new TreeMap<Double, CuboidAddress>();
 		for(CuboidAddress ca : cuboidAddresses){
 			Double distance = ca.getCentroidDistanceFromCoordinate(currentCoordinate);
-			//blockModelContext.logMessage("Distance was " + distance + " for point " + currentCoordinate + " to cuboid " + ca + ".");
+			//logger.info("Distance was " + distance + " for point " + currentCoordinate + " to cuboid " + ca + ".");
 			distanceSortedTreemap.put(distance, ca);
 		}
 
@@ -303,7 +299,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 
 				if(this.blockChunks.get(chunkCuboidAddress) == null){
 					//  This case will naturally happen if we unsubscribed just as we're about to get an update from the server about a write that took place before the unsubscribe:
-					blockModelContext.logMessage("Note:  Discarding update to block at " + currentCoordinate + " (cuboidAddress=" + chunkCuboidAddress + ") in an unloaded region.");
+					logger.info("Note:  Discarding update to block at " + currentCoordinate + " (cuboidAddress=" + chunkCuboidAddress + ") in an unloaded region.");
 				}else{
 					this.blockChunks.get(chunkCuboidAddress)[(int)blockOffsetInChunkArray] = blockToWrite;
 				}

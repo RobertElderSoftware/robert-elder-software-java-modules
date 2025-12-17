@@ -51,15 +51,13 @@ import java.lang.invoke.MethodHandles;
 public class SIGWINCHListenerThreadState extends WorkItemQueueOwner<SIGWINCHListenerWorkItem> {
 
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
-	private ClientBlockModelContext clientBlockModelContext;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private boolean initialized = false;
 	private ShellProcessRunner sigWinchProcess = null;
 	private OutputStream inputForSigWinchProcess = null;
 
-	public SIGWINCHListenerThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext) throws Exception{
+	public SIGWINCHListenerThreadState(BlockManagerThreadCollection blockManagerThreadCollection) throws Exception{
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
-		this.clientBlockModelContext = clientBlockModelContext;
 
 		this.blockManagerThreadCollection.getLinuxBlockJNIInterface().setupSIGWINCHSignalHandler();
 	}
@@ -93,7 +91,8 @@ public class SIGWINCHListenerThreadState extends WorkItemQueueOwner<SIGWINCHList
 				logger.info("SIGWINCHListenerThreadState got message to shut down...");
 				break;
 			}else{
-				clientBlockModelContext.putWorkItem(new NotifySIGWINCHWorkItem(clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+				this.blockManagerThreadCollection.getConsoleWriterThreadState().putWorkItem(new TellClientTerminalChangedWorkItem(this.blockManagerThreadCollection.getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
+
 			}
 		}
 		return false;

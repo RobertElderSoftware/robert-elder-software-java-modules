@@ -70,7 +70,7 @@ public abstract class BlockMessage {
 			}case BLOCK_MESSAGE_TYPE_ACKNOWLEDGEMENT:{
 				return new AcknowledgementBlockMessage(blockModelContext, buffer, conversationId);
 			}case BLOCK_MESSAGE_TYPE_AUTHORIZED_COMMAND:{
-				return new AcknowledgementBlockMessage(blockModelContext, buffer, conversationId);
+				return new AuthorizedCommandBlockMessage(blockModelContext, buffer, conversationId);
 			}default:{
 				throw new Exception("Unknown message type: " + blockMessageType.toString());
 			}
