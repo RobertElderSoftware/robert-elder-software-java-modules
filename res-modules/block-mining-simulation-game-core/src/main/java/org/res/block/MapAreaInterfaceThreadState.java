@@ -225,7 +225,6 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			this.onMapAreaChange(this.mapAreaCuboidAddress); // Refresh map area
 		}
 
-		this.drawBorders();
 		this.updateFrameCoordinate();
 	}
 
@@ -261,7 +260,6 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		Coordinate lastGameInterfacePosition = this.playerPosition;
 		this.playerPosition = newCoordinate;
 
-		this.drawBorders(); //  When frame coordinate decreases in size, clear outdated coordinate text.
 		this.updateFrameCoordinate();
 		this.onFinalizeFrame();
 	}
@@ -288,7 +286,19 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
 	public void updateFrameCoordinate() throws Exception {
 		String playerCoordinateString = this.getPlayerPosition() == null ? "null" : "X=" + this.getPlayerPosition().getX() + ", Y=" + this.getPlayerPosition().getY() + ", Z=" + this.getPlayerPosition().getZ() + ", W=" + this.getPlayerPosition().getValueAtIndex(3L);
-		this.printTextAtScreenXY(new ColouredTextFragment(playerCoordinateString, UserInterfaceFrameThreadState.getDefaultTextColors()), 10L, 0L, true);
+
+		int strColumnLength = getConsoleWriterThreadState().measureTextLengthOnTerminal(playerCoordinateString).getDeltaX().intValue();
+
+		ScreenLayer coordinateStringLayer = new ScreenLayer(new Coordinate(Arrays.asList(10L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, strColumnLength, 1));
+
+		this.printTextAtScreenXY(new ColouredTextFragment(playerCoordinateString, UserInterfaceFrameThreadState.getDefaultTextColors()), 0L, 0L, PrintDirection.LEFT_TO_RIGHT, coordinateStringLayer);
+
+		this.drawBorders(
+			new ScreenLayer []{coordinateStringLayer},
+			new ScreenLayer []{},
+			new ScreenLayer []{},
+			new ScreenLayer []{}
+		);
 	}
 
 	public Long getMapXOffsetInCells(CuboidAddress ca) throws Exception{

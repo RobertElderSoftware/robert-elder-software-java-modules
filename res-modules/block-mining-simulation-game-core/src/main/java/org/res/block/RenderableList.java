@@ -239,7 +239,7 @@ public class RenderableList<T extends RenderableListItem> {
 	public void renderEmptyItem(UserInterfaceFrameThreadState frame, Long x, Long y, Long itemWidth, Long itemHeight) throws Exception{
 
 		for(long l = 0; l < itemHeight; l++){
-			frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(itemWidth.intValue()), UserInterfaceFrameThreadState.getDefaultBGColors()), x, y + l, true, this.listAreaLayer);
+			frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(itemWidth.intValue()), UserInterfaceFrameThreadState.getDefaultBGColors()), x, y + l, PrintDirection.LEFT_TO_RIGHT, this.listAreaLayer);
 		}
 	}
 
@@ -335,16 +335,16 @@ public class RenderableList<T extends RenderableListItem> {
 				}
 				//  Vertical space between list items
 				if(i < (this.gridWidth - 1)){
-					frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(listItemHeight.intValue()), UserInterfaceFrameThreadState.getDefaultBGColors()), x + listItemWidth, y, false, this.listAreaLayer);
+					frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(listItemHeight.intValue()), UserInterfaceFrameThreadState.getDefaultBGColors()), x + listItemWidth, y, PrintDirection.TOP_TO_BOTTOM, this.listAreaLayer);
 				}
 				//  Horizontal space under list item
 				if(j < (this.gridHeight - 1)){
-					frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(listItemWidth.intValue()), UserInterfaceFrameThreadState.getDefaultBGColors()), x, y + listItemHeight, true, this.listAreaLayer);
+					frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(listItemWidth.intValue()), UserInterfaceFrameThreadState.getDefaultBGColors()), x, y + listItemHeight, PrintDirection.LEFT_TO_RIGHT, this.listAreaLayer);
 				}
 
 				//  Uninitialized square at bottom right hand corner of each item:
 				if(i < (this.gridWidth - 1) && j < (this.gridHeight - 1)){
-					frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(spw(frame).intValue()), UserInterfaceFrameThreadState.getDefaultBGColors()), x + listItemWidth, y + listItemHeight, true, this.listAreaLayer);
+					frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(spw(frame).intValue()), UserInterfaceFrameThreadState.getDefaultBGColors()), x + listItemWidth, y + listItemHeight, PrintDirection.LEFT_TO_RIGHT, this.listAreaLayer);
 				}
 			}
 		}
@@ -355,7 +355,7 @@ public class RenderableList<T extends RenderableListItem> {
 	
 		//  Right Scroll bar
 		for(long i = 0; i < actualRightScrollBarWidth; i++){
-			frame.printTextAtScreenXY(makeScrollTextFragmentList(frame, rightScrollBarCharacterHeight, true, useAscii), rightScrollBarOffset + i, 0L, false, this.listAreaLayer);
+			frame.printTextAtScreenXY(makeScrollTextFragmentList(frame, rightScrollBarCharacterHeight, true, useAscii), rightScrollBarOffset + i, 0L, PrintDirection.TOP_TO_BOTTOM, this.listAreaLayer);
 		}
 
 
@@ -364,7 +364,7 @@ public class RenderableList<T extends RenderableListItem> {
 		//  Bottom Scroll bar
 		Long bottomScrollBarOffset = listAreaLayer.getHeight() - actualBottomScrollBarHeight;
 		for(long i = 0; i < getBottomScrollBarCrossSection(frame); i++){
-			frame.printTextAtScreenXY(makeScrollTextFragmentList(frame, bottomScrollBarCharacterWidth, false, useAscii), 0L, bottomScrollBarOffset + i, true, this.listAreaLayer);
+			frame.printTextAtScreenXY(makeScrollTextFragmentList(frame, bottomScrollBarCharacterWidth, false, useAscii), 0L, bottomScrollBarOffset + i, PrintDirection.LEFT_TO_RIGHT, this.listAreaLayer);
 		}
 
 		//  Initialize any empty area to right of list any before any scroll bar/right edge of frame:
@@ -373,7 +373,7 @@ public class RenderableList<T extends RenderableListItem> {
 		int nSpacesOnRight = (int)Math.max(rightFrameEdgeX - listRightEdgeX, 0L);
 		Long rightAreaHeight = listAreaLayer.getHeight() - actualBottomScrollBarHeight;
 		for(long i = 0L; i < rightAreaHeight; i++){
-			frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(nSpacesOnRight), UserInterfaceFrameThreadState.getDefaultBGColors()), listRightEdgeX, i, true, this.listAreaLayer);
+			frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(nSpacesOnRight), UserInterfaceFrameThreadState.getDefaultBGColors()), listRightEdgeX, i, PrintDirection.LEFT_TO_RIGHT, this.listAreaLayer);
 		}
 
 		//  Initialize empty uninitialized area under list up to the area before the right of the list:
@@ -382,7 +382,7 @@ public class RenderableList<T extends RenderableListItem> {
 		int nSpacesUnderOnLeft = (int)Math.max(listRightEdgeX - listBottomLeftEdgeX, 0L);
 		Long leftUnderAreaHeight = listAreaLayer.getHeight() - actualBottomScrollBarHeight - listBottomEdgeY;
 		for(long i = 0L; i < leftUnderAreaHeight; i++){
-			frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(nSpacesUnderOnLeft), UserInterfaceFrameThreadState.getDefaultBGColors()), listBottomLeftEdgeX, listBottomEdgeY + i, true, this.listAreaLayer);
+			frame.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(nSpacesUnderOnLeft), UserInterfaceFrameThreadState.getDefaultBGColors()), listBottomLeftEdgeX, listBottomEdgeY + i, PrintDirection.LEFT_TO_RIGHT, this.listAreaLayer);
 		}
 
 		if(this.hasRightScrollBar && this.hasBottomScrollBar){
@@ -391,7 +391,7 @@ public class RenderableList<T extends RenderableListItem> {
 			Long xDrawOffset = listAreaLayer.getWidth() - actualRightScrollBarWidth;
 			Long yDrawOffset = listAreaLayer.getHeight() - actualBottomScrollBarHeight;
 			for(long i = 0L; i < actualBottomScrollBarHeight; i++){
-				frame.printTextAtScreenXY(new ColouredTextFragment(CharacterConstants.ASTERISK.repeat(actualRightScrollBarWidth.intValue()), UserInterfaceFrameThreadState.getScrollBarDefaultColors(useAscii)), xDrawOffset, yDrawOffset + i, true, this.listAreaLayer);
+				frame.printTextAtScreenXY(new ColouredTextFragment(CharacterConstants.ASTERISK.repeat(actualRightScrollBarWidth.intValue()), UserInterfaceFrameThreadState.getScrollBarDefaultColors(useAscii)), xDrawOffset, yDrawOffset + i, PrintDirection.LEFT_TO_RIGHT, this.listAreaLayer);
 			}
 		}
 
@@ -400,7 +400,7 @@ public class RenderableList<T extends RenderableListItem> {
 			Long len = frame.getConsoleWriterThreadState().measureTextLengthOnTerminal(msg).getDeltaX();
 			Long x = (listAreaLayer.getWidth() / 2L) - (((long)len) / 2L);
 			Long y = (listAreaLayer.getHeight() / 2L);
-			frame.printTextAtScreenXY(new ColouredTextFragment(msg, UserInterfaceFrameThreadState.getDefaultTextColors()), x, y, true, this.listAreaLayer);
+			frame.printTextAtScreenXY(new ColouredTextFragment(msg, UserInterfaceFrameThreadState.getDefaultTextColors()), x, y, PrintDirection.LEFT_TO_RIGHT, this.listAreaLayer);
 		}
 	}
 

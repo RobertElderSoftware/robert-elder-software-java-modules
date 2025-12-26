@@ -30,37 +30,36 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.ArrayList;
+import java.util.HashMap;
 
-import org.res.block.WorkItem;
-import org.res.block.BlockSession;
+public enum PrintDirection {
+        LEFT_TO_RIGHT (true),
+        TOP_TO_BOTTOM (false);
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
+        private final boolean id;
 
-public class DebugRendererListItem extends RenderableListItem{
+        private PrintDirection(boolean i) {
+                id = i;
+        }
 
-	private String text;
+        public boolean equalsId(boolean i) {
+                return id == i;
+        }
 
-	public void render(UserInterfaceFrameThreadState frame, boolean isSelected, Coordinate placementOffset, ScreenLayer bottomLayer) throws Exception{
+        public boolean toBoolean() {
+                return this.id;
+        }
 
+	private static final Map<Boolean, PrintDirection> printDirectionsByValue = new HashMap<Boolean, PrintDirection>();
 
-		int bgColour = isSelected ? UserInterfaceFrameThreadState.RED_BG_COLOR : UserInterfaceFrameThreadState.GREEN_BG_COLOR;
-		this.displayLayer.initializeInRegion(1, "_", new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR, bgColour}, null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, this.displayLayer.getWidth(), this.displayLayer.getHeight())), true, true);
-
-		Long len = (long)this.text.length();
-		Long x = ((long)this.displayLayer.getWidth() / 2L) - (len / 2L);
-		Long y = ((long)this.displayLayer.getHeight() / 2L);
-		frame.printTextAtScreenXY(new ColouredTextFragment(this.text, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR, UserInterfaceFrameThreadState.YELLOW_BG_COLOR}), x, y, PrintDirection.LEFT_TO_RIGHT, this.displayLayer);
-		this.displayLayer.setPlacementOffset(placementOffset);
-		bottomLayer.mergeDown(this.displayLayer, true, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
+	static {
+		for(PrintDirection type : PrintDirection.values()) {
+			printDirectionsByValue.put(type.toBoolean(), type);
+		}
 	}
 
-	public DebugRendererListItem(String text) throws Exception{
-		this.text = text;
+	public static PrintDirection forValue(boolean value) {
+		return printDirectionsByValue.get(value);
 	}
 }

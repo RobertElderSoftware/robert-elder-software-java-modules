@@ -45,14 +45,16 @@ public class FrameChangeWorkItemParams extends WorkItemResult {
 	private FrameDimensions focusedFrameDimensions;
 	private FrameDimensions currentFrameDimensions;
 	private FrameBordersDescription frameBordersDescription;
+	private boolean focusChanged;
 
-	public FrameChangeWorkItemParams(FrameDimensions focusedFrameDimensions, FrameDimensions currentFrameDimensions, FrameBordersDescription frameBordersDescription, Long terminalDimensionsChangeId, Long frameDimensionsChangeId, Long frameId){
+	public FrameChangeWorkItemParams(FrameDimensions focusedFrameDimensions, FrameDimensions currentFrameDimensions, FrameBordersDescription frameBordersDescription, Long terminalDimensionsChangeId, Long frameDimensionsChangeId, Long frameId, boolean focusChanged){
 		this.terminalDimensionsChangeId = terminalDimensionsChangeId;
 		this.frameDimensionsChangeId = frameDimensionsChangeId;
 		this.frameId = frameId;
 		this.focusedFrameDimensions = focusedFrameDimensions;
 		this.currentFrameDimensions = currentFrameDimensions;
 		this.frameBordersDescription = frameBordersDescription;
+		this.focusChanged = focusChanged;
 	}
 
 	public Long getTerminalDimensionsChangeId(){
@@ -77,5 +79,9 @@ public class FrameChangeWorkItemParams extends WorkItemResult {
 
 	public FrameBordersDescription getFrameBordersDescription(){
 		return this.frameBordersDescription;
+	}
+
+	public boolean getFocusChanged(){
+		return this.focusChanged;
 	}
 }

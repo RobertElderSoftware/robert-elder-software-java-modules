@@ -67,15 +67,15 @@ public class ServerBlockModelContext extends BlockModelContext {
 	private BlockDAO blockDAO = null;
 	private ExecutorService executorService = null;
 	private ServerBlockModelInterface blockModelInterface = new ServerBlockModelInterface();
-	private DatabaseConnectionParameters databaseConnectionParameters;
+	private DatabaseBlockWorldConnection databaseBlockWorldConnection;
 
 	public BlockModelInterface getBlockModelInterface(){
 		return blockModelInterface;
 	}
 
-	public ServerBlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ClientServerInterface clientServerInterface, DatabaseConnectionParameters databaseConnectionParameters) throws Exception {
+	public ServerBlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ClientServerInterface clientServerInterface, DatabaseBlockWorldConnection databaseBlockWorldConnection) throws Exception {
 		super(blockManagerThreadCollection, clientServerInterface);
-		this.databaseConnectionParameters = databaseConnectionParameters;
+		this.databaseBlockWorldConnection = databaseBlockWorldConnection;
 	}
 
 	public void init(Object o) throws Exception{
@@ -84,7 +84,7 @@ public class ServerBlockModelContext extends BlockModelContext {
 		annotationConfigApplicationContext.register(BlockManagerServerApplicationContext.class);
 		this.context = annotationConfigApplicationContext;
 
-		BlockManagerServerApplicationContextParameters params = new BlockManagerServerApplicationContextParameters(this, databaseConnectionParameters);
+		BlockManagerServerApplicationContextParameters params = new BlockManagerServerApplicationContextParameters(this, databaseBlockWorldConnection.getDatabaseConnectionParameters());
 		this.context.addBeanFactoryPostProcessor(new BlockManagerServerBeanPostProcessorConfigurer(params));
 		this.context.refresh();
 

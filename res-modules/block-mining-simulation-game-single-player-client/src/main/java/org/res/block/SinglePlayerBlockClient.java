@@ -110,7 +110,7 @@ class SinglePlayerBlockClient {
 			commandLineArgumentCollection.getUsedSingleValue("--block-world-file") //String filename
 		);
 
-		ServerBlockModelContext serverBlockModelContext = new ServerBlockModelContext(blockManagerThreadCollection, clientServerInterface, dbParams);
+		ServerBlockModelContext serverBlockModelContext = new ServerBlockModelContext(blockManagerThreadCollection, clientServerInterface, new DatabaseBlockWorldConnection(dbParams));
 		ClientBlockModelContext clientBlockModelContext = new ClientBlockModelContext(blockManagerThreadCollection, clientServerInterface);
 		blockManagerThreadCollection.addClientBlockModelContext(clientBlockModelContext);
 

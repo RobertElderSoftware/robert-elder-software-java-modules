@@ -176,7 +176,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	public void reprintFrame() throws Exception {
 		this.drawBorders();
 
-		this.printTextAtScreenXY(new ColouredTextFragment("- Inventory -", UserInterfaceFrameThreadState.getDefaultTextColors()), 5L, 0L, true);
+		this.printTextAtScreenXY(new ColouredTextFragment("- Inventory -", UserInterfaceFrameThreadState.getDefaultTextColors()), 5L, 0L, PrintDirection.LEFT_TO_RIGHT);
 	}
 
 	public void updateListDisplayArea() throws Exception{

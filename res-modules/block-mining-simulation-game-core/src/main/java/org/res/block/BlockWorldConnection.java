@@ -30,37 +30,13 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.ArrayList;
+public abstract class BlockWorldConnection {
 
-import org.res.block.WorkItem;
-import org.res.block.BlockSession;
+	public BlockWorldConnection() throws Exception {
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
-
-public class DebugRendererListItem extends RenderableListItem{
-
-	private String text;
-
-	public void render(UserInterfaceFrameThreadState frame, boolean isSelected, Coordinate placementOffset, ScreenLayer bottomLayer) throws Exception{
-
-
-		int bgColour = isSelected ? UserInterfaceFrameThreadState.RED_BG_COLOR : UserInterfaceFrameThreadState.GREEN_BG_COLOR;
-		this.displayLayer.initializeInRegion(1, "_", new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR, bgColour}, null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, this.displayLayer.getWidth(), this.displayLayer.getHeight())), true, true);
-
-		Long len = (long)this.text.length();
-		Long x = ((long)this.displayLayer.getWidth() / 2L) - (len / 2L);
-		Long y = ((long)this.displayLayer.getHeight() / 2L);
-		frame.printTextAtScreenXY(new ColouredTextFragment(this.text, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR, UserInterfaceFrameThreadState.YELLOW_BG_COLOR}), x, y, PrintDirection.LEFT_TO_RIGHT, this.displayLayer);
-		this.displayLayer.setPlacementOffset(placementOffset);
-		bottomLayer.mergeDown(this.displayLayer, true, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
 	}
 
-	public DebugRendererListItem(String text) throws Exception{
-		this.text = text;
-	}
+	public abstract void init() throws Exception;
+	public abstract void destroy() throws Exception;
+	public abstract String getWorldAddressString() throws Exception;
 }

@@ -78,6 +78,12 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
+
+	private ScreenLayer topBorder = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 0,0));
+	private ScreenLayer rightBorder = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 0,0));
+	private ScreenLayer bottomBorder = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 0,0));
+	private ScreenLayer leftBorder = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 0,0));
+
 	private Long mapAreaCellWidth = null;
 	private Long frameCharacterWidth = null;
 	public static final int RESET_BG_COLOR = 0;
@@ -447,23 +453,23 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		return instructions;
 	}
 
-	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, boolean xDirection, ScreenLayer bottomLayer) throws Exception{
-		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.getFrameDimensions(), xDirection, new ScreenLayerMergeParameters(bottomLayer, ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
+	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, PrintDirection direction, ScreenLayer bottomLayer) throws Exception{
+		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.getFrameDimensions(), direction, new ScreenLayerMergeParameters(bottomLayer, ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
 	}
 
-	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, boolean xDirection) throws Exception{
-		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.getFrameDimensions(), xDirection, new ScreenLayerMergeParameters(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT], ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
+	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, PrintDirection direction) throws Exception{
+		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.getFrameDimensions(), direction, new ScreenLayerMergeParameters(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT], ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
 	}
 
-	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, boolean xDirection, ScreenLayer bottomLayer) throws Exception{
-		this.printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.getFrameDimensions(), xDirection, new ScreenLayerMergeParameters(bottomLayer, ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
+	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, PrintDirection direction, ScreenLayer bottomLayer) throws Exception{
+		this.printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.getFrameDimensions(), direction, new ScreenLayerMergeParameters(bottomLayer, ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
 	}
 
-	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, boolean xDirection) throws Exception{
-		this.printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.getFrameDimensions(), xDirection, new ScreenLayerMergeParameters(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT], ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
+	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, PrintDirection direction) throws Exception{
+		this.printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.getFrameDimensions(), direction, new ScreenLayerMergeParameters(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT], ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
 	}
 
-	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, FrameDimensions fd, boolean xDirection, ScreenLayerMergeParameters mergeParams) throws Exception{
+	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, FrameDimensions fd, PrintDirection direction, ScreenLayerMergeParameters mergeParams) throws Exception{
 		List<ColouredCharacter> colouredCharacters = colouredTextFragmentList.getColouredCharacters();
 		List<String> charactersToPrint = new ArrayList<String>();
 		int [][] newColourCodes = new int [colouredCharacters.size()][];
@@ -489,8 +495,8 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 			totalWidth += (chrWidth < 1 ? 1 : chrWidth);
 		}
 
-		int xDimSize = xDirection ? totalWidth : maximumCharacterWidth;
-		int yDimSize = xDirection ? 1 : charactersToPrint.size();
+		int xDimSize = direction.equals(PrintDirection.LEFT_TO_RIGHT) ? totalWidth : maximumCharacterWidth;
+		int yDimSize = direction.equals(PrintDirection.LEFT_TO_RIGHT) ? 1 : charactersToPrint.size();
 
 		Coordinate drawOffset = new Coordinate(Arrays.asList(drawOffsetX, drawOffsetY));
 		ScreenLayer changes = new ScreenLayer(drawOffset, ScreenLayer.makeDimensionsCA(0, 0, xDimSize, yDimSize));
@@ -501,7 +507,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		for(int i = 0; i < charactersToPrint.size(); i++){
 			String s = charactersToPrint.get(i);
 			int chrWidth = getConsoleWriterThreadState().measureTextLengthOnTerminal(s).getDeltaX().intValue();
-			if(xDirection){
+			if(direction.equals(PrintDirection.LEFT_TO_RIGHT)){
 				changes.setMultiColumnCharacter(currentXOffset, currentYOffset, s, chrWidth, newColourCodes[i], true, true);
 				currentXOffset += chrWidth;
 			}else{
@@ -545,14 +551,14 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 	protected void executeLinePrintingInstructionsAtYOffset(List<LinePrintingInstruction> instructions, Long yOffset, ScreenLayer bottomLayer) throws Exception{
 		for(int i = 0; i < instructions.size(); i++){
 			LinePrintingInstruction instruction = instructions.get(i);
-			this.printTextAtScreenXY(instruction.getColouredTextFragmentList(), instruction.getXOffsetInFrame(), yOffset + i, true, bottomLayer);
+			this.printTextAtScreenXY(instruction.getColouredTextFragmentList(), instruction.getXOffsetInFrame(), yOffset + i, PrintDirection.LEFT_TO_RIGHT, bottomLayer);
 		}
 	}
 
 	protected void executeLinePrintingInstructions(List<LinePrintingInstructionAtOffset> instructions, Long yOffset, ScreenLayer bottomLayer) throws Exception{
 		for(LinePrintingInstructionAtOffset ins : instructions){
 			LinePrintingInstruction instruction = ins.getLinePrintingInstruction();
-			this.printTextAtScreenXY(instruction.getColouredTextFragmentList(), instruction.getXOffsetInFrame(), yOffset + ins.getOffsetY(), true, bottomLayer);
+			this.printTextAtScreenXY(instruction.getColouredTextFragmentList(), instruction.getXOffsetInFrame(), yOffset + ins.getOffsetY(), PrintDirection.LEFT_TO_RIGHT, bottomLayer);
 		}
 	}
 
@@ -741,7 +747,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		}
 	}
 
-	public void drawBorders() throws Exception{
+	public void initializeBorders() throws Exception{
 		Long fchrw = this.getFrameCharacterWidth();
 		boolean hasLeftBorder = this.hasLeftBorder();
 		boolean hasTopBorder = this.hasTopBorder();
@@ -755,6 +761,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		if(hasTopBorder){
 			ColouredTextFragmentList fragmentList = new ColouredTextFragmentList();
 			long borderLength = this.getFrameWidth() / fchrw;
+			long borderHeight = 1L;
 			for(long i = 0; i < borderLength; i++){
 				Coordinate c = new Coordinate(Arrays.asList(this.getFrameOffsetX() + i * fchrw, this.getFrameOffsetY()));
 				String borderCharacter = this.getFrameConnectionCharacterForCoordinate(c);
@@ -764,14 +771,17 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 					fragmentList.add(new ColouredTextFragment(borderCharacter, getInactiveFrameColors()));
 				}
 			}
-			this.printTextAtScreenXY(fragmentList, 0L, 0L, true);
+
+			this.topBorder = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, (int)borderLength, (int)borderHeight));
+			this.printTextAtScreenXY(fragmentList, 0L, 0L, PrintDirection.LEFT_TO_RIGHT, this.topBorder);
 		}
 		if(hasLeftBorder){
 			ColouredTextFragmentList fragmentList = new ColouredTextFragmentList();
 			Long bottomBorderOmission = hasBottomBorder ? -1L : 0L;
 			long borderStart = this.getFrameOffsetY() + 1L;
 			long borderEnd = this.getFrameOffsetY() + this.getFrameHeight() + bottomBorderOmission;
-			long borderLength = borderEnd - borderStart;
+			long borderWidth = 1L;
+			long borderHeight = borderEnd - borderStart;
 			for(long i = borderStart; i < borderEnd; i++){
 				Coordinate c = new Coordinate(Arrays.asList(this.getFrameOffsetX(), i));
 				String borderCharacter = this.getFrameConnectionCharacterForCoordinate(c);
@@ -781,14 +791,16 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 					fragmentList.add(new ColouredTextFragment(borderCharacter, getInactiveFrameColors()));
 				}
 			}
-			this.printTextAtScreenXY(fragmentList, 0L, 1L, false);
+			this.leftBorder = new ScreenLayer(new Coordinate(Arrays.asList(0L, 1L)), ScreenLayer.makeDimensionsCA(0, 0, (int)borderWidth, (int)borderHeight));
+			this.printTextAtScreenXY(fragmentList, 0L, 0L, PrintDirection.TOP_TO_BOTTOM, this.leftBorder);
 		}
 		if(hasRightBorder){
 			ColouredTextFragmentList fragmentList = new ColouredTextFragmentList();
 			Long bottomBorderOmission = hasBottomBorder ? -1L : 0L;
 			long borderStart = this.getFrameOffsetY() + 1L;
 			long borderEnd = this.getFrameOffsetY() + this.getFrameHeight() + bottomBorderOmission;
-			long borderLength = borderEnd - borderStart;
+			long borderWidth = 1L;
+			long borderHeight = borderEnd - borderStart;
 			for(long i = borderStart; i < borderEnd; i++){
 				Coordinate c = new Coordinate(Arrays.asList(this.getFrameOffsetX() + this.getFrameWidth() -fchrw, i));
 				String borderCharacter = this.getFrameConnectionCharacterForCoordinate(c);
@@ -798,11 +810,13 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 					fragmentList.add(new ColouredTextFragment(borderCharacter, getInactiveFrameColors()));
 				}
 			}
-			this.printTextAtScreenXY(fragmentList, this.getFrameWidth() -fchrw, 1L, false);
+			this.rightBorder = new ScreenLayer(new Coordinate(Arrays.asList(this.getFrameWidth() -fchrw, 1L)), ScreenLayer.makeDimensionsCA(0, 0, (int)borderWidth, (int)borderHeight));
+			this.printTextAtScreenXY(fragmentList, 0L, 0L, PrintDirection.TOP_TO_BOTTOM, this.rightBorder);
 		}
 		if(hasBottomBorder){
 			ColouredTextFragmentList fragmentList = new ColouredTextFragmentList();
 			long borderLength = this.getFrameWidth() / fchrw;
+			long borderHeight = 1L;
 			for(long i = 0; i < borderLength; i++){
 				Coordinate c = new Coordinate(Arrays.asList(this.getFrameOffsetX() + i * fchrw, this.getFrameOffsetY() + this.getFrameHeight() -1));
 				String borderCharacter = this.getFrameConnectionCharacterForCoordinate(c);
@@ -812,15 +826,39 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 					fragmentList.add(new ColouredTextFragment(borderCharacter, getInactiveFrameColors()));
 				}
 			}
-			this.printTextAtScreenXY(fragmentList, 0L, this.getFrameHeight() -1, true);
+			this.bottomBorder = new ScreenLayer(new Coordinate(Arrays.asList(0L, this.getFrameHeight() -1)), ScreenLayer.makeDimensionsCA(0, 0, (int)borderLength, (int)borderHeight));
+			this.printTextAtScreenXY(fragmentList, 0L, 0L, PrintDirection.LEFT_TO_RIGHT, this.bottomBorder);
 		}
+	}
 
-		boolean highlightConnectionPoints = false;
-		if(highlightConnectionPoints){ //  For debugging the code that draws the frame connections correctly.
-			for(Coordinate c : getFrameBordersDescription().getFramePoints()){
-				this.printTextAtScreenXY(new ColouredTextFragment("X", new int [] {RED_BG_COLOR}), c.getX() - this.getFrameOffsetX(), c.getY() - this.getFrameOffsetY(), false);
-			}
+	public void drawBorders() throws Exception{
+		this.drawBorders(
+			new ScreenLayer []{},
+			new ScreenLayer []{},
+			new ScreenLayer []{},
+			new ScreenLayer []{}
+		);
+	}
+
+	public void drawBorders(ScreenLayer [] topOverlays, ScreenLayer [] rightOverlays, ScreenLayer [] bottomOverlays, ScreenLayer [] leftOverlays) throws Exception{
+		this.drawOneBorder(topOverlays, this.topBorder);
+		this.drawOneBorder(rightOverlays, this.rightBorder);
+		this.drawOneBorder(bottomOverlays, this.bottomBorder);
+		this.drawOneBorder(leftOverlays, this.leftBorder);
+	}
+
+	public void drawOneBorder(ScreenLayer [] overlays, ScreenLayer border) throws Exception{
+		//  Merge all the provided overlays together (including the border) down onto the base layer:
+		ScreenLayer [] layers = new ScreenLayer [overlays.length + 1];
+		layers[0] = border;
+		for(int i = 0; i < overlays.length; i++){
+			layers[i+1] = overlays[i];
 		}
+		ScreenLayer bottomLayer = this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT];
+		//  Consider the entire border underneath in the change region every time:
+		border.addChangedRegion(new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, border.getWidth(), border.getHeight())));
+
+		bottomLayer.mergeDown(layers, true, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
 	}
 
 	public void onFrameChange(FrameChangeWorkItemParams params) throws Exception{
@@ -840,6 +878,10 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 			boolean hasOtherFrameDimensionsChanged = this.hasOtherFrameDimensionsChanged(params);
 			if(hasThisFrameDimensionsChanged || hasOtherFrameDimensionsChanged){
 				this.initializeFrames();
+			}
+
+			if(params.getFocusChanged()){
+				this.initializeBorders();
 			}
 
 			this.onRenderFrame(hasThisFrameDimensionsChanged, hasOtherFrameDimensionsChanged);
@@ -888,6 +930,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 			//  Initialize to all spaces:
 			this.bufferedScreenLayers[l].initializeInRegion(1, " ", getFrameClearBGColor(), null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, width, height)), true, true);
 		}
+		this.initializeBorders();
 	}
 
 	public void setScreenLayerState(int bufferIndex, boolean isActive) throws Exception{
@@ -1007,7 +1050,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 			if(repeatNumber < 0){
 				throw new Exception("repeatNumber is negative: " + repeatNumber);
 			}
-			this.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(repeatNumber), getFrameClearBGColor()), 0L, l, true);
+			this.printTextAtScreenXY(new ColouredTextFragment(" ".repeat(repeatNumber), getFrameClearBGColor()), 0L, l, PrintDirection.LEFT_TO_RIGHT);
 		}
 	}
 
@@ -1027,7 +1070,8 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 			new FrameBordersDescription(new HashSet<Coordinate>()),
 			0L,
 			0L,
-			this.frameId
+			this.frameId,
+			true
 		);
 
 		for(int i = 0; i < usedScreenLayers.length; i++){

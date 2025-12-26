@@ -607,20 +607,21 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
-	public FrameChangeWorkItemParams makeFrameChangeWorkItemParams(UserInterfaceFrameThreadState frame) throws Exception{
+	public FrameChangeWorkItemParams makeFrameChangeWorkItemParams(UserInterfaceFrameThreadState frame, boolean focusChanged) throws Exception{
 		return new FrameChangeWorkItemParams(
 			this.getFocusedFrameDimensions(),
 			this.getFrameDimensionsForFrameId(frame.getFrameId()),
 			this.getFrameBordersDescription(),
 			terminalDimensionsChangeSeq.get(),
 			frame.getFrameDimensionsChangeId(),
-			frame.getFrameId()
+			frame.getFrameId(),
+			focusChanged
 		);
 	}
 
-	public void sendFrameChangeWorkItem(UserInterfaceFrameThreadState frame) throws Exception{
+	public void sendFrameChangeWorkItem(UserInterfaceFrameThreadState frame, boolean focusChanged) throws Exception{
 		frame.putWorkItem(
-			new FrameChangeWorkItem(frame, makeFrameChangeWorkItemParams(frame)),
+			new FrameChangeWorkItem(frame, makeFrameChangeWorkItemParams(frame, focusChanged)),
 			WorkItemPriority.PRIORITY_LOW
 		);
 	}
@@ -628,10 +629,10 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public void notifyAllFramesOfFocusChange() throws Exception{
 
 		for(UserInterfaceFrameThreadState frame : this.collectAllUserInterfaceFrames()){
-			this.sendFrameChangeWorkItem(frame);
+			this.sendFrameChangeWorkItem(frame, true);
 		}
 
-		this.sendFrameChangeWorkItem(this.helpMenuFrameThreadState);
+		this.sendFrameChangeWorkItem(this.helpMenuFrameThreadState, true);
 	
 		if(this.collectAllUserInterfaceFrames().size() == 0){
 			//  If there are no active frames, there is no UI frame to clear what was there before:
@@ -757,11 +758,11 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		UserInterfaceFrameThreadState frame = this.getFrameStateById(frameChangeParams.getFrameId());
 		if(frameChangeParams.getFrameDimensionsChangeId() < frame.getFrameDimensionsChangeId()){
 			logger.info("Discarding outdated frame text change: frameChangeParams.getFrameDimensionsChangeId()=" + frameChangeParams.getFrameDimensionsChangeId() + ", frame.getFrameDimensionsChangeId()=" + frame.getFrameDimensionsChangeId());
-			return makeFrameChangeWorkItemParams(frame);
+			return makeFrameChangeWorkItemParams(frame, frameChangeParams.getFocusChanged());
 		}
 		if(frameChangeParams.getTerminalDimensionsChangeId() < ConsoleWriterThreadState.terminalDimensionsChangeSeq.get()){
 			logger.info("Discarding outdated text change: frameChangeParams.getTerminalDimensionsChangeId()=" + frameChangeParams.getTerminalDimensionsChangeId() + ", ConsoleWriterThreadState.terminalDimensionsChangeSeq.get()=" + ConsoleWriterThreadState.terminalDimensionsChangeSeq.get());
-			return makeFrameChangeWorkItemParams(frame);
+			return makeFrameChangeWorkItemParams(frame, frameChangeParams.getFocusChanged());
 		}
 		return null;
 	}
@@ -875,7 +876,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			this.getFrameBordersDescription(),
 			this.getTerminalDimensionsChangeId(),
 			frameDimensionsChangeId,
-			frame.getFrameId()
+			frame.getFrameId(),
+			false
 		);
 		frame.putWorkItem(new FrameChangeWorkItem(frame, params), WorkItemPriority.PRIORITY_LOW);
 	}
@@ -905,7 +907,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		//  When the terminal size changes, send a notify to all of the user interface frames to let them know about it
 		this.onFrameDimensionsChanged();
 
-		this.sendFrameChangeWorkItem(this.helpMenuFrameThreadState);
+		this.sendFrameChangeWorkItem(this.helpMenuFrameThreadState, false);
 
 		this.notifyAllFramesOfFocusChange();
 	}
