@@ -1,0 +1,26 @@
+.block-grid-table{
+	margin-right: auto;
+	margin-left: auto;
+	border-bottom: 1px solid #000000;
+	border-right: 1px solid #000000;
+	table-layout:fixed;
+}
+
+.block-grid-table > tbody{
+}
+
+.block-grid-table > tbody > tr{
+}
+
+.block-grid-table > tbody > tr > td{
+	border-top: 1px solid #000000;
+	border-left: 1px solid #000000;
+	text-align: center;
+	height: 20px;
+	width: 20px;
+	overflow: hidden;
+}
+
+.block-grid-table > tbody > tr > td.selected{
+	background-color: #ccff99;
+}

@@ -1,0 +1,5 @@
+/target
+/node_modules
+/.flattened-pom.xml
+/package.json
+/package-lock.json

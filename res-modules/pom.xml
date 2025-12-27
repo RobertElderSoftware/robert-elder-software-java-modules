@@ -32,6 +32,16 @@
           <version>${VERSION-org.springframework.boot}</version>
       </dependency>
       <dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-web</artifactId>
+          <version>${VERSION-org.springframework.boot}</version>
+      </dependency>
+      <dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-websocket</artifactId>
+          <version>${VERSION-org.springframework.boot}</version>
+      </dependency>
+      <dependency>
          <groupId>org.springframework</groupId>
          <artifactId>spring-web</artifactId>
          <version>${VERSION-org.springframework}</version>
@@ -50,6 +60,11 @@
          <groupId>org.springframework</groupId>
          <artifactId>spring-jdbc</artifactId>
          <version>${VERSION-org.springframework}</version>
+      </dependency>
+      <dependency>
+          <groupId>org.springframework</groupId>
+          <artifactId>spring-websocket</artifactId>
+          <version>${VERSION-org.springframework}</version>
       </dependency>
       <dependency>
           <!-- There is some complicated history here where you have to include spring-context, just
@@ -195,6 +210,8 @@
  
   <modules>
     <module>block-mining-simulation-game-core</module>
+    <module>block-mining-simulation-game-server</module>
+    <module>block-mining-simulation-game-multi-player-client</module>
     <module>block-mining-simulation-game-single-player-client</module>
     <module>block-mining-simulation-game-unit-tests</module>
   </modules>

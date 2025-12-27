@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <!-- Log message format -->
+    <encoder>
+      <pattern>LOGBACK: %d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
+      </pattern>
+    </encoder>
+  </appender>
+
+  <logger name="org.springframework.core.io.support" level="info"/>
+  <logger name="org.springframework.context.annotation" level="info"/>
+
+  <!-- Setting the root level of logging to INFO -->
+  <root level="info">
+    <appender-ref ref="STDOUT" />
+  </root>
+</configuration>
