@@ -250,6 +250,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			frameStateClass == HelpMenuFrameThreadState.class ||
 			frameStateClass == HelpDetailsFrameThreadState.class ||
 			frameStateClass == EmptyFrameThreadState.class ||
+			frameStateClass == DebugInputInterfaceThreadState.class ||
 			frameStateClass == DebugListInterfaceThreadState.class ||
 			frameStateClass == CraftingInterfaceThreadState.class ||
 			frameStateClass == MapAreaInterfaceThreadState.class ||
@@ -302,6 +303,17 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public Long createFrameState(Class<?> frameStateClass, ClientBlockModelContext clientBlockModelContext) throws Exception{
+		/* TODO:  Make this work generally:
+		Constructor<?> ctor = frameStateClass.getDeclaredConstructor(
+			new Class<?>[] { BlockManagerThreadCollection.class, ConsoleWriterThreadState.class }
+		);
+
+		UserInterfaceFrameThreadState newThreadState = (UserInterfaceFrameThreadState)ctor.newInstance(new Object [] {this.blockManagerThreadCollection, this});
+
+		newThreadState.putWorkItem(new InitializeYourselfUIWorkItem(newThreadState), WorkItemPriority.PRIORITY_LOW);
+
+		return addFrameState(newThreadState);
+		*/
 		if(frameStateClass == HelpMenuFrameThreadState.class){
 			return addFrameState(
 				new HelpMenuFrameThreadState(this.blockManagerThreadCollection, this)
