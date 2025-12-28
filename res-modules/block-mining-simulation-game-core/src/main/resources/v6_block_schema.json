@@ -173,6 +173,12 @@
                         "byte_pattern_base_64": "Q0FTOjE0NDc2LTE2LTU=",
                         "block_class": "org.res.block.Siderite",
                         "dedication": "ColdWolfActual"
+                },
+                {
+                        "match_type": "byte_comparison",
+                        "byte_pattern_base_64": "Q0FTOjEzNDUtMjUtMQ==",
+                        "block_class": "org.res.block.Wuestite",
+                        "dedication": "JoseTheAwk"
                 }
 	]
 }

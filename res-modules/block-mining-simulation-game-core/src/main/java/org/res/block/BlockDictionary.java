@@ -96,6 +96,10 @@ public class BlockDictionary extends IndividualBlock {
 		this.initializeFromJson(new String(data, "UTF-8"));
 	}
 
+	public Map<String, Coordinate> getDictionary(){
+		return this.dictionary;
+	}
+
 	public Set<Map.Entry<String, Coordinate>> entrySet(){
 		return this.dictionary.entrySet();
 	}
@@ -118,5 +122,34 @@ public class BlockDictionary extends IndividualBlock {
 
 	public boolean isMineable() throws Exception{
 		return false;
+	}
+
+	@Override
+	public boolean equals(Object o){
+		if(o == null){
+			return false;
+		}else{
+			Map<String, Coordinate> otherDictionary = ((BlockDictionary)o).getDictionary();
+			if(this.dictionary.entrySet().size() == otherDictionary.size()){
+				for(Map.Entry<String, Coordinate> entry: this.dictionary.entrySet()){
+					if(otherDictionary.containsKey(entry.getKey())){
+						if(otherDictionary.get(entry.getKey()).equals(entry.getValue())){
+						}else{
+							return false;
+						}
+					}else{
+						return false;
+					}
+				}
+			}else{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public final int hashCode(){
+		return this.dictionary.size();
 	}
 }

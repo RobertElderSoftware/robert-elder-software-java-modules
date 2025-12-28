@@ -76,6 +76,7 @@ public class ChunkInitializerThreadState extends UIEventReceiverThreadState<Chun
 		Pyrite.class,
 		Ilmenite.class,
 		Limonite.class,
+		Wuestite.class,
 		Siderite.class,
 		Magnetite.class,
 		Goethite.class,

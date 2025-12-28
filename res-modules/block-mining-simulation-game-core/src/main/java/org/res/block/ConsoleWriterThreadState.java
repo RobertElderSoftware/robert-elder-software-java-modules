@@ -303,49 +303,20 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public Long createFrameState(Class<?> frameStateClass, ClientBlockModelContext clientBlockModelContext) throws Exception{
-		/* TODO:  Make this work generally:
-		Constructor<?> ctor = frameStateClass.getDeclaredConstructor(
-			new Class<?>[] { BlockManagerThreadCollection.class, ConsoleWriterThreadState.class }
-		);
-
-		UserInterfaceFrameThreadState newThreadState = (UserInterfaceFrameThreadState)ctor.newInstance(new Object [] {this.blockManagerThreadCollection, this});
-
-		newThreadState.putWorkItem(new InitializeYourselfUIWorkItem(newThreadState), WorkItemPriority.PRIORITY_LOW);
-
-		return addFrameState(newThreadState);
-		*/
 		if(frameStateClass == HelpMenuFrameThreadState.class){
 			return addFrameState(
 				new HelpMenuFrameThreadState(this.blockManagerThreadCollection, this)
 			);
-		}else if(frameStateClass == HelpDetailsFrameThreadState.class){
-			return addFrameState(
-				new HelpDetailsFrameThreadState(this.blockManagerThreadCollection, clientBlockModelContext, this)
-			);
-		}else if(frameStateClass == EmptyFrameThreadState.class){
-			return addFrameState(
-				new EmptyFrameThreadState(this.blockManagerThreadCollection, clientBlockModelContext, this)
-			);
-		}else if(frameStateClass == DebugListInterfaceThreadState.class){
-			DebugListInterfaceThreadState thread = new DebugListInterfaceThreadState(this.blockManagerThreadCollection, clientBlockModelContext, this);
-			thread.putWorkItem(new InitializeYourselfUIWorkItem(thread), WorkItemPriority.PRIORITY_LOW);
-			return addFrameState(thread);
-		}else if(frameStateClass == CraftingInterfaceThreadState.class){
-			CraftingInterfaceThreadState thread = new CraftingInterfaceThreadState(this.blockManagerThreadCollection, clientBlockModelContext, this);
-			thread.putWorkItem(new InitializeYourselfUIWorkItem(thread), WorkItemPriority.PRIORITY_LOW);
-			return addFrameState(thread);
-		}else if(frameStateClass == MapAreaInterfaceThreadState.class){
-			MapAreaInterfaceThreadState thread = new MapAreaInterfaceThreadState(this.blockManagerThreadCollection, clientBlockModelContext, this);
-			Long mapId = addFrameState(thread);
-			thread.putWorkItem(new InitializeYourselfUIWorkItem(thread), WorkItemPriority.PRIORITY_LOW);
-			return mapId;
-		}else if(frameStateClass == InventoryInterfaceThreadState.class){
-			InventoryInterfaceThreadState thread = new InventoryInterfaceThreadState(this.blockManagerThreadCollection, clientBlockModelContext, this);
-			thread.putWorkItem(new InitializeYourselfUIWorkItem(thread), WorkItemPriority.PRIORITY_LOW);
-			Long inventoryId = addFrameState(thread);
-			return inventoryId;
 		}else{
-			throw new Exception("Unknown frame state type " + frameStateClass.getName());
+			Constructor<?> ctor = frameStateClass.getDeclaredConstructor(
+				new Class<?>[] { BlockManagerThreadCollection.class, ClientBlockModelContext.class, ConsoleWriterThreadState.class }
+			);
+
+			UserInterfaceFrameThreadState newThreadState = (UserInterfaceFrameThreadState)ctor.newInstance(new Object [] {this.blockManagerThreadCollection, clientBlockModelContext, this});
+
+			newThreadState.putWorkItem(new InitializeYourselfUIWorkItem(newThreadState), WorkItemPriority.PRIORITY_LOW);
+
+			return addFrameState(newThreadState);
 		}
 	}
 

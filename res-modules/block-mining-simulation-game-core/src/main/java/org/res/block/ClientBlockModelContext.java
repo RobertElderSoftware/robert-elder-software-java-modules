@@ -464,19 +464,20 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	public void checkForSpecialCoordinateUpdates(Coordinate currentCoordinate, byte [] blockData) throws Exception{
 		if(currentCoordinate.equals(this.rootBlockDictionaryAddress)){
 			BlockDictionary dictionaryBlock = (BlockDictionary)this.deserializeBlockData(blockData);
-			this.rootBlockDictionary = dictionaryBlock;
-
-			//  This is just a hack to unload all chunks that are currently loaded
-			//  in order to make sure that all client events are triggered for
-			//  the newly considered player model blocks.
-			//  There is currently a bug in the 'InMemoryChunks' class where if you
-			//  specify a new set of 'required regions' that includes a block that's
-			//  inside an existing already-loaded chunk, then the post loading events
-			//  that would otherwise have been triggered for that block never happen
-			//  (since the block is already loaded, and the update signal was missed).
-			//  TODO:  Fix this event issue in the general case.
-			this.inMemoryChunks.putWorkItem(new UpdateRequiredRegionsWorkItem(this.inMemoryChunks, new HashSet<CuboidAddress>()), WorkItemPriority.PRIORITY_LOW);
-			this.notifyLoadedRegionsChanged();
+			if(this.rootBlockDictionary == null || !this.rootBlockDictionary.equals(dictionaryBlock)){
+				this.rootBlockDictionary = dictionaryBlock;
+				//  This is just a hack to unload all chunks that are currently loaded
+				//  in order to make sure that all client events are triggered for
+				//  the newly considered player model blocks.
+				//  There is currently a bug in the 'InMemoryChunks' class where if you
+				//  specify a new set of 'required regions' that includes a block that's
+				//  inside an existing already-loaded chunk, then the post loading events
+				//  that would otherwise have been triggered for that block never happen
+				//  (since the block is already loaded, and the update signal was missed).
+				//  TODO:  Fix this event issue in the general case.
+				this.inMemoryChunks.putWorkItem(new UpdateRequiredRegionsWorkItem(this.inMemoryChunks, new HashSet<CuboidAddress>()), WorkItemPriority.PRIORITY_LOW);
+				this.notifyLoadedRegionsChanged();
+			}
 		}
 		if(this.rootBlockDictionary != null){
 			if(this.playerPositionXYZ == null && currentCoordinate.equals(getPlayerPositionBlockAddress())){

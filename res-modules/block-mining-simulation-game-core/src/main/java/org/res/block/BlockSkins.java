@@ -71,6 +71,7 @@ public class BlockSkins {
 		patternsTmp.put(Goethite.class.getName(),"\uD83D\uDFEB");
 		patternsTmp.put(Limonite.class.getName(),"\uD83D\uDFE7");
 		patternsTmp.put(Siderite.class.getName(),"\uD83D\uDFE8");
+		patternsTmp.put(Wuestite.class.getName(),"\u2B1B");
 		patternsTmp.put(Magnetite.class.getName(),"\u2B1B");
 		patternsTmp.put(MetallicIron.class.getName(),"\u2699\uFE0F");
 		patternsTmp.put(MetallicCopper.class.getName(),"\uD83D\uDFE7");
@@ -104,6 +105,7 @@ public class BlockSkins {
 		descriptionsTmp.put(Magnetite.class.getName(),"One cubic meter of magnetite, the natural mineral with chemical formula Fe²⁺Fe₂³⁺O₄");
 		descriptionsTmp.put(Limonite.class.getName(),"One cubic meter of limonite, the natural mineral with chemical formula of the form FeO(OH)nH₂O");
 		descriptionsTmp.put(Siderite.class.getName(),"One cubic meter of siderite, the natural mineral with chemical formula of the form FeCO₃");
+		descriptionsTmp.put(Wuestite.class.getName(),"One cubic meter of Wüstite, the natural mineral with chemical formula of the form FeO.");
 
 		descriptionsTmp.put(MetallicIron.class.getName(),"One cubic meter of metallic iron, the element with atomic number 26.");
 		descriptionsTmp.put(MetallicCopper.class.getName(),"One cubic meter of metallic copper, the element with atomic number 29.");
