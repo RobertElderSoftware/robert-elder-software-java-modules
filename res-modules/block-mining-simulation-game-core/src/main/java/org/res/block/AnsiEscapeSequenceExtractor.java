@@ -104,7 +104,9 @@ public class AnsiEscapeSequenceExtractor {
 							return null;
 						}
 					}else if(acceptByte((byte)'~') != null){
-						if(y.equals(5L)){
+						if(y.equals(3L)){
+							return new AnsiEscapeSequenceRemoveKey();
+						}else if(y.equals(5L)){
 							return new AnsiEscapeSequencePageUpKey();
 						}else if(y.equals(6L)){
 							return new AnsiEscapeSequencePageDownKey();
@@ -135,6 +137,10 @@ public class AnsiEscapeSequenceExtractor {
 		}else{
 			return null;
 		}
+	}
+
+	public int countLeadingNonEscapeCharacters() throws Exception{
+		return buffer.countLeadingNonEscapeCharacters();
 	}
 
 	public AnsiEscapeSequence tryToParseBuffer() throws Exception{

@@ -119,26 +119,30 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 		}
 	}
 
-	public void onKeyboardInput(byte [] characters) throws Exception {
+	public void onKeyboardInput(String actionString) throws Exception {
 		UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
-		for(byte b : characters){
-			String actionString = new String(new byte [] {b}, "UTF-8");
-			UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
+		UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
 
-			if(action == null){
-				logger.info("Ignoring " + b);
-			}else{
-				switch(action){
-					case ACTION_CRAFTING:{
-						this.clientBlockModelContext.putWorkItem(new ClientModelNotificationWorkItem(this.clientBlockModelContext, new Object(), ClientModelNotificationType.DO_TRY_CRAFTING), WorkItemPriority.PRIORITY_LOW);
-						break;
-					}case ACTION_ENTER:{
-						//  The clientBlockModelContext should already know what the currently selected recipe is:
-						this.clientBlockModelContext.putWorkItem(new ClientModelNotificationWorkItem(this.clientBlockModelContext, new Object(), ClientModelNotificationType.DO_TRY_CRAFTING), WorkItemPriority.PRIORITY_LOW);
-						break;
-					}default:{
-						logger.info("Crafting frame, discarding keyboard input: " + new String(characters, "UTF-8"));
-					}
+		if(action == null){
+			logger.info("Ignoring " + actionString);
+		}else{
+			switch(action){
+				case ACTION_QUIT:{
+					//  Open help menu
+					getConsoleWriterThreadState().putBlockingWorkItem(new OpenHelpMenuWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
+					break;
+				}case ACTION_TAB_NEXT_FRAME:{
+					getConsoleWriterThreadState().putBlockingWorkItem(new FocusOnNextFrameWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
+					break;
+				}case ACTION_CRAFTING:{
+					this.clientBlockModelContext.putWorkItem(new ClientModelNotificationWorkItem(this.clientBlockModelContext, new Object(), ClientModelNotificationType.DO_TRY_CRAFTING), WorkItemPriority.PRIORITY_LOW);
+					break;
+				}case ACTION_ENTER:{
+					//  The clientBlockModelContext should already know what the currently selected recipe is:
+					this.clientBlockModelContext.putWorkItem(new ClientModelNotificationWorkItem(this.clientBlockModelContext, new Object(), ClientModelNotificationType.DO_TRY_CRAFTING), WorkItemPriority.PRIORITY_LOW);
+					break;
+				}default:{
+					logger.info("Crafting frame, discarding keyboard input: " + actionString);
 				}
 			}
 		}

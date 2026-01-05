@@ -35,16 +35,25 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
-public class ProcessFrameInputBytesWorkItem extends UIWorkItem {
 
-	private String character;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
 
-	public ProcessFrameInputBytesWorkItem(UserInterfaceFrameThreadState userInterfaceFrameThreadState, String character){
-		super(userInterfaceFrameThreadState, false);
-		this.character = character;
+public class OpenHelpMenuWorkItem extends ConsoleQueueableWorkItem {
+
+	private Class<?> frameStateClass;
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
+	public OpenHelpMenuWorkItem(ConsoleWriterThreadState consoleWriterThreadState){
+		super(consoleWriterThreadState, true);
+	}
+
+	public WorkItemResult executeQueuedWork() throws Exception{
+		return this.consoleWriterThreadState.onOpenHelpMenu();
 	}
 
 	public void doWork() throws Exception{
-		this.userInterfaceFrameThreadState.onKeyboardInput(character);
+		this.consoleWriterThreadState.addPendingQueueableWorkItem(this);
 	}
 }

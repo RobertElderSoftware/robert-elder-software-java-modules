@@ -89,10 +89,29 @@ public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState
 		return clientBlockModelContext.getBlockDataForClass(c);
 	}
 
-	public void onKeyboardInput(byte [] characters) throws Exception {
-		this.recipeList.addItem(new DebugRendererListItem("Foo_" + this.recipeList.size()));
-		this.onRenderFrame(false, false);
-		this.onFinalizeFrame();
+	public void onKeyboardInput(String actionString) throws Exception {
+		UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
+		UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
+
+		if(action == null){
+			logger.info("Ignoring " + actionString);
+		}else{
+			switch(action){
+				case ACTION_QUIT:{
+					//  Open help menu
+					getConsoleWriterThreadState().putBlockingWorkItem(new OpenHelpMenuWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
+					break;
+				}case ACTION_TAB_NEXT_FRAME:{
+					getConsoleWriterThreadState().putBlockingWorkItem(new FocusOnNextFrameWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
+					break;
+				}default:{
+
+					this.recipeList.addItem(new DebugRendererListItem("Foo_" + this.recipeList.size()));
+					this.onRenderFrame(false, false);
+					this.onFinalizeFrame();
+				}
+			}
+		}
 	}
 
 	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{

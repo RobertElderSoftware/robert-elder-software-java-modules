@@ -49,6 +49,17 @@ public class ParserBuffer {
 	public ParserBuffer(){
 	}
 
+	public int countLeadingNonEscapeCharacters() throws Exception{
+		int i = 0;
+		while(i < buffer.size()){
+			if(buffer.get(i) == '\033'){
+				break;
+			}
+			i++;
+		}
+		return i;
+	}
+
 	public int getCurrentPosition() throws Exception{
 		return this.position;
 	}

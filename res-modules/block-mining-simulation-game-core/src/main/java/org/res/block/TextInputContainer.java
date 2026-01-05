@@ -30,21 +30,10 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
 
-public class ProcessFrameInputBytesWorkItem extends UIWorkItem {
-
-	private String character;
-
-	public ProcessFrameInputBytesWorkItem(UserInterfaceFrameThreadState userInterfaceFrameThreadState, String character){
-		super(userInterfaceFrameThreadState, false);
-		this.character = character;
-	}
-
-	public void doWork() throws Exception{
-		this.userInterfaceFrameThreadState.onKeyboardInput(character);
-	}
+public interface TextInputContainer {
+	public void onCursorPositionChange(Coordinate c) throws Exception;
 }

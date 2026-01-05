@@ -55,6 +55,9 @@ public class CharacterConstants {
 	public static final String EQUALS_SIGN = "=";
 	public static final String ASTERISK = "*";
 	public static final String VERTICAL_LINE = "|";
+	public static final String NEWLINE_CHARACTER = "\n";
+	public static final String CARRIAGE_RETURN_CHARACTER = "\r";
+	public static final String BACKSPACE_CHARACTER = "\u007f";
 	public static final String BOX_DRAWINGS_LIGHT_VERTICAL_AND_HORIZONTAL = "\u253C"; // ┼
 	public static final String BOX_DRAWINGS_DOWN_DOUBLE_AND_HORIZONTAL_SINGLE = "\u2565"; // ╥
 	public static final String BOX_DRAWINGS_VERTICAL_SINGLE_AND_LEFT_DOUBLE = "\u2561"; // ╡
@@ -74,5 +77,6 @@ public class CharacterConstants {
 											  //
 	public static final String INVENTORY_ARROW_EMOJI = "\u2501\u27A4";// ━➤
 	public static final String INVENTORY_ARROW_ASCII = "->";
+
 }
 

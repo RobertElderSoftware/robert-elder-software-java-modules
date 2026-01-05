@@ -55,12 +55,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class DebugInputInterfaceThreadState extends UserInterfaceFrameThreadState {
+public class DebugInputInterfaceThreadState extends UserInterfaceFrameThreadState implements TextInputContainer{
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
 	private ClientBlockModelContext clientBlockModelContext;
+	private TextInputArea textInputArea;
 
 	public DebugInputInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
 		super(blockManagerThreadCollection, consoleWriterThreadState, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
@@ -68,22 +69,57 @@ public class DebugInputInterfaceThreadState extends UserInterfaceFrameThreadStat
 		this.clientBlockModelContext = clientBlockModelContext;
 	}
 
-	protected void init(Object o) throws Exception{
+	public void onCursorPositionChange(Coordinate c){
+		this.currentCursorPosition = c;
 	}
 
-	public void onKeyboardInput(byte [] characters) throws Exception {
+	protected void init(Object o) throws Exception{
+		Long maxColumns = 200L;
+		Long maxLines = 1L;
+		this.textInputArea = new TextInputArea(this);
+		this.textInputArea.updateRenderableArea(
+			new Coordinate(Arrays.asList(5L, 5L)),
+			new CuboidAddress(
+				new Coordinate(Arrays.asList(0L, 0L)),
+				new Coordinate(Arrays.asList(20L, 4L))
+			),
+			maxColumns,
+			maxLines
+		);
+	}
+
+	public void onDefaultKeyboardInput(String actionString) throws Exception {
+		this.textInputArea.onKeyboardCharacter(this, actionString);
 		this.onRenderFrame(false, false);
 		this.onFinalizeFrame();
 	}
 
+	public void onKeyboardInput(String actionString) throws Exception {
+		UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
+		UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
+
+		if(action == null){
+			this.onDefaultKeyboardInput(actionString);
+		}else{
+			switch(action){
+				case ACTION_TAB_NEXT_FRAME:{
+					getConsoleWriterThreadState().putBlockingWorkItem(new FocusOnNextFrameWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
+					break;
+				}default:{
+					this.onDefaultKeyboardInput(actionString);
+				}
+			}
+		}
+	}
+
 	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{
-		ScreenLayer bottomLayer = this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT];
-		logger.info("CraftingInterfaceThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
+		this.textInputArea.onAnsiEscapeSequence(this, ansiEscapeSequence);
+		this.onRenderFrame(false, false);
 		this.onFinalizeFrame();
 	}
 
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
-
+		this.textInputArea.render(this, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
 		this.drawBorders();
 	}
 

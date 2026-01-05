@@ -63,6 +63,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 
 	private static final AtomicLong seq = new AtomicLong(0);
 	public final long frameId;
+	protected Coordinate currentCursorPosition = null;
 	protected FrameChangeWorkItemParams currentFrameChangeWorkItemParams;
 	protected FrameChangeWorkItemParams previousSuccessfullyPrintedFrameChangeWorkItemParams;
 	protected int [] usedScreenLayers;
@@ -72,7 +73,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 
 	public abstract void putWorkItem(UIWorkItem workItem, WorkItemPriority priority) throws Exception;
 	public abstract void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception;
-	public abstract void onKeyboardInput(byte [] characters) throws Exception;
+	public abstract void onKeyboardInput(String character) throws Exception;
 	public abstract void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception;
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -132,6 +133,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		return this.consoleWriterThreadState;
 	}
 
+
 	public static final int [] getDefaultBGColors(){
 		switch(currentTheme){
 			case PINK:{
@@ -162,6 +164,16 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 				return RGB_PINK_DARK_MID_FG_COLOR;
 			}default:{
 				return new int [] {RED_FG_COLOR};
+			}
+		}
+	}
+
+	public static final int [] getTextInputAreaColors(){
+		switch(currentTheme){
+			case PINK:{
+				return new int [] {GREEN_FG_COLOR, WHITE_BG_COLOR};
+			}default:{
+				return new int [] {GREEN_FG_COLOR, WHITE_BG_COLOR};
 			}
 		}
 	}
@@ -309,6 +321,10 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		this.putWorkItem(new UIWorkItemEventNotificationWorkItem(this, new EventNotificationWorkItem<UIWorkItem>(this, o, notificationType)), priority);
 	}
 
+	public Coordinate getCurrentCursorPosition(){
+		return this.currentCursorPosition;
+	}
+
 	protected static List<String[]> splitStringByDelimiterPairs(String str, String delimiterRegex){
 		List<String[]> rtn = new ArrayList<String[]>();
 
@@ -404,7 +420,12 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 	}
 
 	public List<LinePrintingInstruction> getLinePrintingInstructions(String text, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign, Long maxLineLength) throws Exception{
-		ColouredTextFragmentList tfl = new ColouredTextFragmentList(new ColouredTextFragment(text, getDefaultTextColors()));
+		ColouredTextFragment tf = new ColouredTextFragment(text, getDefaultTextColors());
+		return getLinePrintingInstructions(tf, paddingLeft, paddingRight, leftAlign, rightAlign, maxLineLength);
+	}
+
+	public List<LinePrintingInstruction> getLinePrintingInstructions(ColouredTextFragment tf, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign, Long maxLineLength) throws Exception{
+		ColouredTextFragmentList tfl = new ColouredTextFragmentList(tf);
 		return getLinePrintingInstructions(tfl, paddingLeft, paddingRight, leftAlign, rightAlign, maxLineLength);
 	}
 

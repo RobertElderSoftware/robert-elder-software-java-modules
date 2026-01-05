@@ -463,7 +463,7 @@ public class BlockManagerThreadCollection {
 			Long root = cwts.makeVerticalSplit();
 			List<Long> topSplits = new ArrayList<Long>();
 			topSplits.add(subSplit);
-			topSplits.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(CraftingInterfaceThreadState.class, client)));
+			topSplits.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(DebugInputInterfaceThreadState.class, client)));
 			List<Double> topSplitPercents = new ArrayList<Double>();
 			topSplitPercents.add(0.75);
 			topSplitPercents.add(0.25);

@@ -723,6 +723,10 @@ public class ScreenLayer {
 	}
 
 	public void printChanges(boolean useCompatibilityWidth, boolean useRightToLeftPrint, boolean resetCursorPosition, int xOffset, int yOffset) throws Exception{
+		this.printChanges(useCompatibilityWidth, useRightToLeftPrint, resetCursorPosition, xOffset, yOffset, null);
+	}
+
+	public void printChanges(boolean useCompatibilityWidth, boolean useRightToLeftPrint, boolean resetCursorPosition, int xOffset, int yOffset, Coordinate cursorPosition) throws Exception{
 		int loopUpdate = useRightToLeftPrint ? -1 : 1;
 		boolean resetState = useRightToLeftPrint ? true : true; // TODO:  Optimize this in the future.
 		int [] lastUsedColourCodes = null;
@@ -799,7 +803,9 @@ public class ScreenLayer {
 		}
 		this.clearChangedRegions();
 		if(resetCursorPosition){
-			this.stringBuilder.append("\033[0;0H"); //  Move cursor to 0,0 after every print.
+			Long x = cursorPosition == null ? 0L : cursorPosition.getX();
+			Long y = cursorPosition == null ? 0L : cursorPosition.getY();
+			this.stringBuilder.append("\033[" + y + ";" + x + "H"); //  Move cursor to 0,0 after every print.
 		}
 		System.out.print(this.stringBuilder); //  Print accumulated output
 		this.stringBuilder.setLength(0);      //  clear buffer.

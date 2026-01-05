@@ -271,8 +271,26 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 		this.onFinalizeFrame();
 	}
 
-	public void onKeyboardInput(byte [] characters) throws Exception {
-		logger.info("Help Menu, discarding keyboard input: " + new String(characters, "UTF-8"));
+	public void onKeyboardInput(String actionString) throws Exception {
+		UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
+		UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
+
+		if(action == null){
+			logger.info("Ignoring " + actionString);
+		}else{
+			switch(action){
+				case ACTION_QUIT:{
+					//  Open help menu
+					getConsoleWriterThreadState().putBlockingWorkItem(new OpenHelpMenuWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
+					break;
+				}case ACTION_TAB_NEXT_FRAME:{
+					getConsoleWriterThreadState().putBlockingWorkItem(new FocusOnNextFrameWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
+					break;
+				}default:{
+					logger.info("Discarding keyboard input: " + actionString);
+				}
+			}
+		}
 	}
 
 	public BlockManagerThreadCollection getBlockManagerThreadCollection(){

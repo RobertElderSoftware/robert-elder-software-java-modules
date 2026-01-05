@@ -128,65 +128,60 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		}
 	}
 
-	public void onKeyboardInput(byte [] characters) throws Exception {
-		logger.info("Processing keyboard input: " + new String(characters, "UTF-8"));
+	public void onKeyboardInput(String actionString) throws Exception {
+		logger.info("Processing keyboard input: " + actionString);
 		UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
-		ByteArrayOutputStream baosBoth = new ByteArrayOutputStream();
-		baosBoth.write(this.unprocessedInputBytes);
-		baosBoth.write(characters);
-		this.unprocessedInputBytes = baosBoth.toByteArray();
-		for(int i = 0; i < this.unprocessedInputBytes.length; i++){
-			byte c = this.unprocessedInputBytes[i];
-			String actionString = new String(new byte [] {c}, "UTF-8");
-			boolean is_last = i == this.unprocessedInputBytes.length -1;
-			UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
+		UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
 
-			if(action == null){
-				logger.info("Discarding " + c);
-			}else{
-				switch(action){
-
-					case ACTION_Y_PLUS:{
-						this.sendTryPositionChange(new Vector(Arrays.asList(0L, 0L, 1L, 0L)));
-						break;
-					}case ACTION_X_MINUS:{
-						this.sendTryPositionChange(new Vector(Arrays.asList(-1L, 0L, 0L, 0L)));
-						break;
-					}case ACTION_Y_MINUS:{
-						this.sendTryPositionChange(new Vector(Arrays.asList(0L, 0L, -1L, 0L)));
-						break;
-					}case ACTION_X_PLUS:{
-						this.sendTryPositionChange(new Vector(Arrays.asList(1L, 0L, 0L, 0L)));
-						break;
-					}case ACTION_Z_MINUS:{
-						this.sendTryPositionChange(new Vector(Arrays.asList(0L, -1L, 0L, 0L)));
-						break;
-					}case ACTION_Z_PLUS:{
-						this.sendTryPositionChange(new Vector(Arrays.asList(0L, 1L, 0L, 0L)));
-						break;
-					}case ACTION_W_MINUS:{
-						this.sendTryPositionChange(new Vector(Arrays.asList(0L, 0L, 0L, -1L)));
-						break;
-					}case ACTION_W_PLUS:{
-						this.sendTryPositionChange(new Vector(Arrays.asList(0L, 0L, 0L, 1L)));
-						break;
-					}case ACTION_PLACE_BLOCK:{
-						this.clientBlockModelContext.putWorkItem(new ClientActionWorkItem(this.clientBlockModelContext, action), WorkItemPriority.PRIORITY_LOW);
-						break;
-					}case ACTION_CRAFTING:{
-						this.clientBlockModelContext.putWorkItem(new ClientActionWorkItem(this.clientBlockModelContext, action), WorkItemPriority.PRIORITY_LOW);
-						break;
-					}case ACTION_MINING:{
-						this.clientBlockModelContext.putWorkItem(new ClientActionWorkItem(this.clientBlockModelContext, action), WorkItemPriority.PRIORITY_LOW);
-						break;
-					}default:{
-						logger.info("Discarding Unexpected action=" + action.toString());
-					}
+		if(action == null){
+			logger.info("Discarding " + actionString);
+		}else{
+			switch(action){
+				case ACTION_QUIT:{
+					//  Open help menu
+					getConsoleWriterThreadState().putBlockingWorkItem(new OpenHelpMenuWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
+					break;
+				}case ACTION_TAB_NEXT_FRAME:{
+					getConsoleWriterThreadState().putBlockingWorkItem(new FocusOnNextFrameWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
+					break;
+				}case ACTION_Y_PLUS:{
+					this.sendTryPositionChange(new Vector(Arrays.asList(0L, 0L, 1L, 0L)));
+					break;
+				}case ACTION_X_MINUS:{
+					this.sendTryPositionChange(new Vector(Arrays.asList(-1L, 0L, 0L, 0L)));
+					break;
+				}case ACTION_Y_MINUS:{
+					this.sendTryPositionChange(new Vector(Arrays.asList(0L, 0L, -1L, 0L)));
+					break;
+				}case ACTION_X_PLUS:{
+					this.sendTryPositionChange(new Vector(Arrays.asList(1L, 0L, 0L, 0L)));
+					break;
+				}case ACTION_Z_MINUS:{
+					this.sendTryPositionChange(new Vector(Arrays.asList(0L, -1L, 0L, 0L)));
+					break;
+				}case ACTION_Z_PLUS:{
+					this.sendTryPositionChange(new Vector(Arrays.asList(0L, 1L, 0L, 0L)));
+					break;
+				}case ACTION_W_MINUS:{
+					this.sendTryPositionChange(new Vector(Arrays.asList(0L, 0L, 0L, -1L)));
+					break;
+				}case ACTION_W_PLUS:{
+					this.sendTryPositionChange(new Vector(Arrays.asList(0L, 0L, 0L, 1L)));
+					break;
+				}case ACTION_PLACE_BLOCK:{
+					this.clientBlockModelContext.putWorkItem(new ClientActionWorkItem(this.clientBlockModelContext, action), WorkItemPriority.PRIORITY_LOW);
+					break;
+				}case ACTION_CRAFTING:{
+					this.clientBlockModelContext.putWorkItem(new ClientActionWorkItem(this.clientBlockModelContext, action), WorkItemPriority.PRIORITY_LOW);
+					break;
+				}case ACTION_MINING:{
+					this.clientBlockModelContext.putWorkItem(new ClientActionWorkItem(this.clientBlockModelContext, action), WorkItemPriority.PRIORITY_LOW);
+					break;
+				}default:{
+					logger.info("Discarding Unexpected action=" + action.toString());
 				}
 			}
 		}
-		//  All input bytes have been processed:
-		this.unprocessedInputBytes = new byte[0];
 	}
 
 	public void sendTryPositionChange(Vector delta) throws Exception{

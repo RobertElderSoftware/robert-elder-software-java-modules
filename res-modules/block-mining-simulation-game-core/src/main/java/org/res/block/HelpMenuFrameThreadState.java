@@ -451,27 +451,24 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		}
 	}
 
-	public void onKeyboardInput(byte [] characters) throws Exception {
+	public void onKeyboardInput(String actionString) throws Exception {
 		UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
-		for(byte b : characters){
-			String actionString = new String(new byte [] {b}, "UTF-8");
-			UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
+		UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
 
-			if(action == null){
-				logger.info("Ignoring " + b);
-			}else{
-				switch(action){
-					case ACTION_ENTER:{
-						this.onEnterKeyPressed();
-						break;
-					}case ACTION_HELP_MENU_TOGGLE:{
-						this.helpMenu.setActiveState(false);
-						this.render();
-						this.onFinalizeFrame();
-						break;
-					}default:{
-						logger.info("Ignoring " + b);
-					}
+		if(action == null){
+			logger.info("Ignoring " + actionString);
+		}else{
+			switch(action){
+				case ACTION_ENTER:{
+					this.onEnterKeyPressed();
+					break;
+				}case ACTION_HELP_MENU_TOGGLE:{
+					this.helpMenu.setActiveState(false);
+					this.render();
+					this.onFinalizeFrame();
+					break;
+				}default:{
+					logger.info("Ignoring " + actionString);
 				}
 			}
 		}

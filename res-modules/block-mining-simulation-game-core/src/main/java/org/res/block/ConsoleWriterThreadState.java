@@ -564,6 +564,18 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		}
 	}
 
+	public WorkItemResult onFocusOnNextFrame() throws Exception{
+		this.focusOnNextFrame();
+		this.notifyAllFramesOfFocusChange();
+		return new EmptyWorkItemResult();
+	}
+
+	public WorkItemResult onOpenHelpMenu() throws Exception{
+		this.helpMenuFrameThreadState.setIsMenuActive(true);
+		this.notifyAllFramesOfFocusChange();
+		return new EmptyWorkItemResult();
+	}
+
 	public Long onOpenFrame(Class<?> frameStateClass, ClientBlockModelContext clientBlockModelContext) throws Exception{
 		return createFrameAndThread(frameStateClass, clientBlockModelContext);
 	}
@@ -789,7 +801,11 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.mergedFinalScreenLayer.mergeDown(this.screenLayers, trustChangedFlags, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
 		boolean useRightToLeftPrint = this.blockManagerThreadCollection.getRightToLeftPrint();
 		boolean useCompatibilityWidth = this.blockManagerThreadCollection.getCompatibilityWidth() != null;
-		this.mergedFinalScreenLayer.printChanges(useCompatibilityWidth, useRightToLeftPrint, resetCursorPosition, 0, 0);
+		UserInterfaceFrameThreadState frame = getFocusedFrame() == null ? null : getFocusedFrame();
+		Coordinate ffp = frame == null ? null : frame.getCurrentCursorPosition();
+		FrameDimensions fd = frame == null ? null : getFrameDimensionsForFrameId(frame.getFrameId());
+		Coordinate currentCursorPosition = ffp == null ? new Coordinate(Arrays.asList(0L, 0L)) : new Coordinate(Arrays.asList(fd.getFrameOffsetX() + ffp.getX(), fd.getFrameOffsetY() + ffp.getY()));
+		this.mergedFinalScreenLayer.printChanges(useCompatibilityWidth, useRightToLeftPrint, resetCursorPosition, 0, 0, currentCursorPosition);
 	}
 
 	public final void initializeConsole(Long terminalWidth, Long terminalHeight) throws Exception{
@@ -895,48 +911,40 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.notifyAllFramesOfFocusChange();
 	}
 
-	public void sendKeyboardInputToFrame(byte [] bytesToSend, UserInterfaceFrameThreadState destinationFrame) throws Exception {
+	public void sendKeyboardInputToFrame(String character, UserInterfaceFrameThreadState destinationFrame) throws Exception {
 		if(destinationFrame != null){
-			destinationFrame.putWorkItem(new ProcessFrameInputBytesWorkItem(destinationFrame, bytesToSend), WorkItemPriority.PRIORITY_LOW);
+			destinationFrame.putWorkItem(new ProcessFrameInputBytesWorkItem(destinationFrame, character), WorkItemPriority.PRIORITY_LOW);
 		}
 	}
 
-	public void doDefaultKeyboardInput(byte [] characters) throws Exception {
+	public void doDefaultKeyboardInput(String character) throws Exception {
 		if(this.focusedFrameId == null){
-			logger.info("Discarding because no focused frame: " + new String(characters, "UTF-8"));
+			logger.info("Discarding because no focused frame: '" + character + "'");
 		}else{
-			this.sendKeyboardInputToFrame(characters, this.getFrameStateById(this.focusedFrameId));
+			this.sendKeyboardInputToFrame(character, this.getFrameStateById(this.focusedFrameId));
 		}
 	}
 
-	public void onKeyboardInput(byte [] characters) throws Exception {
-		logger.info("Saw keyboard input: " + new String(characters, "UTF-8"));
-		if(this.helpMenuFrameThreadState.getIsMenuActive()){
-			this.sendKeyboardInputToFrame(characters, this.helpMenuFrameThreadState);
-		}else{
-			UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
-			for(byte b : characters){
-				String actionString = new String(new byte [] {b}, "UTF-8");
+	public void onKeyboardInput(byte [] bytes) throws Exception {
+		logger.info("Saw keyboard input: " + new String(bytes, "UTF-8"));
+		List<String> characters = UserInterfaceFrameThreadState.splitStringIntoCharactersUnicodeAware(new String(bytes, "UTF-8"));
+		for(String actionString : characters){
+			if(this.helpMenuFrameThreadState.getIsMenuActive()){
+				this.sendKeyboardInputToFrame(actionString, this.helpMenuFrameThreadState);
+			}else{
+				UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
 				UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
 
 				if(action == null){
-					this.doDefaultKeyboardInput(new byte [] {b});
+					this.doDefaultKeyboardInput(actionString);
 				}else{
 					switch(action){
-						case ACTION_QUIT:{
-							logger.info("The 'q' key was pressed.  Exiting...");
-							this.blockManagerThreadCollection.setIsProcessFinished(true, null); // Start shutting down the entire application.
-							break;
-						}case ACTION_HELP_MENU_TOGGLE:{
+						case ACTION_HELP_MENU_TOGGLE:{
 							this.helpMenuFrameThreadState.setIsMenuActive(!this.helpMenuFrameThreadState.getIsMenuActive());
 							this.notifyAllFramesOfFocusChange();
 							break;
-						}case ACTION_TAB_NEXT_FRAME:{
-							this.focusOnNextFrame();
-							this.notifyAllFramesOfFocusChange();
-							break;
 						}default:{
-							this.doDefaultKeyboardInput(new byte [] {b});
+							this.doDefaultKeyboardInput(actionString);
 						}
 					}
 				}

@@ -30,21 +30,17 @@
 //  SOFTWARE.
 package org.res.block;
 
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
+
 import java.util.List;
 import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
+import java.util.Arrays;
 
-public class ProcessFrameInputBytesWorkItem extends UIWorkItem {
+public class AnsiEscapeSequenceRemoveKey extends AnsiEscapeSequence {
 
-	private String character;
-
-	public ProcessFrameInputBytesWorkItem(UserInterfaceFrameThreadState userInterfaceFrameThreadState, String character){
-		super(userInterfaceFrameThreadState, false);
-		this.character = character;
-	}
-
-	public void doWork() throws Exception{
-		this.userInterfaceFrameThreadState.onKeyboardInput(character);
+	public AnsiEscapeSequenceRemoveKey(){
 	}
 }

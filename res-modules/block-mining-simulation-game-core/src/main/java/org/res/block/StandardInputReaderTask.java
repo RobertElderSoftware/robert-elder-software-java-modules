@@ -112,7 +112,8 @@ public class StandardInputReaderTask extends BlockManagerThread {
 						return false;  // Nothing more to do.
 					}
 				}else{
-					byte [] extracted = this.ansiEscapeSequenceExtractor.extractNextBytes(1);
+					int numTextBytes = this.ansiEscapeSequenceExtractor.countLeadingNonEscapeCharacters();
+					byte [] extracted = this.ansiEscapeSequenceExtractor.extractNextBytes(numTextBytes);
 					logger.info("->There is just regular text in the buffer: " + BlockModelContext.convertToHex(extracted));
 					ProcessStandardInputBytesWorkItem workItem = new ProcessStandardInputBytesWorkItem(this.consoleWriterThreadState, extracted);
 					this.consoleWriterThreadState.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
