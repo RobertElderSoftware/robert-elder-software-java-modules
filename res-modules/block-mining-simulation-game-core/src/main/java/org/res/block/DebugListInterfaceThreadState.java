@@ -71,7 +71,7 @@ public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState
 	}
 
 	protected void init(Object o) throws Exception{
-		this.recipeList = new RenderableList<DebugRendererListItem>(this, 3L, 8L, 10L, 4L, "Default list is empty.");
+		this.recipeList = new RenderableList<DebugRendererListItem>(this, 3L, 8L, 10L, 40L, "Default list is empty.");
 		this.addDebugRecipeItems();
 	}
 
@@ -136,7 +136,7 @@ public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState
 
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
 
-		Long fchw = this.getFrameCharacterWidth();
+		Long fchw = getConsoleWriterThreadState().getFrameCharacterWidth();
 		Long x1 = fchw;
 		Long y1 = 1L;
 		Long x2 = x1 + this.getInnerFrameWidth();

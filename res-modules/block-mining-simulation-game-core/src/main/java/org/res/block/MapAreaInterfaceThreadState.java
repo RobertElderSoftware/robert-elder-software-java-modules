@@ -306,7 +306,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	}
 
 	public Long getMapXOffsetInScreenCoordinates(CuboidAddress ca) throws Exception{
-		return (this.getMapXOffsetInCells(ca) * this.getMapAreaCellWidth()) + this.getFrameCharacterWidth();
+		return (this.getMapXOffsetInCells(ca) * this.getMapAreaCellWidth()) + getConsoleWriterThreadState().getFrameCharacterWidth();
 	}
 
 	public Long getMapYOffsetInScreenCoordinates(CuboidAddress ca)throws Exception{
@@ -378,7 +378,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			regionIteration.incrementCoordinateWithinCuboidAddress();
 		}
 
-		Long screenDrawX = (this.getMapXOffsetInCells(areaToUpdate) * this.getMapAreaCellWidth()) + this.getFrameCharacterWidth();
+		Long screenDrawX = (this.getMapXOffsetInCells(areaToUpdate) * this.getMapAreaCellWidth()) + getConsoleWriterThreadState().getFrameCharacterWidth();
 		Long screenDrawY = this.getMapYOffsetInCells(areaToUpdate) + this.getFrameCharacterHeight();
 
 		this.sendCellUpdatesInScreenArea(

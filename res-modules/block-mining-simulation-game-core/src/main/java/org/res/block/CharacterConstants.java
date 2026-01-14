@@ -78,5 +78,56 @@ public class CharacterConstants {
 	public static final String INVENTORY_ARROW_EMOJI = "\u2501\u27A4";// ━➤
 	public static final String INVENTORY_ARROW_ASCII = "->";
 
-}
+	public static final String [] emojiDoubleBorderConstants = new String [] {
+		BOX_DRAWINGS_LIGHT_VERTICAL_AND_HORIZONTAL, // ┼
+		BOX_DRAWINGS_DOWN_DOUBLE_AND_HORIZONTAL_SINGLE, // ╥
+		BOX_DRAWINGS_VERTICAL_SINGLE_AND_LEFT_DOUBLE, // ╡
+		BOX_DRAWINGS_DOUBLE_DOWN_AND_LEFT, // ╗
+		BOX_DRAWINGS_VERTICAL_SINGLE_AND_RIGHT_DOUBLE, // ╞
+		BOX_DRAWINGS_DOUBLE_DOWN_AND_RIGHT, // ╔
+		BOX_DRAWINGS_DOUBLE_HORIZONTAL, // ═
+		BOX_DRAWINGS_DOUBLE_DOWN_AND_HORIZONTAL, // ╦
+		BOX_DRAWINGS_UP_DOUBLE_AND_HORIZONTAL_SINGLE, // ╨
+		BOX_DRAWINGS_DOUBLE_VERTICAL, // ║
+		BOX_DRAWINGS_DOUBLE_UP_AND_LEFT, // ╝
+		BOX_DRAWINGS_DOUBLE_VERTICAL_AND_LEFT, // ╣
+		BOX_DRAWINGS_DOUBLE_UP_AND_RIGHT, // ╚
+		BOX_DRAWINGS_DOUBLE_VERTICAL_AND_RIGHT, // ╠
+		BOX_DRAWINGS_DOUBLE_UP_AND_HORIZONTAL, // ╩
+		BOX_DRAWINGS_DOUBLE_VERTICAL_AND_HORIZONTAL // ╬
+	};
 
+	public static final String [] asciiDoubleBorderConstants = new String [] {
+		CharacterConstants.PLUS_SIGN,
+		CharacterConstants.VERTICAL_LINE,
+		CharacterConstants.EQUALS_SIGN,
+		CharacterConstants.PLUS_SIGN,
+		CharacterConstants.EQUALS_SIGN,
+		CharacterConstants.PLUS_SIGN,
+		CharacterConstants.EQUALS_SIGN,
+		CharacterConstants.PLUS_SIGN,
+		CharacterConstants.PLUS_SIGN,
+		CharacterConstants.VERTICAL_LINE,
+		CharacterConstants.PLUS_SIGN,
+		CharacterConstants.PLUS_SIGN,
+		CharacterConstants.PLUS_SIGN,
+		CharacterConstants.PLUS_SIGN,
+		CharacterConstants.PLUS_SIGN,
+		CharacterConstants.PLUS_SIGN
+	};
+
+	public static String makeTopBorder(ConsoleWriterThreadState consoleWriterThreadState, long maxWidth){
+		String rtn = "";
+		/*
+		Long lWidth = consoleWriterThreadState.measureTextLengthOnTerminal(this.text).getDeltaX(BOX_DRAWINGS_DOUBLE_DOWN_AND_RIGHT);
+		Long rWidth = consoleWriterThreadState.measureTextLengthOnTerminal(this.text).getDeltaX(BOX_DRAWINGS_DOUBLE_DOWN_AND_LEFT);
+		Long mWidth = consoleWriterThreadState.measureTextLengthOnTerminal(this.text).getDeltaX(BOX_DRAWINGS_DOUBLE_DOWN_AND_LEFT);
+		*/
+		return rtn;
+	}
+
+	public static final String doubleBorderConnection(BlockManagerThreadCollection blockManagerThreadCollection, int index) throws Exception{
+		boolean rg = blockManagerThreadCollection.getGraphicsMode().equals(GraphicsMode.ASCII);
+		return rg ? asciiDoubleBorderConstants[index] : emojiDoubleBorderConstants[index];
+	}
+}

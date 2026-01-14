@@ -59,6 +59,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWorkItem> {
 	protected Object lock = new Object();
+	protected Object frameWidthLock = new Object();
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 	private ClientBlockModelContext clientBlockModelContext;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -71,6 +72,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	private static final AtomicLong terminalDimensionsChangeSeq = new AtomicLong(0);
 
+	private static Long frameCharacterWidth = null;
 	private Long terminalWidth = null;
 	private Long terminalHeight = null;
 	private FrameDimensions currentTerminalFrameDimensions = null;
@@ -1078,5 +1080,18 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		Long terminalHeight = this.getTerminalHeight();
 		
 		this.putWorkItem(new TerminalDimensionsChangedWorkItem(this, terminalWidth, terminalHeight), WorkItemPriority.PRIORITY_LOW);
+	}
+
+
+	public Long getFrameCharacterWidth() throws Exception{
+		synchronized(frameWidthLock){
+			if(ConsoleWriterThreadState.frameCharacterWidth == null){
+				GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
+
+				String exampleFrameCharacter = mode.equals(GraphicsMode.ASCII) ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_HORIZONTAL;
+				ConsoleWriterThreadState.frameCharacterWidth = this.measureTextLengthOnTerminal(exampleFrameCharacter).getDeltaX();
+			}
+			return ConsoleWriterThreadState.frameCharacterWidth;
+		}
 	}
 }

@@ -186,7 +186,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	public void updateListDisplayArea() throws Exception{
 		Long linesOnTop = 0L;
 		Long sidePadding = 0L;
-		Long fchw = this.getFrameCharacterWidth();
+		Long fchw = getConsoleWriterThreadState().getFrameCharacterWidth();
 		Long x1 = fchw + sidePadding;
 		Long y1 = 1L + linesOnTop;
 		Long x2 = x1 + this.getInnerFrameWidth() - 2L * sidePadding;

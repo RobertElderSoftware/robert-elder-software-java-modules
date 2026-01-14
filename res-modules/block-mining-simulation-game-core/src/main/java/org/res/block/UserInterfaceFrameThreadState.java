@@ -86,7 +86,6 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 	private ScreenLayer leftBorder = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, 0,0));
 
 	private Long mapAreaCellWidth = null;
-	private Long frameCharacterWidth = null;
 	public static final int RESET_BG_COLOR = 0;
 	public static final int BOLD_COLOR = 1;
 	public static final int UNDERLINE_COLOR = 4;
@@ -474,23 +473,23 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		return instructions;
 	}
 
-	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, PrintDirection direction, ScreenLayer bottomLayer) throws Exception{
+	public void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, PrintDirection direction, ScreenLayer bottomLayer) throws Exception{
 		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.getFrameDimensions(), direction, new ScreenLayerMergeParameters(bottomLayer, ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
 	}
 
-	protected void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, PrintDirection direction) throws Exception{
+	public void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, PrintDirection direction) throws Exception{
 		this.printTextAtScreenXY(new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, this.getFrameDimensions(), direction, new ScreenLayerMergeParameters(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT], ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
 	}
 
-	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, PrintDirection direction, ScreenLayer bottomLayer) throws Exception{
+	public void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, PrintDirection direction, ScreenLayer bottomLayer) throws Exception{
 		this.printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.getFrameDimensions(), direction, new ScreenLayerMergeParameters(bottomLayer, ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
 	}
 
-	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, PrintDirection direction) throws Exception{
+	public void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, PrintDirection direction) throws Exception{
 		this.printTextAtScreenXY(colouredTextFragmentList, drawOffsetX, drawOffsetY, this.getFrameDimensions(), direction, new ScreenLayerMergeParameters(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT], ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
 	}
 
-	protected void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, FrameDimensions fd, PrintDirection direction, ScreenLayerMergeParameters mergeParams) throws Exception{
+	public void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, FrameDimensions fd, PrintDirection direction, ScreenLayerMergeParameters mergeParams) throws Exception{
 		List<ColouredCharacter> colouredCharacters = colouredTextFragmentList.getColouredCharacters();
 		List<String> charactersToPrint = new ArrayList<String>();
 		int [][] newColourCodes = new int [colouredCharacters.size()][];
@@ -601,7 +600,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 	}
 
 	protected Long getInnerFrameWidth() throws Exception{
-		Long fchrw = this.getFrameCharacterWidth();
+		Long fchrw = getConsoleWriterThreadState().getFrameCharacterWidth();
 		return getFrameWidth() - this.getTotalXBorderSize();
 	}
 
@@ -640,20 +639,10 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		return this.mapAreaCellWidth;
 	}
 
-	public Long getFrameCharacterWidth() throws Exception{
-		if(this.frameCharacterWidth == null){
-			GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
-
-			String exampleFrameCharacter = mode.equals(GraphicsMode.ASCII) ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_HORIZONTAL;
-			this.frameCharacterWidth = getConsoleWriterThreadState().measureTextLengthOnTerminal(exampleFrameCharacter).getDeltaX();
-		}
-		return this.frameCharacterWidth;
-	}
 
 	public Long getFrameCharacterHeight() throws Exception{
 		return 1L;
 	}
-
 
 	protected boolean hasBottomBorder() throws Exception{
 		return this.getTerminalHeight().equals(this.getFrameOffsetY() + this.getFrameHeight());
@@ -669,15 +658,15 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 
 	protected boolean hasRightBorder() throws Exception{
 		//  This should work in both normal and wide character mode:
-		return (this.getFrameOffsetX() + this.getFrameWidth() + this.getFrameCharacterWidth()) >= this.getTerminalWidth();
+		return (this.getFrameOffsetX() + this.getFrameWidth() + getConsoleWriterThreadState().getFrameCharacterWidth()) >= this.getTerminalWidth();
 	}
 
 	protected Long getFrameCharacterWidthLeft() throws Exception{
-		return this.getFrameCharacterWidth();
+		return getConsoleWriterThreadState().getFrameCharacterWidth();
 	}
 
 	protected Long getFrameCharacterWidthRight() throws Exception{
-		return this.getFrameCharacterWidth();
+		return getConsoleWriterThreadState().getFrameCharacterWidth();
 	}
 
 	protected Long getFrameLineWidthTop(){
@@ -703,49 +692,46 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 
 	public String getFrameConnectionCharacterForCoordinate(Coordinate center) throws Exception{
 		Coordinate top = center.changeByDeltaXY(0L, -1L);  //  Cursor position above
-		Coordinate right = center.changeByDeltaXY(this.getFrameCharacterWidth(), 0L); //  Cursor position on right
-		Coordinate left = center.changeByDeltaXY(-this.getFrameCharacterWidth(), 0L); //  Cursor position on left
+		Coordinate right = center.changeByDeltaXY(getConsoleWriterThreadState().getFrameCharacterWidth(), 0L); //  Cursor position on right
+		Coordinate left = center.changeByDeltaXY(-getConsoleWriterThreadState().getFrameCharacterWidth(), 0L); //  Cursor position on left
 		Coordinate bottom = center.changeByDeltaXY(0L, 1L);//  Cursor position below
 		boolean hasTopConnection = getFrameBordersDescription().getFramePoints().contains(top);
 		boolean hasRightConnection = getFrameBordersDescription().getFramePoints().contains(right);
 		boolean hasLeftConnection = getFrameBordersDescription().getFramePoints().contains(left);
 		boolean hasBottomConnection = getFrameBordersDescription().getFramePoints().contains(bottom);
 	
-		GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
-		boolean rg = mode.equals(GraphicsMode.ASCII);
-
 		if(!hasTopConnection && !hasRightConnection && !hasLeftConnection && !hasBottomConnection){      // 0000
-			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_LIGHT_VERTICAL_AND_HORIZONTAL; // ┼  This case should never happen.
+			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b0000);
 		}else if(!hasTopConnection && !hasRightConnection && !hasLeftConnection && hasBottomConnection){ // 0001
-			return rg ? CharacterConstants.VERTICAL_LINE : CharacterConstants.BOX_DRAWINGS_DOWN_DOUBLE_AND_HORIZONTAL_SINGLE; // ╥  This case should never happen.
+			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b0001);
 		}else if(!hasTopConnection && !hasRightConnection && hasLeftConnection && !hasBottomConnection){ // 0010
-			return rg ? CharacterConstants.EQUALS_SIGN : CharacterConstants.BOX_DRAWINGS_VERTICAL_SINGLE_AND_LEFT_DOUBLE; // ╡  This case should never happen.
+			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b0010);
 		}else if(!hasTopConnection && !hasRightConnection && hasLeftConnection && hasBottomConnection){  // 0011
-			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_DOWN_AND_LEFT; // ╗
+			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b0011);
 		}else if(!hasTopConnection && hasRightConnection && !hasLeftConnection && !hasBottomConnection){ // 0100
-			return rg ? CharacterConstants.EQUALS_SIGN : CharacterConstants.BOX_DRAWINGS_VERTICAL_SINGLE_AND_RIGHT_DOUBLE; // ╞  This case should never happen.
+			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b0100);
 		}else if(!hasTopConnection && hasRightConnection && !hasLeftConnection && hasBottomConnection){  // 0101
-			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_DOWN_AND_RIGHT; // ╔
+			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b0101);
 		}else if(!hasTopConnection && hasRightConnection && hasLeftConnection && !hasBottomConnection){  // 0110
-			return rg ? CharacterConstants.EQUALS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_HORIZONTAL; // ═
+			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b0110);
 		}else if(!hasTopConnection && hasRightConnection && hasLeftConnection && hasBottomConnection){   // 0111
-			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_DOWN_AND_HORIZONTAL; // ╦
+			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b0111);
 		}else if(hasTopConnection && !hasRightConnection && !hasLeftConnection && !hasBottomConnection){ // 1000
-			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_UP_DOUBLE_AND_HORIZONTAL_SINGLE; // ╨  This case should never happen.
+			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b1000);
 		}else if(hasTopConnection && !hasRightConnection && !hasLeftConnection && hasBottomConnection){  // 1001
-			return rg ? CharacterConstants.VERTICAL_LINE : CharacterConstants.BOX_DRAWINGS_DOUBLE_VERTICAL; // ║
+			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b1001);
 		}else if(hasTopConnection && !hasRightConnection && hasLeftConnection && !hasBottomConnection){  // 1010
-			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_UP_AND_LEFT; // ╝
+			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b1010);
 		}else if(hasTopConnection && !hasRightConnection && hasLeftConnection && hasBottomConnection){   // 1011
-			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_VERTICAL_AND_LEFT; // ╣
+			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b1011);
 		}else if(hasTopConnection && hasRightConnection && !hasLeftConnection && !hasBottomConnection){  // 1100
-			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_UP_AND_RIGHT; // ╚
+			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b1100);
 		}else if(hasTopConnection && hasRightConnection && !hasLeftConnection && hasBottomConnection){   // 1101
-			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_VERTICAL_AND_RIGHT; // ╠
+			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b1101);
 		}else if(hasTopConnection && hasRightConnection && hasLeftConnection && !hasBottomConnection){   // 1110
-			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_UP_AND_HORIZONTAL; // ╩
+			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b1110);
 		}else if(hasTopConnection && hasRightConnection && hasLeftConnection && hasBottomConnection){    // 1111
-			return rg ? CharacterConstants.PLUS_SIGN : CharacterConstants.BOX_DRAWINGS_DOUBLE_VERTICAL_AND_HORIZONTAL; // ╬
+			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b1111);
 		}else{
 			throw new Exception("Impossible.");
 		}
@@ -769,7 +755,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 	}
 
 	public void initializeBorders() throws Exception{
-		Long fchrw = this.getFrameCharacterWidth();
+		Long fchrw = getConsoleWriterThreadState().getFrameCharacterWidth();
 		boolean hasLeftBorder = this.hasLeftBorder();
 		boolean hasTopBorder = this.hasTopBorder();
 		boolean hasRightBorder = this.hasRightBorder();

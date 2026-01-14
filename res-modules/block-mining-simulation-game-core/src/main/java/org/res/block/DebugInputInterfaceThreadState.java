@@ -55,13 +55,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class DebugInputInterfaceThreadState extends UserInterfaceFrameThreadState implements TextInputContainer{
+public class DebugInputInterfaceThreadState extends UserInterfaceFrameThreadState implements InputFormContainer{
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
 	private ClientBlockModelContext clientBlockModelContext;
-	private TextInputArea textInputArea;
+	private InputForm textInputAreaCollection;
 
 	public DebugInputInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
 		super(blockManagerThreadCollection, consoleWriterThreadState, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
@@ -74,24 +74,18 @@ public class DebugInputInterfaceThreadState extends UserInterfaceFrameThreadStat
 	}
 
 	protected void init(Object o) throws Exception{
-		Long maxColumns = 200L;
-		Long maxLines = 1L;
-		this.textInputArea = new TextInputArea(this);
-		this.textInputArea.updateRenderableArea(
-			new Coordinate(Arrays.asList(5L, 5L)),
-			new CuboidAddress(
-				new Coordinate(Arrays.asList(0L, 0L)),
-				new Coordinate(Arrays.asList(20L, 4L))
-			),
-			maxColumns,
-			maxLines
-		);
+		this.textInputAreaCollection = new InputForm(this);
+		this.textInputAreaCollection.addInputFormLabel("coding_input_area_label", "Coding Input Area:");
+		this.textInputAreaCollection.addInputFormTextArea("coding_input_area", null);
+		this.textInputAreaCollection.addInputFormLabel("name_input_area_label", "Name Input Area:");
+		this.textInputAreaCollection.addInputFormTextArea("name_input_area", 1L);
+		this.textInputAreaCollection.addInputFormButton("submit_button", "Submit");
+
+		this.textInputAreaCollection.setFocusedItem("coding_input_area");
 	}
 
-	public void onDefaultKeyboardInput(String actionString) throws Exception {
-		this.textInputArea.onKeyboardCharacter(this, actionString);
-		this.onRenderFrame(false, false);
-		this.onFinalizeFrame();
+	public void onDefaultKeyboardInput(String character) throws Exception {
+		this.textInputAreaCollection.onKeyboardCharacter(character);
 	}
 
 	public void onKeyboardInput(String actionString) throws Exception {
@@ -103,23 +97,82 @@ public class DebugInputInterfaceThreadState extends UserInterfaceFrameThreadStat
 		}else{
 			switch(action){
 				case ACTION_TAB_NEXT_FRAME:{
-					getConsoleWriterThreadState().putBlockingWorkItem(new FocusOnNextFrameWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
+					String newFocusId = this.textInputAreaCollection.setNextInputFocus();
+					//  Cycled through all inputs:
+					if(newFocusId == null){
+						getConsoleWriterThreadState().putBlockingWorkItem(new FocusOnNextFrameWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
+					}else{
+
+					}
 					break;
 				}default:{
 					this.onDefaultKeyboardInput(actionString);
 				}
 			}
 		}
-	}
-
-	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{
-		this.textInputArea.onAnsiEscapeSequence(this, ansiEscapeSequence);
 		this.onRenderFrame(false, false);
 		this.onFinalizeFrame();
 	}
 
+	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{
+		this.textInputAreaCollection.onAnsiEscapeSequence(ansiEscapeSequence);
+		this.onRenderFrame(false, false);
+		this.onFinalizeFrame();
+	}
+
+	public Long getTextAreaHeight() throws Exception{
+		return Math.max(0, (this.getInnerFrameHeight() - 2L) / 2L);
+	}
+
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
-		this.textInputArea.render(this, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
+
+		Long textAreaWidth = Math.max(0, this.getInnerFrameWidth() - 2L);
+
+		this.textInputAreaCollection.updateRenderableArea(
+			"coding_input_area_label",
+			new Coordinate(Arrays.asList(2L, 1L)),
+			new CuboidAddress(
+				new Coordinate(Arrays.asList(0L, 0L)),
+				new Coordinate(Arrays.asList(textAreaWidth, 1L))
+			)
+		);
+
+		this.textInputAreaCollection.updateRenderableArea(
+			"coding_input_area",
+			new Coordinate(Arrays.asList(2L, 2L)),
+			new CuboidAddress(
+				new Coordinate(Arrays.asList(0L, 0L)),
+				new Coordinate(Arrays.asList(textAreaWidth, this.getTextAreaHeight()))
+			)
+		);
+
+		this.textInputAreaCollection.updateRenderableArea(
+			"name_input_area_label",
+			new Coordinate(Arrays.asList(2L, 2L + getTextAreaHeight() + 2L)),
+			new CuboidAddress(
+				new Coordinate(Arrays.asList(0L, 0L)),
+				new Coordinate(Arrays.asList(textAreaWidth, 1L))
+			)
+		);
+
+		this.textInputAreaCollection.updateRenderableArea(
+			"name_input_area",
+			new Coordinate(Arrays.asList(2L, 2L + getTextAreaHeight() + 3L)),
+			new CuboidAddress(
+				new Coordinate(Arrays.asList(0L, 0L)),
+				new Coordinate(Arrays.asList(textAreaWidth, 1L))
+			)
+		);
+		this.textInputAreaCollection.updateRenderableArea(
+			"submit_button",
+			new Coordinate(Arrays.asList(2L, 2L + getTextAreaHeight() + 5L)),
+			new CuboidAddress(
+				new Coordinate(Arrays.asList(0L, 0L)),
+				new Coordinate(Arrays.asList(textAreaWidth, 3L))
+			)
+		);
+
+		this.textInputAreaCollection.render(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
 		this.drawBorders();
 	}
 
