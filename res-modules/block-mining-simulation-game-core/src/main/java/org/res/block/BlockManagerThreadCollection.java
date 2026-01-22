@@ -87,6 +87,7 @@ public class BlockManagerThreadCollection {
 	private UserInteractionConfig userInteractionConfig = null;
 	private Boolean assumeEmojisAreSupported = null;
 	private List<ClientBlockModelContext> clientBlockModelContexts = new ArrayList<ClientBlockModelContext>();
+	private Map<String, BlockWorldConnection> blockWorldConnections = new HashMap<String, BlockWorldConnection>();
 
 	public BlockManagerThreadCollection(CommandLineArgumentCollection commandLineArgumentCollection, boolean ensureStdinIsATTY) throws Exception {
 		//  This is not very portable, but I actually don't know how many terminals
@@ -142,6 +143,13 @@ public class BlockManagerThreadCollection {
 
 	public ConsoleWriterThreadState getConsoleWriterThreadState(){
 		return this.consoleWriterThreadState;
+	}
+
+	public final void addBlockWorldConnection(BlockWorldConnection blockWorldConnection) throws Exception{
+		if(!this.blockWorldConnections.containsKey(blockWorldConnection.getWorldAddressString())){
+			blockWorldConnection.init();
+			this.blockWorldConnections.put(blockWorldConnection.getWorldAddressString(), blockWorldConnection);
+		}
 	}
 
 	public final void addClientBlockModelContext(ClientBlockModelContext clientBlockModelContext){
@@ -463,7 +471,7 @@ public class BlockManagerThreadCollection {
 			Long root = cwts.makeVerticalSplit();
 			List<Long> topSplits = new ArrayList<Long>();
 			topSplits.add(subSplit);
-			topSplits.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(DebugInputInterfaceThreadState.class, client)));
+			topSplits.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(OpenWorldConnectionInterfaceThreadState.class, client)));
 			List<Double> topSplitPercents = new ArrayList<Double>();
 			topSplitPercents.add(0.75);
 			topSplitPercents.add(0.25);

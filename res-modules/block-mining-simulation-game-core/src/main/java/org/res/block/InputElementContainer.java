@@ -30,41 +30,15 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Arrays;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.ArrayList;
-
-import org.res.block.WorkItem;
-import org.res.block.BlockSession;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public abstract class InputFormElement {
-
-	protected static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	protected InputElementContainer container;
-	protected Coordinate placementOffset = new Coordinate(Arrays.asList(0L, 0L));
-	protected String name;
-
-	public InputFormElement(String name, InputElementContainer container) throws Exception{
-		this.name = name;
-		this.container = container;
-	}
-
-	public String getName(){
-		return this.name;
-	}
-
-	public abstract boolean canCaptureFocus() throws Exception;
-	public abstract void sendCursorUpdate() throws Exception;
-	public abstract void onKeyboardCharacter(InputElementContainer container, String character) throws Exception;
-
-	public abstract void onAnsiEscapeSequence(InputElementContainer container, AnsiEscapeSequence ansiEscapeSequence) throws Exception;
-
-	public abstract void updateRenderableArea(Coordinate placementOffset, CuboidAddress visibleArea, boolean hasFocus) throws Exception;
-	public abstract void render(InputElementContainer container, ScreenLayer bottomLayer) throws Exception;
+public interface InputElementContainer {
+	public void onButtonPress(String buttonName) throws Exception;
+	public void onCursorPositionChange(Coordinate c) throws Exception;
+	public BlockManagerThreadCollection getBlockManagerThreadCollection();
+	public ConsoleWriterThreadState getConsoleWriterThreadState();
+	public void printTextAtScreenXY(ColouredTextFragment ctf, Long x, Long y, PrintDirection direction, ScreenLayer screenLayer) throws Exception;
+	public void updateFocusedElement(int adjustment) throws Exception;
 }

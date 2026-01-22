@@ -51,6 +51,14 @@ public class DatabaseBlockWorldConnection extends BlockWorldConnection {
 	}
 
 	public String getWorldAddressString() throws Exception{
-		return "TODO";
+		if(this.databaseConnectionParameters.getSubprotocol().equals("sqlite")){
+			return this.databaseConnectionParameters.getSubprotocol() + ":" + this.databaseConnectionParameters.getFilename();
+		}else{
+			return this.databaseConnectionParameters.getSubprotocol() + "://" +
+			this.databaseConnectionParameters.getHostname() + ":" +
+			this.databaseConnectionParameters.getPort() + "/" +
+			this.databaseConnectionParameters.getDatabaseName() + "?user=" +
+			this.databaseConnectionParameters.getUsername();
+		}
 	}
 }

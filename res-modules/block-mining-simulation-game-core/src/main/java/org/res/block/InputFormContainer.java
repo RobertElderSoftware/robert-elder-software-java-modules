@@ -35,7 +35,9 @@ import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
 public interface InputFormContainer {
+	public void onButtonPress(String buttonName) throws Exception;
 	public void onCursorPositionChange(Coordinate c) throws Exception;
+	public BlockManagerThreadCollection getBlockManagerThreadCollection();
 	public ConsoleWriterThreadState getConsoleWriterThreadState();
 	public void printTextAtScreenXY(ColouredTextFragment ctf, Long x, Long y, PrintDirection direction, ScreenLayer screenLayer) throws Exception;
 }

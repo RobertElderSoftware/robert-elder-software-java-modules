@@ -56,16 +56,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class DebugInputInterfaceThreadState extends UserInterfaceFrameThreadState implements InputFormContainer{
+public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameThreadState implements InputFormContainer{
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
 	private ClientBlockModelContext clientBlockModelContext;
 	private InputForm textInputAreaCollection;
-	private String initialFocus = "coding_input_area";
+	private String initialFocus = "local_world_name";
 
-	public DebugInputInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
+	public OpenWorldConnectionInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
 		super(blockManagerThreadCollection, consoleWriterThreadState, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
@@ -77,12 +77,27 @@ public class DebugInputInterfaceThreadState extends UserInterfaceFrameThreadStat
 
 	protected void init(Object o) throws Exception{
 		this.textInputAreaCollection = new InputForm(this);
-		this.textInputAreaCollection.addInputFormLabel("coding_input_area_label", "Coding Input Area:");
-		this.textInputAreaCollection.addInputFormTextArea("coding_input_area", null);
-		this.textInputAreaCollection.addInputFormLabel("name_input_area_label", "Name Input Area:");
-		this.textInputAreaCollection.addInputFormTextArea("name_input_area", 1L);
-		this.textInputAreaCollection.addInputFormButton("submit_button", "Submit");
-		this.textInputAreaCollection.addInputFormButton("close_frame_button", "Close Frame");
+		this.textInputAreaCollection.addInputFormLabel("local_world_name_label", "Local World File Name:");
+		this.textInputAreaCollection.addInputFormTextArea("local_world_name", 1L);
+		this.textInputAreaCollection.setInputFormTextAreaText("local_world_name", "/tmp/world1.sql");
+
+		this.textInputAreaCollection.addInputFormButton("local_world_submit_button", "Submit");
+
+		this.textInputAreaCollection.addInputFormLabel("hostname_ip_label", "Hostname Or IP Address:");
+		this.textInputAreaCollection.addInputFormTextArea("hostname_ip", 1L);
+		this.textInputAreaCollection.setInputFormTextAreaText("hostname_ip", "127.0.0.1");
+
+		this.textInputAreaCollection.addInputFormLabel("port_label", "Port:");
+		this.textInputAreaCollection.addInputFormTextArea("port", 1L);
+		this.textInputAreaCollection.setInputFormTextAreaText("port", "8888");
+
+		this.textInputAreaCollection.addInputFormLabel("url_label", "URL:");
+		this.textInputAreaCollection.addInputFormTextArea("url", 1L);
+		this.textInputAreaCollection.setInputFormTextAreaText("url", "/block_manager");
+
+		this.textInputAreaCollection.addInputFormButton("websockets_world_submit_button", "Submit");
+
+		this.textInputAreaCollection.addInputFormButton("close_frame_button", "Close");
 
 		this.textInputAreaCollection.setFocusedItem(initialFocus);
 	}
@@ -125,23 +140,42 @@ public class DebugInputInterfaceThreadState extends UserInterfaceFrameThreadStat
 		this.onFinalizeFrame();
 	}
 
-	public Long getTextAreaHeight() throws Exception{
-		return Math.max(0, (this.getInnerFrameHeight() - 2L) / 2L);
-	}
-
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
 
+		Long spaceWidth = getConsoleWriterThreadState().measureTextLengthOnTerminal(CharacterConstants.SPACE).getDeltaX();
+		Long initialOffset = 2L;
+
+		int [] titleAnsiCodes = UserInterfaceFrameThreadState.getHelpDetailsTitleColors();
+
+		ColouredTextFragmentList activeWorldsTitlePart = new ColouredTextFragmentList();
+		activeWorldsTitlePart.add(new ColouredTextFragment("Active World Connection:", titleAnsiCodes));
+
+		List<LinePrintingInstruction> activeWorldsTitleInstructions = this.getLinePrintingInstructions(activeWorldsTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+
+		//for(int i = 0; i < this.getBlockManagerThreadCollection().getWorldConnections().size(); i++){
+			
+		//}
+
+		this.executeLinePrintingInstructionsAtYOffset(activeWorldsTitleInstructions, initialOffset);
+
+		Long localTitleOffset = initialOffset + activeWorldsTitleInstructions.size();
+
+		ColouredTextFragmentList localTitlePart = new ColouredTextFragmentList();
+		localTitlePart.add(new ColouredTextFragment("Open Local World Connection:", titleAnsiCodes));
+
+
+		List<LinePrintingInstruction> localTitleInstructions = this.getLinePrintingInstructions(localTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+
+		this.executeLinePrintingInstructionsAtYOffset(localTitleInstructions, localTitleOffset);
+
 		Long textAreaWidth = Math.max(0, this.getInnerFrameWidth() - 2L);
-		Long codingAreaLabelOffset = 1L;
-		Long codingAreaOffset = codingAreaLabelOffset + 1L;
-		Long nameInputLabelOffset = codingAreaOffset + this.getTextAreaHeight() + 2L;
-		Long nameInputAreaOffset = nameInputLabelOffset + 1L;
-		Long submitButtonOffset = nameInputAreaOffset + 3L;
-		Long closeFrameButtonOffset = submitButtonOffset + 3L;
+		Long localWorldLabelOffset = localTitleOffset + localTitleInstructions.size() + 2L;
+		Long localWorldOffset = localWorldLabelOffset + 1L;
+		Long localSubmitButtonOffset = localWorldOffset + 2L;
 
 		this.textInputAreaCollection.updateRenderableArea(
-			"coding_input_area_label",
-			new Coordinate(Arrays.asList(2L, codingAreaLabelOffset)),
+			"local_world_name_label",
+			new Coordinate(Arrays.asList(2L, localWorldLabelOffset)),
 			new CuboidAddress(
 				new Coordinate(Arrays.asList(0L, 0L)),
 				new Coordinate(Arrays.asList(textAreaWidth, 1L))
@@ -149,17 +183,8 @@ public class DebugInputInterfaceThreadState extends UserInterfaceFrameThreadStat
 		);
 
 		this.textInputAreaCollection.updateRenderableArea(
-			"coding_input_area",
-			new Coordinate(Arrays.asList(2L, codingAreaOffset)),
-			new CuboidAddress(
-				new Coordinate(Arrays.asList(0L, 0L)),
-				new Coordinate(Arrays.asList(textAreaWidth, this.getTextAreaHeight()))
-			)
-		);
-
-		this.textInputAreaCollection.updateRenderableArea(
-			"name_input_area_label",
-			new Coordinate(Arrays.asList(2L, nameInputLabelOffset)),
+			"local_world_name",
+			new Coordinate(Arrays.asList(2L, localWorldOffset)),
 			new CuboidAddress(
 				new Coordinate(Arrays.asList(0L, 0L)),
 				new Coordinate(Arrays.asList(textAreaWidth, 1L))
@@ -167,16 +192,89 @@ public class DebugInputInterfaceThreadState extends UserInterfaceFrameThreadStat
 		);
 
 		this.textInputAreaCollection.updateRenderableArea(
-			"name_input_area",
-			new Coordinate(Arrays.asList(2L, nameInputAreaOffset)),
+			"local_world_submit_button",
+			new Coordinate(Arrays.asList(2L, localSubmitButtonOffset)),
+			new CuboidAddress(
+				new Coordinate(Arrays.asList(0L, 0L)),
+				new Coordinate(Arrays.asList(textAreaWidth, 3L))
+			)
+		);
+
+		ColouredTextFragmentList websocketsTitlePart = new ColouredTextFragmentList();
+		websocketsTitlePart.add(new ColouredTextFragment("Open Websockets World Connection:", titleAnsiCodes));
+
+		List<LinePrintingInstruction> websocketsTitleInstructions = this.getLinePrintingInstructions(websocketsTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+
+		Long websocketsTitleOffset = localSubmitButtonOffset + 3L;
+		this.executeLinePrintingInstructionsAtYOffset(websocketsTitleInstructions, websocketsTitleOffset);
+
+		Long hostnameIpLabelOffset = websocketsTitleOffset + websocketsTitleInstructions.size() + 1L;
+		Long hostnameIpOffset = hostnameIpLabelOffset + 1L;
+		Long portLabelOffset = hostnameIpOffset + 2L;
+		Long portOffset = portLabelOffset + 1L;
+		Long urlLabelOffset = portOffset + 2L;
+		Long urlOffset = urlLabelOffset + 1L;
+		Long websocketsSubmitButtonOffset = urlOffset + 2L;
+
+		Long closeFrameButtonOffset = websocketsSubmitButtonOffset + 4L;
+
+		this.textInputAreaCollection.updateRenderableArea(
+			"hostname_ip_label",
+			new Coordinate(Arrays.asList(2L, hostnameIpLabelOffset)),
 			new CuboidAddress(
 				new Coordinate(Arrays.asList(0L, 0L)),
 				new Coordinate(Arrays.asList(textAreaWidth, 1L))
 			)
 		);
+
 		this.textInputAreaCollection.updateRenderableArea(
-			"submit_button",
-			new Coordinate(Arrays.asList(2L, submitButtonOffset)),
+			"hostname_ip",
+			new Coordinate(Arrays.asList(2L, hostnameIpOffset)),
+			new CuboidAddress(
+				new Coordinate(Arrays.asList(0L, 0L)),
+				new Coordinate(Arrays.asList(textAreaWidth, 1L))
+			)
+		);
+
+		this.textInputAreaCollection.updateRenderableArea(
+			"port_label",
+			new Coordinate(Arrays.asList(2L, portLabelOffset)),
+			new CuboidAddress(
+				new Coordinate(Arrays.asList(0L, 0L)),
+				new Coordinate(Arrays.asList(textAreaWidth, 1L))
+			)
+		);
+
+		this.textInputAreaCollection.updateRenderableArea(
+			"port",
+			new Coordinate(Arrays.asList(2L, portOffset)),
+			new CuboidAddress(
+				new Coordinate(Arrays.asList(0L, 0L)),
+				new Coordinate(Arrays.asList(textAreaWidth, 1L))
+			)
+		);
+
+		this.textInputAreaCollection.updateRenderableArea(
+			"url_label",
+			new Coordinate(Arrays.asList(2L, urlLabelOffset)),
+			new CuboidAddress(
+				new Coordinate(Arrays.asList(0L, 0L)),
+				new Coordinate(Arrays.asList(textAreaWidth, 1L))
+			)
+		);
+
+		this.textInputAreaCollection.updateRenderableArea(
+			"url",
+			new Coordinate(Arrays.asList(2L, urlOffset)),
+			new CuboidAddress(
+				new Coordinate(Arrays.asList(0L, 0L)),
+				new Coordinate(Arrays.asList(textAreaWidth, 1L))
+			)
+		);
+
+		this.textInputAreaCollection.updateRenderableArea(
+			"websockets_world_submit_button",
+			new Coordinate(Arrays.asList(2L, websocketsSubmitButtonOffset)),
 			new CuboidAddress(
 				new Coordinate(Arrays.asList(0L, 0L)),
 				new Coordinate(Arrays.asList(textAreaWidth, 3L))

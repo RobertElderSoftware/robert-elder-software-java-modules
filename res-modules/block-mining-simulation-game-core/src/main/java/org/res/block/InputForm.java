@@ -44,10 +44,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class InputForm implements InputFormContainer {
+public class InputForm implements InputElementContainer {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	//  Ordered list to cycle though with tab press:
+	//  For iterating through tab presses:
+	private List<InputFormElement> focusableFormElementsList = new ArrayList<InputFormElement>();
+	//  Ordered list of items:
 	private List<InputFormElement> formElementsList = new ArrayList<InputFormElement>();
 	//  Map for O(1) access method:
 	private Map<String, InputFormElement> formElementsMap = new HashMap<String, InputFormElement>();
@@ -62,6 +64,10 @@ public class InputForm implements InputFormContainer {
 		return this.container.getConsoleWriterThreadState();
 	}
 
+	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
+		return this.container.getBlockManagerThreadCollection();
+	}
+
 	public void onCursorPositionChange(Coordinate c) throws Exception{
 		this.container.onCursorPositionChange(c);
 	}
@@ -70,22 +76,24 @@ public class InputForm implements InputFormContainer {
 		this.container.printTextAtScreenXY(ctf, x, y, direction, screenLayer);
 	}
 
+	public void addFormElement(String name, InputFormElement element) throws Exception{
+		formElementsList.add(element);
+		formElementsMap.put(name, element);
+		if(element.canCaptureFocus()){
+			focusableFormElementsList.add(element);
+		}
+	}
+
 	public void addInputFormTextArea(String name, Long maxLines) throws Exception{
-		InputFormTextArea tia = new InputFormTextArea(name, this.container, maxLines);
-		formElementsList.add(tia);
-		formElementsMap.put(tia.getName(), tia);
+		this.addFormElement(name, new InputFormTextArea(name, this, maxLines));
 	}
 
 	public void addInputFormLabel(String name, String text) throws Exception{
-		InputFormLabel label = new InputFormLabel(name, this.container, text);
-		formElementsList.add(label);
-		formElementsMap.put(label.getName(), label);
+		this.addFormElement(name, new InputFormLabel(name, this, text));
 	}
 
 	public void addInputFormButton(String name, String text) throws Exception{
-		InputFormButton button = new InputFormButton(name, this.container, text);
-		formElementsList.add(button);
-		formElementsMap.put(button.getName(), button);
+		this.addFormElement(name, new InputFormButton(name, this, text));
 	}
 
 	public void setFocusedItem(String itemName) throws Exception{
@@ -96,57 +104,82 @@ public class InputForm implements InputFormContainer {
 		}
 	}
 
-	public String setNextInputFocus() throws Exception{
-		String newFocusItem = null;
-		Integer focusedIndex = null;
-		for(int i = 0; i < formElementsList.size(); i++){
-			if(this.focusedItemName == null || this.focusedItemName.equals(formElementsList.get(i).getName())){
-				focusedIndex = i;
-				break;
+	public Integer getCurrentFocusIndex(){
+		for(int i = 0; i < focusableFormElementsList.size(); i++){
+			if(this.focusedItemName == null || this.focusedItemName.equals(focusableFormElementsList.get(i).getName())){
+				return i;
 			}
 		}
-		if(focusedIndex != null){
-			//  Focus was on last input area:
-			if((formElementsList.size() -1) == focusedIndex){ 
-				this.focusedItemName = formElementsList.get(0).getName();
-				newFocusItem = null;
+		return null;
+	}
+
+	public String getFocusedItemName() throws Exception{
+		return this.focusedItemName;
+	}
+
+	public String tryChangeElementFocus(int indexAdjustment) throws Exception{
+		Integer focusedIndex = this.getCurrentFocusIndex();
+
+		if(focusedIndex == null){
+			//  No input areas at all:
+			return null;
+		}else{
+			Integer newFocusIndex = focusedIndex + indexAdjustment;
+			//  Past the end of the list:
+			if(newFocusIndex < 0){
+				//  Do nothing:  Proposed focus goes beyond start of form.
+			}else if((focusableFormElementsList.size() -1) < newFocusIndex){
+				//  Do nothing:  Proposed focus goes beyond end of form.
 			}else{
 				// Advance focus to next input area:
-				this.focusedItemName = formElementsList.get(focusedIndex + 1).getName();
-				newFocusItem = this.formElementsMap.get(this.focusedItemName).getName();
+				this.focusedItemName = focusableFormElementsList.get(newFocusIndex).getName();
 			}
-		}else{
-			//  No input areas at all:
-			newFocusItem = null;
+			this.refreshCursor();
+			return this.focusedItemName;
 		}
-
-		this.setFocusedItem(this.focusedItemName);
-		return newFocusItem;
 	}
 
 	public void onKeyboardCharacter(String character) throws Exception {
 		if(this.focusedItemName != null){
-			this.formElementsMap.get(this.focusedItemName).onKeyboardCharacter(this.container, character);
+			this.formElementsMap.get(this.focusedItemName).onKeyboardCharacter(this, character);
 		}
+		this.refreshCursor();
 	}
 
 	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{
 		if(this.focusedItemName != null){
-			this.formElementsMap.get(this.focusedItemName).onAnsiEscapeSequence(this.container, ansiEscapeSequence);
+			this.formElementsMap.get(this.focusedItemName).onAnsiEscapeSequence(this, ansiEscapeSequence);
 		}
+		this.refreshCursor();
 	}
 
 	public void updateRenderableArea(String name, Coordinate placementOffset, CuboidAddress visibleArea) throws Exception{
 		boolean hasFocus = this.focusedItemName != null && this.focusedItemName.equals(name);
 		this.formElementsMap.get(name).updateRenderableArea(placementOffset, visibleArea, hasFocus);
+		this.refreshCursor();
+	}
+
+	public void render(ScreenLayer bottomLayer) throws Exception{
+		for(InputFormElement area : this.formElementsList){
+			area.render(this, bottomLayer);
+		}
+	}
+
+	public void updateFocusedElement(int adjustment) throws Exception{
+		this.tryChangeElementFocus(adjustment);
+	}
+
+	public void refreshCursor() throws Exception{
 		if(this.focusedItemName != null){
 			this.formElementsMap.get(this.focusedItemName).sendCursorUpdate();
 		}
 	}
 
-	public void render(ScreenLayer bottomLayer) throws Exception{
-		for(InputFormElement area : this.formElementsList){
-			area.render(this.container, bottomLayer);
-		}
+	public void onButtonPress(String buttonName) throws Exception{
+		this.container.onButtonPress(buttonName);
+	}
+
+	public void setInputFormTextAreaText(String name, String text) throws Exception{
+		((InputFormTextArea)this.formElementsMap.get(name)).setText(this, text);
 	}
 }

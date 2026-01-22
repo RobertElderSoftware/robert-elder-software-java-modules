@@ -202,6 +202,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 						new HelpMenuLevel(
 							Arrays.asList(
 								new OpenFrameClassHelpMenuOption("Open Help Menu", HelpMenuOptionType.OPEN_NEW_FRAME, HelpDetailsFrameThreadState.class),
+								new OpenFrameClassHelpMenuOption("Open Open World Connection Menu", HelpMenuOptionType.OPEN_NEW_FRAME, OpenWorldConnectionInterfaceThreadState.class),
 								new OpenFrameClassHelpMenuOption("Open Map Area", HelpMenuOptionType.OPEN_NEW_FRAME, MapAreaInterfaceThreadState.class),
 								new OpenFrameClassHelpMenuOption("Open Crafting Menu", HelpMenuOptionType.OPEN_NEW_FRAME, CraftingInterfaceThreadState.class),
 								new OpenFrameClassHelpMenuOption("Open Debug List", HelpMenuOptionType.OPEN_NEW_FRAME, DebugListInterfaceThreadState.class),
@@ -291,54 +292,8 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		cwts.putWorkItem(new TellClientTerminalChangedWorkItem(cwts), WorkItemPriority.PRIORITY_LOW);
 	}
 
-	public void removeSplitWithFrameId(Long splitId, Long frameId) throws Exception {
-		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
 
-		GetSplitInfoWorkItem getSplitInfoWorkItem = new GetSplitInfoWorkItem(cwts, splitId, false);
-		WorkItemResult getSplitInfoWorkItemResult = cwts.putBlockingWorkItem(getSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
-		SplitInfoWorkItemResult parentInfo = ((SplitInfoWorkItemResult)getSplitInfoWorkItemResult);
-		if(frameId.equals(parentInfo.getFrameId())){
-			RemoveChildSplitWorkItem r = new RemoveChildSplitWorkItem(cwts, splitId);
-			cwts.putBlockingWorkItem(r, WorkItemPriority.PRIORITY_LOW);
-		}
 
-		// Continue searching through children:
-		GetSplitChildrenInfoWorkItem getSplitChildrenInfoWorkItem = new GetSplitChildrenInfoWorkItem(cwts, splitId);
-		WorkItemResult getSplitChildrenInfoWorkItemResult = cwts.putBlockingWorkItem(getSplitChildrenInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
-		GetSplitChildrenInfoWorkItemResult childInfos = ((GetSplitChildrenInfoWorkItemResult)getSplitChildrenInfoWorkItemResult);
-		for(SplitInfoWorkItemResult info : childInfos.getSplitInfos()){
-			removeSplitWithFrameId(info.getSplitId(), frameId);
-		}
-	}
-
-	public void onCloseCurrentFrame() throws Exception {
-		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
-
-		//  TODO:  This needs to be generalized once there are multiple clients:
-		ClientBlockModelContext client = this.blockManagerThreadCollection.getClientBlockModelContexts().get(0);
-		//  Get id of currently focused frame
-		GetFocusedFrameWorkItem getFocusedFrameWorkItem = new GetFocusedFrameWorkItem(cwts);
-		WorkItemResult getFocusedFrameWorkItemResult = cwts.putBlockingWorkItem(getFocusedFrameWorkItem, WorkItemPriority.PRIORITY_LOW);
-		Long focusedFrameId = ((GetFocusedFrameWorkItemResult)getFocusedFrameWorkItemResult).getFocusedFrameId();
-
-		if(focusedFrameId == null){
-			logger.info("Not removing frame, focusedFrameId was null");
-		}else{
-			//  Figure out the id of the root split
-			GetSplitInfoWorkItem getRootSplitInfoWorkItem = new GetSplitInfoWorkItem(cwts, null, true);
-			WorkItemResult getRootSplitInfoWorkItemResult = cwts.putBlockingWorkItem(getRootSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
-			Long rootSplitId  = ((SplitInfoWorkItemResult)getRootSplitInfoWorkItemResult).getSplitId();
-			//  Remove this split
-			this.removeSplitWithFrameId(rootSplitId, focusedFrameId);
-
-			//  Close the focused frame
-			ConsoleWriterWorkItem w = new CloseFrameWorkItem(cwts, focusedFrameId, client);
-			cwts.putBlockingWorkItem(w, WorkItemPriority.PRIORITY_LOW);
-		}
-
-		//  Update screen
-		cwts.putWorkItem(new TellClientTerminalChangedWorkItem(cwts), WorkItemPriority.PRIORITY_LOW);
-	}
 
 	public void onOpenFrame(Class<?> frameStateClass) throws Exception {
 

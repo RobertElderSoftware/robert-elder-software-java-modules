@@ -248,31 +248,18 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public Long createFrameThread(Long frameId, Class<?> frameStateClass) throws Exception{
-		if(
-			frameStateClass == HelpMenuFrameThreadState.class ||
-			frameStateClass == HelpDetailsFrameThreadState.class ||
-			frameStateClass == EmptyFrameThreadState.class ||
-			frameStateClass == DebugInputInterfaceThreadState.class ||
-			frameStateClass == DebugListInterfaceThreadState.class ||
-			frameStateClass == CraftingInterfaceThreadState.class ||
-			frameStateClass == MapAreaInterfaceThreadState.class ||
-			frameStateClass == InventoryInterfaceThreadState.class
-		){
-			UserInterfaceFrameThreadState frame = this.getFrameStateById(frameId);
+		UserInterfaceFrameThreadState frame = this.getFrameStateById(frameId);
 
-			WorkItemProcessorTask<UIWorkItem> thread = new WorkItemProcessorTask<UIWorkItem>(frame, UIWorkItem.class, frame.getClass());
-			this.blockManagerThreadCollection.addThread(thread);
+		WorkItemProcessorTask<UIWorkItem> thread = new WorkItemProcessorTask<UIWorkItem>(frame, UIWorkItem.class, frame.getClass());
+		this.blockManagerThreadCollection.addThread(thread);
 
-			if(activeFrameThreads.containsKey(frameId)){
-				throw new Exception("Error, duplicate frame id for thread: " + frameId);
-			}else{
-				activeFrameThreads.put(frameId, thread);
-			}
-
-			return frameId;
+		if(activeFrameThreads.containsKey(frameId)){
+			throw new Exception("Error, duplicate frame id for thread: " + frameId);
 		}else{
-			throw new Exception("Unknown frame state type " + frameStateClass.getName());
+			activeFrameThreads.put(frameId, thread);
 		}
+
+		return frameId;
 	}
 
 	public void destroyFrameThreadById(Long frameId) throws Exception{
@@ -305,21 +292,34 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	}
 
 	public Long createFrameState(Class<?> frameStateClass, ClientBlockModelContext clientBlockModelContext) throws Exception{
-		if(frameStateClass == HelpMenuFrameThreadState.class){
-			return addFrameState(
-				new HelpMenuFrameThreadState(this.blockManagerThreadCollection, this)
+		UserInterfaceFrameThreadState newThreadState = null;
+		Constructor<?> ctor = null;
+		try{
+			//  See if there is a constructor that doesn't require a client:
+			ctor = frameStateClass.getDeclaredConstructor(
+				new Class<?>[] { BlockManagerThreadCollection.class, ConsoleWriterThreadState.class }
 			);
-		}else{
-			Constructor<?> ctor = frameStateClass.getDeclaredConstructor(
-				new Class<?>[] { BlockManagerThreadCollection.class, ClientBlockModelContext.class, ConsoleWriterThreadState.class }
-			);
-
-			UserInterfaceFrameThreadState newThreadState = (UserInterfaceFrameThreadState)ctor.newInstance(new Object [] {this.blockManagerThreadCollection, clientBlockModelContext, this});
-
-			newThreadState.putWorkItem(new InitializeYourselfUIWorkItem(newThreadState), WorkItemPriority.PRIORITY_LOW);
-
-			return addFrameState(newThreadState);
+		}catch(Exception e){
+			//  No constuctor found
 		}
+		if(ctor != null){
+			newThreadState = (UserInterfaceFrameThreadState)ctor.newInstance(new Object [] {this.blockManagerThreadCollection, this});
+		}else{
+			try{
+				//  The constuctor must require a client, instantiate that one:
+				ctor = frameStateClass.getDeclaredConstructor(
+					new Class<?>[] { BlockManagerThreadCollection.class, ClientBlockModelContext.class, ConsoleWriterThreadState.class }
+				);
+			}catch(Exception e){
+				throw new Exception("Failed to get constructor for " + frameStateClass + ".  You'll need to add a case here if there is a different constructor.", e);
+			}
+
+			newThreadState = (UserInterfaceFrameThreadState)ctor.newInstance(new Object [] {this.blockManagerThreadCollection, clientBlockModelContext, this});
+		}
+
+		newThreadState.putWorkItem(new InitializeYourselfUIWorkItem(newThreadState), WorkItemPriority.PRIORITY_LOW);
+
+		return addFrameState(newThreadState);
 	}
 
 	public void destroySplitById(Long splitId) throws Exception{
@@ -328,20 +328,22 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 
 	public void destroyFrameStateById(Long frameId, ClientBlockModelContext clientBlockModelContext) throws Exception{
 		if(activeFrameStates.containsKey(frameId)){
-			//  Unsubscribe that frame from all events, otherwise
-			//  the client will continue to send events to a dead 
-			//  frame and the work item queue will overflow:
-			for(UINotificationType n : UINotificationType.values()){
-				UserInterfaceFrameThreadState ui = getFrameStateById(frameId);
-				clientBlockModelContext.putBlockingWorkItem(
-					new UIModelProbeWorkItem(
-						clientBlockModelContext,
-						n,
-						UINotificationSubscriptionType.UNSUBSCRIBE,
-						ui
-					),
-					WorkItemPriority.PRIORITY_LOW
-				);
+			if(clientBlockModelContext != null){
+				//  Unsubscribe that frame from all events, otherwise
+				//  the client will continue to send events to a dead 
+				//  frame and the work item queue will overflow:
+				for(UINotificationType n : UINotificationType.values()){
+					UserInterfaceFrameThreadState ui = getFrameStateById(frameId);
+					clientBlockModelContext.putBlockingWorkItem(
+						new UIModelProbeWorkItem(
+							clientBlockModelContext,
+							n,
+							UINotificationSubscriptionType.UNSUBSCRIBE,
+							ui
+						),
+						WorkItemPriority.PRIORITY_LOW
+					);
+				}
 			}
 
 			activeFrameStates.remove(frameId);
@@ -449,6 +451,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public Long onCloseFrame(Long frameId, ClientBlockModelContext clientBlockModelContext) throws Exception{
 		this.destroyFrameStateAndThreadById(frameId, clientBlockModelContext);
 		this.focusedFrameId = null;
+		this.onTerminalWindowChanged();
 		return frameId;
 	}
 

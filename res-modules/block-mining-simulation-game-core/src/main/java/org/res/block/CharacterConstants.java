@@ -50,6 +50,10 @@ import com.google.gson.JsonNull;
 import com.google.gson.reflect.TypeToken;
 
 public class CharacterConstants {
+	public static final int TOP_CONNECTION = 1 << 3;
+	public static final int RIGHT_CONNECTION = 1 << 2;
+	public static final int LEFT_CONNECTION = 1 << 1;
+	public static final int BOTTOM_CONNECTION = 1 << 0;
 	public static final String SPACE = " ";
 	public static final String PLUS_SIGN = "+";
 	public static final String EQUALS_SIGN = "=";
@@ -58,7 +62,7 @@ public class CharacterConstants {
 	public static final String NEWLINE_CHARACTER = "\n";
 	public static final String CARRIAGE_RETURN_CHARACTER = "\r";
 	public static final String BACKSPACE_CHARACTER = "\u007f";
-	public static final String BOX_DRAWINGS_LIGHT_VERTICAL_AND_HORIZONTAL = "\u253C"; // ┼
+	public static final String MIDDLE_DOT = "\u00B7"; // ·
 	public static final String BOX_DRAWINGS_DOWN_DOUBLE_AND_HORIZONTAL_SINGLE = "\u2565"; // ╥
 	public static final String BOX_DRAWINGS_VERTICAL_SINGLE_AND_LEFT_DOUBLE = "\u2561"; // ╡
 	public static final String BOX_DRAWINGS_VERTICAL_SINGLE_AND_RIGHT_DOUBLE = "\u255E"; // ╞
@@ -74,12 +78,25 @@ public class CharacterConstants {
 	public static final String BOX_DRAWINGS_DOUBLE_VERTICAL_AND_RIGHT = "\u2560";//╠
 	public static final String BOX_DRAWINGS_DOUBLE_UP_AND_HORIZONTAL = "\u2569";//╩
 	public static final String BOX_DRAWINGS_DOUBLE_VERTICAL_AND_HORIZONTAL = "\u256C";//╬
-											  //
+	public static final String BOX_DRAWINGS_LIGHT_VERTICAL_AND_HORIZONTAL = "\u253C"; // ┼
+	public static final String BOX_DRAWINGS_LIGHT_DOWN_AND_RIGHT = "\u250C"; // ┌
+	public static final String BOX_DRAWINGS_LIGHT_DOWN_AND_LEFT = "\u2510"; // ┐
+	public static final String BOX_DRAWINGS_LIGHT_UP_AND_RIGHT = "\u2514"; // └
+	public static final String BOX_DRAWINGS_LIGHT_UP_AND_LEFT = "\u2518"; // ┘
+	public static final String BOX_DRAWINGS_LIGHT_VERTICAL = "\u2502"; // │
+	public static final String BOX_DRAWINGS_LIGHT_HORIZONTAL = "\u2500"; // ─
+
+
 	public static final String INVENTORY_ARROW_EMOJI = "\u2501\u27A4";// ━➤
 	public static final String INVENTORY_ARROW_ASCII = "->";
 
+	/*
+	 * 	Index is based on:
+	 * 	         1 << 3 | 1 << 2 | 1 << 1 | 1 << 0
+	 * 	index =    top  | right  |  left  |  down
+	*/
 	public static final String [] emojiDoubleBorderConstants = new String [] {
-		BOX_DRAWINGS_LIGHT_VERTICAL_AND_HORIZONTAL, // ┼
+		MIDDLE_DOT, // ·
 		BOX_DRAWINGS_DOWN_DOUBLE_AND_HORIZONTAL_SINGLE, // ╥
 		BOX_DRAWINGS_VERTICAL_SINGLE_AND_LEFT_DOUBLE, // ╡
 		BOX_DRAWINGS_DOUBLE_DOWN_AND_LEFT, // ╗
@@ -97,7 +114,26 @@ public class CharacterConstants {
 		BOX_DRAWINGS_DOUBLE_VERTICAL_AND_HORIZONTAL // ╬
 	};
 
-	public static final String [] asciiDoubleBorderConstants = new String [] {
+	public static final String [] emojiSingleBorderConstants = new String [] {
+		MIDDLE_DOT, // · TODO
+		MIDDLE_DOT, // · TODO
+		MIDDLE_DOT, // · TODO
+		BOX_DRAWINGS_LIGHT_DOWN_AND_LEFT, // ┐
+		MIDDLE_DOT, // · TODO
+		BOX_DRAWINGS_LIGHT_DOWN_AND_RIGHT, // ┌
+		BOX_DRAWINGS_LIGHT_HORIZONTAL, // ─
+		MIDDLE_DOT, // · TODO
+		MIDDLE_DOT, // · TODO
+		BOX_DRAWINGS_LIGHT_VERTICAL, // │
+		BOX_DRAWINGS_LIGHT_UP_AND_LEFT, // ┘
+		MIDDLE_DOT, // · TODO
+		BOX_DRAWINGS_LIGHT_UP_AND_RIGHT, // └
+		MIDDLE_DOT, // · TODO
+		MIDDLE_DOT, // · TODO
+		MIDDLE_DOT // · TODO
+	};
+
+	public static final String [] asciiBorderConstants = new String [] {
 		CharacterConstants.PLUS_SIGN,
 		CharacterConstants.VERTICAL_LINE,
 		CharacterConstants.EQUALS_SIGN,
@@ -116,18 +152,65 @@ public class CharacterConstants {
 		CharacterConstants.PLUS_SIGN
 	};
 
-	public static String makeTopBorder(ConsoleWriterThreadState consoleWriterThreadState, long maxWidth){
-		String rtn = "";
-		/*
-		Long lWidth = consoleWriterThreadState.measureTextLengthOnTerminal(this.text).getDeltaX(BOX_DRAWINGS_DOUBLE_DOWN_AND_RIGHT);
-		Long rWidth = consoleWriterThreadState.measureTextLengthOnTerminal(this.text).getDeltaX(BOX_DRAWINGS_DOUBLE_DOWN_AND_LEFT);
-		Long mWidth = consoleWriterThreadState.measureTextLengthOnTerminal(this.text).getDeltaX(BOX_DRAWINGS_DOUBLE_DOWN_AND_LEFT);
-		*/
-		return rtn;
+	public static String makeTopBorder(BlockManagerThreadCollection blockManagerThreadCollection, long maxWidth) throws Exception{
+		String startCharacter = singleBorderConnection(blockManagerThreadCollection, RIGHT_CONNECTION | BOTTOM_CONNECTION);
+		String middleCharacter = singleBorderConnection(blockManagerThreadCollection, LEFT_CONNECTION | RIGHT_CONNECTION);
+		String endCharacter = singleBorderConnection(blockManagerThreadCollection, LEFT_CONNECTION | BOTTOM_CONNECTION);
+		ConsoleWriterThreadState cwts = blockManagerThreadCollection.getConsoleWriterThreadState();
+		Long lWidth = cwts.measureTextLengthOnTerminal(startCharacter).getDeltaX();
+		Long mWidth = cwts.measureTextLengthOnTerminal(middleCharacter).getDeltaX();
+		Long rWidth = cwts.measureTextLengthOnTerminal(endCharacter).getDeltaX();
+
+		Long nmc = Math.max(maxWidth - lWidth - rWidth, 0L) / mWidth;
+		return startCharacter + middleCharacter.repeat(nmc.intValue()) + endCharacter;
+	}
+
+	public static String makeBottomBorder(BlockManagerThreadCollection blockManagerThreadCollection, long maxWidth) throws Exception{
+		String startCharacter = singleBorderConnection(blockManagerThreadCollection, RIGHT_CONNECTION | TOP_CONNECTION);
+		String middleCharacter = singleBorderConnection(blockManagerThreadCollection, LEFT_CONNECTION | RIGHT_CONNECTION);
+		String endCharacter = singleBorderConnection(blockManagerThreadCollection, LEFT_CONNECTION | TOP_CONNECTION);
+		ConsoleWriterThreadState cwts = blockManagerThreadCollection.getConsoleWriterThreadState();
+		Long lWidth = cwts.measureTextLengthOnTerminal(startCharacter).getDeltaX();
+		Long mWidth = cwts.measureTextLengthOnTerminal(middleCharacter).getDeltaX();
+		Long rWidth = cwts.measureTextLengthOnTerminal(endCharacter).getDeltaX();
+
+		Long nmc = Math.max(maxWidth - lWidth - rWidth, 0L) / mWidth;
+		return startCharacter + middleCharacter.repeat(nmc.intValue()) + endCharacter;
+	}
+
+	public static String makeLeftBorder(BlockManagerThreadCollection blockManagerThreadCollection, long maxHeight) throws Exception{
+		String startCharacter = singleBorderConnection(blockManagerThreadCollection, RIGHT_CONNECTION | BOTTOM_CONNECTION);
+		String middleCharacter = singleBorderConnection(blockManagerThreadCollection, TOP_CONNECTION | BOTTOM_CONNECTION);
+		String endCharacter = singleBorderConnection(blockManagerThreadCollection, RIGHT_CONNECTION | TOP_CONNECTION);
+		ConsoleWriterThreadState cwts = blockManagerThreadCollection.getConsoleWriterThreadState();
+		Long lHeight = 1L;
+		Long mHeight = 1L;
+		Long rHeight = 1L;
+
+		Long nmc = Math.max(maxHeight - lHeight - rHeight, 0L) / mHeight;
+		return startCharacter + middleCharacter.repeat(nmc.intValue()) + endCharacter;
+	}
+
+	public static String makeRightBorder(BlockManagerThreadCollection blockManagerThreadCollection, long maxHeight) throws Exception{
+		String startCharacter = singleBorderConnection(blockManagerThreadCollection, LEFT_CONNECTION | BOTTOM_CONNECTION);
+		String middleCharacter = singleBorderConnection(blockManagerThreadCollection, TOP_CONNECTION | BOTTOM_CONNECTION);
+		String endCharacter = singleBorderConnection(blockManagerThreadCollection, LEFT_CONNECTION | TOP_CONNECTION);
+		ConsoleWriterThreadState cwts = blockManagerThreadCollection.getConsoleWriterThreadState();
+		Long lHeight = 1L;
+		Long mHeight = 1L;
+		Long rHeight = 1L;
+
+		Long nmc = Math.max(maxHeight - lHeight - rHeight, 0L) / mHeight;
+		return startCharacter + middleCharacter.repeat(nmc.intValue()) + endCharacter;
 	}
 
 	public static final String doubleBorderConnection(BlockManagerThreadCollection blockManagerThreadCollection, int index) throws Exception{
 		boolean rg = blockManagerThreadCollection.getGraphicsMode().equals(GraphicsMode.ASCII);
-		return rg ? asciiDoubleBorderConstants[index] : emojiDoubleBorderConstants[index];
+		return rg ? asciiBorderConstants[index] : emojiDoubleBorderConstants[index];
+	}
+
+	public static final String singleBorderConnection(BlockManagerThreadCollection blockManagerThreadCollection, int index) throws Exception{
+		boolean rg = blockManagerThreadCollection.getGraphicsMode().equals(GraphicsMode.ASCII);
+		return rg ? asciiBorderConstants[index] : emojiSingleBorderConstants[index];
 	}
 }

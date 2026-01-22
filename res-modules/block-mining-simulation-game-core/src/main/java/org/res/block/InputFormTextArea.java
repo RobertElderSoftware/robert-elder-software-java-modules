@@ -57,17 +57,31 @@ public class InputFormTextArea extends InputFormElement {
 	private int cursorLineY = 0;
 	private Long maxLines = null;
 
-	public InputFormTextArea(String name, InputFormContainer container, Long maxLines) throws Exception{
+	public InputFormTextArea(String name, InputElementContainer container) throws Exception{
+		super(name, container);
+		this.text.add(new ArrayList<String>()); //  Initialize with one empty line
+	}
+
+	public InputFormTextArea(String name, InputElementContainer container, Long maxLines) throws Exception{
 		super(name, container);
 		this.text.add(new ArrayList<String>()); //  Initialize with one empty line
 		this.maxLines = maxLines;
+	}
+
+	public void setText(InputElementContainer container, String defaultText) throws Exception{
+		this.text.clear();
+		this.text.add(new ArrayList<String>());
+		//  Input the default text just as if it was regularly typed text:
+		for(String character : UserInterfaceFrameThreadState.splitStringIntoCharactersUnicodeAware(defaultText)){
+			this.onKeyboardCharacter(container, character);
+		}
 	}
 
 	public String getName(){
 		return this.name;
 	}
 
-	public void onKeyboardCharacter(InputFormContainer container, String character) throws Exception {
+	public void onKeyboardCharacter(InputElementContainer container, String character) throws Exception {
 		if(character.equals(CharacterConstants.BACKSPACE_CHARACTER)){
 			if(this.text.size() > 0 && this.text.get(cursorLineY).size() > 0 && this.cursorCharacterX > 0){
 				//  Delete character just before cursor:
@@ -103,11 +117,9 @@ public class InputFormTextArea extends InputFormElement {
 			this.text.get(cursorLineY).add(cursorCharacterX, character);
 			this.cursorCharacterX += 1;
 		}
-
-		this.setCursorPosition(container);
 	}
 
-	public int getColumnOffsetForCharacterAtIndex(InputFormContainer container, int characterXIndex) throws Exception{
+	public int getColumnOffsetForCharacterAtIndex(InputElementContainer container, int characterXIndex) throws Exception{
 		int totalColumnOffset = 0;
 		for(int i = 0; i < characterXIndex && i < this.text.get(cursorLineY).size(); i++){
 			String c = this.text.get(cursorLineY).get(i);
@@ -127,7 +139,7 @@ public class InputFormTextArea extends InputFormElement {
 		);
 	}
 
-	public void setCursorPosition(InputFormContainer container) throws Exception{
+	public void setCursorPosition(InputElementContainer container) throws Exception{
 		//  Keep cursor inside text area:
 		int cursorOffsetXInTextArea = getColumnOffsetForCharacterAtIndex(container, this.cursorCharacterX);
 
@@ -153,7 +165,7 @@ public class InputFormTextArea extends InputFormElement {
 		this.sendCursorUpdate();
 	}
 
-	public void onAnsiEscapeSequence(InputFormContainer container, AnsiEscapeSequence ansiEscapeSequence) throws Exception{
+	public void onAnsiEscapeSequence(InputElementContainer container, AnsiEscapeSequence ansiEscapeSequence) throws Exception{
 		if(ansiEscapeSequence instanceof AnsiEscapeSequenceUpArrowKey){
 			if(this.cursorLineY > 0){
 				this.cursorLineY--;
@@ -161,9 +173,10 @@ public class InputFormTextArea extends InputFormElement {
 				int maxCharacterIndexNextLine = this.text.get(this.cursorLineY).size();
 				if(currentCharacterIndex > maxCharacterIndexNextLine){
 					this.cursorCharacterX = maxCharacterIndexNextLine;
-				}else{
-					
 				}
+			}else{
+				//  Move focus to previous item:
+				container.updateFocusedElement(-1);
 			}
 		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceRightArrowKey){
 			if(this.cursorCharacterX < this.text.get(cursorLineY).size()){
@@ -176,9 +189,10 @@ public class InputFormTextArea extends InputFormElement {
 				int maxCharacterIndexNextLine = this.text.get(this.cursorLineY).size();
 				if(currentCharacterIndex > maxCharacterIndexNextLine){
 					this.cursorCharacterX = maxCharacterIndexNextLine;
-				}else{
-
 				}
+			}else{
+				//  Move focus to next item:
+				container.updateFocusedElement(1);
 			}
 		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceLeftArrowKey){
 			if(this.cursorCharacterX > 0){
@@ -205,11 +219,9 @@ public class InputFormTextArea extends InputFormElement {
 			}else{
 				//  Do nothing
 			}
-			this.setCursorPosition(container);
 		}else{
 			logger.info("Discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
 		}
-		this.setCursorPosition(container);
 	}
 
 	public void updateRenderableArea(Coordinate placementOffset, CuboidAddress visibleArea, boolean hasFocus) throws Exception{
@@ -220,10 +232,9 @@ public class InputFormTextArea extends InputFormElement {
 		this.displayLayer = new ScreenLayer(this.displayLayer.getPlacementOffset(), ScreenLayer.makeDimensionsCA(0, 0, width, height));
 		//  Initialize to an obvious pattern.  Should be overwritten by child class:
 		this.displayLayer.initializeInRegion(1, "x", new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR, UserInterfaceFrameThreadState.BLUE_BG_COLOR}, null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, width, height)), true, true);
-		//this.setCursorPosition(container);
 	}
 
-	public void render(InputFormContainer container, ScreenLayer bottomLayer) throws Exception{
+	public void render(InputElementContainer container, ScreenLayer bottomLayer) throws Exception{
 		//  Initialize to clear any backspaced characters:
 		this.displayLayer.initializeInRegion(1, " ", UserInterfaceFrameThreadState.getTextInputAreaColors(), null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, this.displayLayer.getWidth(), this.displayLayer.getHeight())), true, true);
 
@@ -236,5 +247,9 @@ public class InputFormTextArea extends InputFormElement {
 
 		this.displayLayer.setPlacementOffset(this.placementOffset);
 		bottomLayer.mergeDown(this.displayLayer, true, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
+	}
+
+	public boolean canCaptureFocus() throws Exception{
+		return true;
 	}
 }

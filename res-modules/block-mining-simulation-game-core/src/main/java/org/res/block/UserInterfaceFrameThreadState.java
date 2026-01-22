@@ -132,7 +132,6 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		return this.consoleWriterThreadState;
 	}
 
-
 	public static final int [] getDefaultBGColors(){
 		switch(currentTheme){
 			case PINK:{
@@ -699,42 +698,14 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		boolean hasRightConnection = getFrameBordersDescription().getFramePoints().contains(right);
 		boolean hasLeftConnection = getFrameBordersDescription().getFramePoints().contains(left);
 		boolean hasBottomConnection = getFrameBordersDescription().getFramePoints().contains(bottom);
+
+		int characterIndex = 0;
+		characterIndex += hasTopConnection ? CharacterConstants.TOP_CONNECTION : 0;
+		characterIndex += hasRightConnection ? CharacterConstants.RIGHT_CONNECTION : 0;
+		characterIndex += hasLeftConnection ? CharacterConstants.LEFT_CONNECTION : 0;
+		characterIndex += hasBottomConnection ? CharacterConstants.BOTTOM_CONNECTION : 0;
 	
-		if(!hasTopConnection && !hasRightConnection && !hasLeftConnection && !hasBottomConnection){      // 0000
-			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b0000);
-		}else if(!hasTopConnection && !hasRightConnection && !hasLeftConnection && hasBottomConnection){ // 0001
-			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b0001);
-		}else if(!hasTopConnection && !hasRightConnection && hasLeftConnection && !hasBottomConnection){ // 0010
-			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b0010);
-		}else if(!hasTopConnection && !hasRightConnection && hasLeftConnection && hasBottomConnection){  // 0011
-			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b0011);
-		}else if(!hasTopConnection && hasRightConnection && !hasLeftConnection && !hasBottomConnection){ // 0100
-			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b0100);
-		}else if(!hasTopConnection && hasRightConnection && !hasLeftConnection && hasBottomConnection){  // 0101
-			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b0101);
-		}else if(!hasTopConnection && hasRightConnection && hasLeftConnection && !hasBottomConnection){  // 0110
-			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b0110);
-		}else if(!hasTopConnection && hasRightConnection && hasLeftConnection && hasBottomConnection){   // 0111
-			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b0111);
-		}else if(hasTopConnection && !hasRightConnection && !hasLeftConnection && !hasBottomConnection){ // 1000
-			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b1000);
-		}else if(hasTopConnection && !hasRightConnection && !hasLeftConnection && hasBottomConnection){  // 1001
-			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b1001);
-		}else if(hasTopConnection && !hasRightConnection && hasLeftConnection && !hasBottomConnection){  // 1010
-			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b1010);
-		}else if(hasTopConnection && !hasRightConnection && hasLeftConnection && hasBottomConnection){   // 1011
-			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b1011);
-		}else if(hasTopConnection && hasRightConnection && !hasLeftConnection && !hasBottomConnection){  // 1100
-			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b1100);
-		}else if(hasTopConnection && hasRightConnection && !hasLeftConnection && hasBottomConnection){   // 1101
-			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b1101);
-		}else if(hasTopConnection && hasRightConnection && hasLeftConnection && !hasBottomConnection){   // 1110
-			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b1110);
-		}else if(hasTopConnection && hasRightConnection && hasLeftConnection && hasBottomConnection){    // 1111
-			return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, 0b1111);
-		}else{
-			throw new Exception("Impossible.");
-		}
+		return CharacterConstants.doubleBorderConnection(blockManagerThreadCollection, characterIndex);
 	}
 
 	public boolean isCoordinateRelatedToFocusedFrame(Coordinate c, FrameDimensions ffd) throws Exception{
@@ -1083,6 +1054,52 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 
 		for(int i = 0; i < usedScreenLayers.length; i++){
 			this.bufferedScreenLayers[usedScreenLayers[i]] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 0,0));
+		}
+	}
+
+	public void removeSplitWithFrameId(Long splitId, Long frameId) throws Exception {
+		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
+
+		GetSplitInfoWorkItem getSplitInfoWorkItem = new GetSplitInfoWorkItem(cwts, splitId, false);
+		WorkItemResult getSplitInfoWorkItemResult = cwts.putBlockingWorkItem(getSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
+		SplitInfoWorkItemResult parentInfo = ((SplitInfoWorkItemResult)getSplitInfoWorkItemResult);
+		if(frameId.equals(parentInfo.getFrameId())){
+			RemoveChildSplitWorkItem r = new RemoveChildSplitWorkItem(cwts, splitId);
+			cwts.putBlockingWorkItem(r, WorkItemPriority.PRIORITY_LOW);
+		}
+
+		// Continue searching through children:
+		GetSplitChildrenInfoWorkItem getSplitChildrenInfoWorkItem = new GetSplitChildrenInfoWorkItem(cwts, splitId);
+		WorkItemResult getSplitChildrenInfoWorkItemResult = cwts.putBlockingWorkItem(getSplitChildrenInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
+		GetSplitChildrenInfoWorkItemResult childInfos = ((GetSplitChildrenInfoWorkItemResult)getSplitChildrenInfoWorkItemResult);
+		for(SplitInfoWorkItemResult info : childInfos.getSplitInfos()){
+			removeSplitWithFrameId(info.getSplitId(), frameId);
+		}
+	}
+
+	public void onCloseCurrentFrame() throws Exception {
+		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
+
+		//  TODO:  This needs to be generalized once there are multiple clients:
+		ClientBlockModelContext client = this.blockManagerThreadCollection.getClientBlockModelContexts().get(0);
+		//  Get id of currently focused frame
+		GetFocusedFrameWorkItem getFocusedFrameWorkItem = new GetFocusedFrameWorkItem(cwts);
+		WorkItemResult getFocusedFrameWorkItemResult = cwts.putBlockingWorkItem(getFocusedFrameWorkItem, WorkItemPriority.PRIORITY_LOW);
+		Long focusedFrameId = ((GetFocusedFrameWorkItemResult)getFocusedFrameWorkItemResult).getFocusedFrameId();
+
+		if(focusedFrameId == null){
+			logger.info("Not removing frame, focusedFrameId was null");
+		}else{
+			//  Figure out the id of the root split
+			GetSplitInfoWorkItem getRootSplitInfoWorkItem = new GetSplitInfoWorkItem(cwts, null, true);
+			WorkItemResult getRootSplitInfoWorkItemResult = cwts.putBlockingWorkItem(getRootSplitInfoWorkItem, WorkItemPriority.PRIORITY_LOW);
+			Long rootSplitId  = ((SplitInfoWorkItemResult)getRootSplitInfoWorkItemResult).getSplitId();
+			//  Remove this split
+			this.removeSplitWithFrameId(rootSplitId, focusedFrameId);
+
+			//  Close the focused frame
+			ConsoleWriterWorkItem w = new CloseFrameWorkItem(cwts, focusedFrameId, client);
+			cwts.putBlockingWorkItem(w, WorkItemPriority.PRIORITY_LOW);
 		}
 	}
 

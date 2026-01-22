@@ -137,6 +137,8 @@ class SinglePlayerBlockClient {
 		serverToClientSession.setRemoteSession(clientToServerSession);
 		clientToServerSession.setRemoteSession(serverToClientSession);
 
+		BlockWorldConnection bwc = new DatabaseBlockWorldConnection(dbParams);
+		blockManagerThreadCollection.addBlockWorldConnection(bwc);
 		blockManagerThreadCollection.setupDefaultUIForClient(clientBlockModelContext);
 
 		//  Start the game loading process

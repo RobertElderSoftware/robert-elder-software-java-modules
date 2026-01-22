@@ -50,7 +50,7 @@ public class InputFormButton extends InputFormElement {
 	protected ScreenLayer displayLayer = new ScreenLayer();
 	protected boolean hasFocus = false;
 
-	public InputFormButton(String name, InputFormContainer container, String text) throws Exception{
+	public InputFormButton(String name, InputElementContainer container, String text) throws Exception{
 		super(name, container);
 		this.text = text;
 	}
@@ -59,13 +59,32 @@ public class InputFormButton extends InputFormElement {
 		return this.name;
 	}
 
-	public void onKeyboardCharacter(InputFormContainer container, String character) throws Exception {
+	public void onKeyboardCharacter(InputElementContainer container, String character) throws Exception {
+		if(character.equals(CharacterConstants.CARRIAGE_RETURN_CHARACTER)){
+			container.onButtonPress(this.name);
+		}
 	}
 
 	public void sendCursorUpdate() throws Exception{
+		this.container.onCursorPositionChange(null);
 	}
 
-	public void onAnsiEscapeSequence(InputFormContainer container, AnsiEscapeSequence ansiEscapeSequence) throws Exception{
+	public void onAnsiEscapeSequence(InputElementContainer container, AnsiEscapeSequence ansiEscapeSequence) throws Exception{
+		if(ansiEscapeSequence instanceof AnsiEscapeSequenceUpArrowKey){
+			//  Move focus to previous item:
+			container.updateFocusedElement(-1);
+		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceRightArrowKey){
+			//  Move focus to next item:
+			container.updateFocusedElement(1);
+		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceDownArrowKey){
+			//  Move focus to next item:
+			container.updateFocusedElement(1);
+		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceLeftArrowKey){
+			//  Move focus to next item:
+			container.updateFocusedElement(-1);
+		}else{
+			logger.info("Discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
+		}
 	}
 
 	public void updateRenderableArea(Coordinate placementOffset, CuboidAddress visibleArea, boolean hasFocus) throws Exception{
@@ -79,15 +98,25 @@ public class InputFormButton extends InputFormElement {
 		this.displayLayer.initializeInRegion(1, "x", new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR, UserInterfaceFrameThreadState.BLUE_BG_COLOR}, null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, width, height)), true, true);
 	}
 
-	public void render(InputFormContainer container, ScreenLayer bottomLayer) throws Exception{
+	public void render(InputElementContainer container, ScreenLayer bottomLayer) throws Exception{
 		int [] colours = this.hasFocus ? UserInterfaceFrameThreadState.getActiveHelpMenuItemColors() : UserInterfaceFrameThreadState.getDefaultTextColors();
 		//  Initialize to clear any backspaced characters:
 		this.displayLayer.initializeInRegion(1, " ", colours, null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, this.displayLayer.getWidth(), this.displayLayer.getHeight())), true, true);
 
 		if(displayLayer.getHeight() >= 3){
-			String border = CharacterConstants.makeTopBorder(container.getConsoleWriterThreadState(), displayLayer.getWidth());
-			ColouredTextFragment topBorder = new ColouredTextFragment(this.text, colours);
-			container.printTextAtScreenXY(topBorder, 0L, 0L, PrintDirection.LEFT_TO_RIGHT, this.displayLayer);
+			Long fcw = container.getConsoleWriterThreadState().getFrameCharacterWidth();
+			String topBorder = CharacterConstants.makeTopBorder(container.getBlockManagerThreadCollection(), displayLayer.getWidth());
+			String bottomBorder = CharacterConstants.makeBottomBorder(container.getBlockManagerThreadCollection(), displayLayer.getWidth());
+			String rightBorder = CharacterConstants.makeRightBorder(container.getBlockManagerThreadCollection(), displayLayer.getHeight());
+			String leftBorder = CharacterConstants.makeLeftBorder(container.getBlockManagerThreadCollection(), displayLayer.getHeight());
+			ColouredTextFragment topBorderFragment = new ColouredTextFragment(topBorder, colours);
+			ColouredTextFragment bottomBorderFragment = new ColouredTextFragment(bottomBorder, colours);
+			ColouredTextFragment rightBorderFragment = new ColouredTextFragment(rightBorder, colours);
+			ColouredTextFragment leftBorderFragment = new ColouredTextFragment(leftBorder, colours);
+			container.printTextAtScreenXY(topBorderFragment, 0L, 0L, PrintDirection.LEFT_TO_RIGHT, this.displayLayer);
+			container.printTextAtScreenXY(bottomBorderFragment, 0L, (long)(displayLayer.getHeight() -1), PrintDirection.LEFT_TO_RIGHT, this.displayLayer);
+			container.printTextAtScreenXY(leftBorderFragment, 0L, 0L, PrintDirection.TOP_TO_BOTTOM, this.displayLayer);
+			container.printTextAtScreenXY(rightBorderFragment, (displayLayer.getWidth() -fcw), 0L, PrintDirection.TOP_TO_BOTTOM, this.displayLayer);
 		}
 
 		TextWidthMeasurementWorkItemResult m = container.getConsoleWriterThreadState().measureTextLengthOnTerminal(this.text);
@@ -95,10 +124,14 @@ public class InputFormButton extends InputFormElement {
 		ColouredTextFragment tf = new ColouredTextFragment(this.text, colours);
 
 		Long textXOffset = (displayLayer.getWidth() - buttonTextWidth) / 2L;
-		Long textYOffset = (displayLayer.getHeight() - buttonTextWidth) / 2L;
+		Long textYOffset = (displayLayer.getHeight()) / 2L;
 		container.printTextAtScreenXY(tf, textXOffset, textYOffset, PrintDirection.LEFT_TO_RIGHT, this.displayLayer);
 
 		this.displayLayer.setPlacementOffset(this.placementOffset);
 		bottomLayer.mergeDown(this.displayLayer, true, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
+	}
+
+	public boolean canCaptureFocus() throws Exception{
+		return true;
 	}
 }

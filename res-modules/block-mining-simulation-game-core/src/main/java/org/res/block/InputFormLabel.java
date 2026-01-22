@@ -49,7 +49,7 @@ public class InputFormLabel extends InputFormElement {
 	private String text;
 	protected ScreenLayer displayLayer = new ScreenLayer();
 
-	public InputFormLabel(String name, InputFormContainer container, String text) throws Exception{
+	public InputFormLabel(String name, InputElementContainer container, String text) throws Exception{
 		super(name, container);
 		this.text = text;
 	}
@@ -58,13 +58,13 @@ public class InputFormLabel extends InputFormElement {
 		return this.name;
 	}
 
-	public void onKeyboardCharacter(InputFormContainer container, String character) throws Exception {
+	public void onKeyboardCharacter(InputElementContainer container, String character) throws Exception {
 	}
 
 	public void sendCursorUpdate() throws Exception{
 	}
 
-	public void onAnsiEscapeSequence(InputFormContainer container, AnsiEscapeSequence ansiEscapeSequence) throws Exception{
+	public void onAnsiEscapeSequence(InputElementContainer container, AnsiEscapeSequence ansiEscapeSequence) throws Exception{
 	}
 
 	public void updateRenderableArea(Coordinate placementOffset, CuboidAddress visibleArea, boolean hasFocus) throws Exception{
@@ -77,7 +77,7 @@ public class InputFormLabel extends InputFormElement {
 		this.displayLayer.initializeInRegion(1, "x", new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR, UserInterfaceFrameThreadState.BLUE_BG_COLOR}, null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, width, height)), true, true);
 	}
 
-	public void render(InputFormContainer container, ScreenLayer bottomLayer) throws Exception{
+	public void render(InputElementContainer container, ScreenLayer bottomLayer) throws Exception{
 		//  Initialize to clear any backspaced characters:
 		this.displayLayer.initializeInRegion(1, " ", UserInterfaceFrameThreadState.getDefaultTextColors(), null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, this.displayLayer.getWidth(), this.displayLayer.getHeight())), true, true);
 
@@ -87,5 +87,10 @@ public class InputFormLabel extends InputFormElement {
 
 		this.displayLayer.setPlacementOffset(this.placementOffset);
 		bottomLayer.mergeDown(this.displayLayer, true, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
+	}
+
+
+	public boolean canCaptureFocus() throws Exception{
+		return false;
 	}
 }
