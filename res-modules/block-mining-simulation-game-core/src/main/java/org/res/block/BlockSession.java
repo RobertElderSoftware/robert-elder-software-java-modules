@@ -40,20 +40,24 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 
 import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.lang.invoke.MethodHandles;
+import java.text.SimpleDateFormat;
 
 public abstract class BlockSession {
 
 	private static final Long MAX_REGION_SUBSCRIPTIONS = 5000L;
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
 	public abstract String getId();
 	public abstract void close(String reason) throws Exception;
 
 	protected Object monitor = new Object();
 	protected Map<CuboidAddress, Long> subscribedRegions = new TreeMap<CuboidAddress, Long>();
-	protected BlockModelContext blockModelContext;
 
-	public BlockSession(BlockModelContext blockModelContext) throws Exception {
-		this.blockModelContext = blockModelContext;
+	public BlockSession() throws Exception {
 	}
 
 	public Map<CuboidAddress, Long> getSubscriptionIntersections(List<CuboidAddress> addresses) throws Exception {
@@ -71,28 +75,28 @@ public abstract class BlockSession {
 
 	public void unsubscribeFromRegions(List<CuboidAddress> regionsToUnsubscribeFrom) throws Exception {
 		Long proposedRegionSubscriptionCount = Long.valueOf(this.subscribedRegions.size() - regionsToUnsubscribeFrom.size());
-		blockModelContext.logMessage("-proposedRegionSubscriptionCount=" + proposedRegionSubscriptionCount + ", MAX_REGION_SUBSCRIPTIONS=" + BlockSession.MAX_REGION_SUBSCRIPTIONS);
+		logger.info("-proposedRegionSubscriptionCount=" + proposedRegionSubscriptionCount + ", MAX_REGION_SUBSCRIPTIONS=" + BlockSession.MAX_REGION_SUBSCRIPTIONS);
 		for(CuboidAddress regionToUnsubscribe : regionsToUnsubscribeFrom){
 			this.subscribedRegions.remove(regionToUnsubscribe);
 		}
 	}
 
-	public void subscribeToRegions(List<CuboidAddress> regionsToSubscribeTo, Long conversationId) throws Exception {
+	public void subscribeToRegions(BlockModelContext blockModelContext, List<CuboidAddress> regionsToSubscribeTo, Long conversationId) throws Exception {
 		List<CuboidAddress> newSubscriptionsToAdd = new ArrayList<CuboidAddress>();
 		List<CuboidAddress> preExistingSubscription = new ArrayList<CuboidAddress>();
 		for(CuboidAddress regionToSubscribeTo : regionsToSubscribeTo){
 			boolean addThisRegion = true;
 			if(this.subscribedRegions.containsKey(regionToSubscribeTo)){
-				//blockModelContext.logMessage("Region " + regionToSubscribeTo + " is already subscribed to. Don't add it.");
+				//logger.info("Region " + regionToSubscribeTo + " is already subscribed to. Don't add it.");
 				addThisRegion = false;
 				preExistingSubscription.add(regionToSubscribeTo);
 			}else{
 				for(Map.Entry<CuboidAddress, Long> existingRegionSubscription : this.subscribedRegions.entrySet()){
 					CuboidAddress intersection = existingRegionSubscription.getKey().getIntersectionCuboidAddress(regionToSubscribeTo, true);
 					if(intersection == null){
-						//blockModelContext.logMessage("Region " + regionToSubscribeTo + " has no intersection with " + existingRegionSubscription + ". Add it.");
+						//logger.info("Region " + regionToSubscribeTo + " has no intersection with " + existingRegionSubscription + ". Add it.");
 					}else{
-						blockModelContext.logMessage("Region " + regionToSubscribeTo + " has an intersection (" + intersection + ") with " + existingRegionSubscription + " and is not the same. TODO: Consider this case.");
+						logger.info("Region " + regionToSubscribeTo + " has an intersection (" + intersection + ") with " + existingRegionSubscription + " and is not the same. TODO: Consider this case.");
 						throw new Exception("Refusing to add a subscription that overlaps with another subscription.");
 					}
 				}
@@ -104,19 +108,19 @@ public abstract class BlockSession {
 		}
 
 		Long proposedRegionSubscriptionCount = Long.valueOf(newSubscriptionsToAdd.size() + this.subscribedRegions.size());
-		blockModelContext.logMessage("+proposedRegionSubscriptionCount=" + proposedRegionSubscriptionCount + ", MAX_REGION_SUBSCRIPTIONS=" + BlockSession.MAX_REGION_SUBSCRIPTIONS);
+		logger.info("+proposedRegionSubscriptionCount=" + proposedRegionSubscriptionCount + ", MAX_REGION_SUBSCRIPTIONS=" + BlockSession.MAX_REGION_SUBSCRIPTIONS);
 
 		if(preExistingSubscription.size() > 0){
-			ErrorNotificationBlockMessage response = new ErrorNotificationBlockMessage(this.blockModelContext, BlockMessageErrorType.IDENTICAL_SUBSCRIPTION, conversationId);
-			this.blockModelContext.sendBlockMessage(response, this);
+			ErrorNotificationBlockMessage response = new ErrorNotificationBlockMessage(blockModelContext, BlockMessageErrorType.IDENTICAL_SUBSCRIPTION, conversationId);
+			blockModelContext.sendBlockMessage(response, this);
 		}else if(proposedRegionSubscriptionCount < BlockSession.MAX_REGION_SUBSCRIPTIONS){
 			for(CuboidAddress subscriptionToAdd : newSubscriptionsToAdd){
 				//  Track the subscription and the correspond conversation id that goes with it:
 				this.subscribedRegions.put(subscriptionToAdd, conversationId);
 			}
 		}else{
-			ErrorNotificationBlockMessage response = new ErrorNotificationBlockMessage(this.blockModelContext, BlockMessageErrorType.MAX_REGION_SUBSCRPTIONS_EXCEEDED, conversationId);
-			this.blockModelContext.sendBlockMessage(response, this);
+			ErrorNotificationBlockMessage response = new ErrorNotificationBlockMessage(blockModelContext, BlockMessageErrorType.MAX_REGION_SUBSCRPTIONS_EXCEEDED, conversationId);
+			blockModelContext.sendBlockMessage(response, this);
 		}
 	}
 }

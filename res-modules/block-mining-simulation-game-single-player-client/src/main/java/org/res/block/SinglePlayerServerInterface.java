@@ -30,26 +30,32 @@
 //  SOFTWARE.
 package org.res.block;
 
+import org.res.block.ServerInterface;
 
-import org.res.block.WorkItem;
-import org.res.block.BlockSession;
-import org.res.block.BlockModelContext;
+import java.util.Set;
+import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
 
-public class SessionOpenWorkItem extends BlockModelContextWorkItem {
+public class SinglePlayerServerInterface extends ServerInterface{
 
-	private BlockSession blockSession;
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	public SessionOpenWorkItem(BlockModelContext blockModelContext, BlockSession blockSession){
-		super(blockModelContext);
-		this.blockSession = blockSession;
-	}
+	public void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception{
 
-	public BlockSession getBlockSession(){
-		return this.blockSession;
-	}
+		if(session instanceof LocalBlockSession){
+			LocalBlockSession localSession = (LocalBlockSession)session;
+			LocalBlockSession remoteSession = localSession.getRemoteSession();
+			BlockModelContext remoteBlockModelContext = localSession.getRemoteContext();
 
-	public void doWork() throws Exception{
-		this.blockModelContext.getSessionOperationInterface().onBlockSessionOpen(blockSession);
+			m.setBlockModelContext(remoteBlockModelContext);
+
+			ProcessBlockMessageWorkItem w = new ProcessBlockMessageWorkItem(remoteBlockModelContext, remoteSession, m);
+			remoteBlockModelContext.putWorkItem(w, WorkItemPriority.PRIORITY_LOW);
+		}else{
+			throw new Exception("Expected session to be local type, but it was " + session.getClass().getName());
+		}
 	}
 }

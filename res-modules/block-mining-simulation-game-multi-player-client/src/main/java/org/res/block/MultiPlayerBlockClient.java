@@ -89,8 +89,8 @@ class MultiPlayerBlockClient {
 
 		BlockManagerThreadCollection blockManagerThreadCollection = new BlockManagerThreadCollection(commandLineArgumentCollection, true);
 		blockManagerThreadCollection.init();
-		MultiPlayerClientServerInterface clientServerInterface = new MultiPlayerClientServerInterface(hostName, port, url);
-		ClientBlockModelContext clientBlockModelContext = new ClientBlockModelContext(blockManagerThreadCollection, clientServerInterface);
+		MultiPlayerClientInterface clientInterface = new MultiPlayerClientInterface(hostName, port, url);
+		ClientBlockModelContext clientBlockModelContext = new ClientBlockModelContext(blockManagerThreadCollection, clientInterface, new WebsocketsSessionOperationInterface());
 		blockManagerThreadCollection.addClientBlockModelContext(clientBlockModelContext);
 		clientBlockModelContext.putWorkItem(new InitializeYourselfClientBlockModelContextWorkItem(clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
 		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(clientBlockModelContext, BlockModelContextWorkItem.class, ClientBlockModelContext.class));

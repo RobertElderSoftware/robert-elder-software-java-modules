@@ -41,14 +41,19 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 
 import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.lang.invoke.MethodHandles;
 
 public class WebsocketBlockSession extends BlockSession {
 
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private Session session; /* Don't return any references to session to ensure thread safety. */
 	private Object monitor = new Object();
 
-	public WebsocketBlockSession(BlockModelContext blockModelContext, Session session) throws Exception {
-		super(blockModelContext);
+	public WebsocketBlockSession(Session session) throws Exception {
+		super();
 		this.session = session;
 	}
 
@@ -62,7 +67,7 @@ public class WebsocketBlockSession extends BlockSession {
 		if(this.session.isOpen()){
 			this.getBasicRemote().sendBinary(ByteBuffer.wrap(bytes));
 		}else{
-			blockModelContext.logMessage("Session '" + this.session.getId() + "' was closed.  Discarding the " + bytes.length + " bytes that were scheduled to be sent to this session.");
+			logger.info("Session '" + this.session.getId() + "' was closed.  Discarding the " + bytes.length + " bytes that were scheduled to be sent to this session.");
 		}
 	}
 

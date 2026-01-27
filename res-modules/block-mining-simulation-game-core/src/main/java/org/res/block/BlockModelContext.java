@@ -65,6 +65,7 @@ public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelCon
 
 	public abstract void inMemoryChunksCallbackOnChunkWasWritten(CuboidAddress cuboidAddress) throws Exception;
 	public abstract void inMemoryChunksCallbackOnChunkBecomesPending(CuboidAddress cuboidAddress) throws Exception;
+	public abstract SessionOperationInterface getSessionOperationInterface();
 
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 	private ConcurrentHashMap<String, BlockSession> sessionMap = new ConcurrentHashMap<String, BlockSession>();
@@ -73,11 +74,8 @@ public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelCon
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	protected ClientServerInterface clientServerInterface = null;
-
-	public BlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ClientServerInterface clientServerInterface) throws Exception{
+	public BlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection) throws Exception{
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
-		this.clientServerInterface = clientServerInterface;
 	}
 
 	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
@@ -86,10 +84,6 @@ public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelCon
 
 	public BlockSchema getBlockSchema(){
 		return this.blockManagerThreadCollection.getBlockSchema();
-	}
-
-	public ClientServerInterface getClientServerInterface(){
-		return this.clientServerInterface;
 	}
 
 	public void logMessage(String s){

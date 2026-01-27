@@ -102,8 +102,8 @@ public class ServerThreadLauncher {
 			null //String filename
 		);
 
-		ClientServerInterface clientServerInterface = new WebserverClientServerInterface();
-		this.serverBlockModelContext = new ServerBlockModelContext(blockManagerThreadCollection, clientServerInterface, new DatabaseBlockWorldConnection(dbParams));
+		ServerInterface serverInterface = new WebserverServerInterface();
+		this.serverBlockModelContext = new ServerBlockModelContext(blockManagerThreadCollection, serverInterface, new WebsocketsSessionOperationInterface(), new DatabaseBlockWorldConnection(dbParams));
 		this.serverBlockModelContext.putWorkItem(new InitializeYourselfServerBlockModelContextWorkItem(this.serverBlockModelContext, new ArrayList<ClientBlockModelContext>()), WorkItemPriority.PRIORITY_LOW);
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(serverBlockModelContext, BlockModelContextWorkItem.class, ServerBlockModelContext.class));
 	}
@@ -122,25 +122,25 @@ public class ServerThreadLauncher {
 	}
 
 	public void onOpen(Session session) throws Exception {
-		WebsocketBlockSession bs = new WebsocketBlockSession(this.serverBlockModelContext, session);
+		WebsocketBlockSession bs = new WebsocketBlockSession(session);
 		bs.setMaxBinaryMessageBufferSize(1024*4);
 		this.serverBlockModelContext.onOpen(bs);
 	}
 
 	public void onMessage(String txt, Session session) throws Exception {
-		this.serverBlockModelContext.onMessage(txt, new WebsocketBlockSession(this.serverBlockModelContext, session));
+		this.serverBlockModelContext.onMessage(txt, new WebsocketBlockSession(session));
 	}
 
 	public void onBinaryMessage(byte[] inputBytes, boolean last, Session session) throws Exception {
-		this.serverBlockModelContext.onBinaryMessage(inputBytes, last, new WebsocketBlockSession(this.serverBlockModelContext, session));
+		this.serverBlockModelContext.onBinaryMessage(inputBytes, last, new WebsocketBlockSession(session));
 	}
 
 	public void onClose(String reason, Session session, boolean doClose) throws Exception {
 
-		this.serverBlockModelContext.onClose(reason, new WebsocketBlockSession(this.serverBlockModelContext, session), doClose);
+		this.serverBlockModelContext.onClose(reason, new WebsocketBlockSession(session), doClose);
 	}
 
 	public void onError(Session session, Throwable t) throws Throwable {
-		this.serverBlockModelContext.onError(new WebsocketBlockSession(this.serverBlockModelContext, session), t);
+		this.serverBlockModelContext.onError(new WebsocketBlockSession(session), t);
 	}
 }

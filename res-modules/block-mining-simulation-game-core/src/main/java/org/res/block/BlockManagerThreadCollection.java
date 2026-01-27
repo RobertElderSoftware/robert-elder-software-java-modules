@@ -78,7 +78,6 @@ public class BlockManagerThreadCollection {
 	private List<Long> activeThreadIds = new ArrayList<Long>();
 	private CommandLineArgumentCollection commandLineArgumentCollection;
 
-	protected ClientServerInterface clientServerInterface = null;
 	private LinuxBlockJNIInterface linuxBlockJNIInterface = null;
 
 	private ConsoleWriterThreadState consoleWriterThreadState;
@@ -471,7 +470,7 @@ public class BlockManagerThreadCollection {
 			Long root = cwts.makeVerticalSplit();
 			List<Long> topSplits = new ArrayList<Long>();
 			topSplits.add(subSplit);
-			topSplits.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(OpenWorldConnectionInterfaceThreadState.class, client)));
+			topSplits.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(OpenAuthorizedWorldConnectionInterfaceThreadState.class, client)));
 			List<Double> topSplitPercents = new ArrayList<Double>();
 			topSplitPercents.add(0.75);
 			topSplitPercents.add(0.25);

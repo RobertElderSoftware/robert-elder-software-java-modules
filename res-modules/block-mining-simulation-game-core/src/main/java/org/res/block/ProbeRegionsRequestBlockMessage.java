@@ -106,7 +106,7 @@ public class ProbeRegionsRequestBlockMessage extends BlockMessage {
 		if((this.flags & ProbeRegionsRequestBlockMessage.SUBSCRIBE_FLAG_MASK) == 0L){
 			blockSession.unsubscribeFromRegions(this.cuboidAddresses);
 		}else{
-			blockSession.subscribeToRegions(this.cuboidAddresses, this.getConversationId());
+			blockSession.subscribeToRegions(blockModelContext, this.cuboidAddresses, this.getConversationId());
 		}
 	}
 }

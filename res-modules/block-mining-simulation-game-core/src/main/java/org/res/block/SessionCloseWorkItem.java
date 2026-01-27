@@ -47,6 +47,6 @@ public class SessionCloseWorkItem extends BlockModelContextWorkItem {
 	}
 
 	public void doWork() throws Exception{
-		this.blockModelContext.getClientServerInterface().onBlockSessionClose(blockSession, reason, doClose);
+		this.blockModelContext.getSessionOperationInterface().onBlockSessionClose(blockSession, reason, doClose);
 	}
 }

@@ -62,10 +62,11 @@ public class ChunkInitializerThreadState extends UIEventReceiverThreadState<Chun
 
 	public void receiveEventNotification(UINotificationType notificationType, Object o, WorkItemPriority priority) throws Exception{
 		this.putWorkItem(new ChunkInitializerWorkItemEventNotificationWorkItem(this, new EventNotificationWorkItem<ChunkInitializerWorkItem>(this, o, notificationType)), priority);
-
 	}
 
 	private static final Object [] interestingBlocks = new Object [] {
+		Kaolin.class,
+		CalcinedAnthracite.class,
 		MetallicTitanium.class,
 		SiliconDioxide.class,
 		Chrysoberyl.class,

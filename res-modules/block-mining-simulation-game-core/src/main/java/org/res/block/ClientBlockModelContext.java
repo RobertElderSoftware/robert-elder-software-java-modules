@@ -57,9 +57,17 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	private Integer selectedCraftingRecipeIndex = 0;
 	private Map<UINotificationType, Set<UIEventReceiverThreadState<?>>> uiEventSubscriptions = new HashMap<UINotificationType, Set<UIEventReceiverThreadState<?>>>();
 	private Long authorizedClientId = 0L; //  TODO:  change this for each player
+	private ClientInterface clientInterface;
+	private SessionOperationInterface sessionOperationInterface;
 
-	public ClientBlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ClientServerInterface clientServerInterface) throws Exception {
-		super(blockManagerThreadCollection, clientServerInterface);
+	public ClientBlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ClientInterface clientInterface, SessionOperationInterface sessionOperationInterface) throws Exception {
+		super(blockManagerThreadCollection);
+		this.clientInterface = clientInterface;
+		this.sessionOperationInterface = sessionOperationInterface;
+	}
+
+	public SessionOperationInterface getSessionOperationInterface(){
+		return this.sessionOperationInterface;
 	}
 
 	public Class<?> getSelectedInventoryItemClass() throws Exception{
@@ -78,7 +86,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	public void init(Object o) throws Exception{
 		//  This is important and only used by multi-player client.  TODO:  Figure out how to simplify this:
-		this.clientServerInterface.setClientBlockModelContext(this);
+		this.clientInterface.setClientBlockModelContext(this);
 
 		//TODO: Actually assign this and delete it from client server interface:
 		//this.serverBlockModelContext = (ServerBlockModelContext)o;
@@ -94,7 +102,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.chunkInitializerThreadState.putWorkItem(new InitializeYourselfChunkInitializerWorkItem(this.chunkInitializerThreadState), WorkItemPriority.PRIORITY_LOW);
 
 
-		this.clientServerInterface.Connect();
+		this.clientInterface.Connect();
 
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(this.inMemoryChunks, InMemoryChunksWorkItem.class, this.inMemoryChunks.getClass()));
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ChunkInitializerWorkItem>(this.chunkInitializerThreadState, ChunkInitializerWorkItem.class, this.chunkInitializerThreadState.getClass()));
@@ -438,7 +446,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			e.getValue().close("Gracefully closing due to shutdown sequence...");
 		}
 		try{
-			this.clientServerInterface.Disconnect();
+			this.clientInterface.Disconnect();
 		}catch(Exception e){
 			e.printStackTrace();
 		}
@@ -561,7 +569,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception{
-		this.clientServerInterface.sendBlockMessage(m, session);
+		this.clientInterface.sendBlockMessage(m, session);
 	}
 
 	public IndividualBlock readBlockAtCoordinate(Coordinate coordinate) throws Exception{
@@ -644,7 +652,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void enqueueChunkUnsubscriptionForServer(List<CuboidAddress> cuboidAddresses, WorkItemPriority priority) throws Exception{
-		BlockSession bs = this.getSessionMap().get(this.clientServerInterface.getClientSessionId());
+		BlockSession bs = this.getSessionMap().get(this.clientInterface.getClientSessionId());
 		Long conversationId = 12345L;// TODO
 		ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddresses.get(0).getNumDimensions(), cuboidAddresses, false, false, conversationId);
 		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, m);
@@ -655,7 +663,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.logMessage("Doing request to server for chunk=" + cuboidAddress);
 		List<CuboidAddress> l = new ArrayList<CuboidAddress>();
 		l.add(cuboidAddress);
-		BlockSession bs = this.getSessionMap().get(this.clientServerInterface.getClientSessionId());
+		BlockSession bs = this.getSessionMap().get(this.clientInterface.getClientSessionId());
 		Long conversationId = 12345L;// TODO
 		ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddress.getNumDimensions(), l, true, true, conversationId);
 		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, m);
@@ -663,14 +671,14 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void submitChunkToServer(Long numDimensions, List<Cuboid> cuboids, WorkItemPriority priority, Long conversationId) throws Exception{
-		BlockSession bs = this.getSessionMap().get(this.clientServerInterface.getClientSessionId());
+		BlockSession bs = this.getSessionMap().get(this.clientInterface.getClientSessionId());
 		DescribeRegionsBlockMessage response = new DescribeRegionsBlockMessage(this, numDimensions, cuboids, conversationId);
 		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, response);
 		this.putWorkItem(workItem, priority);
 	}
 
 	public void requestPlayerProvisioning() throws Exception{
-		BlockSession bs = this.getSessionMap().get(this.clientServerInterface.getClientSessionId());
+		BlockSession bs = this.getSessionMap().get(this.clientInterface.getClientSessionId());
 
 		AuthorizedCommandBlockMessage getRootMessage = new AuthorizedCommandBlockMessage(this, 12345L, authorizedClientId, AuthorizedCommandType.COMMAND_TYPE_PROVISION_PLAYER);
 
@@ -679,7 +687,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void requestRootBlockDictionary() throws Exception{
-		BlockSession bs = this.getSessionMap().get(this.clientServerInterface.getClientSessionId());
+		BlockSession bs = this.getSessionMap().get(this.clientInterface.getClientSessionId());
 
 		AuthorizedCommandBlockMessage getRootMessage = new AuthorizedCommandBlockMessage(this, 12345L, authorizedClientId, AuthorizedCommandType.COMMAND_TYPE_REQUEST_ROOT_DICTIONARY_ADDRESS);
 

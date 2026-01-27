@@ -30,26 +30,49 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.Set;
+import java.util.List;
+import java.util.ArrayList;
 
-import org.res.block.WorkItem;
-import org.res.block.BlockSession;
-import org.res.block.BlockModelContext;
+import java.net.URI;
+import java.net.URISyntaxException;
 
+import javax.websocket.Session;
+import javax.websocket.CloseReason;
+import javax.websocket.ClientEndpoint;
+import javax.websocket.OnClose;
+import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
+import javax.websocket.OnError;
+import javax.websocket.Session;
+import javax.websocket.ContainerProvider;
+import javax.websocket.WebSocketContainer;
 
-public class SessionOpenWorkItem extends BlockModelContextWorkItem {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
 
-	private BlockSession blockSession;
+public class WebsocketsSessionOperationInterface implements SessionOperationInterface{
 
-	public SessionOpenWorkItem(BlockModelContext blockModelContext, BlockSession blockSession){
-		super(blockModelContext);
-		this.blockSession = blockSession;
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
+	public WebsocketsSessionOperationInterface(){
 	}
 
-	public BlockSession getBlockSession(){
-		return this.blockSession;
+	public void onBlockSessionOpen(BlockSession blockSession) throws Exception{
+		if(blockSession instanceof WebsocketBlockSession){
+			logger.info(String.format("Opened websocket session for id '%s'.", blockSession.getId()));
+			((WebsocketBlockSession)blockSession).setMaxBinaryMessageBufferSize(1024*4);
+		}else{
+			throw new Exception("Expected sesion to be of type WebsocketBlockSession but it had type " + blockSession.getClass().getName());
+		}
 	}
 
-	public void doWork() throws Exception{
-		this.blockModelContext.getSessionOperationInterface().onBlockSessionOpen(blockSession);
+	public void onBlockSessionClose(BlockSession blockSession, String closeReason, boolean doClose) throws Exception{
+		if(blockSession instanceof WebsocketBlockSession){
+			logger.info(String.format("Closed websocket session for id '%s' for reason '%s'.", blockSession.getId(), closeReason));	
+		}else{
+			throw new Exception("Expected sesion to be of type WebsocketBlockSession but it had type " + blockSession.getClass().getName());
+		}
 	}
 }

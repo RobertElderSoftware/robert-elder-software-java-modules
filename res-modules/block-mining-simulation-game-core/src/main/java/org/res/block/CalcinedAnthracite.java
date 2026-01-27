@@ -30,57 +30,35 @@
 //  SOFTWARE.
 package org.res.block;
 
-import javax.websocket.Session;
-import javax.websocket.RemoteEndpoint;
-import javax.websocket.CloseReason;
-
-import java.util.Set;
-import java.util.HashSet;
 import java.util.List;
 import java.util.ArrayList;
-import java.nio.ByteBuffer;
+import java.util.stream.Collectors;
 
-import java.io.IOException;
 
-public class WebsocketBlockSession extends BlockSession {
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonNull;
+import com.google.gson.reflect.TypeToken;
 
-	private Session session; /* Don't return any references to session to ensure thread safety. */
-	private Object monitor = new Object();
+public class CalcinedAnthracite extends IndividualBlock {
 
-	public WebsocketBlockSession(BlockModelContext blockModelContext, Session session) throws Exception {
-		super(blockModelContext);
-		this.session = session;
+	private byte [] data;
+
+	public CalcinedAnthracite(byte [] data) throws Exception {
+		this.data = data;
 	}
 
-	public void close(String reason) throws Exception {
-		synchronized (monitor){
-			this.session.close();
-		}
+	public byte [] getBlockData() throws Exception {
+		return this.data;
 	}
 
-	public void sendBytes(byte [] bytes) throws Exception{
-		if(this.session.isOpen()){
-			this.getBasicRemote().sendBinary(ByteBuffer.wrap(bytes));
-		}else{
-			blockModelContext.logMessage("Session '" + this.session.getId() + "' was closed.  Discarding the " + bytes.length + " bytes that were scheduled to be sent to this session.");
-		}
-	}
-
-	private RemoteEndpoint.Basic getBasicRemote(){
-		synchronized (monitor){
-			return this.session.getBasicRemote();
-		}
-	}
-
-	public String getId(){
-		synchronized (monitor){
-			return this.session.getId();
-		}
-	}
-
-	public void setMaxBinaryMessageBufferSize(int length){
-		synchronized (monitor){
-			this.session.setMaxBinaryMessageBufferSize(length);
-		}
+	public boolean isMineable() throws Exception{
+		return true;
 	}
 }

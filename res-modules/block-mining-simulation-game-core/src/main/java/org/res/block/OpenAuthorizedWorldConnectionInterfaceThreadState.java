@@ -56,7 +56,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameThreadState implements InputFormContainer{
+public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInterfaceFrameThreadState implements InputFormContainer{
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
@@ -65,7 +65,7 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 	private InputForm textInputAreaCollection;
 	private String initialFocus = "local_world_name";
 
-	public OpenWorldConnectionInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
+	public OpenAuthorizedWorldConnectionInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
 		super(blockManagerThreadCollection, consoleWriterThreadState, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
@@ -77,27 +77,15 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 
 	protected void init(Object o) throws Exception{
 		this.textInputAreaCollection = new InputForm(this);
-		this.textInputAreaCollection.addInputFormLabel("local_world_name_label", "Local World File Name:");
-		this.textInputAreaCollection.addInputFormTextArea("local_world_name", 1L);
-		this.textInputAreaCollection.setInputFormTextAreaText("local_world_name", "/tmp/world1.sql");
+		this.textInputAreaCollection.addInputFormLabel("active_connection_index_label", "Enter Index of World:");
+		this.textInputAreaCollection.addInputFormTextArea("active_connection_index", 1L);
+		this.textInputAreaCollection.setInputFormTextAreaText("active_connection_index", "0");
 
-		this.textInputAreaCollection.addInputFormButton("local_world_submit_button", "Submit");
+		this.textInputAreaCollection.addInputFormLabel("authorized_connection_id_label", "Authorized Connection ID:");
+		this.textInputAreaCollection.addInputFormTextArea("authorized_connection_id", 1L);
+		this.textInputAreaCollection.setInputFormTextAreaText("authorized_connection_id", "1");
 
-		this.textInputAreaCollection.addInputFormLabel("hostname_ip_label", "Hostname Or IP Address:");
-		this.textInputAreaCollection.addInputFormTextArea("hostname_ip", 1L);
-		this.textInputAreaCollection.setInputFormTextAreaText("hostname_ip", "127.0.0.1");
-
-		this.textInputAreaCollection.addInputFormLabel("port_label", "Port:");
-		this.textInputAreaCollection.addInputFormTextArea("port", 1L);
-		this.textInputAreaCollection.setInputFormTextAreaText("port", "8888");
-
-		this.textInputAreaCollection.addInputFormLabel("url_label", "URL:");
-		this.textInputAreaCollection.addInputFormTextArea("url", 1L);
-		this.textInputAreaCollection.setInputFormTextAreaText("url", "/block_manager");
-
-		this.textInputAreaCollection.addInputFormButton("websockets_world_submit_button", "Submit");
-
-		this.textInputAreaCollection.addInputFormButton("close_frame_button", "Close");
+		this.textInputAreaCollection.addInputFormButton("submit_button", "Submit");
 
 		this.textInputAreaCollection.setFocusedItem(initialFocus);
 	}
@@ -147,10 +135,21 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 
 		int [] titleAnsiCodes = UserInterfaceFrameThreadState.getHelpDetailsTitleColors();
 
-		Long localTitleOffset = initialOffset;
+		ColouredTextFragmentList activeWorldsTitlePart = new ColouredTextFragmentList();
+		activeWorldsTitlePart.add(new ColouredTextFragment("Active World Connection:", titleAnsiCodes));
+
+		List<LinePrintingInstruction> activeWorldsTitleInstructions = this.getLinePrintingInstructions(activeWorldsTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+
+		//for(int i = 0; i < this.getBlockManagerThreadCollection().getWorldConnections().size(); i++){
+			
+		//}
+
+		this.executeLinePrintingInstructionsAtYOffset(activeWorldsTitleInstructions, initialOffset);
+
+		Long localTitleOffset = initialOffset + activeWorldsTitleInstructions.size();
 
 		ColouredTextFragmentList localTitlePart = new ColouredTextFragmentList();
-		localTitlePart.add(new ColouredTextFragment("Open Local World Connection:", titleAnsiCodes));
+		localTitlePart.add(new ColouredTextFragment("Open Authorized World Connection:", titleAnsiCodes));
 
 
 		List<LinePrintingInstruction> localTitleInstructions = this.getLinePrintingInstructions(localTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
@@ -158,13 +157,15 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 		this.executeLinePrintingInstructionsAtYOffset(localTitleInstructions, localTitleOffset);
 
 		Long textAreaWidth = Math.max(0, this.getInnerFrameWidth() - 2L);
-		Long localWorldLabelOffset = localTitleOffset + localTitleInstructions.size() + 2L;
-		Long localWorldOffset = localWorldLabelOffset + 1L;
-		Long localSubmitButtonOffset = localWorldOffset + 2L;
+		Long activeConnectionIndexLabelOffset = localTitleOffset + localTitleInstructions.size() + 2L;
+		Long activeConnectionIndexOffset = activeConnectionIndexLabelOffset + 1L;
+		Long authorizedConnectionIdLabelOffset = activeConnectionIndexOffset + 2L;
+		Long authorizedConnectionIdOffset = authorizedConnectionIdLabelOffset + 1L;
+		Long submitButtonOffset = authorizedConnectionIdOffset + 2L;
 
 		this.textInputAreaCollection.updateRenderableArea(
-			"local_world_name_label",
-			new Coordinate(Arrays.asList(2L, localWorldLabelOffset)),
+			"active_connection_index_label",
+			new Coordinate(Arrays.asList(2L, activeConnectionIndexLabelOffset)),
 			new CuboidAddress(
 				new Coordinate(Arrays.asList(0L, 0L)),
 				new Coordinate(Arrays.asList(textAreaWidth, 1L))
@@ -172,8 +173,8 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 		);
 
 		this.textInputAreaCollection.updateRenderableArea(
-			"local_world_name",
-			new Coordinate(Arrays.asList(2L, localWorldOffset)),
+			"active_connection_index",
+			new Coordinate(Arrays.asList(2L, activeConnectionIndexOffset)),
 			new CuboidAddress(
 				new Coordinate(Arrays.asList(0L, 0L)),
 				new Coordinate(Arrays.asList(textAreaWidth, 1L))
@@ -181,35 +182,8 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 		);
 
 		this.textInputAreaCollection.updateRenderableArea(
-			"local_world_submit_button",
-			new Coordinate(Arrays.asList(2L, localSubmitButtonOffset)),
-			new CuboidAddress(
-				new Coordinate(Arrays.asList(0L, 0L)),
-				new Coordinate(Arrays.asList(textAreaWidth, 3L))
-			)
-		);
-
-		ColouredTextFragmentList websocketsTitlePart = new ColouredTextFragmentList();
-		websocketsTitlePart.add(new ColouredTextFragment("Open Websockets World Connection:", titleAnsiCodes));
-
-		List<LinePrintingInstruction> websocketsTitleInstructions = this.getLinePrintingInstructions(websocketsTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
-
-		Long websocketsTitleOffset = localSubmitButtonOffset + 3L;
-		this.executeLinePrintingInstructionsAtYOffset(websocketsTitleInstructions, websocketsTitleOffset);
-
-		Long hostnameIpLabelOffset = websocketsTitleOffset + websocketsTitleInstructions.size() + 1L;
-		Long hostnameIpOffset = hostnameIpLabelOffset + 1L;
-		Long portLabelOffset = hostnameIpOffset + 2L;
-		Long portOffset = portLabelOffset + 1L;
-		Long urlLabelOffset = portOffset + 2L;
-		Long urlOffset = urlLabelOffset + 1L;
-		Long websocketsSubmitButtonOffset = urlOffset + 2L;
-
-		Long closeFrameButtonOffset = websocketsSubmitButtonOffset + 4L;
-
-		this.textInputAreaCollection.updateRenderableArea(
-			"hostname_ip_label",
-			new Coordinate(Arrays.asList(2L, hostnameIpLabelOffset)),
+			"authorized_connection_id_label",
+			new Coordinate(Arrays.asList(2L, authorizedConnectionIdLabelOffset)),
 			new CuboidAddress(
 				new Coordinate(Arrays.asList(0L, 0L)),
 				new Coordinate(Arrays.asList(textAreaWidth, 1L))
@@ -217,8 +191,8 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 		);
 
 		this.textInputAreaCollection.updateRenderableArea(
-			"hostname_ip",
-			new Coordinate(Arrays.asList(2L, hostnameIpOffset)),
+			"authorized_connection_id",
+			new Coordinate(Arrays.asList(2L, authorizedConnectionIdOffset)),
 			new CuboidAddress(
 				new Coordinate(Arrays.asList(0L, 0L)),
 				new Coordinate(Arrays.asList(textAreaWidth, 1L))
@@ -226,53 +200,8 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 		);
 
 		this.textInputAreaCollection.updateRenderableArea(
-			"port_label",
-			new Coordinate(Arrays.asList(2L, portLabelOffset)),
-			new CuboidAddress(
-				new Coordinate(Arrays.asList(0L, 0L)),
-				new Coordinate(Arrays.asList(textAreaWidth, 1L))
-			)
-		);
-
-		this.textInputAreaCollection.updateRenderableArea(
-			"port",
-			new Coordinate(Arrays.asList(2L, portOffset)),
-			new CuboidAddress(
-				new Coordinate(Arrays.asList(0L, 0L)),
-				new Coordinate(Arrays.asList(textAreaWidth, 1L))
-			)
-		);
-
-		this.textInputAreaCollection.updateRenderableArea(
-			"url_label",
-			new Coordinate(Arrays.asList(2L, urlLabelOffset)),
-			new CuboidAddress(
-				new Coordinate(Arrays.asList(0L, 0L)),
-				new Coordinate(Arrays.asList(textAreaWidth, 1L))
-			)
-		);
-
-		this.textInputAreaCollection.updateRenderableArea(
-			"url",
-			new Coordinate(Arrays.asList(2L, urlOffset)),
-			new CuboidAddress(
-				new Coordinate(Arrays.asList(0L, 0L)),
-				new Coordinate(Arrays.asList(textAreaWidth, 1L))
-			)
-		);
-
-		this.textInputAreaCollection.updateRenderableArea(
-			"websockets_world_submit_button",
-			new Coordinate(Arrays.asList(2L, websocketsSubmitButtonOffset)),
-			new CuboidAddress(
-				new Coordinate(Arrays.asList(0L, 0L)),
-				new Coordinate(Arrays.asList(textAreaWidth, 3L))
-			)
-		);
-
-		this.textInputAreaCollection.updateRenderableArea(
-			"close_frame_button",
-			new Coordinate(Arrays.asList(2L, closeFrameButtonOffset)),
+			"submit_button",
+			new Coordinate(Arrays.asList(2L, submitButtonOffset)),
 			new CuboidAddress(
 				new Coordinate(Arrays.asList(0L, 0L)),
 				new Coordinate(Arrays.asList(textAreaWidth, 3L))

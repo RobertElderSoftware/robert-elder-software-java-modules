@@ -30,7 +30,7 @@
 //  SOFTWARE.
 package org.res.block;
 
-import org.res.block.ClientServerInterface;
+import org.res.block.ClientInterface;
 
 import java.util.Set;
 import java.util.List;
@@ -39,7 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class SinglePlayerClientServerInterface extends ClientServerInterface{
+public class SinglePlayerClientInterface extends ClientInterface{
 
 	private ServerBlockModelContext serverBlockModelContext;
 	private LocalBlockSession clientBlockSession;
@@ -77,23 +77,6 @@ public class SinglePlayerClientServerInterface extends ClientServerInterface{
 		//  TODO: Improve this to use a better design:
 		while(this.getClientToServerSession() == null){};
 		return this.getClientToServerSession().getId();
-	}
-
-	public void onBlockSessionOpen(BlockSession blockSession) throws Exception{
-		if(blockSession instanceof LocalBlockSession){
-			logger.info(String.format("Opened local session for id '%s'.", blockSession.getId()));
-		}else{
-			throw new Exception("Expected sesion to be of type LocalBlockSession but it had type " + blockSession.getClass().getName());
-		}
-	}
-
-
-	public void onBlockSessionClose(BlockSession blockSession, String closeReason, boolean doClose) throws Exception{
-		if(blockSession instanceof LocalBlockSession){
-			logger.info(String.format("Closed websocket session for id '%s' for reason '%s'.", blockSession.getId(), closeReason));	
-		}else{
-			throw new Exception("Expected sesion to be of type LocalBlockSession but it had type " + blockSession.getClass().getName());
-		}
 	}
 
 	public BlockModelContext getRemoteBlockModelContext(BlockMessage m) throws Exception{

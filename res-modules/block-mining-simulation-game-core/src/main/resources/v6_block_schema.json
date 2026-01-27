@@ -179,6 +179,18 @@
                         "byte_pattern_base_64": "Q0FTOjEzNDUtMjUtMQ==",
                         "block_class": "org.res.block.Wuestite",
                         "dedication": "JoseTheAwk"
+                },
+                {
+                        "match_type": "byte_comparison",
+                        "byte_pattern_base_64": "Q0FTOjEzMzItNTgtNw==",
+                        "block_class": "org.res.block.Kaolin",
+                        "dedication": "iggySB"
+                },
+                {
+                        "match_type": "byte_comparison",
+                        "byte_pattern_base_64": "Q0FTOjY4MTg3LTU5LTc=",
+                        "block_class": "org.res.block.CalcinedAnthracite",
+                        "dedication": "iggySB"
                 }
 	]
 }

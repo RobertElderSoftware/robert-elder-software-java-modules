@@ -203,6 +203,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 							Arrays.asList(
 								new OpenFrameClassHelpMenuOption("Open Help Menu", HelpMenuOptionType.OPEN_NEW_FRAME, HelpDetailsFrameThreadState.class),
 								new OpenFrameClassHelpMenuOption("Open Open World Connection Menu", HelpMenuOptionType.OPEN_NEW_FRAME, OpenWorldConnectionInterfaceThreadState.class),
+								new OpenFrameClassHelpMenuOption("Open Open Authorized World Connection Menu", HelpMenuOptionType.OPEN_NEW_FRAME, OpenAuthorizedWorldConnectionInterfaceThreadState.class),
 								new OpenFrameClassHelpMenuOption("Open Map Area", HelpMenuOptionType.OPEN_NEW_FRAME, MapAreaInterfaceThreadState.class),
 								new OpenFrameClassHelpMenuOption("Open Crafting Menu", HelpMenuOptionType.OPEN_NEW_FRAME, CraftingInterfaceThreadState.class),
 								new OpenFrameClassHelpMenuOption("Open Debug List", HelpMenuOptionType.OPEN_NEW_FRAME, DebugListInterfaceThreadState.class),

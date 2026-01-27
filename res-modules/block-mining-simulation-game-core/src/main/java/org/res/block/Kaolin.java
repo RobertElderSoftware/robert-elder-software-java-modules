@@ -30,26 +30,35 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
-import org.res.block.WorkItem;
-import org.res.block.BlockSession;
-import org.res.block.BlockModelContext;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonNull;
+import com.google.gson.reflect.TypeToken;
 
-public class SessionOpenWorkItem extends BlockModelContextWorkItem {
+public class Kaolin extends IndividualBlock {
 
-	private BlockSession blockSession;
+	private byte [] data;
 
-	public SessionOpenWorkItem(BlockModelContext blockModelContext, BlockSession blockSession){
-		super(blockModelContext);
-		this.blockSession = blockSession;
+	public Kaolin(byte [] data) throws Exception {
+		this.data = data;
 	}
 
-	public BlockSession getBlockSession(){
-		return this.blockSession;
+	public byte [] getBlockData() throws Exception {
+		return this.data;
 	}
 
-	public void doWork() throws Exception{
-		this.blockModelContext.getSessionOperationInterface().onBlockSessionOpen(blockSession);
+	public boolean isMineable() throws Exception{
+		return true;
 	}
 }

@@ -68,13 +68,21 @@ public class ServerBlockModelContext extends BlockModelContext {
 	private ExecutorService executorService = null;
 	private ServerBlockModelInterface blockModelInterface = new ServerBlockModelInterface();
 	private DatabaseBlockWorldConnection databaseBlockWorldConnection;
+	private ServerInterface serverInterface;
+	private SessionOperationInterface sessionOperationInterface;
 
 	public BlockModelInterface getBlockModelInterface(){
 		return blockModelInterface;
 	}
 
-	public ServerBlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ClientServerInterface clientServerInterface, DatabaseBlockWorldConnection databaseBlockWorldConnection) throws Exception {
-		super(blockManagerThreadCollection, clientServerInterface);
+	public SessionOperationInterface getSessionOperationInterface(){
+		return this.sessionOperationInterface;
+	}
+
+	public ServerBlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ServerInterface serverInterface, SessionOperationInterface sessionOperationInterface, DatabaseBlockWorldConnection databaseBlockWorldConnection) throws Exception {
+		super(blockManagerThreadCollection);
+		this.serverInterface = serverInterface;
+		this.sessionOperationInterface = sessionOperationInterface;
 		this.databaseBlockWorldConnection = databaseBlockWorldConnection;
 	}
 
@@ -109,7 +117,7 @@ public class ServerBlockModelContext extends BlockModelContext {
 	}
 
 	public void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception{
-		this.clientServerInterface.sendBlockMessage(m, session);
+		this.serverInterface.sendBlockMessage(m, session);
 	}
 
 	public void shutdown() throws Exception {

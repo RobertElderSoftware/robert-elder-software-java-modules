@@ -30,26 +30,15 @@
 //  SOFTWARE.
 package org.res.block;
 
-
-import org.res.block.WorkItem;
+import java.util.List;
+import java.util.Set;
+import org.res.block.Cuboid;
 import org.res.block.BlockSession;
-import org.res.block.BlockModelContext;
 
+public abstract class ServerInterface{
 
-public class SessionOpenWorkItem extends BlockModelContextWorkItem {
+	public abstract void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception;
 
-	private BlockSession blockSession;
-
-	public SessionOpenWorkItem(BlockModelContext blockModelContext, BlockSession blockSession){
-		super(blockModelContext);
-		this.blockSession = blockSession;
-	}
-
-	public BlockSession getBlockSession(){
-		return this.blockSession;
-	}
-
-	public void doWork() throws Exception{
-		this.blockModelContext.getSessionOperationInterface().onBlockSessionOpen(blockSession);
+	public final void setClientBlockModelContext(ClientBlockModelContext clientBlockModelContext){
 	}
 }

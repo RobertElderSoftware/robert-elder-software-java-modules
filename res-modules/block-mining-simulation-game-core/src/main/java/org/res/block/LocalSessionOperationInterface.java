@@ -37,7 +37,6 @@ import java.util.ArrayList;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import org.res.block.ClientServerInterface;
 import javax.websocket.Session;
 import javax.websocket.CloseReason;
 import javax.websocket.ClientEndpoint;
@@ -53,55 +52,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class WebserverClientServerInterface extends ClientServerInterface{
+public class LocalSessionOperationInterface implements SessionOperationInterface{
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	public WebserverClientServerInterface(){
-	}
-
-
-	public String getClientSessionId() throws Exception{
-		return null;
-	}
-
-	private BlockModelContext getBlockModelContext() throws Exception{
-		if(clientBlockModelContext == null){
-			throw new Exception("Forgot to initialize clientBlockModelContext?");
-		}else{
-			return clientBlockModelContext;
-		}
-	}
-
-	public void Connect() throws Exception{
-	}
-
-	public void Disconnect() throws Exception{
-	}
-
-	public void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception{
-		if(session instanceof WebsocketBlockSession){
-			byte [] byteEncodedResponse = m.asByteArray();
-			((WebsocketBlockSession)session).sendBytes(byteEncodedResponse);
-		}else{
-			throw new Exception("Expected sesion to be of type WebsocketBlockSession but it had type " + session.getClass().getName());
-		}
+	public LocalSessionOperationInterface(){
 	}
 
 	public void onBlockSessionOpen(BlockSession blockSession) throws Exception{
-		if(blockSession instanceof WebsocketBlockSession){
-			logger.info(String.format("Opened websocket session for id '%s'.", blockSession.getId()));
-			((WebsocketBlockSession)blockSession).setMaxBinaryMessageBufferSize(1024*4);
+		if(blockSession instanceof LocalBlockSession){
+			logger.info(String.format("Opened local session for id '%s'.", blockSession.getId()));
 		}else{
-			throw new Exception("Expected sesion to be of type WebsocketBlockSession but it had type " + blockSession.getClass().getName());
+			throw new Exception("Expected sesion to be of type LocalBlockSession but it had type " + blockSession.getClass().getName());
 		}
 	}
 
 	public void onBlockSessionClose(BlockSession blockSession, String closeReason, boolean doClose) throws Exception{
-		if(blockSession instanceof WebsocketBlockSession){
+		if(blockSession instanceof LocalBlockSession){
 			logger.info(String.format("Closed websocket session for id '%s' for reason '%s'.", blockSession.getId(), closeReason));	
 		}else{
-			throw new Exception("Expected sesion to be of type WebsocketBlockSession but it had type " + blockSession.getClass().getName());
+			throw new Exception("Expected sesion to be of type LocalBlockSession but it had type " + blockSession.getClass().getName());
 		}
 	}
 }

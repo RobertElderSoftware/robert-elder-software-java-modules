@@ -73,6 +73,9 @@ public class BlockSkins {
 		patternsTmp.put(Siderite.class.getName(),"\uD83D\uDFE8");
 		patternsTmp.put(Wuestite.class.getName(),"\u2B1B");
 		patternsTmp.put(Magnetite.class.getName(),"\u2B1B");
+		patternsTmp.put(Kaolin.class.getName(),"\u26AA");
+		patternsTmp.put(CalcinedAnthracite.class.getName(),"\u26AB");
+
 		patternsTmp.put(MetallicIron.class.getName(),"\u2699\uFE0F");
 		patternsTmp.put(MetallicCopper.class.getName(),"\uD83D\uDFE7");
 		patternsTmp.put(MetallicSilver.class.getName(),"\u2B1C");
@@ -106,6 +109,8 @@ public class BlockSkins {
 		descriptionsTmp.put(Limonite.class.getName(),"One cubic meter of limonite, the natural mineral with chemical formula of the form FeO(OH)nH₂O");
 		descriptionsTmp.put(Siderite.class.getName(),"One cubic meter of siderite, the natural mineral with chemical formula of the form FeCO₃");
 		descriptionsTmp.put(Wuestite.class.getName(),"One cubic meter of Wüstite, the natural mineral with chemical formula of the form FeO.");
+		descriptionsTmp.put(Kaolin.class.getName(),"One cubic meter of Kaolin, a hydrated aluminum silicate with formula Al₂Si₂O₅(OH)₄");
+		descriptionsTmp.put(CalcinedAnthracite.class.getName(),"One cubic meter of Calcined Anthracite, an extremely high carbon form of coal.");
 
 		descriptionsTmp.put(MetallicIron.class.getName(),"One cubic meter of metallic iron, the element with atomic number 26.");
 		descriptionsTmp.put(MetallicCopper.class.getName(),"One cubic meter of metallic copper, the element with atomic number 29.");

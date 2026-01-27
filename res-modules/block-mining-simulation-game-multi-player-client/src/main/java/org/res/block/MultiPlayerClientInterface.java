@@ -37,7 +37,7 @@ import java.util.ArrayList;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import org.res.block.ClientServerInterface;
+import org.res.block.ClientInterface;
 import javax.websocket.Session;
 import javax.websocket.CloseReason;
 import javax.websocket.ClientEndpoint;
@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
 @ClientEndpoint
-public class MultiPlayerClientServerInterface extends ClientServerInterface{
+public class MultiPlayerClientInterface extends ClientInterface{
 
 	private String hostName;
 	private Session userSession = null;
@@ -63,7 +63,7 @@ public class MultiPlayerClientServerInterface extends ClientServerInterface{
 	protected WebSocketContainer container;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	public MultiPlayerClientServerInterface(String hostName, Integer port, String url){
+	public MultiPlayerClientInterface(String hostName, Integer port, String url){
 		this.hostName = hostName;
 		this.port = port;
 		this.url = url;
@@ -101,47 +101,30 @@ public class MultiPlayerClientServerInterface extends ClientServerInterface{
 		}
 	}
 
-	public void onBlockSessionOpen(BlockSession blockSession) throws Exception{
-		if(blockSession instanceof WebsocketBlockSession){
-			logger.info(String.format("Opened websocket session for id '%s'.", blockSession.getId()));
-			((WebsocketBlockSession)blockSession).setMaxBinaryMessageBufferSize(1024*4);
-		}else{
-			throw new Exception("Expected sesion to be of type WebsocketBlockSession but it had type " + blockSession.getClass().getName());
-		}
-	}
-
-	public void onBlockSessionClose(BlockSession blockSession, String closeReason, boolean doClose) throws Exception{
-		if(blockSession instanceof WebsocketBlockSession){
-			logger.info(String.format("Closed websocket session for id '%s' for reason '%s'.", blockSession.getId(), closeReason));	
-		}else{
-			throw new Exception("Expected sesion to be of type WebsocketBlockSession but it had type " + blockSession.getClass().getName());
-		}
-	}
-
 	@OnOpen
 	public void onOpen(Session session) throws Exception {
-		this.getBlockModelContext().onOpen(new WebsocketBlockSession(this.getBlockModelContext(), session));
+		this.getBlockModelContext().onOpen(new WebsocketBlockSession(session));
 	}
 
 	@OnMessage
 	public void onMessage(String txt, Session session) throws Exception {
-		this.getBlockModelContext().onMessage(txt, new WebsocketBlockSession(this.getBlockModelContext(), session));
+		this.getBlockModelContext().onMessage(txt, new WebsocketBlockSession(session));
 	}
 
 	@OnMessage
 	public void onBinaryMessage(byte[] inputBytes, boolean last, Session session) throws Exception {
-		this.getBlockModelContext().onBinaryMessage(inputBytes, last, new WebsocketBlockSession(this.getBlockModelContext(), session));
+		this.getBlockModelContext().onBinaryMessage(inputBytes, last, new WebsocketBlockSession(session));
 	}
 
 	@OnClose
 	public void onClose(CloseReason reason, Session session) throws Exception {
 		boolean doClose = true;
 
-		this.getBlockModelContext().onClose(String.valueOf(reason), new WebsocketBlockSession(this.getBlockModelContext(), session), doClose);
+		this.getBlockModelContext().onClose(String.valueOf(reason), new WebsocketBlockSession(session), doClose);
 	}
 
 	@OnError
 	public void onError(Session session, Throwable t) throws Throwable {
-		this.getBlockModelContext().onError(new WebsocketBlockSession(this.getBlockModelContext(), session), t);
+		this.getBlockModelContext().onError(new WebsocketBlockSession(session), t);
 	}
 }

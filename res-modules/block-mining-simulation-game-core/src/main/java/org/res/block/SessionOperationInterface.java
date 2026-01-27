@@ -35,17 +35,7 @@ import java.util.Set;
 import org.res.block.Cuboid;
 import org.res.block.BlockSession;
 
-public abstract class ClientServerInterface{
-	protected ClientBlockModelContext clientBlockModelContext;
-
-	public abstract void Connect() throws Exception;
-	public abstract void Disconnect() throws Exception;
-	public abstract void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception;
-	public abstract String getClientSessionId() throws Exception;
+public interface SessionOperationInterface {
 	public abstract void onBlockSessionOpen(BlockSession blockSession)throws Exception;
 	public abstract void onBlockSessionClose(BlockSession blockSession, String closeReason, boolean doClose) throws Exception;
-
-	public final void setClientBlockModelContext(ClientBlockModelContext clientBlockModelContext){
-		this.clientBlockModelContext = clientBlockModelContext;
-	}
 }
