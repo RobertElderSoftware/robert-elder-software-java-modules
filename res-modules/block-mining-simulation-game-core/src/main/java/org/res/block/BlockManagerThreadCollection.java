@@ -58,7 +58,16 @@ import java.lang.Thread;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
+import javax.websocket.Session;
+import javax.websocket.CloseReason;
+import javax.websocket.ClientEndpoint;
+import javax.websocket.OnClose;
+import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
+import javax.websocket.OnError;
+import javax.websocket.Session;
+import javax.websocket.ContainerProvider;
+import javax.websocket.WebSocketContainer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -144,11 +153,14 @@ public class BlockManagerThreadCollection {
 		return this.consoleWriterThreadState;
 	}
 
-	public final void addBlockWorldConnection(BlockWorldConnection blockWorldConnection) throws Exception{
-		if(!this.blockWorldConnections.containsKey(blockWorldConnection.getWorldAddressString())){
-			blockWorldConnection.init();
-			this.blockWorldConnections.put(blockWorldConnection.getWorldAddressString(), blockWorldConnection);
+	public final DatabaseBlockWorldConnection makeOrGetDatabaseBlockWorldConnection(DatabaseConnectionParameters params, SessionOperationInterface sessionOperationInterface) throws Exception{
+		DatabaseBlockWorldConnection bwc = new DatabaseBlockWorldConnection(this, sessionOperationInterface, params);
+		
+		if(!this.blockWorldConnections.containsKey(bwc.getWorldAddressString())){
+			bwc.init();
+			this.blockWorldConnections.put(bwc.getWorldAddressString(), bwc);
 		}
+		return (DatabaseBlockWorldConnection)this.blockWorldConnections.get(bwc.getWorldAddressString());
 	}
 
 	public final void addClientBlockModelContext(ClientBlockModelContext clientBlockModelContext){
@@ -479,5 +491,27 @@ public class BlockManagerThreadCollection {
 
 			cwts.setRootSplit(root);
 		}
+	}
+
+	public void onOpen(BlockModelContext blockModelContext, Session session) throws Exception {
+		logger.info("In onOpen...");
+		blockModelContext.onOpen(session);
+	}
+
+	public void onMessage(BlockModelContext blockModelContext, String txt, Session session) throws Exception {
+		blockModelContext.onMessage(txt, session);
+	}
+
+	public void onBinaryMessage(BlockModelContext blockModelContext, byte[] inputBytes, boolean last, Session session) throws Exception {
+		blockModelContext.onBinaryMessage(inputBytes, last, session);
+	}
+
+	public void onClose(BlockModelContext blockModelContext, CloseReason reason, Session session) throws Exception {
+		logger.info("In onClose...");
+		blockModelContext.onClose(reason, session);
+	}
+
+	public void onError(BlockModelContext blockModelContext, Session session, Throwable t) throws Throwable {
+		blockModelContext.onError(session, t);
 	}
 }

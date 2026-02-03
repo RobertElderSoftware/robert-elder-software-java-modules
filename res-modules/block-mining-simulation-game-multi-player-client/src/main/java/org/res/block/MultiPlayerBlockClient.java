@@ -83,18 +83,15 @@ class MultiPlayerBlockClient {
 	public static void startMultiPlayerClient(CommandLineArgumentCollection commandLineArgumentCollection) throws Exception {
 		MultiPlayerBlockClient.setupLogging(commandLineArgumentCollection.getUsedSingleValue("--log-file"));
 
-		String hostName = "127.0.0.1";
-		Integer port = 8888;
-		String url = "/block-manager";
-
 		BlockManagerThreadCollection blockManagerThreadCollection = new BlockManagerThreadCollection(commandLineArgumentCollection, true);
 		blockManagerThreadCollection.init();
-		MultiPlayerClientInterface clientInterface = new MultiPlayerClientInterface(hostName, port, url);
-		ClientBlockModelContext clientBlockModelContext = new ClientBlockModelContext(blockManagerThreadCollection, clientInterface, new WebsocketsSessionOperationInterface());
+		ClientBlockModelContext clientBlockModelContext = new ClientBlockModelContext(blockManagerThreadCollection, new WebsocketsSessionOperationInterface());
 		blockManagerThreadCollection.addClientBlockModelContext(clientBlockModelContext);
 		clientBlockModelContext.putWorkItem(new InitializeYourselfClientBlockModelContextWorkItem(clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
 		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(clientBlockModelContext, BlockModelContextWorkItem.class, ClientBlockModelContext.class));
 		blockManagerThreadCollection.setupDefaultUIForClient(clientBlockModelContext);
+		clientBlockModelContext.connect(new WebsocketConnectionParameters("127.0.0.1", 8888, "/block-manager"));
+		clientBlockModelContext.startRunningClient();
 		//  Start the game loading process
 		blockManagerThreadCollection.blockUntilAllTasksHaveTerminated();
 		clientBlockModelContext.shutdown();

@@ -98,9 +98,6 @@ class SinglePlayerBlockClient {
 		}
 		blockManagerThreadCollection.init();
 
-		SinglePlayerClientInterface clientInterface = new SinglePlayerClientInterface();
-		SinglePlayerServerInterface serverInterface = new SinglePlayerServerInterface();
-
 		DatabaseConnectionParameters dbParams = new DatabaseConnectionParameters(
 			commandLineArgumentCollection.getUsedSingleValue("--database-subprotocol"), //String subprotocol,
 			commandLineArgumentCollection.getUsedSingleValue("--database-hostname"), //String hostname,
@@ -111,40 +108,22 @@ class SinglePlayerBlockClient {
 			commandLineArgumentCollection.getUsedSingleValue("--block-world-file") //String filename
 		);
 
-		ServerBlockModelContext serverBlockModelContext = new ServerBlockModelContext(blockManagerThreadCollection, serverInterface, new LocalSessionOperationInterface(), new DatabaseBlockWorldConnection(dbParams));
-		ClientBlockModelContext clientBlockModelContext = new ClientBlockModelContext(blockManagerThreadCollection, clientInterface, new LocalSessionOperationInterface());
+		DatabaseBlockWorldConnection bwc = blockManagerThreadCollection.makeOrGetDatabaseBlockWorldConnection(dbParams, new LocalSessionOperationInterface());
+
+		ClientBlockModelContext clientBlockModelContext = new ClientBlockModelContext(blockManagerThreadCollection, new LocalSessionOperationInterface());
 		blockManagerThreadCollection.addClientBlockModelContext(clientBlockModelContext);
 
-		clientBlockModelContext.putWorkItem(new InitializeYourselfClientBlockModelContextWorkItem(clientBlockModelContext, serverBlockModelContext), WorkItemPriority.PRIORITY_LOW);
-		serverBlockModelContext.putWorkItem(new InitializeYourselfServerBlockModelContextWorkItem(serverBlockModelContext, Arrays.asList(clientBlockModelContext)), WorkItemPriority.PRIORITY_LOW);
+		clientBlockModelContext.putWorkItem(new InitializeYourselfClientBlockModelContextWorkItem(clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
 
 		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(clientBlockModelContext, BlockModelContextWorkItem.class, ClientBlockModelContext.class));
-		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(serverBlockModelContext, BlockModelContextWorkItem.class, ServerBlockModelContext.class));
 
-		clientInterface.setServerBlockModelContext(serverBlockModelContext);
-		serverInterface.setClientBlockModelContext(clientBlockModelContext);
-
-		LocalBlockSession serverToClientSession = new LocalBlockSession("local_server_to_client_connection", clientBlockModelContext);
-		LocalBlockSession clientToServerSession = new LocalBlockSession("local_server_to_client_connection", serverBlockModelContext);
-
-		//  Add the sessions to manually set up the connection
-		serverBlockModelContext.onOpen(serverToClientSession);
-		clientBlockModelContext.onOpen(clientToServerSession);
-
-		//  Lets the client know where to send requests:
-		clientInterface.setClientToServerSession(clientToServerSession);
-
-		//  Connection the sessions to each others' remote endpoint:
-		serverToClientSession.setRemoteSession(clientToServerSession);
-		clientToServerSession.setRemoteSession(serverToClientSession);
-
-		BlockWorldConnection bwc = new DatabaseBlockWorldConnection(dbParams);
-		blockManagerThreadCollection.addBlockWorldConnection(bwc);
 		blockManagerThreadCollection.setupDefaultUIForClient(clientBlockModelContext);
+		clientBlockModelContext.connect(bwc.getServerBlockModelContext());
+		clientBlockModelContext.startRunningClient();
 
 		//  Start the game loading process
 		blockManagerThreadCollection.blockUntilAllTasksHaveTerminated();
-		serverBlockModelContext.shutdown();
+		bwc.getServerBlockModelContext().shutdown();
 		clientBlockModelContext.shutdown();
 
 		List<Exception> offendingExceptions = blockManagerThreadCollection.getOffendingExceptions();

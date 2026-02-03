@@ -75,4 +75,13 @@ public class WebsocketsSessionOperationInterface implements SessionOperationInte
 			throw new Exception("Expected sesion to be of type WebsocketBlockSession but it had type " + blockSession.getClass().getName());
 		}
 	}
+
+	public void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception{
+		if(session instanceof WebsocketBlockSession){
+			byte [] byteEncodedResponse = m.asByteArray();
+			((WebsocketBlockSession)session).sendBytes(byteEncodedResponse);
+		}else{
+			throw new Exception("Expected sesion to be of type WebsocketBlockSession but it had type " + session.getClass().getName());
+		}
+	}
 }

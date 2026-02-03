@@ -38,4 +38,5 @@ import org.res.block.BlockSession;
 public interface SessionOperationInterface {
 	public abstract void onBlockSessionOpen(BlockSession blockSession)throws Exception;
 	public abstract void onBlockSessionClose(BlockSession blockSession, String closeReason, boolean doClose) throws Exception;
+	public abstract void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception;
 }

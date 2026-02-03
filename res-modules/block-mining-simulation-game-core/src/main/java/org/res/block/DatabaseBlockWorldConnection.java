@@ -30,11 +30,19 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.List;
+import java.util.ArrayList;
+
 public class DatabaseBlockWorldConnection extends BlockWorldConnection {
 
+	private BlockManagerThreadCollection blockManagerThreadCollection;
 	private DatabaseConnectionParameters databaseConnectionParameters;
+	private SessionOperationInterface sessionOperationInterface;
+	private ServerBlockModelContext serverBlockModelContext;
 
-	public DatabaseBlockWorldConnection(DatabaseConnectionParameters databaseConnectionParameters) throws Exception {
+	public DatabaseBlockWorldConnection(BlockManagerThreadCollection blockManagerThreadCollection, SessionOperationInterface sessionOperationInterface, DatabaseConnectionParameters databaseConnectionParameters) throws Exception {
+		this.blockManagerThreadCollection = blockManagerThreadCollection;
+		this.sessionOperationInterface = sessionOperationInterface;
 		this.databaseConnectionParameters = databaseConnectionParameters;
 	}
 
@@ -42,8 +50,14 @@ public class DatabaseBlockWorldConnection extends BlockWorldConnection {
 		return this.databaseConnectionParameters;
 	}
 
-	public void init() throws Exception{
+	public ServerBlockModelContext getServerBlockModelContext(){
+		return this.serverBlockModelContext;
+	}
 
+	public void init() throws Exception{
+		this.serverBlockModelContext = new ServerBlockModelContext(blockManagerThreadCollection, sessionOperationInterface, this);
+		this.serverBlockModelContext.putWorkItem(new InitializeYourselfServerBlockModelContextWorkItem(this.serverBlockModelContext, new ArrayList<ClientBlockModelContext>()), WorkItemPriority.PRIORITY_LOW);
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(serverBlockModelContext, BlockModelContextWorkItem.class, ServerBlockModelContext.class));
 	}
 
 	public void destroy() throws Exception{

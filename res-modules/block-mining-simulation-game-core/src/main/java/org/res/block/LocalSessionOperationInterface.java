@@ -74,4 +74,20 @@ public class LocalSessionOperationInterface implements SessionOperationInterface
 			throw new Exception("Expected sesion to be of type LocalBlockSession but it had type " + blockSession.getClass().getName());
 		}
 	}
+
+	public void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception{
+		//  Swap all the block model context references from server to client and vice versa:
+
+		if(session instanceof LocalBlockSession){
+			LocalBlockSession remoteSession = ((LocalBlockSession)session).getRemoteSession();
+			BlockModelContext remoteBlockModelContext = remoteSession.getBlockModelContext();
+
+			m.setBlockModelContext(remoteBlockModelContext);
+
+			ProcessBlockMessageWorkItem w = new ProcessBlockMessageWorkItem(remoteBlockModelContext, remoteSession, m);
+			remoteBlockModelContext.putWorkItem(w, WorkItemPriority.PRIORITY_LOW);
+		}else{
+			throw new Exception("Expected session to be local type, but it was " + session.getClass().getName());
+		}
+	}
 }

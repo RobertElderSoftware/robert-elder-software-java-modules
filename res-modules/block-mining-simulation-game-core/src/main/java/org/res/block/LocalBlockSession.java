@@ -47,20 +47,20 @@ public class LocalBlockSession extends BlockSession {
 
 	private String sessionId = null;
 	private LocalBlockSession remoteSession = null;
-	private BlockModelContext remoteContext = null;
+	private BlockModelContext blockModelContext = null;
 
-	public LocalBlockSession(String sessionId, BlockModelContext remoteContext) throws Exception {
+	public LocalBlockSession(BlockModelContext blockModelContext, String sessionId) throws Exception {
 		super();
 		this.sessionId = sessionId;
-		this.remoteContext = remoteContext;
+		this.blockModelContext = blockModelContext;
 	}
 
 	public LocalBlockSession getRemoteSession(){
 		return this.remoteSession;
 	}
 
-	public BlockModelContext getRemoteContext(){
-		return this.remoteContext;
+	public BlockModelContext getBlockModelContext(){
+		return this.blockModelContext;
 	}
 
 	public void setRemoteSession(LocalBlockSession remoteSession){

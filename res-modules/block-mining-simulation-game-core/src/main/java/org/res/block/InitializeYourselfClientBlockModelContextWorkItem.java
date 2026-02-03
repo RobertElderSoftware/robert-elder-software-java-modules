@@ -39,22 +39,14 @@ import java.nio.LongBuffer;
 
 public class InitializeYourselfClientBlockModelContextWorkItem extends BlockModelContextWorkItem {
 
-	private ServerBlockModelContext serverBlockModelContext;
 	private ClientBlockModelContext clientBlockModelContext;
-
-	public InitializeYourselfClientBlockModelContextWorkItem(ClientBlockModelContext clientBlockModelContext, ServerBlockModelContext serverBlockModelContext){
-		super(clientBlockModelContext, false);
-		this.clientBlockModelContext = clientBlockModelContext;
-		this.serverBlockModelContext = serverBlockModelContext;
-	}
 
 	public InitializeYourselfClientBlockModelContextWorkItem(ClientBlockModelContext clientBlockModelContext){
 		super(clientBlockModelContext, false);
 		this.clientBlockModelContext = clientBlockModelContext;
-		this.serverBlockModelContext = null;
 	}
 
 	public void doWork() throws Exception{
-		this.clientBlockModelContext.init(this.serverBlockModelContext == null ? new Object() : this.serverBlockModelContext);
+		this.clientBlockModelContext.init(new Object());
 	}
 }

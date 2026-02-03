@@ -52,8 +52,24 @@ import java.util.HexFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
+import javax.websocket.Session;
+import javax.websocket.CloseReason;
+import javax.websocket.ClientEndpoint;
+import javax.websocket.OnClose;
+import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
+import javax.websocket.OnError;
+import javax.websocket.Session;
+import javax.websocket.ContainerProvider;
+import javax.websocket.WebSocketContainer;
 
 public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelContextWorkItem> {
+
+	public abstract void onOpen(Session session) throws Exception;
+	public abstract void onMessage(String txt, Session session) throws Exception;
+	public abstract void onBinaryMessage(byte[] inputBytes, boolean last, Session session) throws Exception;
+	public abstract void onClose(CloseReason reason, Session session) throws Exception;
+	public abstract void onError(Session session, Throwable t) throws Throwable;
 
 	public abstract BlockModelInterface getBlockModelInterface();
 	public abstract boolean isServer();
@@ -97,7 +113,7 @@ public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelCon
 	public void logException(Exception e){
 		StringWriter errors = new StringWriter();
 		e.printStackTrace(new PrintWriter(errors));
-		this.logMessage(errors.toString());
+		logger.info(errors.toString());
 	}
 
 	public void onMessage(String txt, BlockSession session) throws Exception {
@@ -106,7 +122,7 @@ public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelCon
 
 	public void onBinaryMessage(byte[] inputBytes, boolean last, BlockSession session) throws Exception {
 		partialBinaryMessage.write(inputBytes);
-		this.logMessage("Partial message received of length " + inputBytes.length + " last=" + last);
+		logger.info("Partial message received of length " + inputBytes.length + " last=" + last);
 		if(last){
 			BlockSession blockSession = this.getBlockSession(session.getId());
 			ProcessBinaryMessageWorkItem workItem = new ProcessBinaryMessageWorkItem(this, blockSession, partialBinaryMessage.toByteArray());
@@ -116,7 +132,7 @@ public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelCon
 	}
 
 	public void onOpen(BlockSession blockSession) throws Exception {
-		this.logMessage("Opened a session id=" + blockSession.getId());
+		logger.info("Opened a session id=" + blockSession.getId());
 		if(sessionMap.containsKey(blockSession.getId())){
 			throw new Exception("Duplicate openning of a session for session id = " + blockSession.getId());
 		}else{
@@ -127,7 +143,7 @@ public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelCon
 	}
 
 	public void onClose(String closeReason, BlockSession session, boolean doClose) throws Exception {
-		this.logMessage("In onClose for session id = '" + session.getId() + "' reason = " + closeReason);
+		logger.info("In onClose for session id = '" + session.getId() + "' reason = " + closeReason);
 		SessionCloseWorkItem workItem = new SessionCloseWorkItem(this, closeReason, session, doClose);
 		this.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
 		this.removeBlockSession(session.getId());
@@ -135,7 +151,7 @@ public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelCon
 
 	public void onError(BlockSession session, Throwable t) throws Throwable {
 		if(session == null){
-			this.logMessage("Error in a null session?");
+			logger.info("Error in a null session?");
 			throw t;
 		}else{
 			BlockSession blockSession = getBlockSession(session.getId());
@@ -160,23 +176,23 @@ public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelCon
 	public void removeBlockSession(String sessionId) throws Exception{
 		if(sessionMap.containsKey(sessionId)){
 			sessionMap.remove(sessionId);
-			this.logMessage("Removed block session '" + sessionId + "'");
+			logger.info("Removed block session '" + sessionId + "'");
 		}else{
-			this.logMessage("Trying to remove session id = '" + sessionId + "', but it was not in the session map.  Must have already been removed.");
+			logger.info("Trying to remove session id = '" + sessionId + "', but it was not in the session map.  Must have already been removed.");
 		}
 	}
 
 	public BlockModelContextWorkItem takeWorkItem() throws Exception {
-		//this.logMessage("Before this.workItemQueue.takeWorkItem() " + this.getClass().getName() + " size=" + this.workItemQueue.size());
+		//logger.info("Before this.workItemQueue.takeWorkItem() " + this.getClass().getName() + " size=" + this.workItemQueue.size());
 		BlockModelContextWorkItem w = this.workItemQueue.takeWorkItem();
-		//this.logMessage("After this.workItemQueue.takeWorkItem() " + this.getClass().getName() + " size=" + this.workItemQueue.size() + ", WorkItem=" + w.getClass().getName());
+		//logger.info("After this.workItemQueue.takeWorkItem() " + this.getClass().getName() + " size=" + this.workItemQueue.size() + ", WorkItem=" + w.getClass().getName());
 		return w;
 	}
 
 	public void putWorkItem(BlockModelContextWorkItem workItem, WorkItemPriority priority) throws Exception{
-		//this.logMessage("Before this.workItemQueue.putWorkItem(workItem) " + this.getClass().getName() + " size=" + this.workItemQueue.size() + ", WorkItem=" + workItem.getClass().getName());
+		//logger.info("Before this.workItemQueue.putWorkItem(workItem) " + this.getClass().getName() + " size=" + this.workItemQueue.size() + ", WorkItem=" + workItem.getClass().getName());
 		this.workItemQueue.putWorkItem(workItem, priority);
-		//this.logMessage("After this.workItemQueue.putWorkItem(workItem) " + this.getClass().getName() + " size=" + this.workItemQueue.size());
+		//logger.info("After this.workItemQueue.putWorkItem(workItem) " + this.getClass().getName() + " size=" + this.workItemQueue.size());
 	}
 
 	public IndividualBlock deserializeBlockData(byte [] blockData) throws Exception{

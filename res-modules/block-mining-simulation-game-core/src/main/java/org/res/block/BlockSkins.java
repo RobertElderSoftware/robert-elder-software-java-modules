@@ -74,6 +74,7 @@ public class BlockSkins {
 		patternsTmp.put(Wuestite.class.getName(),"\u2B1B");
 		patternsTmp.put(Magnetite.class.getName(),"\u2B1B");
 		patternsTmp.put(Kaolin.class.getName(),"\u26AA");
+		patternsTmp.put(Smectite.class.getName(),"\u26AA");
 		patternsTmp.put(CalcinedAnthracite.class.getName(),"\u26AB");
 
 		patternsTmp.put(MetallicIron.class.getName(),"\u2699\uFE0F");
@@ -110,6 +111,7 @@ public class BlockSkins {
 		descriptionsTmp.put(Siderite.class.getName(),"One cubic meter of siderite, the natural mineral with chemical formula of the form FeCO₃");
 		descriptionsTmp.put(Wuestite.class.getName(),"One cubic meter of Wüstite, the natural mineral with chemical formula of the form FeO.");
 		descriptionsTmp.put(Kaolin.class.getName(),"One cubic meter of Kaolin, a hydrated aluminum silicate with formula Al₂Si₂O₅(OH)₄");
+		descriptionsTmp.put(Smectite.class.getName(),"One cubic meter of Smectite, a mineral mixture of various swelling sheet silicates (phyllosilicates), which have a three-layer 2:1 (TOT) structure and belong to the clay minerals.");
 		descriptionsTmp.put(CalcinedAnthracite.class.getName(),"One cubic meter of Calcined Anthracite, an extremely high carbon form of coal.");
 
 		descriptionsTmp.put(MetallicIron.class.getName(),"One cubic meter of metallic iron, the element with atomic number 26.");

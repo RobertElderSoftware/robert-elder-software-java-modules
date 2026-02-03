@@ -102,10 +102,8 @@ public class ServerThreadLauncher {
 			null //String filename
 		);
 
-		ServerInterface serverInterface = new WebserverServerInterface();
-		this.serverBlockModelContext = new ServerBlockModelContext(blockManagerThreadCollection, serverInterface, new WebsocketsSessionOperationInterface(), new DatabaseBlockWorldConnection(dbParams));
-		this.serverBlockModelContext.putWorkItem(new InitializeYourselfServerBlockModelContextWorkItem(this.serverBlockModelContext, new ArrayList<ClientBlockModelContext>()), WorkItemPriority.PRIORITY_LOW);
-		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(serverBlockModelContext, BlockModelContextWorkItem.class, ServerBlockModelContext.class));
+		DatabaseBlockWorldConnection bwc = blockManagerThreadCollection.makeOrGetDatabaseBlockWorldConnection(dbParams, new WebsocketsSessionOperationInterface());
+		this.serverBlockModelContext = bwc.getServerBlockModelContext();
 	}
 
 	@PostConstruct

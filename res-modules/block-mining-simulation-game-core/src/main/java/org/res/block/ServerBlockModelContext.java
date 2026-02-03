@@ -60,6 +60,16 @@ import java.io.File;
 import java.io.FileOutputStream;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
+import javax.websocket.Session;
+import javax.websocket.CloseReason;
+import javax.websocket.ClientEndpoint;
+import javax.websocket.OnClose;
+import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
+import javax.websocket.OnError;
+import javax.websocket.Session;
+import javax.websocket.ContainerProvider;
+import javax.websocket.WebSocketContainer;
 
 public class ServerBlockModelContext extends BlockModelContext {
 
@@ -68,7 +78,6 @@ public class ServerBlockModelContext extends BlockModelContext {
 	private ExecutorService executorService = null;
 	private ServerBlockModelInterface blockModelInterface = new ServerBlockModelInterface();
 	private DatabaseBlockWorldConnection databaseBlockWorldConnection;
-	private ServerInterface serverInterface;
 	private SessionOperationInterface sessionOperationInterface;
 
 	public BlockModelInterface getBlockModelInterface(){
@@ -79,9 +88,8 @@ public class ServerBlockModelContext extends BlockModelContext {
 		return this.sessionOperationInterface;
 	}
 
-	public ServerBlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, ServerInterface serverInterface, SessionOperationInterface sessionOperationInterface, DatabaseBlockWorldConnection databaseBlockWorldConnection) throws Exception {
+	public ServerBlockModelContext(BlockManagerThreadCollection blockManagerThreadCollection, SessionOperationInterface sessionOperationInterface, DatabaseBlockWorldConnection databaseBlockWorldConnection) throws Exception {
 		super(blockManagerThreadCollection);
-		this.serverInterface = serverInterface;
 		this.sessionOperationInterface = sessionOperationInterface;
 		this.databaseBlockWorldConnection = databaseBlockWorldConnection;
 	}
@@ -117,7 +125,7 @@ public class ServerBlockModelContext extends BlockModelContext {
 	}
 
 	public void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception{
-		this.serverInterface.sendBlockMessage(m, session);
+		this.sessionOperationInterface.sendBlockMessage(m, session);
 	}
 
 	public void shutdown() throws Exception {
@@ -275,5 +283,24 @@ public class ServerBlockModelContext extends BlockModelContext {
 				throw new Exception("Message type not expected: " + authorizedCommandType);
 			}
 		}
+	}
+
+	public String getClientSessionId() throws Exception{
+		throw new Exception("Not expected.");
+	}
+
+	public void onOpen(Session session) throws Exception {
+	}
+
+	public void onMessage(String txt, Session session) throws Exception {
+	}
+
+	public void onBinaryMessage(byte[] inputBytes, boolean last, Session session) throws Exception {
+	}
+
+	public void onClose(CloseReason reason, Session session) throws Exception {
+	}
+
+	public void onError(Session session, Throwable t) throws Throwable {
 	}
 }

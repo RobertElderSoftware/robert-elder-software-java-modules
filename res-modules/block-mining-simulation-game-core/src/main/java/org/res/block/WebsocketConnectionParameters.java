@@ -30,42 +30,27 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.Set;
-import java.util.List;
-import java.util.ArrayList;
+public class WebsocketConnectionParameters {
 
-import java.net.URI;
-import java.net.URISyntaxException;
+	private String hostName;
+	private Integer port;
+	private String url;
 
-import org.res.block.ServerInterface;
-import javax.websocket.Session;
-import javax.websocket.CloseReason;
-import javax.websocket.ClientEndpoint;
-import javax.websocket.OnClose;
-import javax.websocket.OnMessage;
-import javax.websocket.OnOpen;
-import javax.websocket.OnError;
-import javax.websocket.Session;
-import javax.websocket.ContainerProvider;
-import javax.websocket.WebSocketContainer;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
-
-public class WebserverServerInterface extends ServerInterface{
-
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
-	public WebserverServerInterface(){
+	public WebsocketConnectionParameters(String hostName, Integer port, String url){
+		this.hostName = hostName;
+		this.port = port;
+		this.url = url;
 	}
 
-	public void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception{
-		if(session instanceof WebsocketBlockSession){
-			byte [] byteEncodedResponse = m.asByteArray();
-			((WebsocketBlockSession)session).sendBytes(byteEncodedResponse);
-		}else{
-			throw new Exception("Expected sesion to be of type WebsocketBlockSession but it had type " + session.getClass().getName());
-		}
+	public String getHostName(){
+		return this.hostName;
+	}
+
+	public Integer getPort(){
+		return this.port;
+	}
+
+	public String getUrl(){
+		return this.url;
 	}
 }

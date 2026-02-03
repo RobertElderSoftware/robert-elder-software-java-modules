@@ -30,32 +30,35 @@
 //  SOFTWARE.
 package org.res.block;
 
-import org.res.block.ServerInterface;
-
-import java.util.Set;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
 
-public class SinglePlayerServerInterface extends ServerInterface{
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonNull;
+import com.google.gson.reflect.TypeToken;
 
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+public class Smectite extends IndividualBlock {
 
-	public void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception{
+	private byte [] data;
 
-		if(session instanceof LocalBlockSession){
-			LocalBlockSession localSession = (LocalBlockSession)session;
-			LocalBlockSession remoteSession = localSession.getRemoteSession();
-			BlockModelContext remoteBlockModelContext = localSession.getRemoteContext();
+	public Smectite(byte [] data) throws Exception {
+		this.data = data;
+	}
 
-			m.setBlockModelContext(remoteBlockModelContext);
+	public byte [] getBlockData() throws Exception {
+		return this.data;
+	}
 
-			ProcessBlockMessageWorkItem w = new ProcessBlockMessageWorkItem(remoteBlockModelContext, remoteSession, m);
-			remoteBlockModelContext.putWorkItem(w, WorkItemPriority.PRIORITY_LOW);
-		}else{
-			throw new Exception("Expected session to be local type, but it was " + session.getClass().getName());
-		}
+	public boolean isMineable() throws Exception{
+		return true;
 	}
 }
