@@ -30,52 +30,38 @@
 //  SOFTWARE.
 package org.res.block;
 
-public class DatabaseConnectionParameters {
+import java.util.List;
+import java.util.ArrayList;
 
-	private String subprotocol = null;
-	private String hostname = null;
-	private String port = null;
-	private String databaseName = null;
-	private String username = null;
-	private String password = null;
-	private String filename = null;
+public class WebsocketBlockWorldConnection extends BlockWorldConnection {
 
-	public DatabaseConnectionParameters(String subprotocol, String hostname, String port, String databaseName, String username, String password, String filename){
-		this.subprotocol = subprotocol;
-		this.hostname = hostname;
-		this.port = port;
-		this.databaseName = databaseName;
-		this.username = username;
-		this.password = password;
-		this.filename = filename;
+	private BlockManagerThreadCollection blockManagerThreadCollection;
+	private WebsocketBlockWorldConnectionParameters websocketBlockWorldConnectionParameters;
+	private SessionOperationInterface sessionOperationInterface;
+
+	public WebsocketBlockWorldConnection(BlockManagerThreadCollection blockManagerThreadCollection, SessionOperationInterface sessionOperationInterface, WebsocketBlockWorldConnectionParameters websocketBlockWorldConnectionParameters) throws Exception {
+		super(websocketBlockWorldConnectionParameters, sessionOperationInterface);
+		this.blockManagerThreadCollection = blockManagerThreadCollection;
+		this.sessionOperationInterface = sessionOperationInterface;
+		this.websocketBlockWorldConnectionParameters = websocketBlockWorldConnectionParameters;
 	}
 
-	public String getSubprotocol(){
-		return this.subprotocol;
+	public WebsocketBlockWorldConnectionParameters getWebsocketBlockWorldConnectionParameters(){
+		return this.websocketBlockWorldConnectionParameters;
 	}
 
-	public String getHostname(){
-		return this.hostname;
+	public void init() throws Exception{
 	}
 
-	public String getPort(){
-		return this.port;
+	public void destroy() throws Exception{
+
 	}
 
-	public String getDatabaseName(){
-		return this.databaseName;
+	public String getWorldAddressString() throws Exception{
+		return websocketBlockWorldConnectionParameters.getWorldAddressString();
 	}
 
-	public String getUsername(){
-		return this.username;
-	}
-
-	public String getPassword(){
-		return this.password;
-	}
-
-	public String getFilename(){
-		return this.filename;
+	public WebsocketsCommunicationProcessor getCommunicationProcessor(ClientBlockModelContext clientBlockModelContext) throws Exception{
+		return new WebsocketsCommunicationProcessor(blockManagerThreadCollection, clientBlockModelContext, websocketBlockWorldConnectionParameters);
 	}
 }
-

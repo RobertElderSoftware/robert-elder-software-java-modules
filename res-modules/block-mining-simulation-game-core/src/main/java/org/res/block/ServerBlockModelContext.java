@@ -100,7 +100,7 @@ public class ServerBlockModelContext extends BlockModelContext {
 		annotationConfigApplicationContext.register(BlockManagerServerApplicationContext.class);
 		this.context = annotationConfigApplicationContext;
 
-		BlockManagerServerApplicationContextParameters params = new BlockManagerServerApplicationContextParameters(this, databaseBlockWorldConnection.getDatabaseConnectionParameters());
+		BlockManagerServerApplicationContextParameters params = new BlockManagerServerApplicationContextParameters(this, databaseBlockWorldConnection.getDatabaseBlockWorldConnectionParameters());
 		this.context.addBeanFactoryPostProcessor(new BlockManagerServerBeanPostProcessorConfigurer(params));
 		this.context.refresh();
 

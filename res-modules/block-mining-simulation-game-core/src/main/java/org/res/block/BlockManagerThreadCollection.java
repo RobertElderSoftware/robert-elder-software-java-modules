@@ -95,7 +95,8 @@ public class BlockManagerThreadCollection {
 	private UserInteractionConfig userInteractionConfig = null;
 	private Boolean assumeEmojisAreSupported = null;
 	private List<ClientBlockModelContext> clientBlockModelContexts = new ArrayList<ClientBlockModelContext>();
-	private Map<String, BlockWorldConnection> blockWorldConnections = new HashMap<String, BlockWorldConnection>();
+	private Map<BlockWorldConnectionParameters, BlockWorldConnection> blockWorldConnections = new HashMap<BlockWorldConnectionParameters, BlockWorldConnection>();
+	private Map<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>> authorizedBlockWorldConnections = new HashMap<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>>();
 
 	public BlockManagerThreadCollection(CommandLineArgumentCollection commandLineArgumentCollection, boolean ensureStdinIsATTY) throws Exception {
 		//  This is not very portable, but I actually don't know how many terminals
@@ -153,14 +154,36 @@ public class BlockManagerThreadCollection {
 		return this.consoleWriterThreadState;
 	}
 
-	public final DatabaseBlockWorldConnection makeOrGetDatabaseBlockWorldConnection(DatabaseConnectionParameters params, SessionOperationInterface sessionOperationInterface) throws Exception{
-		DatabaseBlockWorldConnection bwc = new DatabaseBlockWorldConnection(this, sessionOperationInterface, params);
+	public final BlockWorldConnection makeOrGetBlockWorldConnection(BlockWorldConnectionParameters params, SessionOperationInterface sessionOperationInterface) throws Exception{
 		
-		if(!this.blockWorldConnections.containsKey(bwc.getWorldAddressString())){
-			bwc.init();
-			this.blockWorldConnections.put(bwc.getWorldAddressString(), bwc);
+		if(!this.blockWorldConnections.containsKey(params)){
+			if(params instanceof DatabaseBlockWorldConnectionParameters){
+				DatabaseBlockWorldConnection bwc = new DatabaseBlockWorldConnection(this, sessionOperationInterface, (DatabaseBlockWorldConnectionParameters)params);
+				bwc.init();
+				this.blockWorldConnections.put(params, bwc);
+			}else if(params instanceof WebsocketBlockWorldConnectionParameters){
+				WebsocketBlockWorldConnection bwc = new WebsocketBlockWorldConnection(this, sessionOperationInterface, (WebsocketBlockWorldConnectionParameters)params);
+				bwc.init();
+				this.blockWorldConnections.put(params, bwc);
+			}else{
+				throw new Exception("Unexpected params type.");
+			}
 		}
-		return (DatabaseBlockWorldConnection)this.blockWorldConnections.get(bwc.getWorldAddressString());
+		return this.blockWorldConnections.get(params);
+	}
+
+	public final AuthorizedBlockWorldConnection makeOrGetAuthorizedBlockWorldConnection(Long authorizedClientId, BlockWorldConnection blockWorldConnection) throws Exception{
+		
+		BlockWorldConnectionParameters params = blockWorldConnection.getBlockWorldConnectionParameters();
+		if(!this.authorizedBlockWorldConnections.containsKey(params)){
+			this.authorizedBlockWorldConnections.put(params, new HashMap<Long, AuthorizedBlockWorldConnection>());
+		}
+		if(!this.authorizedBlockWorldConnections.get(params).containsKey(authorizedClientId)){
+			AuthorizedBlockWorldConnection abwc = new AuthorizedBlockWorldConnection(this, authorizedClientId, blockWorldConnection);
+			abwc.init();
+			this.authorizedBlockWorldConnections.get(params).put(authorizedClientId, abwc);
+		}
+		return this.authorizedBlockWorldConnections.get(params).get(authorizedClientId);
 	}
 
 	public final void addClientBlockModelContext(ClientBlockModelContext clientBlockModelContext){

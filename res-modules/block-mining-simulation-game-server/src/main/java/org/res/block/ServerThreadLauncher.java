@@ -92,7 +92,7 @@ public class ServerThreadLauncher {
 
 		logger.info("In ServerThreadLauncher constructor.");
 
-		DatabaseConnectionParameters dbParams = new DatabaseConnectionParameters(
+		DatabaseBlockWorldConnectionParameters dbParams = new DatabaseBlockWorldConnectionParameters(
 			"postgresql", //String subprotocol,
 			"127.0.0.1", //String hostname,
 			"5432", //String port,
@@ -102,7 +102,7 @@ public class ServerThreadLauncher {
 			null //String filename
 		);
 
-		DatabaseBlockWorldConnection bwc = blockManagerThreadCollection.makeOrGetDatabaseBlockWorldConnection(dbParams, new WebsocketsSessionOperationInterface());
+		DatabaseBlockWorldConnection bwc = (DatabaseBlockWorldConnection)blockManagerThreadCollection.makeOrGetBlockWorldConnection(dbParams, new WebsocketsSessionOperationInterface());
 		this.serverBlockModelContext = bwc.getServerBlockModelContext();
 	}
 

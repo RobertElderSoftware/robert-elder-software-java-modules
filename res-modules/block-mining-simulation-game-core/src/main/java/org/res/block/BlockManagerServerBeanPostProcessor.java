@@ -106,10 +106,10 @@ public class BlockManagerServerBeanPostProcessor implements DestructionAwareBean
 	}
 
 	public DataSource dataSource() throws Exception{
-		if(this.params.getDatabaseConnectionParameters().getSubprotocol().equals("sqlite")){
+		if(this.params.getDatabaseBlockWorldConnectionParameters().getSubprotocol().equals("sqlite")){
 			if(this.sqliteDataSource == null){
-				String subprotocol = this.params.getDatabaseConnectionParameters().getSubprotocol();
-				String filename = this.params.getDatabaseConnectionParameters().getFilename();
+				String subprotocol = this.params.getDatabaseBlockWorldConnectionParameters().getSubprotocol();
+				String filename = this.params.getDatabaseBlockWorldConnectionParameters().getFilename();
 				this.sqliteDataSource = new SQLiteDataSource();
 				this.sqliteDataSource.setUrl("jdbc:" + subprotocol + ":" + filename);
 				SQLiteConfig config = new SQLiteConfig();
@@ -119,20 +119,20 @@ public class BlockManagerServerBeanPostProcessor implements DestructionAwareBean
 				this.sqliteDataSource.setEnforceForeignKeys(true);
 			}
 			return this.sqliteDataSource;
-		}else if(this.params.getDatabaseConnectionParameters().getSubprotocol().equals("postgresql")){
+		}else if(this.params.getDatabaseBlockWorldConnectionParameters().getSubprotocol().equals("postgresql")){
 			if(this.postgresDataSource == null){
-				String subprotocol = this.params.getDatabaseConnectionParameters().getSubprotocol();
-				String hostname = this.params.getDatabaseConnectionParameters().getHostname();
-				String port = this.params.getDatabaseConnectionParameters().getPort();
-				String databaseName = this.params.getDatabaseConnectionParameters().getDatabaseName();
-				String username = this.params.getDatabaseConnectionParameters().getUsername();
-				String password = this.params.getDatabaseConnectionParameters().getPassword();
+				String subprotocol = this.params.getDatabaseBlockWorldConnectionParameters().getSubprotocol();
+				String hostname = this.params.getDatabaseBlockWorldConnectionParameters().getHostname();
+				String port = this.params.getDatabaseBlockWorldConnectionParameters().getPort();
+				String databaseName = this.params.getDatabaseBlockWorldConnectionParameters().getDatabaseName();
+				String username = this.params.getDatabaseBlockWorldConnectionParameters().getUsername();
+				String password = this.params.getDatabaseBlockWorldConnectionParameters().getPassword();
 				this.postgresDataSource = new DriverManagerDataSource("jdbc:" + subprotocol + "://" + hostname + ":" + port + "/" + databaseName + "?rewriteBatchedStatements=true", username, password);
 				this.postgresDataSource.setDriverClassName("org.postgresql.Driver");
 			}
 			return this.postgresDataSource;
 		}else{
-			throw new Exception("Unknown subprotocol: '" + this.params.getDatabaseConnectionParameters().getSubprotocol() + "'");
+			throw new Exception("Unknown subprotocol: '" + this.params.getDatabaseBlockWorldConnectionParameters().getSubprotocol() + "'");
 		}
 	}
 

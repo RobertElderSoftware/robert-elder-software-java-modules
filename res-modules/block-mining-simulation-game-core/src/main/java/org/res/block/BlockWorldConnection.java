@@ -32,11 +32,23 @@ package org.res.block;
 
 public abstract class BlockWorldConnection {
 
-	public BlockWorldConnection() throws Exception {
+	private BlockWorldConnectionParameters blockWorldConnectionParameters;
+	private SessionOperationInterface sessionOperationInterface;
 
+	public BlockWorldConnection(BlockWorldConnectionParameters blockWorldConnectionParameters, SessionOperationInterface sessionOperationInterface) throws Exception {
+		this.blockWorldConnectionParameters = blockWorldConnectionParameters;
+		this.sessionOperationInterface = sessionOperationInterface;
+	}
+
+	public SessionOperationInterface getSessionOperationInterface(){
+		return this.sessionOperationInterface;
+	}
+
+	public BlockWorldConnectionParameters getBlockWorldConnectionParameters() throws Exception{
+		return this.blockWorldConnectionParameters;
 	}
 
 	public abstract void init() throws Exception;
 	public abstract void destroy() throws Exception;
-	public abstract String getWorldAddressString() throws Exception;
+	public abstract WebsocketsCommunicationProcessor getCommunicationProcessor(ClientBlockModelContext clientBlockModelContext) throws Exception;
 }

@@ -30,34 +30,31 @@
 //  SOFTWARE.
 package org.res.block;
 
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
+public class WebsocketBlockWorldConnectionParameters extends BlockWorldConnectionParameters {
 
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.res.block.dao.impl.BlockDAOImpl;
+	private String hostName;
+	private Integer port;
+	private String url;
 
-import javax.sql.DataSource;
-
-import org.sqlite.SQLiteDataSource;
-import org.sqlite.SQLiteConfig;
-
-public class BlockManagerServerApplicationContextParameters {
-
-	private DatabaseBlockWorldConnectionParameters databaseBlockWorldConnectionParameters;
-	private BlockModelContext blockModelContext;
-
-	public BlockManagerServerApplicationContextParameters(BlockModelContext blockModelContext, DatabaseBlockWorldConnectionParameters databaseBlockWorldConnectionParameters){
-		this.blockModelContext = blockModelContext;
-		this.databaseBlockWorldConnectionParameters = databaseBlockWorldConnectionParameters;
+	public WebsocketBlockWorldConnectionParameters(String hostName, Integer port, String url){
+		this.hostName = hostName;
+		this.port = port;
+		this.url = url;
 	}
 
-	public DatabaseBlockWorldConnectionParameters getDatabaseBlockWorldConnectionParameters(){
-		return this.databaseBlockWorldConnectionParameters;
+	public String getHostName(){
+		return this.hostName;
 	}
 
-	public BlockModelContext getBlockModelContext(){
-		return this.blockModelContext;
+	public Integer getPort(){
+		return this.port;
+	}
+
+	public String getUrl(){
+		return this.url;
+	}
+
+	public String getWorldAddressString() {
+		return "ws://" + this.getHostName() + ":" + this.getPort() + this.getUrl();
 	}
 }

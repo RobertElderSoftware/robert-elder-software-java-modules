@@ -98,7 +98,7 @@ class SinglePlayerBlockClient {
 		}
 		blockManagerThreadCollection.init();
 
-		DatabaseConnectionParameters dbParams = new DatabaseConnectionParameters(
+		DatabaseBlockWorldConnectionParameters dbParams = new DatabaseBlockWorldConnectionParameters(
 			commandLineArgumentCollection.getUsedSingleValue("--database-subprotocol"), //String subprotocol,
 			commandLineArgumentCollection.getUsedSingleValue("--database-hostname"), //String hostname,
 			commandLineArgumentCollection.getUsedSingleValue("--database-port"), //String port,
@@ -108,23 +108,19 @@ class SinglePlayerBlockClient {
 			commandLineArgumentCollection.getUsedSingleValue("--block-world-file") //String filename
 		);
 
-		DatabaseBlockWorldConnection bwc = blockManagerThreadCollection.makeOrGetDatabaseBlockWorldConnection(dbParams, new LocalSessionOperationInterface());
+		DatabaseBlockWorldConnection bwc = (DatabaseBlockWorldConnection)blockManagerThreadCollection.makeOrGetBlockWorldConnection(dbParams, new LocalSessionOperationInterface());
 
-		ClientBlockModelContext clientBlockModelContext = new ClientBlockModelContext(blockManagerThreadCollection, new LocalSessionOperationInterface());
-		blockManagerThreadCollection.addClientBlockModelContext(clientBlockModelContext);
+		Long authorizedClientId = 0L;
+		AuthorizedBlockWorldConnection abwc = blockManagerThreadCollection.makeOrGetAuthorizedBlockWorldConnection(authorizedClientId, bwc);
 
-		clientBlockModelContext.putWorkItem(new InitializeYourselfClientBlockModelContextWorkItem(clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
-
-		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(clientBlockModelContext, BlockModelContextWorkItem.class, ClientBlockModelContext.class));
-
-		blockManagerThreadCollection.setupDefaultUIForClient(clientBlockModelContext);
-		clientBlockModelContext.connect(bwc.getServerBlockModelContext());
-		clientBlockModelContext.startRunningClient();
+		blockManagerThreadCollection.setupDefaultUIForClient(abwc.getClientBlockModelContext());
+		abwc.getClientBlockModelContext().connect();
+		abwc.getClientBlockModelContext().startRunningClient();
 
 		//  Start the game loading process
 		blockManagerThreadCollection.blockUntilAllTasksHaveTerminated();
 		bwc.getServerBlockModelContext().shutdown();
-		clientBlockModelContext.shutdown();
+		abwc.getClientBlockModelContext().shutdown();
 
 		List<Exception> offendingExceptions = blockManagerThreadCollection.getOffendingExceptions();
 		if(offendingExceptions.size() == 0){

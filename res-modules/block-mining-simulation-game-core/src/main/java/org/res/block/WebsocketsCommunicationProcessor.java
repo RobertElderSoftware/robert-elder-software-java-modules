@@ -60,7 +60,7 @@ public class WebsocketsCommunicationProcessor{
 	private ServerBlockModelContext serverBlockModelContext;
 	private ClientBlockModelContext clientBlockModelContext;
 	private BlockManagerThreadCollection blockManagerThreadCollection;
-	private WebsocketConnectionParameters websocketConnectionParameters;
+	private WebsocketBlockWorldConnectionParameters websocketBlockWorldConnectionParameters;
 	private Session userSession = null;
 
 	public WebsocketsCommunicationProcessor(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, ServerBlockModelContext serverBlockModelContext){
@@ -69,14 +69,14 @@ public class WebsocketsCommunicationProcessor{
 		this.serverBlockModelContext = serverBlockModelContext;
 	}
 
-	public WebsocketsCommunicationProcessor(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, WebsocketConnectionParameters websocketConnectionParameters){
+	public WebsocketsCommunicationProcessor(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, WebsocketBlockWorldConnectionParameters websocketBlockWorldConnectionParameters){
 		this.clientBlockModelContext = clientBlockModelContext;
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
-		this.websocketConnectionParameters = websocketConnectionParameters;
+		this.websocketBlockWorldConnectionParameters = websocketBlockWorldConnectionParameters;
 	}
 
 	public void connect() throws Exception{
-		if(this.websocketConnectionParameters == null){
+		if(this.websocketBlockWorldConnectionParameters == null){
 			// Do nothing
 			LocalBlockSession serverToClientSession = new LocalBlockSession(serverBlockModelContext, "local_server_to_client_connection");
 			LocalBlockSession clientToServerSession = new LocalBlockSession(clientBlockModelContext, "local_server_to_client_connection");
@@ -89,14 +89,14 @@ public class WebsocketsCommunicationProcessor{
 			serverToClientSession.setRemoteSession(clientToServerSession);
 			clientToServerSession.setRemoteSession(serverToClientSession);
 		}else{
-			String websocketsServerURL = "ws://" + this.websocketConnectionParameters.getHostName() + ":" + this.websocketConnectionParameters.getPort() + this.websocketConnectionParameters.getUrl();
+			String websocketsServerURL = this.websocketBlockWorldConnectionParameters.getWorldAddressString();
 			this.userSession = ContainerProvider.getWebSocketContainer().connectToServer(this, new URI(websocketsServerURL));
 			logger.info("Did websocket connect to url '" + websocketsServerURL + "'");
 		}
 	}
 
 	public void disconnect() throws Exception{
-		if(this.websocketConnectionParameters == null){
+		if(this.websocketBlockWorldConnectionParameters == null){
 			// Do nothing
 		}else{
 			this.userSession.close();
@@ -104,7 +104,7 @@ public class WebsocketsCommunicationProcessor{
 	}
 
 	public String getClientSessionId() throws Exception{
-		if(this.websocketConnectionParameters == null){
+		if(this.websocketBlockWorldConnectionParameters == null){
 			return "local_server_to_client_connection";
 		}else{
 			return this.userSession.getId();

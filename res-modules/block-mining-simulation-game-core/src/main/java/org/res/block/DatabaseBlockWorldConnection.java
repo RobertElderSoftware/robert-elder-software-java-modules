@@ -36,18 +36,19 @@ import java.util.ArrayList;
 public class DatabaseBlockWorldConnection extends BlockWorldConnection {
 
 	private BlockManagerThreadCollection blockManagerThreadCollection;
-	private DatabaseConnectionParameters databaseConnectionParameters;
+	private DatabaseBlockWorldConnectionParameters databaseBlockWorldConnectionParameters;
 	private SessionOperationInterface sessionOperationInterface;
 	private ServerBlockModelContext serverBlockModelContext;
 
-	public DatabaseBlockWorldConnection(BlockManagerThreadCollection blockManagerThreadCollection, SessionOperationInterface sessionOperationInterface, DatabaseConnectionParameters databaseConnectionParameters) throws Exception {
+	public DatabaseBlockWorldConnection(BlockManagerThreadCollection blockManagerThreadCollection, SessionOperationInterface sessionOperationInterface, DatabaseBlockWorldConnectionParameters databaseBlockWorldConnectionParameters) throws Exception {
+		super(databaseBlockWorldConnectionParameters, sessionOperationInterface);
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.sessionOperationInterface = sessionOperationInterface;
-		this.databaseConnectionParameters = databaseConnectionParameters;
+		this.databaseBlockWorldConnectionParameters = databaseBlockWorldConnectionParameters;
 	}
 
-	public DatabaseConnectionParameters getDatabaseConnectionParameters(){
-		return this.databaseConnectionParameters;
+	public DatabaseBlockWorldConnectionParameters getDatabaseBlockWorldConnectionParameters(){
+		return this.databaseBlockWorldConnectionParameters;
 	}
 
 	public ServerBlockModelContext getServerBlockModelContext(){
@@ -65,14 +66,10 @@ public class DatabaseBlockWorldConnection extends BlockWorldConnection {
 	}
 
 	public String getWorldAddressString() throws Exception{
-		if(this.databaseConnectionParameters.getSubprotocol().equals("sqlite")){
-			return this.databaseConnectionParameters.getSubprotocol() + ":" + this.databaseConnectionParameters.getFilename();
-		}else{
-			return this.databaseConnectionParameters.getSubprotocol() + "://" +
-			this.databaseConnectionParameters.getHostname() + ":" +
-			this.databaseConnectionParameters.getPort() + "/" +
-			this.databaseConnectionParameters.getDatabaseName() + "?user=" +
-			this.databaseConnectionParameters.getUsername();
-		}
+		return databaseBlockWorldConnectionParameters.getWorldAddressString();
+	}
+
+	public WebsocketsCommunicationProcessor getCommunicationProcessor(ClientBlockModelContext clientBlockModelContext) throws Exception{
+		return new WebsocketsCommunicationProcessor(blockManagerThreadCollection, clientBlockModelContext, this.serverBlockModelContext);
 	}
 }

@@ -141,18 +141,18 @@ public class BlockDAOImpl implements BlockDAO {
 	}
 
 	public String getDatabaseHexLiteral(byte [] data) throws Exception {
-		if(blockManagerServerApplicationContextParameters.getDatabaseConnectionParameters().getSubprotocol().equals("sqlite")){
+		if(blockManagerServerApplicationContextParameters.getDatabaseBlockWorldConnectionParameters().getSubprotocol().equals("sqlite")){
 			return "x'" + BlockModelContext.convertToHex(data) + "'";
-		}else if(blockManagerServerApplicationContextParameters.getDatabaseConnectionParameters().getSubprotocol().equals("postgresql")){
+		}else if(blockManagerServerApplicationContextParameters.getDatabaseBlockWorldConnectionParameters().getSubprotocol().equals("postgresql")){
 			return "decode('" + BlockModelContext.convertToHex(data) + "', 'hex')";
 		}else{
-			throw new Exception("Unknown db: " + blockManagerServerApplicationContextParameters.getDatabaseConnectionParameters().getSubprotocol());
+			throw new Exception("Unknown db: " + blockManagerServerApplicationContextParameters.getDatabaseBlockWorldConnectionParameters().getSubprotocol());
 		}
 	}
 
         public void ensureBlockTableExistsInTransaction(TransactionStatus status) {
 		try{
-			if(blockManagerServerApplicationContextParameters.getDatabaseConnectionParameters().getSubprotocol().equals("sqlite")){
+			if(blockManagerServerApplicationContextParameters.getDatabaseBlockWorldConnectionParameters().getSubprotocol().equals("sqlite")){
 				String SQL = "SELECT CASE WHEN (SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'block') > 0 THEN true ELSE false END;";
 				Map<String, Object> queryParams = new HashMap<String, Object>();
 				Boolean hasBlockTable = this.namedParameterJdbcTemplate.queryForObject(SQL, queryParams, Boolean.class);
@@ -162,7 +162,7 @@ public class BlockDAOImpl implements BlockDAO {
 					logger.info("Verified that table 'block' DOES NOT exist for sqlite.  Need to create...");
 					this.createBlockTable();
 				}
-			}else if(blockManagerServerApplicationContextParameters.getDatabaseConnectionParameters().getSubprotocol().equals("postgresql")){
+			}else if(blockManagerServerApplicationContextParameters.getDatabaseBlockWorldConnectionParameters().getSubprotocol().equals("postgresql")){
 				String SQL = "SELECT EXISTS (" + 
 				"	SELECT FROM information_schema.tables" + 
 				"	WHERE  table_schema = 'public'" + 

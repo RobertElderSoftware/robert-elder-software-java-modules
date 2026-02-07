@@ -85,16 +85,20 @@ class MultiPlayerBlockClient {
 
 		BlockManagerThreadCollection blockManagerThreadCollection = new BlockManagerThreadCollection(commandLineArgumentCollection, true);
 		blockManagerThreadCollection.init();
-		ClientBlockModelContext clientBlockModelContext = new ClientBlockModelContext(blockManagerThreadCollection, new WebsocketsSessionOperationInterface());
-		blockManagerThreadCollection.addClientBlockModelContext(clientBlockModelContext);
-		clientBlockModelContext.putWorkItem(new InitializeYourselfClientBlockModelContextWorkItem(clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
-		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(clientBlockModelContext, BlockModelContextWorkItem.class, ClientBlockModelContext.class));
-		blockManagerThreadCollection.setupDefaultUIForClient(clientBlockModelContext);
-		clientBlockModelContext.connect(new WebsocketConnectionParameters("127.0.0.1", 8888, "/block-manager"));
-		clientBlockModelContext.startRunningClient();
+
+		WebsocketBlockWorldConnectionParameters params = new WebsocketBlockWorldConnectionParameters("127.0.0.1", 8888, "/block-manager");
+		WebsocketBlockWorldConnection bwc = (WebsocketBlockWorldConnection)blockManagerThreadCollection.makeOrGetBlockWorldConnection(params, new WebsocketsSessionOperationInterface());
+
+
+		Long authorizedClientId = 0L;
+		AuthorizedBlockWorldConnection abwc = blockManagerThreadCollection.makeOrGetAuthorizedBlockWorldConnection(authorizedClientId, bwc);
+
+		blockManagerThreadCollection.setupDefaultUIForClient(abwc.getClientBlockModelContext());
+		abwc.getClientBlockModelContext().connect();
+		abwc.getClientBlockModelContext().startRunningClient();
 		//  Start the game loading process
 		blockManagerThreadCollection.blockUntilAllTasksHaveTerminated();
-		clientBlockModelContext.shutdown();
+		abwc.getClientBlockModelContext().shutdown();
 
 		List<Exception> offendingExceptions = blockManagerThreadCollection.getOffendingExceptions();
 		if(offendingExceptions.size() == 0){

@@ -30,34 +30,37 @@
 //  SOFTWARE.
 package org.res.block;
 
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
+public class AuthorizedBlockWorldConnection {
 
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.res.block.dao.impl.BlockDAOImpl;
+	private BlockManagerThreadCollection blockManagerThreadCollection;
+	private Long authorizedClientId;
+	private BlockWorldConnection blockWorldConnection;
+	private ClientBlockModelContext clientBlockModelContext;
 
-import javax.sql.DataSource;
-
-import org.sqlite.SQLiteDataSource;
-import org.sqlite.SQLiteConfig;
-
-public class BlockManagerServerApplicationContextParameters {
-
-	private DatabaseBlockWorldConnectionParameters databaseBlockWorldConnectionParameters;
-	private BlockModelContext blockModelContext;
-
-	public BlockManagerServerApplicationContextParameters(BlockModelContext blockModelContext, DatabaseBlockWorldConnectionParameters databaseBlockWorldConnectionParameters){
-		this.blockModelContext = blockModelContext;
-		this.databaseBlockWorldConnectionParameters = databaseBlockWorldConnectionParameters;
+	public AuthorizedBlockWorldConnection(BlockManagerThreadCollection blockManagerThreadCollection, Long authorizedClientId, BlockWorldConnection blockWorldConnection) throws Exception {
+		this.blockManagerThreadCollection = blockManagerThreadCollection;
+		this.authorizedClientId = authorizedClientId;
+		this.blockWorldConnection = blockWorldConnection;
 	}
 
-	public DatabaseBlockWorldConnectionParameters getDatabaseBlockWorldConnectionParameters(){
-		return this.databaseBlockWorldConnectionParameters;
+	public BlockWorldConnection getBlockWorldConnection(){
+		return this.blockWorldConnection;
 	}
 
-	public BlockModelContext getBlockModelContext(){
-		return this.blockModelContext;
+	public Long getAuthorizedClientId(){
+		return this.authorizedClientId;
+	}
+
+	public ClientBlockModelContext getClientBlockModelContext(){
+		return this.clientBlockModelContext;
+	}
+
+	public void init() throws Exception {
+		this.clientBlockModelContext = new ClientBlockModelContext(blockManagerThreadCollection, this);
+		blockManagerThreadCollection.addClientBlockModelContext(clientBlockModelContext);
+
+		clientBlockModelContext.putWorkItem(new InitializeYourselfClientBlockModelContextWorkItem(clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
+
+		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(clientBlockModelContext, BlockModelContextWorkItem.class, ClientBlockModelContext.class));
 	}
 }

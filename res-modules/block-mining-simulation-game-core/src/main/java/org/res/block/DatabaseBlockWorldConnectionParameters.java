@@ -30,27 +30,64 @@
 //  SOFTWARE.
 package org.res.block;
 
-public class WebsocketConnectionParameters {
+public class DatabaseBlockWorldConnectionParameters extends BlockWorldConnectionParameters {
 
-	private String hostName;
-	private Integer port;
-	private String url;
+	private String subprotocol = null;
+	private String hostname = null;
+	private String port = null;
+	private String databaseName = null;
+	private String username = null;
+	private String password = null;
+	private String filename = null;
 
-	public WebsocketConnectionParameters(String hostName, Integer port, String url){
-		this.hostName = hostName;
+	public DatabaseBlockWorldConnectionParameters(String subprotocol, String hostname, String port, String databaseName, String username, String password, String filename){
+		this.subprotocol = subprotocol;
+		this.hostname = hostname;
 		this.port = port;
-		this.url = url;
+		this.databaseName = databaseName;
+		this.username = username;
+		this.password = password;
+		this.filename = filename;
 	}
 
-	public String getHostName(){
-		return this.hostName;
+	public String getSubprotocol(){
+		return this.subprotocol;
 	}
 
-	public Integer getPort(){
+	public String getHostname(){
+		return this.hostname;
+	}
+
+	public String getPort(){
 		return this.port;
 	}
 
-	public String getUrl(){
-		return this.url;
+	public String getDatabaseName(){
+		return this.databaseName;
+	}
+
+	public String getUsername(){
+		return this.username;
+	}
+
+	public String getPassword(){
+		return this.password;
+	}
+
+	public String getFilename(){
+		return this.filename;
+	}
+
+
+	public String getWorldAddressString() {
+		if(this.getSubprotocol().equals("sqlite")){
+			return this.getSubprotocol() + ":" + this.getFilename();
+		}else{
+			return this.getSubprotocol() + "://" +
+			this.getHostname() + ":" +
+			this.getPort() + "/" +
+			this.getDatabaseName() + "?user=" +
+			this.getUsername();
+		}
 	}
 }

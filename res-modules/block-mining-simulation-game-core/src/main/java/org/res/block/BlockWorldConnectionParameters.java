@@ -30,34 +30,22 @@
 //  SOFTWARE.
 package org.res.block;
 
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
+public abstract class BlockWorldConnectionParameters implements Comparable<BlockWorldConnectionParameters> {
+	public abstract String getWorldAddressString();
 
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.res.block.dao.impl.BlockDAOImpl;
-
-import javax.sql.DataSource;
-
-import org.sqlite.SQLiteDataSource;
-import org.sqlite.SQLiteConfig;
-
-public class BlockManagerServerApplicationContextParameters {
-
-	private DatabaseBlockWorldConnectionParameters databaseBlockWorldConnectionParameters;
-	private BlockModelContext blockModelContext;
-
-	public BlockManagerServerApplicationContextParameters(BlockModelContext blockModelContext, DatabaseBlockWorldConnectionParameters databaseBlockWorldConnectionParameters){
-		this.blockModelContext = blockModelContext;
-		this.databaseBlockWorldConnectionParameters = databaseBlockWorldConnectionParameters;
+	@Override
+	public int hashCode() {
+		return getWorldAddressString().length();
 	}
 
-	public DatabaseBlockWorldConnectionParameters getDatabaseBlockWorldConnectionParameters(){
-		return this.databaseBlockWorldConnectionParameters;
+	@Override
+	public boolean equals(Object o) {
+		return getWorldAddressString().equals(((BlockWorldConnectionParameters)o).getWorldAddressString());
 	}
 
-	public BlockModelContext getBlockModelContext(){
-		return this.blockModelContext;
+	@Override
+	public int compareTo(BlockWorldConnectionParameters o) {
+		return getWorldAddressString().compareTo(o.getWorldAddressString());
+		
 	}
 }
