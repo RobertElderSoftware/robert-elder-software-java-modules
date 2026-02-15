@@ -339,7 +339,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 							clientBlockModelContext,
 							n,
 							UINotificationSubscriptionType.UNSUBSCRIBE,
-							ui
+							ui,
+							BlockingType.BLOCK
 						),
 						WorkItemPriority.PRIORITY_LOW
 					);

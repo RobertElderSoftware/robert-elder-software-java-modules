@@ -58,14 +58,15 @@ import java.util.Objects;
 public class FrameDimensions {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private CuboidAddress frame = new CuboidAddress(
-		Coordinate.makeDiagonalCoordinate(0L, 2L),
-		Coordinate.makeDiagonalCoordinate(0L, 2L)
-	);
-	private CuboidAddress terminal = new CuboidAddress(
-		Coordinate.makeDiagonalCoordinate(0L, 2L),
-		Coordinate.makeDiagonalCoordinate(0L, 2L)
-	);
+	private CuboidAddress frame = FrameDimensions.makeDefaultDimensions();
+	private CuboidAddress terminal = FrameDimensions.makeDefaultDimensions();
+
+	public static final CuboidAddress makeDefaultDimensions() throws Exception{
+		return new CuboidAddress(
+			Coordinate.makeDiagonalCoordinate(0L, 2L),
+			Coordinate.makeDiagonalCoordinate(0L, 2L)
+		);
+	}
 
 	public FrameDimensions() throws Exception {
 

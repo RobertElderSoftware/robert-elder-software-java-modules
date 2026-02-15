@@ -54,7 +54,7 @@ public class WebsocketBlockWorldConnectionParameters extends BlockWorldConnectio
 		return this.url;
 	}
 
-	public String getWorldAddressString() {
+	public String getBlockWorldAddressString() {
 		return "ws://" + this.getHostName() + ":" + this.getPort() + this.getUrl();
 	}
 }

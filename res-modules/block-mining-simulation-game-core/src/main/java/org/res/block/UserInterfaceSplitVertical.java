@@ -72,25 +72,31 @@ public class UserInterfaceSplitVertical extends UserInterfaceSplitMulti {
 			Long xOffsetSoFar = 0L;
 			Long fcw = 1L;  //  TODO: this is wrong!
 			//  For wide character mode, must make sure that vertical splitParts have an even number of columns:
-			Long usedFrameArea = fcw.equals(1L) ? frameDimensions.getFrameWidth() : ((frameDimensions.getFrameWidth() / numSplits) / fcw) * numSplits * fcw;
+			Long frameWidth = frameDimensions == null ? 0L : frameDimensions.getFrameWidth();
+			Long frameHeight = frameDimensions == null ? 0L : frameDimensions.getFrameHeight();
+			Long terminalWidth = frameDimensions == null ? 0L : frameDimensions.getTerminalWidth();
+			Long terminalHeight = frameDimensions == null ? 0L : frameDimensions.getTerminalHeight();
+			Long frameOffsetX = frameDimensions == null ? 0L : frameDimensions.getFrameOffsetX();
+			Long frameOffsetY = frameDimensions == null ? 0L : frameDimensions.getFrameOffsetY();
+			Long usedFrameArea = fcw.equals(1L) ? frameWidth : ((frameWidth / numSplits) / fcw) * numSplits * fcw;
 			for(int i = 0; i < this.splitParts.size(); i++){
-				Long defaultFrameWidth = this.smarterRound(Double.valueOf(usedFrameArea) * this.splitPercentages.get(i), frameDimensions.getTerminalWidth());
-				Long currentFrameWidth = (i == (this.splitParts.size() -1)) ? (frameDimensions.getFrameWidth() - xOffsetSoFar) : defaultFrameWidth;
+				Long defaultFrameWidth = this.smarterRound(Double.valueOf(usedFrameArea) * this.splitPercentages.get(i), terminalWidth);
+				Long currentFrameWidth = (i == (this.splitParts.size() -1)) ? (frameWidth - xOffsetSoFar) : defaultFrameWidth;
 				if(currentFrameWidth < 0){
 					throw new Exception("currentFrameWidth is negative: " + currentFrameWidth + " for i=" + i + " this.splitParts.size()=" + this.splitParts.size());
 				}
 
-				Long x1 = xOffsetSoFar + frameDimensions.getFrameOffsetX();
-				Long y1 = frameDimensions.getFrameOffsetY();
+				Long x1 = xOffsetSoFar + frameOffsetX;
+				Long y1 = frameOffsetY;
 				Long x2 = x1 + currentFrameWidth;
-				Long y2 = y1 + frameDimensions.getFrameHeight();
+				Long y2 = y1 + frameHeight;
 
 				FrameDimensions subFrameDimensions = new FrameDimensions(
 					new CuboidAddress(
 						new Coordinate(Arrays.asList(x1, y1)),
 						new Coordinate(Arrays.asList(x2, y2))
 					),
-					frameDimensions.getTerminal()
+					frameDimensions == null ? FrameDimensions.makeDefaultDimensions() : frameDimensions.getTerminal()
 				);
 				sumFrameDimensions.add(subFrameDimensions);
 				xOffsetSoFar += currentFrameWidth;

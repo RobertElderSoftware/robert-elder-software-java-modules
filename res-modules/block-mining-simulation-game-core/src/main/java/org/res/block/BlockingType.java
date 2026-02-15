@@ -30,64 +30,36 @@
 //  SOFTWARE.
 package org.res.block;
 
-public class DatabaseBlockWorldConnectionParameters extends BlockWorldConnectionParameters {
+import java.util.Map;
+import java.util.HashMap;
 
-	private String subprotocol = null;
-	private String hostname = null;
-	private String port = null;
-	private String databaseName = null;
-	private String username = null;
-	private String password = null;
-	private String filename = null;
+public enum BlockingType {
+        BLOCK(true),
+        NO_BLOCK (false);
 
-	public DatabaseBlockWorldConnectionParameters(String subprotocol, String hostname, String port, String databaseName, String username, String password, String filename){
-		this.subprotocol = subprotocol;
-		this.hostname = hostname;
-		this.port = port;
-		this.databaseName = databaseName;
-		this.username = username;
-		this.password = password;
-		this.filename = filename;
-	}
+        private final boolean id;
 
-	public String getSubprotocol(){
-		return this.subprotocol;
-	}
+        private BlockingType(boolean i) {
+                id = i;
+        }
 
-	public String getHostname(){
-		return this.hostname;
-	}
+        public boolean equalsId(boolean i) {
+                return id == i;
+        }
 
-	public String getPort(){
-		return this.port;
-	}
+        public boolean toBoolean() {
+                return this.id;
+        }
 
-	public String getDatabaseName(){
-		return this.databaseName;
-	}
+	private static final Map<Boolean, BlockingType> blockingTypesByValue = new HashMap<Boolean, BlockingType>();
 
-	public String getUsername(){
-		return this.username;
-	}
-
-	public String getPassword(){
-		return this.password;
-	}
-
-	public String getFilename(){
-		return this.filename;
-	}
-
-
-	public String getBlockWorldAddressString() {
-		if(this.getSubprotocol().equals("sqlite")){
-			return this.getSubprotocol() + ":" + this.getFilename();
-		}else{
-			return this.getSubprotocol() + "://" +
-			this.getHostname() + ":" +
-			this.getPort() + "/" +
-			this.getDatabaseName() + "?user=" +
-			this.getUsername();
+	static {
+		for(BlockingType type : BlockingType.values()) {
+			blockingTypesByValue.put(type.toBoolean(), type);
 		}
+	}
+
+	public static BlockingType forValue(boolean value) {
+		return blockingTypesByValue.get(value);
 	}
 }

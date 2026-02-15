@@ -65,6 +65,7 @@ public class ChunkInitializerThreadState extends UIEventReceiverThreadState<Chun
 	}
 
 	private static final Object [] interestingBlocks = new Object [] {
+		Montmorillonite.class,
 		Smectite.class,
 		Kaolin.class,
 		CalcinedAnthracite.class,
@@ -100,7 +101,8 @@ public class ChunkInitializerThreadState extends UIEventReceiverThreadState<Chun
 				this.clientBlockModelContext,
 				UINotificationType.PLAYER_POSITION,
 				UINotificationSubscriptionType.SUBSCRIBE,
-				this
+				this,
+				BlockingType.BLOCK
 			),
 			WorkItemPriority.PRIORITY_LOW
 		);

@@ -94,7 +94,6 @@ public class BlockManagerThreadCollection {
 	private BlockSchema blockSchema = null;
 	private UserInteractionConfig userInteractionConfig = null;
 	private Boolean assumeEmojisAreSupported = null;
-	private List<ClientBlockModelContext> clientBlockModelContexts = new ArrayList<ClientBlockModelContext>();
 	private Map<BlockWorldConnectionParameters, BlockWorldConnection> blockWorldConnections = new HashMap<BlockWorldConnectionParameters, BlockWorldConnection>();
 	private Map<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>> authorizedBlockWorldConnections = new HashMap<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>>();
 
@@ -150,8 +149,28 @@ public class BlockManagerThreadCollection {
 		}
 	}
 
+	public void connectAndStart() throws Exception{
+
+		if(authorizedBlockWorldConnections.entrySet().size() == 0){
+			//  Need to set something to get UI to show up:
+			getConsoleWriterThreadState().putWorkItem(new TellClientTerminalChangedWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
+		}else{
+			for(Map.Entry<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>> worldConnectionEntry : authorizedBlockWorldConnections.entrySet()){
+				for(Map.Entry<Long, AuthorizedBlockWorldConnection> playerConnectionEntry : worldConnectionEntry.getValue().entrySet()){
+					ClientBlockModelContext clientBlockModelContext = playerConnectionEntry.getValue().getClientBlockModelContext();
+					clientBlockModelContext.connect();
+					clientBlockModelContext.startRunningClient();
+				}
+			}
+		}
+	}
+
 	public ConsoleWriterThreadState getConsoleWriterThreadState(){
 		return this.consoleWriterThreadState;
+	}
+
+	public List<Map.Entry<BlockWorldConnectionParameters, BlockWorldConnection>> getAllBlockWorldConnectionEntries(){
+		return new ArrayList<Map.Entry<BlockWorldConnectionParameters, BlockWorldConnection>>(blockWorldConnections.entrySet());
 	}
 
 	public final BlockWorldConnection makeOrGetBlockWorldConnection(BlockWorldConnectionParameters params, SessionOperationInterface sessionOperationInterface) throws Exception{
@@ -186,12 +205,14 @@ public class BlockManagerThreadCollection {
 		return this.authorizedBlockWorldConnections.get(params).get(authorizedClientId);
 	}
 
-	public final void addClientBlockModelContext(ClientBlockModelContext clientBlockModelContext){
-		this.clientBlockModelContexts.add(clientBlockModelContext);
-	}
-
 	public final List<ClientBlockModelContext> getClientBlockModelContexts(){
-		return this.clientBlockModelContexts;
+		for(Map.Entry<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>> worldConnectionEntry : authorizedBlockWorldConnections.entrySet()){
+			for(Map.Entry<Long, AuthorizedBlockWorldConnection> playerConnectionEntry : worldConnectionEntry.getValue().entrySet()){
+				ClientBlockModelContext clientBlockModelContext = playerConnectionEntry.getValue().getClientBlockModelContext();
+				return Arrays.asList(clientBlockModelContext);
+			}
+		}
+		return new ArrayList<ClientBlockModelContext>();
 	}
 
 	public final void ensureStdinIsATTY() throws Exception {
@@ -458,6 +479,7 @@ public class BlockManagerThreadCollection {
 
 		boolean useMultiSplitDemo = false;
 		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
+		Long existingRootSplitId = cwts.getRootSplitId();
 		if(useMultiSplitDemo){
 			List<Long> splits1 = new ArrayList<Long>();
 			splits1.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(MapAreaInterfaceThreadState.class, client)));
@@ -495,8 +517,16 @@ public class BlockManagerThreadCollection {
 			List<Long> splits = new ArrayList<Long>();
 			splits.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(MapAreaInterfaceThreadState.class, client)));
 			splits.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(InventoryInterfaceThreadState.class, client)));
-			framePercents.add(0.75);
-			framePercents.add(0.25);
+			if(existingRootSplitId == null){
+				framePercents.add(0.75);
+				framePercents.add(0.25);
+			}else{
+				splits.add(existingRootSplitId);
+				framePercents.add(0.60);
+				framePercents.add(0.20);
+				framePercents.add(0.20);
+			}
+
 
 			Long subSplit = cwts.makeHorizontalSplit();
 			cwts.addSplitPartsByIds(subSplit, splits);
@@ -505,7 +535,7 @@ public class BlockManagerThreadCollection {
 			Long root = cwts.makeVerticalSplit();
 			List<Long> topSplits = new ArrayList<Long>();
 			topSplits.add(subSplit);
-			topSplits.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(OpenAuthorizedWorldConnectionInterfaceThreadState.class, client)));
+			topSplits.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(CraftingInterfaceThreadState.class, client)));
 			List<Double> topSplitPercents = new ArrayList<Double>();
 			topSplitPercents.add(0.75);
 			topSplitPercents.add(0.25);
@@ -513,6 +543,18 @@ public class BlockManagerThreadCollection {
 			((UserInterfaceSplitMulti)cwts.getUserInterfaceSplitById(root)).setSplitPercentages(topSplitPercents);
 
 			cwts.setRootSplit(root);
+		}
+	}
+
+	public void shutdownAllClientsAndServers() throws Exception{
+		for(Map.Entry<BlockWorldConnectionParameters, BlockWorldConnection> worldConnectionEntry : blockWorldConnections.entrySet()){
+			worldConnectionEntry.getValue().destroy();
+		}
+
+		for(Map.Entry<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>> worldConnectionEntry : authorizedBlockWorldConnections.entrySet()){
+			for(Map.Entry<Long, AuthorizedBlockWorldConnection> playerConnectionEntry : worldConnectionEntry.getValue().entrySet()){
+				playerConnectionEntry.getValue().destroy();
+			}
 		}
 	}
 

@@ -45,15 +45,17 @@ public class UIModelProbeWorkItem extends BlockModelContextWorkItem {
 	private UINotificationType notificationType;
 	private UINotificationSubscriptionType subscriptionType;
 	private UIEventReceiverThreadState<?> receiverThread;
+	private BlockingType blockingType;
 
-	public UIModelProbeWorkItem(BlockModelContext blockModelContext, UINotificationType notificationType, UINotificationSubscriptionType subscriptionType, UIEventReceiverThreadState<?> receiverThread){
+	public UIModelProbeWorkItem(BlockModelContext blockModelContext, UINotificationType notificationType, UINotificationSubscriptionType subscriptionType, UIEventReceiverThreadState<?> receiverThread, BlockingType blockingType){
 		super(blockModelContext, true);
 		this.notificationType = notificationType;
 		this.subscriptionType = subscriptionType;
 		this.receiverThread = receiverThread;
+		this.blockingType = blockingType;
 	}
 
 	public void doWork() throws Exception{
-		((ClientBlockModelContext)this.blockModelContext).doUIModelProbeWorkItem(this, notificationType, subscriptionType, receiverThread);
+		((ClientBlockModelContext)this.blockModelContext).doUIModelProbeWorkItem(this, notificationType, subscriptionType, receiverThread, this.blockingType);
 	}
 }

@@ -75,11 +75,31 @@ public class WebsocketsCommunicationProcessor{
 		this.websocketBlockWorldConnectionParameters = websocketBlockWorldConnectionParameters;
 	}
 
+	public String getSessionIdPrefixString() throws Exception{
+		AuthorizedBlockWorldConnection abwc = this.clientBlockModelContext.getAuthorizedBlockWorldConnection();
+		String worldAddress = abwc.getBlockWorldConnection().getBlockWorldConnectionParameters().getBlockWorldAddressString();
+		String idString = String.valueOf(abwc.getAuthorizedClientId());
+		String prefix = worldAddress + ":" + idString;
+		return prefix;
+	}
+
+	public String getServerToClientSessionIdString() throws Exception{
+		return getSessionIdPrefixString() + "local_server_to_client_connection";
+	}
+
+	//public String getClientToServerSessionIdString() throws Exception{
+	//	return getSessionIdPrefixString() + "local_client_to_server_connection";
+	//}
+
 	public void connect() throws Exception{
 		if(this.websocketBlockWorldConnectionParameters == null){
-			// Do nothing
-			LocalBlockSession serverToClientSession = new LocalBlockSession(serverBlockModelContext, "local_server_to_client_connection");
-			LocalBlockSession clientToServerSession = new LocalBlockSession(clientBlockModelContext, "local_server_to_client_connection");
+			AuthorizedBlockWorldConnection abwc = this.clientBlockModelContext.getAuthorizedBlockWorldConnection();
+			String worldAddress = abwc.getBlockWorldConnection().getBlockWorldConnectionParameters().getBlockWorldAddressString();
+			String idString = String.valueOf(abwc.getAuthorizedClientId());
+			String prefix = worldAddress + ":" + idString;
+
+			LocalBlockSession serverToClientSession = new LocalBlockSession(serverBlockModelContext, getServerToClientSessionIdString());
+			LocalBlockSession clientToServerSession = new LocalBlockSession(clientBlockModelContext, getServerToClientSessionIdString());
 
 			//  Add the sessions to manually set up the connection
 			serverBlockModelContext.onOpen(serverToClientSession);
@@ -89,7 +109,7 @@ public class WebsocketsCommunicationProcessor{
 			serverToClientSession.setRemoteSession(clientToServerSession);
 			clientToServerSession.setRemoteSession(serverToClientSession);
 		}else{
-			String websocketsServerURL = this.websocketBlockWorldConnectionParameters.getWorldAddressString();
+			String websocketsServerURL = this.websocketBlockWorldConnectionParameters.getBlockWorldAddressString();
 			this.userSession = ContainerProvider.getWebSocketContainer().connectToServer(this, new URI(websocketsServerURL));
 			logger.info("Did websocket connect to url '" + websocketsServerURL + "'");
 		}
@@ -105,7 +125,7 @@ public class WebsocketsCommunicationProcessor{
 
 	public String getClientSessionId() throws Exception{
 		if(this.websocketBlockWorldConnectionParameters == null){
-			return "local_server_to_client_connection";
+			return getServerToClientSessionIdString();
 		}else{
 			return this.userSession.getId();
 		}

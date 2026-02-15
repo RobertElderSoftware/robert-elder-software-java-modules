@@ -68,6 +68,14 @@ public class InputFormTextArea extends InputFormElement {
 		this.maxLines = maxLines;
 	}
 
+	public String getText() throws Exception{
+		List<String> joinedLines = new ArrayList<String>();
+		for(List<String> line : this.text){
+			joinedLines.add(String.join("", line));
+		}
+		return String.join("\n", joinedLines);
+	}
+
 	public void setText(InputElementContainer container, String defaultText) throws Exception{
 		this.text.clear();
 		this.text.add(new ArrayList<String>());

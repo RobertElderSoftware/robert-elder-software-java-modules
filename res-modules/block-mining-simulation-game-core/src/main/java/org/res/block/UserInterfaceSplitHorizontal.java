@@ -71,18 +71,22 @@ public class UserInterfaceSplitHorizontal extends UserInterfaceSplitMulti {
 			Long yOffsetSoFar = 0L;
 			Long fcw = 1L;  //  TODO: this is wrong!
 			//  In wide character mode, must be two column aligned:
-			Long allowableFrameWidth = fcw.equals(1L) ? frameDimensions.getFrameWidth() : (frameDimensions.getFrameWidth() / fcw) * fcw;
+			Long frameWidth = frameDimensions == null ? 0L : frameDimensions.getFrameWidth();
+			Long frameHeight = frameDimensions == null ? 0L : frameDimensions.getFrameHeight();
+			Long frameOffsetX = frameDimensions == null ? 0L : frameDimensions.getFrameOffsetX();
+			Long frameOffsetY = frameDimensions == null ? 0L : frameDimensions.getFrameOffsetY();
+			Long allowableFrameWidth = fcw.equals(1L) ? frameWidth : (frameWidth / fcw) * fcw;
 			for(int i = 0; i < this.splitParts.size(); i++){
-				Long defaultFrameWidth = this.smarterRound(Double.valueOf(frameDimensions.getFrameHeight()) * this.splitPercentages.get(i), frameDimensions.getTerminalHeight());
-				Long currentFrameHeight = (i == (this.splitParts.size() -1)) ? (frameDimensions.getFrameHeight() - yOffsetSoFar) : defaultFrameWidth;
+				Long defaultFrameWidth = this.smarterRound(Double.valueOf(frameHeight) * this.splitPercentages.get(i), frameHeight);
+				Long currentFrameHeight = (i == (this.splitParts.size() -1)) ? (frameHeight - yOffsetSoFar) : defaultFrameWidth;
 
 				if(currentFrameHeight < 0){
 					throw new Exception("currentFrameHeight is negative: " + currentFrameHeight + " for i=" + i + " this.splitParts.size()=" + this.splitParts.size());
 
 				}
 
-				Long x1 = frameDimensions.getFrameOffsetX();
-				Long y1 = yOffsetSoFar + frameDimensions.getFrameOffsetY();
+				Long x1 = frameOffsetX;
+				Long y1 = yOffsetSoFar + frameOffsetY;
 				Long x2 = x1 + allowableFrameWidth;
 				Long y2 = y1 + currentFrameHeight;
 
@@ -91,7 +95,7 @@ public class UserInterfaceSplitHorizontal extends UserInterfaceSplitMulti {
 						new Coordinate(Arrays.asList(x1, y1)),
 						new Coordinate(Arrays.asList(x2, y2))
 					),
-					frameDimensions.getTerminal()
+					frameDimensions == null ? FrameDimensions.makeDefaultDimensions() : frameDimensions.getTerminal()
 				);
 				sumFrameDimensions.add(subFrameDimensions);
 				yOffsetSoFar += currentFrameHeight;

@@ -182,4 +182,8 @@ public class InputForm implements InputElementContainer {
 	public void setInputFormTextAreaText(String name, String text) throws Exception{
 		((InputFormTextArea)this.formElementsMap.get(name)).setText(this, text);
 	}
+
+	public String getInputFormTextAreaText(String name) throws Exception{
+		return ((InputFormTextArea)this.formElementsMap.get(name)).getText();
+	}
 }

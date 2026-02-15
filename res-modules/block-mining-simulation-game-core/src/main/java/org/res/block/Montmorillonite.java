@@ -30,64 +30,35 @@
 //  SOFTWARE.
 package org.res.block;
 
-public class DatabaseBlockWorldConnectionParameters extends BlockWorldConnectionParameters {
+import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
-	private String subprotocol = null;
-	private String hostname = null;
-	private String port = null;
-	private String databaseName = null;
-	private String username = null;
-	private String password = null;
-	private String filename = null;
 
-	public DatabaseBlockWorldConnectionParameters(String subprotocol, String hostname, String port, String databaseName, String username, String password, String filename){
-		this.subprotocol = subprotocol;
-		this.hostname = hostname;
-		this.port = port;
-		this.databaseName = databaseName;
-		this.username = username;
-		this.password = password;
-		this.filename = filename;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonNull;
+import com.google.gson.reflect.TypeToken;
+
+public class Montmorillonite extends IndividualBlock {
+
+	private byte [] data;
+
+	public Montmorillonite(byte [] data) throws Exception {
+		this.data = data;
 	}
 
-	public String getSubprotocol(){
-		return this.subprotocol;
+	public byte [] getBlockData() throws Exception {
+		return this.data;
 	}
 
-	public String getHostname(){
-		return this.hostname;
-	}
-
-	public String getPort(){
-		return this.port;
-	}
-
-	public String getDatabaseName(){
-		return this.databaseName;
-	}
-
-	public String getUsername(){
-		return this.username;
-	}
-
-	public String getPassword(){
-		return this.password;
-	}
-
-	public String getFilename(){
-		return this.filename;
-	}
-
-
-	public String getBlockWorldAddressString() {
-		if(this.getSubprotocol().equals("sqlite")){
-			return this.getSubprotocol() + ":" + this.getFilename();
-		}else{
-			return this.getSubprotocol() + "://" +
-			this.getHostname() + ":" +
-			this.getPort() + "/" +
-			this.getDatabaseName() + "?user=" +
-			this.getUsername();
-		}
+	public boolean isMineable() throws Exception{
+		return true;
 	}
 }

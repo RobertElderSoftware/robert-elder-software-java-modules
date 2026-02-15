@@ -1081,7 +1081,14 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
 
 		//  TODO:  This needs to be generalized once there are multiple clients:
-		ClientBlockModelContext client = this.blockManagerThreadCollection.getClientBlockModelContexts().get(0);
+		List<ClientBlockModelContext> clients = this.blockManagerThreadCollection.getClientBlockModelContexts();
+		ClientBlockModelContext client = null;
+		if(clients.size() > 0){
+			client = clients.get(0);
+		}
+
+
+
 		//  Get id of currently focused frame
 		GetFocusedFrameWorkItem getFocusedFrameWorkItem = new GetFocusedFrameWorkItem(cwts);
 		WorkItemResult getFocusedFrameWorkItemResult = cwts.putBlockingWorkItem(getFocusedFrameWorkItem, WorkItemPriority.PRIORITY_LOW);

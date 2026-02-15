@@ -39,9 +39,9 @@ public class ThreeDimensionalCircularBuffer<T>{
 		Coordinate.makeOriginCoordinate(3L),
 		Coordinate.makeOriginCoordinate(3L)
 	);
-	private Long circularOffsetX = null;  //  The offset that describes where the circular buffer 'starts'.
-	private Long circularOffsetY = null;  //  The offset that describes where the circular buffer 'starts'.
-	private Long circularOffsetZ = null;  //  The offset that describes where the circular buffer 'starts'.
+	private Long circularOffsetX = 0L;  //  The offset that describes where the circular buffer 'starts'.
+	private Long circularOffsetY = 0L;  //  The offset that describes where the circular buffer 'starts'.
+	private Long circularOffsetZ = 0L;  //  The offset that describes where the circular buffer 'starts'.
 
 	private Object [][][] buffer = new Object [0][0][0];
 	private Object uninitializedObject;

@@ -55,9 +55,12 @@ public class AuthorizedBlockWorldConnection {
 		return this.clientBlockModelContext;
 	}
 
+	public void destroy() throws Exception{
+		this.clientBlockModelContext.shutdown();
+	}
+
 	public void init() throws Exception {
 		this.clientBlockModelContext = new ClientBlockModelContext(blockManagerThreadCollection, this);
-		blockManagerThreadCollection.addClientBlockModelContext(clientBlockModelContext);
 
 		clientBlockModelContext.putWorkItem(new InitializeYourselfClientBlockModelContextWorkItem(clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
 

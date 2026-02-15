@@ -78,7 +78,8 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 				this.clientBlockModelContext,
 				UINotificationType.CURRENT_INVENTORY,
 				UINotificationSubscriptionType.SUBSCRIBE,
-				this
+				this,
+				BlockingType.NO_BLOCK
 			),
 			WorkItemPriority.PRIORITY_LOW
 		);
@@ -94,7 +95,8 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 				this.clientBlockModelContext,
 				UINotificationType.CURRENTLY_SELECTED_INVENTORY_ITEM,
 				UINotificationSubscriptionType.SUBSCRIBE,
-				this
+				this,
+				BlockingType.NO_BLOCK
 			),
 			WorkItemPriority.PRIORITY_LOW
 		);

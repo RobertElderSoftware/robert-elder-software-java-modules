@@ -197,6 +197,12 @@
                         "byte_pattern_base_64": "Q0FTOjEyMTk5LTM3LTA=",
                         "block_class": "org.res.block.Smectite",
                         "dedication": "Shoseki"
+                },
+                {
+                        "match_type": "byte_comparison",
+                        "byte_pattern_base_64": "Q0FTOjEzMTgtOTMtMA==",
+                        "block_class": "org.res.block.Montmorillonite",
+                        "dedication": "harley"
                 }
 	]
 }

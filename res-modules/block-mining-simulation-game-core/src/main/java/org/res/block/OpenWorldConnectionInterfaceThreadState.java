@@ -307,6 +307,21 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 	public void onButtonPress(String buttonName) throws Exception{
 		if(buttonName.equals("close_frame_button")){
 			this.onCloseCurrentFrame();
+		}else if(buttonName.equals("local_world_submit_button")){
+			String localWorldFile = this.textInputAreaCollection.getInputFormTextAreaText("local_world_name");
+			DatabaseBlockWorldConnectionParameters dbParams = new DatabaseBlockWorldConnectionParameters(
+				"sqlite", //String subprotocol,
+				null, //String hostname,
+				null, //String port,
+				null, //String databaseName,
+				null, //String username,
+				null, //String password,
+				localWorldFile //String filename
+			);
+			blockManagerThreadCollection.makeOrGetBlockWorldConnection(dbParams, new LocalSessionOperationInterface());
+		}else if(buttonName.equals("websockets_world_submit_button")){
+		}else{
+			throw new Exception("Unknown button:" + buttonName);
 		}
 	}
 }

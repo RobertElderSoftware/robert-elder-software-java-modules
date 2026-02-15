@@ -89,7 +89,8 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 					clientBlockModelContext,
 					UINotificationType.PLAYER_POSITION,
 					UINotificationSubscriptionType.SUBSCRIBE,
-					this
+					this,
+					BlockingType.NO_BLOCK
 				),
 				WorkItemPriority.PRIORITY_LOW
 			);

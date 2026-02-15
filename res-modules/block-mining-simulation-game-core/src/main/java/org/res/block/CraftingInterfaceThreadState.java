@@ -77,7 +77,8 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 				this.clientBlockModelContext,
 				UINotificationType.CURRENT_RECIPE_LIST,
 				UINotificationSubscriptionType.SUBSCRIBE,
-				this
+				this,
+				BlockingType.BLOCK
 			),
 			WorkItemPriority.PRIORITY_LOW
 		);
@@ -96,7 +97,8 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 				this.clientBlockModelContext,
 				UINotificationType.CURRENTLY_SELECTED_CRAFTING_RECIPE,
 				UINotificationSubscriptionType.SUBSCRIBE,
-				this
+				this,
+				BlockingType.BLOCK
 			),
 			WorkItemPriority.PRIORITY_LOW
 		);

@@ -94,11 +94,15 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 				this.clientBlockModelContext,
 				UINotificationType.PLAYER_POSITION,
 				UINotificationSubscriptionType.SUBSCRIBE,
-				this
+				this,
+				BlockingType.BLOCK
 			),
 			WorkItemPriority.PRIORITY_LOW
 		);
 
+		if(result.getObject() == null){
+			throw new Exception("result.getObject() == null");
+		}
 		//  Set initial player position:
 		this.onPlayerPositionChange((PlayerPositionXYZ)result.getObject());
 
@@ -108,7 +112,8 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 				this.clientBlockModelContext,
 				UINotificationType.UPDATE_MAP_AREA_FLAGS,
 				UINotificationSubscriptionType.SUBSCRIBE,
-				this
+				this,
+				BlockingType.BLOCK
 			),
 			WorkItemPriority.PRIORITY_LOW
 		);

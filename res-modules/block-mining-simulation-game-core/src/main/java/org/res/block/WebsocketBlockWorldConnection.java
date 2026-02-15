@@ -57,8 +57,8 @@ public class WebsocketBlockWorldConnection extends BlockWorldConnection {
 
 	}
 
-	public String getWorldAddressString() throws Exception{
-		return websocketBlockWorldConnectionParameters.getWorldAddressString();
+	public String getBlockWorldAddressString() throws Exception{
+		return websocketBlockWorldConnectionParameters.getBlockWorldAddressString();
 	}
 
 	public WebsocketsCommunicationProcessor getCommunicationProcessor(ClientBlockModelContext clientBlockModelContext) throws Exception{

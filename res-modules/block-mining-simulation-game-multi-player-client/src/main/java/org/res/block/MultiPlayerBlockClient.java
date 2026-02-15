@@ -86,19 +86,16 @@ class MultiPlayerBlockClient {
 		BlockManagerThreadCollection blockManagerThreadCollection = new BlockManagerThreadCollection(commandLineArgumentCollection, true);
 		blockManagerThreadCollection.init();
 
-		WebsocketBlockWorldConnectionParameters params = new WebsocketBlockWorldConnectionParameters("127.0.0.1", 8888, "/block-manager");
-		WebsocketBlockWorldConnection bwc = (WebsocketBlockWorldConnection)blockManagerThreadCollection.makeOrGetBlockWorldConnection(params, new WebsocketsSessionOperationInterface());
+		//WebsocketBlockWorldConnectionParameters params = new WebsocketBlockWorldConnectionParameters("127.0.0.1", 8888, "/block-manager");
+		//WebsocketBlockWorldConnection bwc = (WebsocketBlockWorldConnection)blockManagerThreadCollection.makeOrGetBlockWorldConnection(params, new WebsocketsSessionOperationInterface());
 
 
-		Long authorizedClientId = 0L;
-		AuthorizedBlockWorldConnection abwc = blockManagerThreadCollection.makeOrGetAuthorizedBlockWorldConnection(authorizedClientId, bwc);
+		//Long authorizedClientId = 0L;
+		//AuthorizedBlockWorldConnection abwc = blockManagerThreadCollection.makeOrGetAuthorizedBlockWorldConnection(authorizedClientId, bwc);
 
-		blockManagerThreadCollection.setupDefaultUIForClient(abwc.getClientBlockModelContext());
-		abwc.getClientBlockModelContext().connect();
-		abwc.getClientBlockModelContext().startRunningClient();
-		//  Start the game loading process
+		blockManagerThreadCollection.connectAndStart();
 		blockManagerThreadCollection.blockUntilAllTasksHaveTerminated();
-		abwc.getClientBlockModelContext().shutdown();
+		blockManagerThreadCollection.shutdownAllClientsAndServers();
 
 		List<Exception> offendingExceptions = blockManagerThreadCollection.getOffendingExceptions();
 		if(offendingExceptions.size() == 0){

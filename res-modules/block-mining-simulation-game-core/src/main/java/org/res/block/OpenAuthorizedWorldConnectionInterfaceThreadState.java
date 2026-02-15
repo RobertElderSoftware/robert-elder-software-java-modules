@@ -63,12 +63,14 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 
 	private ClientBlockModelContext clientBlockModelContext;
 	private InputForm textInputAreaCollection;
-	private String initialFocus = "local_world_name";
+	private String initialFocus = "active_connection_index";
+	private List<Map.Entry<BlockWorldConnectionParameters, BlockWorldConnection>> worldConnections;
 
 	public OpenAuthorizedWorldConnectionInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
 		super(blockManagerThreadCollection, consoleWriterThreadState, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.clientBlockModelContext = clientBlockModelContext;
+
 	}
 
 	public void onCursorPositionChange(Coordinate c){
@@ -76,16 +78,20 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 	}
 
 	protected void init(Object o) throws Exception{
+		this.worldConnections = getBlockManagerThreadCollection().getAllBlockWorldConnectionEntries();
+
 		this.textInputAreaCollection = new InputForm(this);
 		this.textInputAreaCollection.addInputFormLabel("active_connection_index_label", "Enter Index of World:");
 		this.textInputAreaCollection.addInputFormTextArea("active_connection_index", 1L);
 		this.textInputAreaCollection.setInputFormTextAreaText("active_connection_index", "0");
 
-		this.textInputAreaCollection.addInputFormLabel("authorized_connection_id_label", "Authorized Connection ID:");
-		this.textInputAreaCollection.addInputFormTextArea("authorized_connection_id", 1L);
-		this.textInputAreaCollection.setInputFormTextAreaText("authorized_connection_id", "1");
+		this.textInputAreaCollection.addInputFormLabel("authorized_client_id_label", "Authorized Connection ID:");
+		this.textInputAreaCollection.addInputFormTextArea("authorized_client_id", 1L);
+		this.textInputAreaCollection.setInputFormTextAreaText("authorized_client_id", "0");
 
 		this.textInputAreaCollection.addInputFormButton("submit_button", "Submit");
+
+		this.textInputAreaCollection.addInputFormButton("close_frame_button", "Close");
 
 		this.textInputAreaCollection.setFocusedItem(initialFocus);
 	}
@@ -136,20 +142,41 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 		int [] titleAnsiCodes = UserInterfaceFrameThreadState.getHelpDetailsTitleColors();
 
 		ColouredTextFragmentList activeWorldsTitlePart = new ColouredTextFragmentList();
-		activeWorldsTitlePart.add(new ColouredTextFragment("Active World Connection:", titleAnsiCodes));
+		activeWorldsTitlePart.add(new ColouredTextFragment("Currently Active World Connection(s):", titleAnsiCodes));
 
 		List<LinePrintingInstruction> activeWorldsTitleInstructions = this.getLinePrintingInstructions(activeWorldsTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
 
-		//for(int i = 0; i < this.getBlockManagerThreadCollection().getWorldConnections().size(); i++){
-			
-		//}
-
 		this.executeLinePrintingInstructionsAtYOffset(activeWorldsTitleInstructions, initialOffset);
+		initialOffset += activeWorldsTitleInstructions.size() + 1L;
+
+		if(worldConnections.size() > 0){
+			for(int i = 0; i < worldConnections.size(); i++){
+				BlockWorldConnectionParameters params = worldConnections.get(i).getKey();
+				BlockWorldConnection blockWorldConnection = worldConnections.get(i).getValue();
+				String worldConnectionDescription = " #" + i + ") " + params.getBlockWorldAddressString();
+
+				ColouredTextFragmentList connectionDescriptionPart = new ColouredTextFragmentList();
+				connectionDescriptionPart.add(new ColouredTextFragment(worldConnectionDescription, getDefaultTextColors()));
+
+				List<LinePrintingInstruction> connectionDescriptionInstructions = this.getLinePrintingInstructions(connectionDescriptionPart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+				this.executeLinePrintingInstructionsAtYOffset(connectionDescriptionInstructions, initialOffset);
+				initialOffset += connectionDescriptionInstructions.size();
+			}
+		}else{
+			ColouredTextFragmentList connectionDescriptionPart = new ColouredTextFragmentList();
+			connectionDescriptionPart.add(new ColouredTextFragment("There are no active world connections.", getDefaultTextColors()));
+
+			List<LinePrintingInstruction> connectionDescriptionInstructions = this.getLinePrintingInstructions(connectionDescriptionPart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+			this.executeLinePrintingInstructionsAtYOffset(connectionDescriptionInstructions, initialOffset);
+			initialOffset += connectionDescriptionInstructions.size();
+
+		}
+		initialOffset += 1L;
 
 		Long localTitleOffset = initialOffset + activeWorldsTitleInstructions.size();
 
 		ColouredTextFragmentList localTitlePart = new ColouredTextFragmentList();
-		localTitlePart.add(new ColouredTextFragment("Open Authorized World Connection:", titleAnsiCodes));
+		localTitlePart.add(new ColouredTextFragment("Open A New Authorized World Connection:", titleAnsiCodes));
 
 
 		List<LinePrintingInstruction> localTitleInstructions = this.getLinePrintingInstructions(localTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
@@ -162,6 +189,7 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 		Long authorizedConnectionIdLabelOffset = activeConnectionIndexOffset + 2L;
 		Long authorizedConnectionIdOffset = authorizedConnectionIdLabelOffset + 1L;
 		Long submitButtonOffset = authorizedConnectionIdOffset + 2L;
+		Long closeFrameButtonOffset = submitButtonOffset + 4L;
 
 		this.textInputAreaCollection.updateRenderableArea(
 			"active_connection_index_label",
@@ -182,7 +210,7 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 		);
 
 		this.textInputAreaCollection.updateRenderableArea(
-			"authorized_connection_id_label",
+			"authorized_client_id_label",
 			new Coordinate(Arrays.asList(2L, authorizedConnectionIdLabelOffset)),
 			new CuboidAddress(
 				new Coordinate(Arrays.asList(0L, 0L)),
@@ -191,7 +219,7 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 		);
 
 		this.textInputAreaCollection.updateRenderableArea(
-			"authorized_connection_id",
+			"authorized_client_id",
 			new Coordinate(Arrays.asList(2L, authorizedConnectionIdOffset)),
 			new CuboidAddress(
 				new Coordinate(Arrays.asList(0L, 0L)),
@@ -202,6 +230,15 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 		this.textInputAreaCollection.updateRenderableArea(
 			"submit_button",
 			new Coordinate(Arrays.asList(2L, submitButtonOffset)),
+			new CuboidAddress(
+				new Coordinate(Arrays.asList(0L, 0L)),
+				new Coordinate(Arrays.asList(textAreaWidth, 3L))
+			)
+		);
+
+		this.textInputAreaCollection.updateRenderableArea(
+			"close_frame_button",
+			new Coordinate(Arrays.asList(2L, closeFrameButtonOffset)),
 			new CuboidAddress(
 				new Coordinate(Arrays.asList(0L, 0L)),
 				new Coordinate(Arrays.asList(textAreaWidth, 3L))
@@ -236,6 +273,18 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 	public void onButtonPress(String buttonName) throws Exception{
 		if(buttonName.equals("close_frame_button")){
 			this.onCloseCurrentFrame();
+		}else if(buttonName.equals("submit_button")){
+			String worldConnectionIndexString = this.textInputAreaCollection.getInputFormTextAreaText("active_connection_index");
+			String authorizedClientIdString = this.textInputAreaCollection.getInputFormTextAreaText("authorized_client_id");
+			Integer worldConnectionIndex = Integer.valueOf(worldConnectionIndexString);
+			Long authorizedClientId = Long.valueOf(authorizedClientIdString);
+
+			BlockWorldConnection worldConnection = this.worldConnections.get(worldConnectionIndex).getValue();
+			blockManagerThreadCollection.makeOrGetAuthorizedBlockWorldConnection(authorizedClientId, worldConnection);
+
+			blockManagerThreadCollection.connectAndStart();
+		}else{
+			throw new Exception("Unknown button.");
 		}
 	}
 }

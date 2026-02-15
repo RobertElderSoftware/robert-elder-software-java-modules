@@ -299,7 +299,11 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	public void onOpenFrame(Class<?> frameStateClass) throws Exception {
 
 		//  TODO:  This needs to be generalized once there are multiple clients:
-		ClientBlockModelContext client = this.blockManagerThreadCollection.getClientBlockModelContexts().get(0);
+		List<ClientBlockModelContext> clients = this.blockManagerThreadCollection.getClientBlockModelContexts();
+		ClientBlockModelContext client = null;
+		if(clients.size() > 0){
+			client = clients.get(0);
+		}
 
 		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
 		//  Open the required frame:

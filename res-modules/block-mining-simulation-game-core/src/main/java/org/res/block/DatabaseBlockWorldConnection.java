@@ -62,11 +62,11 @@ public class DatabaseBlockWorldConnection extends BlockWorldConnection {
 	}
 
 	public void destroy() throws Exception{
-
+		this.serverBlockModelContext.shutdown();
 	}
 
-	public String getWorldAddressString() throws Exception{
-		return databaseBlockWorldConnectionParameters.getWorldAddressString();
+	public String getBlockWorldAddressString() throws Exception{
+		return databaseBlockWorldConnectionParameters.getBlockWorldAddressString();
 	}
 
 	public WebsocketsCommunicationProcessor getCommunicationProcessor(ClientBlockModelContext clientBlockModelContext) throws Exception{

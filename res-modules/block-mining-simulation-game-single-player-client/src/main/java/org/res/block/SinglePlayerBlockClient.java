@@ -108,19 +108,16 @@ class SinglePlayerBlockClient {
 			commandLineArgumentCollection.getUsedSingleValue("--block-world-file") //String filename
 		);
 
-		DatabaseBlockWorldConnection bwc = (DatabaseBlockWorldConnection)blockManagerThreadCollection.makeOrGetBlockWorldConnection(dbParams, new LocalSessionOperationInterface());
+		//DatabaseBlockWorldConnection bwc = (DatabaseBlockWorldConnection)blockManagerThreadCollection.makeOrGetBlockWorldConnection(dbParams, new LocalSessionOperationInterface());
 
-		Long authorizedClientId = 0L;
-		AuthorizedBlockWorldConnection abwc = blockManagerThreadCollection.makeOrGetAuthorizedBlockWorldConnection(authorizedClientId, bwc);
+		//Long authorizedClientId = 0L;
+		//AuthorizedBlockWorldConnection abwc = blockManagerThreadCollection.makeOrGetAuthorizedBlockWorldConnection(authorizedClientId, bwc);
 
-		blockManagerThreadCollection.setupDefaultUIForClient(abwc.getClientBlockModelContext());
-		abwc.getClientBlockModelContext().connect();
-		abwc.getClientBlockModelContext().startRunningClient();
+		blockManagerThreadCollection.connectAndStart();
 
 		//  Start the game loading process
 		blockManagerThreadCollection.blockUntilAllTasksHaveTerminated();
-		bwc.getServerBlockModelContext().shutdown();
-		abwc.getClientBlockModelContext().shutdown();
+		blockManagerThreadCollection.shutdownAllClientsAndServers();
 
 		List<Exception> offendingExceptions = blockManagerThreadCollection.getOffendingExceptions();
 		if(offendingExceptions.size() == 0){

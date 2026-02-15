@@ -67,7 +67,10 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	private CuboidAddress mapAreaCuboidAddress;
 	private Integer selectedInventoryItemIndex = null;
 	private Integer selectedCraftingRecipeIndex = 0;
+	//  All thread that are subscribed to events:
 	private Map<UINotificationType, Set<UIEventReceiverThreadState<?>>> uiEventSubscriptions = new HashMap<UINotificationType, Set<UIEventReceiverThreadState<?>>>();
+	//  All threads that are blocked waiting for an object to become non-null:
+	private Map<UINotificationType, Set<Long>> uiEventWaitingThreads = new HashMap<UINotificationType, Set<Long>>();
 	private AuthorizedBlockWorldConnection authorizedBlockWorldConnection;
 
 	private WebsocketsCommunicationProcessor websocketsCommunicationProcessor;
@@ -108,6 +111,12 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(this.inMemoryChunks, InMemoryChunksWorkItem.class, this.inMemoryChunks.getClass()));
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ChunkInitializerWorkItem>(this.chunkInitializerThreadState, ChunkInitializerWorkItem.class, this.chunkInitializerThreadState.getClass()));
+
+		this.blockManagerThreadCollection.setupDefaultUIForClient(this);
+	}
+
+	public AuthorizedBlockWorldConnection getAuthorizedBlockWorldConnection(){
+		return this.authorizedBlockWorldConnection;
 	}
 
 	public void connect() throws Exception{
@@ -115,7 +124,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 			this.websocketsCommunicationProcessor = this.authorizedBlockWorldConnection.getBlockWorldConnection().getCommunicationProcessor(this);
 			this.websocketsCommunicationProcessor.connect();
 		}else{
-			throw new Exception("this.websocketsCommunicationProcessor != null");
+			logger.info("Already connected for " + authorizedBlockWorldConnection.getBlockWorldConnection().getBlockWorldConnectionParameters().getBlockWorldAddressString());
 		}
 	}
 
@@ -751,10 +760,31 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		}
 	}
 
+	public void sendUIEventsToWaitingThreads(UINotificationType notificationType, Object o) throws Exception{
+		if(uiEventWaitingThreads.containsKey(notificationType)){
+			// Don't wake up the thread for a null object because if
+			// the thread was ok getting a null back then it would
+			// have specified no blocking.
+			if(o != null){
+				Set<Long> threadIds = uiEventWaitingThreads.get(notificationType);
+				for(Long id : threadIds){
+					this.removeUIEventWaitingThread(notificationType, id);
+				}
+				for(Long id : threadIds){
+					this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(o), id);
+				}
+			}
+		}
+	}
+
 	public void sendUIEventsToSubscribedThreads(UINotificationType notificationType, Object o, WorkItemPriority priority) throws Exception{
+		//  First, unblock any threads that are blocked waiting on this event:
+		this.sendUIEventsToWaitingThreads(notificationType, o);
+		//  Also, notify any subscribed threads:
 		if(uiEventSubscriptions.containsKey(notificationType)){
 			Set<UIEventReceiverThreadState<?>> subscribedThreads = uiEventSubscriptions.get(notificationType);
 			for(UIEventReceiverThreadState<?> subscribedThread : subscribedThreads){
+				//  TODO: This should really send a work item:
 				subscribedThread.receiveEventNotification(notificationType, o, priority);
 			}
 		}
@@ -764,8 +794,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		if(!uiEventSubscriptions.containsKey(notificationType)){
 			this.uiEventSubscriptions.put(notificationType, new HashSet<UIEventReceiverThreadState<?>>());
 		}
-		Set<UIEventReceiverThreadState<?>> subscribedThreadStates = uiEventSubscriptions.get(notificationType);
-		subscribedThreadStates.add(receiverThread);
+		uiEventSubscriptions.get(notificationType).add(receiverThread);
 	}
 
 	public void removeUIEventSubscription(UINotificationType notificationType, UIEventReceiverThreadState<?> receiverThread) throws Exception{
@@ -774,37 +803,58 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		}
 	}
 
-	public void doUIModelProbeWorkItem(WorkItem workItem, UINotificationType notificationType, UINotificationSubscriptionType subscriptionType, UIEventReceiverThreadState<?> receiverThread) throws Exception{
+	public void addUIEventWaitingThread(UINotificationType notificationType, Long threadId) throws Exception{
+		if(!uiEventWaitingThreads.containsKey(notificationType)){
+			this.uiEventWaitingThreads.put(notificationType, new HashSet<Long>());
+		}
+		uiEventWaitingThreads.get(notificationType).add(threadId);
+	}
+
+	public void removeUIEventWaitingThread(UINotificationType notificationType, Long threadId) throws Exception{
+		if(uiEventSubscriptions.containsKey(notificationType)){
+			uiEventSubscriptions.get(notificationType).remove(threadId);
+		}
+	}
+
+	public void onUIModelObjectResultForThread(BlockingType blockOnNull, WorkItem workItem, UINotificationType notificationType, Object o, UIEventReceiverThreadState<?> receiverThread) throws Exception{
+		if(blockOnNull.equals(BlockingType.BLOCK) && o == null){
+			this.addUIEventWaitingThread(notificationType, workItem.getThreadId());
+		}else{
+			this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(o), workItem.getThreadId());
+		}
+	}
+
+	public void doUIModelProbeWorkItem(WorkItem workItem, UINotificationType notificationType, UINotificationSubscriptionType subscriptionType, UIEventReceiverThreadState<?> receiverThread, BlockingType blockingType) throws Exception{
 		if(subscriptionType.equals(UINotificationSubscriptionType.UNSUBSCRIBE)){
 			this.removeUIEventSubscription(notificationType, receiverThread);
 			this.workItemQueue.addResultForThreadId(new EmptyWorkItemResult(), workItem.getThreadId());
 		}else{
+			if(subscriptionType.equals(UINotificationSubscriptionType.SUBSCRIBE)){
+				this.addUIEventSubscription(notificationType, receiverThread);
+			}
 			switch(notificationType){
 				case CURRENTLY_SELECTED_CRAFTING_RECIPE:{
-					this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(this.selectedCraftingRecipeIndex), workItem.getThreadId());
+					onUIModelObjectResultForThread(blockingType, workItem, notificationType, this.selectedCraftingRecipeIndex, receiverThread);
 					break;
 				}case CURRENT_INVENTORY:{
-					this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(this.playerInventory), workItem.getThreadId());
+					onUIModelObjectResultForThread(blockingType, workItem, notificationType, this.playerInventory, receiverThread);
 					break;
 				}case PLAYER_POSITION:{
 					PlayerPositionXYZ p = this.playerPositionXYZ == null ? null : this.playerPositionXYZ.copy();
-					this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(p), workItem.getThreadId());
+					onUIModelObjectResultForThread(blockingType, workItem, notificationType, p, receiverThread);
 					break;
 				}case UPDATE_MAP_AREA_FLAGS:{
-					this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(new Object()), workItem.getThreadId());
+					onUIModelObjectResultForThread(blockingType, workItem, notificationType, new Object(), receiverThread);
 					break;
 				}case CURRENTLY_SELECTED_INVENTORY_ITEM:{
-					this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(selectedInventoryItemIndex), workItem.getThreadId());
+					onUIModelObjectResultForThread(blockingType, workItem, notificationType, selectedInventoryItemIndex, receiverThread);
 					break;
 				}case CURRENT_RECIPE_LIST:{
-					this.workItemQueue.addResultForThreadId(new UIModelProbeWorkItemResult(getCraftingRecipesList()), workItem.getThreadId());
+					onUIModelObjectResultForThread(blockingType, workItem, notificationType, getCraftingRecipesList(), receiverThread);
 					break;
 				}default:{
 					throw new Exception("Unexpected notificationType=" + notificationType.toString());
 				}
-			}
-			if(subscriptionType.equals(UINotificationSubscriptionType.SUBSCRIBE)){
-				this.addUIEventSubscription(notificationType, receiverThread);
 			}
 		}
 	}

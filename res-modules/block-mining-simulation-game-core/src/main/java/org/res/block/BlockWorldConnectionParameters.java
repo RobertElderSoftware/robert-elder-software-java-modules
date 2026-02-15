@@ -31,21 +31,21 @@
 package org.res.block;
 
 public abstract class BlockWorldConnectionParameters implements Comparable<BlockWorldConnectionParameters> {
-	public abstract String getWorldAddressString();
+	public abstract String getBlockWorldAddressString();
 
 	@Override
 	public int hashCode() {
-		return getWorldAddressString().length();
+		return getBlockWorldAddressString().length();
 	}
 
 	@Override
 	public boolean equals(Object o) {
-		return getWorldAddressString().equals(((BlockWorldConnectionParameters)o).getWorldAddressString());
+		return getBlockWorldAddressString().equals(((BlockWorldConnectionParameters)o).getBlockWorldAddressString());
 	}
 
 	@Override
 	public int compareTo(BlockWorldConnectionParameters o) {
-		return getWorldAddressString().compareTo(o.getWorldAddressString());
+		return getBlockWorldAddressString().compareTo(o.getBlockWorldAddressString());
 		
 	}
 }
