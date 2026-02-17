@@ -78,8 +78,6 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 	}
 
 	protected void init(Object o) throws Exception{
-		this.worldConnections = getBlockManagerThreadCollection().getAllBlockWorldConnectionEntries();
-
 		this.textInputAreaCollection = new InputForm(this);
 		this.textInputAreaCollection.addInputFormLabel("active_connection_index_label", "Enter Index of World:");
 		this.textInputAreaCollection.addInputFormTextArea("active_connection_index", 1L);
@@ -135,6 +133,8 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 	}
 
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
+		this.clearFrame();
+		this.worldConnections = getBlockManagerThreadCollection().getAllBlockWorldConnectionEntries();
 
 		Long spaceWidth = getConsoleWriterThreadState().measureTextLengthOnTerminal(CharacterConstants.SPACE).getDeltaX();
 		Long initialOffset = 2L;

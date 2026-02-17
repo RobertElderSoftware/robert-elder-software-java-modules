@@ -211,8 +211,7 @@
   <modules>
     <module>block-mining-simulation-game-core</module>
     <module>block-mining-simulation-game-server</module>
-    <module>block-mining-simulation-game-multi-player-client</module>
-    <module>block-mining-simulation-game-single-player-client</module>
+    <module>block-mining-simulation-game-client</module>
     <module>block-mining-simulation-game-unit-tests</module>
   </modules>
 

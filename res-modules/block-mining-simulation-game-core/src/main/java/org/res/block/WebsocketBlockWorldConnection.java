@@ -51,6 +51,7 @@ public class WebsocketBlockWorldConnection extends BlockWorldConnection {
 	}
 
 	public void init() throws Exception{
+
 	}
 
 	public void destroy() throws Exception{

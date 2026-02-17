@@ -56,7 +56,7 @@ import ch.qos.logback.core.util.StatusPrinter;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import org.slf4j.LoggerFactory;
 
-class SinglePlayerBlockClient {
+class BlockMiningSimulationGameClient {
 	
 	public static void setupLogging(String logfileName) throws Exception {
 		LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -82,8 +82,8 @@ class SinglePlayerBlockClient {
 		//StatusPrinter.print(loggerContext);
 	}
 
-	public static void startSinglePlayerClient(CommandLineArgumentCollection commandLineArgumentCollection) throws Exception{
-		SinglePlayerBlockClient.setupLogging(commandLineArgumentCollection.getUsedSingleValue("--log-file"));
+	public static void startClient(CommandLineArgumentCollection commandLineArgumentCollection) throws Exception{
+		BlockMiningSimulationGameClient.setupLogging(commandLineArgumentCollection.getUsedSingleValue("--log-file"));
 
 		BlockManagerThreadCollection blockManagerThreadCollection = new BlockManagerThreadCollection(commandLineArgumentCollection, true);
 
@@ -150,7 +150,7 @@ class SinglePlayerBlockClient {
 				commandLineArgumentCollection.printHelpMenu(false);
 			}
 		}else{
-			SinglePlayerBlockClient.startSinglePlayerClient(commandLineArgumentCollection);
+			BlockMiningSimulationGameClient.startClient(commandLineArgumentCollection);
 		}
 	}
 }

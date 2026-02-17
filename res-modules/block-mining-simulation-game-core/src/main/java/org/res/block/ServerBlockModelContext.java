@@ -198,7 +198,7 @@ public class ServerBlockModelContext extends BlockModelContext {
 
 		PlayerObject newPlayerObject = new PlayerObject(
 			playerUUIDString,
-			PlayerObjectSkinType.HAPPY_FACE
+			authorizedClientId.equals(0L) ? PlayerObjectSkinType.HAPPY_FACE : PlayerObjectSkinType.ANGRY_FACE
 		);
 
 		this.writeSingleBlockAtPosition(

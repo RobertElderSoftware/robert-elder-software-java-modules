@@ -64,6 +64,8 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 	private ClientBlockModelContext clientBlockModelContext;
 	private InputForm textInputAreaCollection;
 	private String initialFocus = "local_world_name";
+	private List<Map.Entry<BlockWorldConnectionParameters, BlockWorldConnection>> worldConnections;
+	private List<ColouredTextFragmentList> statusMessages = new ArrayList<ColouredTextFragmentList>();
 
 	public OpenWorldConnectionInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
 		super(blockManagerThreadCollection, consoleWriterThreadState, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
@@ -76,6 +78,7 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 	}
 
 	protected void init(Object o) throws Exception{
+		this.statusMessages.add(new ColouredTextFragmentList(new ColouredTextFragment("testing")));
 		this.textInputAreaCollection = new InputForm(this);
 		this.textInputAreaCollection.addInputFormLabel("local_world_name_label", "Local World File Name:");
 		this.textInputAreaCollection.addInputFormTextArea("local_world_name", 1L);
@@ -93,7 +96,7 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 
 		this.textInputAreaCollection.addInputFormLabel("url_label", "URL:");
 		this.textInputAreaCollection.addInputFormTextArea("url", 1L);
-		this.textInputAreaCollection.setInputFormTextAreaText("url", "/block_manager");
+		this.textInputAreaCollection.setInputFormTextAreaText("url", "/block-manager");
 
 		this.textInputAreaCollection.addInputFormButton("websockets_world_submit_button", "Submit");
 
@@ -141,11 +144,50 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 	}
 
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
+		this.clearFrame();
 
+		this.worldConnections = getBlockManagerThreadCollection().getAllBlockWorldConnectionEntries();
 		Long spaceWidth = getConsoleWriterThreadState().measureTextLengthOnTerminal(CharacterConstants.SPACE).getDeltaX();
 		Long initialOffset = 2L;
 
 		int [] titleAnsiCodes = UserInterfaceFrameThreadState.getHelpDetailsTitleColors();
+
+		ColouredTextFragmentList activeWorldsTitlePart = new ColouredTextFragmentList();
+		activeWorldsTitlePart.add(new ColouredTextFragment("Currently Active World Connection(s):", titleAnsiCodes));
+
+		List<LinePrintingInstruction> activeWorldsTitleInstructions = this.getLinePrintingInstructions(activeWorldsTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+
+		this.executeLinePrintingInstructionsAtYOffset(activeWorldsTitleInstructions, initialOffset);
+		initialOffset += activeWorldsTitleInstructions.size() + 1L;
+
+		if(worldConnections.size() > 0){
+			for(int i = 0; i < worldConnections.size(); i++){
+				BlockWorldConnectionParameters params = worldConnections.get(i).getKey();
+				BlockWorldConnection blockWorldConnection = worldConnections.get(i).getValue();
+				String worldConnectionDescription = " #" + i + ") " + params.getBlockWorldAddressString();
+
+				ColouredTextFragmentList connectionDescriptionPart = new ColouredTextFragmentList();
+				connectionDescriptionPart.add(new ColouredTextFragment(worldConnectionDescription, getDefaultTextColors()));
+
+				List<LinePrintingInstruction> connectionDescriptionInstructions = this.getLinePrintingInstructions(connectionDescriptionPart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+				this.executeLinePrintingInstructionsAtYOffset(connectionDescriptionInstructions, initialOffset);
+				initialOffset += connectionDescriptionInstructions.size();
+			}
+		}else{
+			ColouredTextFragmentList connectionDescriptionPart = new ColouredTextFragmentList();
+			connectionDescriptionPart.add(new ColouredTextFragment("There are no active world connections.", getDefaultTextColors()));
+
+			List<LinePrintingInstruction> connectionDescriptionInstructions = this.getLinePrintingInstructions(connectionDescriptionPart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+			this.executeLinePrintingInstructionsAtYOffset(connectionDescriptionInstructions, initialOffset);
+			initialOffset += connectionDescriptionInstructions.size();
+
+		}
+		initialOffset += 1L;
+		for(ColouredTextFragmentList fl : statusMessages){
+			List<LinePrintingInstruction> messageLineIns = this.getLinePrintingInstructions(fl, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+			this.executeLinePrintingInstructionsAtYOffset(messageLineIns, initialOffset);
+			initialOffset += messageLineIns.size();
+		}
 
 		Long localTitleOffset = initialOffset;
 
@@ -320,6 +362,13 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 			);
 			blockManagerThreadCollection.makeOrGetBlockWorldConnection(dbParams, new LocalSessionOperationInterface());
 		}else if(buttonName.equals("websockets_world_submit_button")){
+			String hostnameIP = this.textInputAreaCollection.getInputFormTextAreaText("hostname_ip");
+			Integer port = Integer.valueOf(this.textInputAreaCollection.getInputFormTextAreaText("port"));
+			String url = this.textInputAreaCollection.getInputFormTextAreaText("url");
+
+			WebsocketBlockWorldConnectionParameters params = new WebsocketBlockWorldConnectionParameters(hostnameIP, port, url);
+
+			blockManagerThreadCollection.makeOrGetBlockWorldConnection(params, new WebsocketsSessionOperationInterface());
 		}else{
 			throw new Exception("Unknown button:" + buttonName);
 		}

@@ -10,20 +10,16 @@
     <version>${revision}</version>
   </parent>
 
-  <artifactId>block-mining-simulation-game-multi-player-client</artifactId>
+  <artifactId>block-mining-simulation-game-client</artifactId>
   <packaging>jar</packaging>
-  <name>Block Manager Multi Player Client</name>
+  <name>Block Mining Simulation Game Client</name>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <start-class>org.res.block.MultiPlayerBlockClient</start-class>
+    <start-class>org.res.block.BlockMiningSimulationGameClient</start-class>
   </properties>
 
   <dependencies>
-     <dependency>
-         <groupId>javax.websocket</groupId>
-         <artifactId>javax.websocket-api</artifactId>
-     </dependency>
      <dependency>
          <groupId>org.res</groupId>
          <artifactId>block-mining-simulation-game-core</artifactId>
@@ -40,7 +36,7 @@
   </dependencies>
 
   <build>
-    <finalName>final-block-mining-simulation-game-multi-player-client</finalName>
+    <finalName>block-mining-simulation-game-client-${revision}</finalName>
   </build>
 
 </project>
