@@ -204,7 +204,7 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 		this.executeLinePrintingInstructionsAtYOffset(titleInstructions, 2L);
 		this.updateListDisplayArea();
 		this.recipeList.render(this, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
-		this.drawBorders();
+		this.drawBorders(this.clientBlockModelContext, "Inventory");
 	}
 
 	public UIWorkItem takeWorkItem() throws Exception {

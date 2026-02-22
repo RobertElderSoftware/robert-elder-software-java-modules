@@ -32,33 +32,35 @@ package org.res.block;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
-public class WebsocketBlockWorldConnection extends BlockWorldConnection {
 
-	private BlockManagerThreadCollection blockManagerThreadCollection;
-	private WebsocketBlockWorldConnectionParameters websocketBlockWorldConnectionParameters;
-	private SessionOperationInterface sessionOperationInterface;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonNull;
+import com.google.gson.reflect.TypeToken;
 
-	public WebsocketBlockWorldConnection(BlockManagerThreadCollection blockManagerThreadCollection, SessionOperationInterface sessionOperationInterface, WebsocketBlockWorldConnectionParameters websocketBlockWorldConnectionParameters) throws Exception {
-		super(websocketBlockWorldConnectionParameters, sessionOperationInterface);
-		this.blockManagerThreadCollection = blockManagerThreadCollection;
-		this.sessionOperationInterface = sessionOperationInterface;
-		this.websocketBlockWorldConnectionParameters = websocketBlockWorldConnectionParameters;
+public class AuthorizedPlayerPositionXYZ {
+
+	private Long authorizedClientId;
+	private PlayerPositionXYZ playerPositionXYZ;
+
+	public AuthorizedPlayerPositionXYZ(Long authorizedClientId, PlayerPositionXYZ playerPositionXYZ) {
+		this.authorizedClientId = authorizedClientId;
+		this.playerPositionXYZ = playerPositionXYZ;
 	}
 
-	public WebsocketBlockWorldConnectionParameters getWebsocketBlockWorldConnectionParameters(){
-		return this.websocketBlockWorldConnectionParameters;
+	public PlayerPositionXYZ getPlayerPositionXYZ(){
+		return this.playerPositionXYZ;
 	}
 
-	public void init() throws Exception{
-
-	}
-
-	public void destroy() throws Exception{
-
-	}
-
-	public WebsocketsCommunicationProcessor getCommunicationProcessor(ClientBlockModelContext clientBlockModelContext) throws Exception{
-		return new WebsocketsCommunicationProcessor(blockManagerThreadCollection, clientBlockModelContext, websocketBlockWorldConnectionParameters);
+	public Long getAuthorizedClientId(){
+		return this.authorizedClientId;
 	}
 }

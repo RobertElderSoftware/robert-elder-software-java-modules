@@ -78,7 +78,6 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 	}
 
 	protected void init(Object o) throws Exception{
-		this.statusMessages.add(new ColouredTextFragmentList(new ColouredTextFragment("testing")));
 		this.textInputAreaCollection = new InputForm(this);
 		this.textInputAreaCollection.addInputFormLabel("local_world_name_label", "Local World File Name:");
 		this.textInputAreaCollection.addInputFormTextArea("local_world_name", 1L);
@@ -188,6 +187,7 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 			this.executeLinePrintingInstructionsAtYOffset(messageLineIns, initialOffset);
 			initialOffset += messageLineIns.size();
 		}
+		initialOffset += 1L;
 
 		Long localTitleOffset = initialOffset;
 
@@ -347,30 +347,42 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 	}
 
 	public void onButtonPress(String buttonName) throws Exception{
+		this.statusMessages = new ArrayList<ColouredTextFragmentList>();
 		if(buttonName.equals("close_frame_button")){
 			this.onCloseCurrentFrame();
-		}else if(buttonName.equals("local_world_submit_button")){
-			String localWorldFile = this.textInputAreaCollection.getInputFormTextAreaText("local_world_name");
-			DatabaseBlockWorldConnectionParameters dbParams = new DatabaseBlockWorldConnectionParameters(
-				"sqlite", //String subprotocol,
-				null, //String hostname,
-				null, //String port,
-				null, //String databaseName,
-				null, //String username,
-				null, //String password,
-				localWorldFile //String filename
-			);
-			blockManagerThreadCollection.makeOrGetBlockWorldConnection(dbParams, new LocalSessionOperationInterface());
-		}else if(buttonName.equals("websockets_world_submit_button")){
-			String hostnameIP = this.textInputAreaCollection.getInputFormTextAreaText("hostname_ip");
-			Integer port = Integer.valueOf(this.textInputAreaCollection.getInputFormTextAreaText("port"));
-			String url = this.textInputAreaCollection.getInputFormTextAreaText("url");
-
-			WebsocketBlockWorldConnectionParameters params = new WebsocketBlockWorldConnectionParameters(hostnameIP, port, url);
-
-			blockManagerThreadCollection.makeOrGetBlockWorldConnection(params, new WebsocketsSessionOperationInterface());
 		}else{
-			throw new Exception("Unknown button:" + buttonName);
+			try{
+				if(buttonName.equals("local_world_submit_button")){
+					String localWorldFile = this.textInputAreaCollection.getInputFormTextAreaText("local_world_name");
+					DatabaseBlockWorldConnectionParameters dbParams = new DatabaseBlockWorldConnectionParameters(
+						"sqlite", //String subprotocol,
+						null, //String hostname,
+						null, //String port,
+						null, //String databaseName,
+						null, //String username,
+						null, //String password,
+						localWorldFile //String filename
+					);
+					BlockWorldConnection bwc = blockManagerThreadCollection.makeOrGetBlockWorldConnection(dbParams, new LocalSessionOperationInterface());
+					this.statusMessages.add(new ColouredTextFragmentList(new ColouredTextFragment("Successfully created new database world connection '" + bwc.getBlockWorldAddressString() + "'.", getDefaultTextColors())));
+				}else if(buttonName.equals("websockets_world_submit_button")){
+					String hostnameIP = this.textInputAreaCollection.getInputFormTextAreaText("hostname_ip");
+					Integer port = Integer.valueOf(this.textInputAreaCollection.getInputFormTextAreaText("port"));
+					String url = this.textInputAreaCollection.getInputFormTextAreaText("url");
+
+					WebsocketBlockWorldConnectionParameters params = new WebsocketBlockWorldConnectionParameters(hostnameIP, port, url);
+
+					BlockWorldConnection bwc = blockManagerThreadCollection.makeOrGetBlockWorldConnection(params, new WebsocketsSessionOperationInterface());
+					this.statusMessages.add(new ColouredTextFragmentList(new ColouredTextFragment("Successfully created new database world connection '" + bwc.getBlockWorldAddressString() + "'.", getDefaultTextColors())));
+				}else{
+					throw new Exception("Unknown button:" + buttonName);
+				}
+			}catch(Exception e){
+				String exceptionString = BlockManagerThreadCollection.exceptionToString(e);
+				for(String line :  exceptionString.split("\n")){
+					this.statusMessages.add(new ColouredTextFragmentList(new ColouredTextFragment(line, getDefaultTextColors())));
+				}
+			}
 		}
 	}
 }

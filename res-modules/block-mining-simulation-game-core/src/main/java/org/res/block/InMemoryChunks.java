@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.TreeSet;
 import java.util.TreeMap;
+import java.util.Collections;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,10 +51,9 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected Object lock = new Object();
 
-	private PlayerPositionXYZ playerPosition = null;
+	private Map<Long, PlayerPositionXYZ> playerPositions = new HashMap<Long, PlayerPositionXYZ>();
 
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
-	private BlockModelContext blockModelContext;
 
 	/*  A description of how many blocks the 'chunk' should be on each side: */
 	private CuboidAddress chunkSize = null;
@@ -82,21 +82,24 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 	}
 
 	protected void init(Object o) throws Exception{
-		if(this.blockModelContext instanceof ClientBlockModelContext){
-			ClientBlockModelContext clientBlockModelContext = (ClientBlockModelContext)this.blockModelContext;
-			UIModelProbeWorkItemResult result = (UIModelProbeWorkItemResult)clientBlockModelContext.putBlockingWorkItem(
-				new UIModelProbeWorkItem(
-					clientBlockModelContext,
-					UINotificationType.PLAYER_POSITION,
-					UINotificationSubscriptionType.SUBSCRIBE,
-					this,
-					BlockingType.NO_BLOCK
-				),
-				WorkItemPriority.PRIORITY_LOW
-			);
 
-			//  Set initial player position:
-			this.onPlayerPositionChange((PlayerPositionXYZ)result.getObject());
+	}
+
+	public void registerPlayer(ClientBlockModelContext clientBlockModelContext) throws Exception{
+		UIModelProbeWorkItemResult result = (UIModelProbeWorkItemResult)clientBlockModelContext.putBlockingWorkItem(
+			new UIModelProbeWorkItem(
+				clientBlockModelContext,
+				UINotificationType.PLAYER_POSITION,
+				UINotificationSubscriptionType.SUBSCRIBE,
+				this,
+				BlockingType.NO_BLOCK
+			),
+			WorkItemPriority.PRIORITY_LOW
+		);
+
+		//  Set initial player position:
+		if(result.getObject() != null){
+			this.onPlayerPositionChange((AuthorizedPlayerPositionXYZ)result.getObject());
 		}
 	}
 
@@ -118,7 +121,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 		}
 	}
 
-	public void updateRequiredRegions(Set<CuboidAddress> requiredRegions) throws Exception{
+	public void updateRequiredRegions(Set<CuboidAddress> requiredRegions, BlockModelContext blockModelContext) throws Exception{
 		synchronized(lock){
 			if(!this.lastRequiredRegions.equals(requiredRegions)){ /*  Only do this work if something has changed. */
 				this.lastRequiredRegions = requiredRegions;
@@ -152,7 +155,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 					}else{
 						//logger.info(c + " is a newlyRequiredChunk, add it to pendingNotYetRequestedChunks.");
 						this.pendingNotYetRequestedChunks.add(c);
-						this.blockModelContext.inMemoryChunksCallbackOnChunkBecomesPending(c.copy());
+						blockModelContext.inMemoryChunksCallbackOnChunkBecomesPending(c.copy());
 					}
 				}
 
@@ -180,22 +183,22 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 				}
 
 				if(recentlyDiscardedChunks.size() > 0){
-					((ClientBlockModelContext)this.blockModelContext).enqueueChunkUnsubscriptionForServer(recentlyDiscardedChunks, WorkItemPriority.PRIORITY_LOW);
+					((ClientBlockModelContext)blockModelContext).enqueueChunkUnsubscriptionForServer(recentlyDiscardedChunks, WorkItemPriority.PRIORITY_LOW);
 				}
 
 				if(this.pendingNotYetRequestedChunks.size() > 0){
-					this.putWorkItem(new InMemoryChunksHasPendingNotYetRequestedChunksWorkItem(this), WorkItemPriority.PRIORITY_LOW);
+					this.putWorkItem(new InMemoryChunksHasPendingNotYetRequestedChunksWorkItem(this, blockModelContext), WorkItemPriority.PRIORITY_LOW);
 				}
 			}
 		}
 	}
 
-	public void onHasPendingNotYetRequestedChunks() throws Exception{
+	public void onHasPendingNotYetRequestedChunks(BlockModelContext blockModelContext) throws Exception{
 		synchronized(lock){
 			Long maxPendingChunks = 2L;
 			//  Only start a request for more chunks if we've not already exceeded the max outstanding chunks.
 			if(this.pendingAlreadyRequestedChunks.size() < maxPendingChunks){
-				List<CuboidAddress> closestFirstCuboidAddressList = this.getClosestCuboidAddressList(this.pendingNotYetRequestedChunks, this.playerPosition);
+				List<CuboidAddress> closestFirstCuboidAddressList = this.getClosestCuboidAddressList(this.pendingNotYetRequestedChunks, this.playerPositions);
 
 				Long numChunksSelected = 0L;
 				Set<CuboidAddress> pendingChunksToRequest = new TreeSet<CuboidAddress>();
@@ -225,7 +228,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 							this.pendingNotYetRequestedChunks.remove(cuboidAddress);
 
 							/*  TODO: Eventually make this generic so it could work on client or server: */
-							((ClientBlockModelContext)this.blockModelContext).enqueueChunkRequestToServer(cuboidAddress.copy(), WorkItemPriority.PRIORITY_LOW);
+							((ClientBlockModelContext)blockModelContext).enqueueChunkRequestToServer(cuboidAddress.copy(), WorkItemPriority.PRIORITY_LOW);
 							logger.info("Inside updateRequiredRegions just put a work item into block client for cuboidAddress=" + String.valueOf(cuboidAddress));
 						}
 					}else{
@@ -238,22 +241,22 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 		}
 	}
 
-	public void onPlayerPositionChange(PlayerPositionXYZ newPosition) throws Exception{
-		this.playerPosition = newPosition;
+	public void onPlayerPositionChange(AuthorizedPlayerPositionXYZ newPosition) throws Exception{
+		this.playerPositions.put(newPosition.getAuthorizedClientId(), newPosition.getPlayerPositionXYZ());
 	}
 
-	private List<CuboidAddress> getClosestCuboidAddressList(Set<CuboidAddress> cuboidAddresses, PlayerPositionXYZ pxyz) throws Exception {
-
-		Coordinate currentCoordinate = pxyz == null ? null : pxyz.getPosition();
-		if(currentCoordinate == null){
-			currentCoordinate = new Coordinate(Arrays.asList(0L, 0L, 0L, 0L));
-		}
+	private List<CuboidAddress> getClosestCuboidAddressList(Set<CuboidAddress> cuboidAddresses, Map<Long, PlayerPositionXYZ> playerPositions) throws Exception {
 
 		Map<Double, CuboidAddress> distanceSortedTreemap = new TreeMap<Double, CuboidAddress>();
 		for(CuboidAddress ca : cuboidAddresses){
-			Double distance = ca.getCentroidDistanceFromCoordinate(currentCoordinate);
-			//logger.info("Distance was " + distance + " for point " + currentCoordinate + " to cuboid " + ca + ".");
-			distanceSortedTreemap.put(distance, ca);
+			List<Double> distancesFromPlayers = new ArrayList<Double>();
+			for(Map.Entry<Long, PlayerPositionXYZ> e : playerPositions.entrySet()){
+				PlayerPositionXYZ player = e.getValue();
+				Double distance = ca.getCentroidDistanceFromCoordinate(player.getPosition());
+				distancesFromPlayers.add(distance);
+			}
+			Double minDistanceValue = distancesFromPlayers.size() == 0 ? 0.0 : Collections.min(distancesFromPlayers);
+			distanceSortedTreemap.put(minDistanceValue, ca);
 		}
 
 		List<CuboidAddress> sortedCuboidAddresses = new ArrayList<CuboidAddress>();
@@ -264,19 +267,19 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 		return sortedCuboidAddresses;
 	}
 
-	public void handlePendingChunkWrite(Cuboid cuboid) throws Exception{
+	public void handlePendingChunkWrite(Cuboid cuboid, BlockModelContext blockModelContext) throws Exception{
 		synchronized(lock){
 			CuboidAddress cuboidAddress = cuboid.getCuboidAddress();
 			CuboidDataLengths dataLengths = cuboid.getCuboidDataLengths();
 			CuboidData data = cuboid.getCuboidData();
 
-			//  If it was a pending request, asknowledge that the chunk has been received and processed:
+			//  If it was a pending request, acknowledge that the chunk has been received and processed:
 			if(this.pendingAlreadyRequestedChunks.contains(cuboidAddress)){
 				this.blockChunks.put(cuboidAddress, new IndividualBlock [(int)this.chunkSize.getVolume()]);
 				this.pendingAlreadyRequestedChunks.remove(cuboidAddress);
 				//logger.info(cuboidAddress + " transitioning from pendingAlreadyRequestedChunks to loaded.");
 				//  We just processed this outstanding chunk...Now check to see if there are more waiting:
-				this.putWorkItem(new InMemoryChunksHasPendingNotYetRequestedChunksWorkItem(this), WorkItemPriority.PRIORITY_LOW);
+				this.putWorkItem(new InMemoryChunksHasPendingNotYetRequestedChunksWorkItem(this, blockModelContext), WorkItemPriority.PRIORITY_LOW);
 			}
 
 			RegionIteration regionIteration = new RegionIteration(cuboidAddress.getCanonicalLowerCoordinate(), cuboidAddress);
@@ -290,7 +293,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 					blockToWrite = new UninitializedBlock();
 				}else{
 					byte [] blockData = data.getDataAtOffset(offsetOfBlock, sizeOfBlock);
-					String blockClassName = this.blockModelContext.getBlockSchema().getFirstBlockMatchDescriptionForByteArray(blockData);
+					String blockClassName = blockModelContext.getBlockSchema().getFirstBlockMatchDescriptionForByteArray(blockData);
 					blockToWrite = IndividualBlock.makeBlockInstanceFromClassName(blockClassName, blockData);
 				}
 
@@ -307,7 +310,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
 
 			//  This could also be an update too:
-			this.blockModelContext.inMemoryChunksCallbackOnChunkWasWritten(cuboidAddress.copy());
+			blockModelContext.inMemoryChunksCallbackOnChunkWasWritten(cuboidAddress.copy());
 		}
 	}
 
@@ -356,10 +359,9 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 		}
 	}
 
-	public InMemoryChunks(BlockManagerThreadCollection blockManagerThreadCollection, BlockModelContext blockModelContext, CuboidAddress chunkSize) throws Exception{
+	public InMemoryChunks(BlockManagerThreadCollection blockManagerThreadCollection, CuboidAddress chunkSize) throws Exception{
 		synchronized(lock){
 			this.blockManagerThreadCollection = blockManagerThreadCollection;
-			this.blockModelContext = blockModelContext;
 			this.chunkSize = chunkSize;
 			for(long i = 0; i < chunkSize.getNumDimensions(); i++){
 				if(chunkSize.getWidthForIndex(i) < 1L){
@@ -389,12 +391,11 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 	public void onUIEventNotification(Object o, UINotificationType notificationType) throws Exception{
 		switch(notificationType){
 			case PLAYER_POSITION:{
-				this.onPlayerPositionChange((PlayerPositionXYZ)o);
+				this.onPlayerPositionChange((AuthorizedPlayerPositionXYZ)o);
 				break;
 			}default:{
 				throw new Exception("Unknown event notification type: " + notificationType);
 			}
 		}
 	}
-
 }

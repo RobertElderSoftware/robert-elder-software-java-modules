@@ -53,13 +53,10 @@ import java.net.URISyntaxException;
 public class ClientBlockModelContext extends BlockModelContext implements BlockModelInterface {
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private InMemoryChunks inMemoryChunks;
 	private ChunkInitializerThreadState chunkInitializerThreadState;
 	private Coordinate rootBlockDictionaryAddress = null;
 	private BlockDictionary rootBlockDictionary = null;
 
-	/*  This defines the dimensions of the 'chunks' that are loaded into memory as we move around */
-	private final CuboidAddress chunkSizeCuboidAddress = new CuboidAddress(new Coordinate(Arrays.asList(0L, 0L, 0L, 0L)), new Coordinate(Arrays.asList(3L, 3L, 5L, 1L)));
 	private PlayerPositionXYZ playerPositionXYZ = null;
 	private PlayerInventory playerInventory = new PlayerInventory();
 	private PlayerObject playerObject = null;
@@ -80,6 +77,14 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.authorizedBlockWorldConnection = authorizedBlockWorldConnection;
 	}
 
+	public String getBlockWorldAddressString(){
+		return this.authorizedBlockWorldConnection.getBlockWorldAddressString();
+	}
+
+	public String getAuthorizedBlockWorldAddressString(){
+		return this.authorizedBlockWorldConnection.getAuthorizedBlockWorldAddressString();
+	}
+
 	public SessionOperationInterface getSessionOperationInterface(){
 		return this.authorizedBlockWorldConnection.getBlockWorldConnection().getSessionOperationInterface();
 	}
@@ -98,18 +103,20 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		}
 	}
 
+	public InMemoryChunks getInMemoryChunks() throws Exception{
+		return blockManagerThreadCollection.getInMemoryChunksForWorld(this.authorizedBlockWorldConnection.getBlockWorldConnection().getBlockWorldConnectionParameters());
+	}
+
 	public void init(Object o) throws Exception{
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 		Date date = new Date();
 
 		this.logMessage("Ran init of ClientBlockModelContext.");
 
-		this.inMemoryChunks = new InMemoryChunks(blockManagerThreadCollection, this, chunkSizeCuboidAddress);
-		this.inMemoryChunks.putWorkItem(new InitializeYourselfInMemoryChunksWorkItem(this.inMemoryChunks), WorkItemPriority.PRIORITY_LOW);
-		this.chunkInitializerThreadState = new ChunkInitializerThreadState(blockManagerThreadCollection, this, this.inMemoryChunks);
+		this.chunkInitializerThreadState = new ChunkInitializerThreadState(blockManagerThreadCollection, this, getInMemoryChunks());
 		this.chunkInitializerThreadState.putWorkItem(new InitializeYourselfChunkInitializerWorkItem(this.chunkInitializerThreadState), WorkItemPriority.PRIORITY_LOW);
 
-		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(this.inMemoryChunks, InMemoryChunksWorkItem.class, this.inMemoryChunks.getClass()));
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(getInMemoryChunks(), InMemoryChunksWorkItem.class, getInMemoryChunks().getClass()));
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ChunkInitializerWorkItem>(this.chunkInitializerThreadState, ChunkInitializerWorkItem.class, this.chunkInitializerThreadState.getClass()));
 
 		this.blockManagerThreadCollection.setupDefaultUIForClient(this);
@@ -117,6 +124,10 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	public AuthorizedBlockWorldConnection getAuthorizedBlockWorldConnection(){
 		return this.authorizedBlockWorldConnection;
+	}
+
+	public BlockWorldConnection getBlockWorldConnection(){
+		return this.authorizedBlockWorldConnection.getBlockWorldConnection();
 	}
 
 	public void connect() throws Exception{
@@ -261,7 +272,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void notifyLoadedRegionsChanged() throws Exception{
-		this.inMemoryChunks.putWorkItem(new UpdateRequiredRegionsWorkItem(this.inMemoryChunks, getRequiredRegionsSet()), WorkItemPriority.PRIORITY_LOW);
+		getInMemoryChunks().putWorkItem(new UpdateRequiredRegionsWorkItem(getInMemoryChunks(), getRequiredRegionsSet(), this), WorkItemPriority.PRIORITY_LOW);
 		this.logMessage("Just sent an update required regions work item request with " + String.valueOf(getRequiredRegionsSet()));
 	}
 
@@ -501,14 +512,14 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 				//  that would otherwise have been triggered for that block never happen
 				//  (since the block is already loaded, and the update signal was missed).
 				//  TODO:  Fix this event issue in the general case.
-				this.inMemoryChunks.putWorkItem(new UpdateRequiredRegionsWorkItem(this.inMemoryChunks, new HashSet<CuboidAddress>()), WorkItemPriority.PRIORITY_LOW);
+				getInMemoryChunks().putWorkItem(new UpdateRequiredRegionsWorkItem(getInMemoryChunks(), new HashSet<CuboidAddress>(), this), WorkItemPriority.PRIORITY_LOW);
 				this.notifyLoadedRegionsChanged();
 			}
 		}
 		if(this.rootBlockDictionary != null){
 			if(this.playerPositionXYZ == null && currentCoordinate.equals(getPlayerPositionBlockAddress())){
 				this.playerPositionXYZ = (PlayerPositionXYZ)this.deserializeBlockData(blockData);
-				this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, this.playerPositionXYZ.copy(), WorkItemPriority.PRIORITY_LOW);
+				this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, new AuthorizedPlayerPositionXYZ(authorizedBlockWorldConnection.getAuthorizedClientId(), this.playerPositionXYZ.copy()), WorkItemPriority.PRIORITY_LOW);
 				getConsoleWriterThreadState().putWorkItem(new TellClientTerminalChangedWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
 			}else if(currentCoordinate.equals(getPlayerInventoryBlockAddress()) && this.playerInventory.getInventoryItemStackList().size() == 0){
 
@@ -560,7 +571,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		CuboidDataLengths dataLengths = cuboid.getCuboidDataLengths();
 		CuboidData data = cuboid.getCuboidData();
 
-		this.inMemoryChunks.putWorkItem(new HandlePendingChunkWriteWorkItem(this.inMemoryChunks, cuboid.copy()), WorkItemPriority.PRIORITY_LOW);
+		getInMemoryChunks().putWorkItem(new HandlePendingChunkWriteWorkItem(getInMemoryChunks(), cuboid.copy(), this), WorkItemPriority.PRIORITY_LOW);
 
 		long numUninitializedBlocks = 0L;
 		RegionIteration regionIteration = new RegionIteration(cuboidAddress.getCanonicalLowerCoordinate(), cuboidAddress);
@@ -591,11 +602,11 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public IndividualBlock readBlockAtCoordinate(Coordinate coordinate) throws Exception{
-		return this.inMemoryChunks.readBlockAtCoordinate(coordinate);
+		return getInMemoryChunks().readBlockAtCoordinate(coordinate);
 	}
 
 	public void loadBlocksFromMemory(ThreeDimensionalCircularBuffer<IndividualBlock> blockBuffer, CuboidAddress areaToInclude, CuboidAddress areaToExclude) throws Exception {
-		this.inMemoryChunks.loadBlocksFromMemory(blockBuffer, areaToInclude, areaToExclude);
+		getInMemoryChunks().loadBlocksFromMemory(blockBuffer, areaToInclude, areaToExclude);
 	}
 
 	public List<Cuboid> getBlocksInRegions(List<CuboidAddress> cuboidAddresses) throws Exception{
@@ -640,7 +651,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 		this.submitChunkToServer(this.playerPositionXYZ.getPosition().getNumDimensions(), cuboids, WorkItemPriority.PRIORITY_LOW, 12345L);
 
-		this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, this.playerPositionXYZ.copy(), WorkItemPriority.PRIORITY_LOW);
+		this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, new AuthorizedPlayerPositionXYZ(authorizedBlockWorldConnection.getAuthorizedClientId(), this.playerPositionXYZ.copy()), WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public CuboidAddress getReachableMapAreaCuboidAddress() throws Exception{
@@ -841,6 +852,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 					break;
 				}case PLAYER_POSITION:{
 					PlayerPositionXYZ p = this.playerPositionXYZ == null ? null : this.playerPositionXYZ.copy();
+					AuthorizedPlayerPositionXYZ app = new AuthorizedPlayerPositionXYZ(authorizedBlockWorldConnection.getAuthorizedClientId(), p);
 					onUIModelObjectResultForThread(blockingType, workItem, notificationType, p, receiverThread);
 					break;
 				}case UPDATE_MAP_AREA_FLAGS:{

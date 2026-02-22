@@ -818,6 +818,37 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		);
 	}
 
+	public void drawBorders(ClientBlockModelContext clientBlockModelContext, String frameName) throws Exception {
+		this.drawBorders(clientBlockModelContext, frameName, null);
+	}
+
+	public void drawBorders(ClientBlockModelContext clientBlockModelContext, String frameName, String extraInfo) throws Exception {
+		List<String> parts = new ArrayList<String>();
+		if(frameName != null){
+			parts.add(frameName);
+		}
+		if(clientBlockModelContext != null){
+			parts.add(clientBlockModelContext.getAuthorizedBlockWorldAddressString());
+		}
+		if(extraInfo != null){
+			parts.add(extraInfo);
+		}
+		String entireAddress = String.join(":", parts);
+
+		int strColumnLength = getConsoleWriterThreadState().measureTextLengthOnTerminal(entireAddress).getDeltaX().intValue();
+
+		ScreenLayer titleStringLayer = new ScreenLayer(new Coordinate(Arrays.asList(3L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, strColumnLength, 1));
+
+		this.printTextAtScreenXY(new ColouredTextFragment(entireAddress, UserInterfaceFrameThreadState.getDefaultTextColors()), 0L, 0L, PrintDirection.LEFT_TO_RIGHT, titleStringLayer);
+
+		this.drawBorders(
+			new ScreenLayer []{titleStringLayer},
+			new ScreenLayer []{},
+			new ScreenLayer []{},
+			new ScreenLayer []{}
+		);
+	}
+
 	public void drawBorders(ScreenLayer [] topOverlays, ScreenLayer [] rightOverlays, ScreenLayer [] bottomOverlays, ScreenLayer [] leftOverlays) throws Exception{
 		this.drawOneBorder(topOverlays, this.topBorder);
 		this.drawOneBorder(rightOverlays, this.rightBorder);
@@ -1106,7 +1137,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 
 			//  Close the focused frame
 			ConsoleWriterWorkItem w = new CloseFrameWorkItem(cwts, focusedFrameId, client);
-			cwts.putBlockingWorkItem(w, WorkItemPriority.PRIORITY_LOW);
+			CloseFrameWorkItemResult r = (CloseFrameWorkItemResult)cwts.putBlockingWorkItem(w, WorkItemPriority.PRIORITY_LOW);
 		}
 	}
 

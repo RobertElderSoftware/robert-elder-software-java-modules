@@ -108,7 +108,7 @@ public class ChunkInitializerThreadState extends UIEventReceiverThreadState<Chun
 		);
 
 		//  Set initial player position:
-		this.onPlayerPositionChange((PlayerPositionXYZ)result.getObject());
+		this.onPlayerPositionChange((AuthorizedPlayerPositionXYZ)result.getObject());
 	}
 
 	public void destroy(Object o) throws Exception{
@@ -128,8 +128,8 @@ public class ChunkInitializerThreadState extends UIEventReceiverThreadState<Chun
 		this.workItemQueue.putWorkItem(workItem, priority);
 	}
 
-	public void onPlayerPositionChange(PlayerPositionXYZ newPosition) throws Exception{
-		this.playerPosition = newPosition == null ? null : newPosition.getPosition();
+	public void onPlayerPositionChange(AuthorizedPlayerPositionXYZ newPosition) throws Exception{
+		this.playerPosition = newPosition == null ? null : newPosition.getPlayerPositionXYZ().getPosition();
 	}
 
 	public void onMapAreaChange(CuboidAddress reachableMapArea) throws Exception{
@@ -328,7 +328,7 @@ public class ChunkInitializerThreadState extends UIEventReceiverThreadState<Chun
 	public void onUIEventNotification(Object o, UINotificationType notificationType) throws Exception{
 		switch(notificationType){
 			case PLAYER_POSITION:{
-				this.onPlayerPositionChange((PlayerPositionXYZ)o);
+				this.onPlayerPositionChange((AuthorizedPlayerPositionXYZ)o);
 				break;
 			}default:{
 				throw new Exception("Unknown event notification type: " + notificationType);

@@ -37,11 +37,14 @@ import java.nio.LongBuffer;
 
 public class InMemoryChunksHasPendingNotYetRequestedChunksWorkItem extends InMemoryChunksWorkItem {
 
-	public InMemoryChunksHasPendingNotYetRequestedChunksWorkItem(InMemoryChunks inMemoryChunks){
+	private BlockModelContext blockModelContext;
+
+	public InMemoryChunksHasPendingNotYetRequestedChunksWorkItem(InMemoryChunks inMemoryChunks, BlockModelContext blockModelContext){
 		super(inMemoryChunks, false);
+		this.blockModelContext = blockModelContext;
 	}
 
 	public void doWork() throws Exception{
-		this.inMemoryChunks.onHasPendingNotYetRequestedChunks();
+		this.inMemoryChunks.onHasPendingNotYetRequestedChunks(this.blockModelContext);
 	}
 }

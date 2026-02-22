@@ -108,10 +108,10 @@ class BlockMiningSimulationGameClient {
 			commandLineArgumentCollection.getUsedSingleValue("--block-world-file") //String filename
 		);
 
-		//DatabaseBlockWorldConnection bwc = (DatabaseBlockWorldConnection)blockManagerThreadCollection.makeOrGetBlockWorldConnection(dbParams, new LocalSessionOperationInterface());
+		DatabaseBlockWorldConnection bwc = (DatabaseBlockWorldConnection)blockManagerThreadCollection.makeOrGetBlockWorldConnection(dbParams, new LocalSessionOperationInterface());
 
-		//Long authorizedClientId = 0L;
-		//AuthorizedBlockWorldConnection abwc = blockManagerThreadCollection.makeOrGetAuthorizedBlockWorldConnection(authorizedClientId, bwc);
+		Long authorizedClientId = 0L;
+		AuthorizedBlockWorldConnection abwc = blockManagerThreadCollection.makeOrGetAuthorizedBlockWorldConnection(authorizedClientId, bwc);
 
 		blockManagerThreadCollection.connectAndStart();
 

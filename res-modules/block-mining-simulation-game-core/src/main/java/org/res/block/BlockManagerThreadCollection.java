@@ -40,6 +40,8 @@ import java.lang.reflect.ParameterizedType;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.io.StringWriter;
+import java.io.PrintWriter;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -97,6 +99,11 @@ public class BlockManagerThreadCollection {
 	private Map<BlockWorldConnectionParameters, BlockWorldConnection> blockWorldConnections = new HashMap<BlockWorldConnectionParameters, BlockWorldConnection>();
 	private Map<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>> authorizedBlockWorldConnections = new HashMap<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>>();
 
+	private Map<BlockWorldConnectionParameters, InMemoryChunks> loadedWorldChunks = new HashMap<BlockWorldConnectionParameters, InMemoryChunks>();
+
+	/*  This defines the dimensions of the 'chunks' that are loaded into memory as we move around */
+	private final CuboidAddress chunkSizeCuboidAddress = new CuboidAddress(new Coordinate(Arrays.asList(0L, 0L, 0L, 0L)), new Coordinate(Arrays.asList(3L, 3L, 5L, 1L)));
+
 	public BlockManagerThreadCollection(CommandLineArgumentCollection commandLineArgumentCollection, boolean ensureStdinIsATTY) throws Exception {
 		//  This is not very portable, but I actually don't know how many terminals
 		//  support advanced emoji characters out there.  Possibly make this guess better in the future:
@@ -138,6 +145,7 @@ public class BlockManagerThreadCollection {
 		this.consoleWriterThreadState = new ConsoleWriterThreadState(this);
 		this.consoleWriterThreadState.putWorkItem(new InitializeYourselfConsoleWriterWorkItem(this.consoleWriterThreadState), WorkItemPriority.PRIORITY_LOW);
 		this.addThread(new WorkItemProcessorTask<ConsoleWriterWorkItem>(this.consoleWriterThreadState, ConsoleWriterWorkItem.class, this.consoleWriterThreadState.getClass()));
+
 
 		//  Console Reader Thread
 		this.addThread(new StandardInputReaderTask(getConsoleWriterThreadState()));
@@ -187,8 +195,17 @@ public class BlockManagerThreadCollection {
 			}else{
 				throw new Exception("Unexpected params type.");
 			}
+
+			//  Start a thread for loading/unloading chunks for this world:
+			InMemoryChunks imc = new InMemoryChunks(this, chunkSizeCuboidAddress);
+			loadedWorldChunks.put(params, imc);
+			imc.putWorkItem(new InitializeYourselfInMemoryChunksWorkItem(imc), WorkItemPriority.PRIORITY_LOW);
 		}
 		return this.blockWorldConnections.get(params);
+	}
+
+	public InMemoryChunks getInMemoryChunksForWorld(BlockWorldConnectionParameters params){
+		return loadedWorldChunks.get(params);
 	}
 
 	public final AuthorizedBlockWorldConnection makeOrGetAuthorizedBlockWorldConnection(Long authorizedClientId, BlockWorldConnection blockWorldConnection) throws Exception{
@@ -578,5 +595,12 @@ public class BlockManagerThreadCollection {
 
 	public void onError(BlockModelContext blockModelContext, Session session, Throwable t) throws Throwable {
 		blockModelContext.onError(session, t);
+	}
+
+	public static String exceptionToString(Throwable t){
+		StringWriter sw = new StringWriter();
+		PrintWriter pw = new PrintWriter(sw);
+		t.printStackTrace(pw);
+		return sw.toString();
 	}
 }

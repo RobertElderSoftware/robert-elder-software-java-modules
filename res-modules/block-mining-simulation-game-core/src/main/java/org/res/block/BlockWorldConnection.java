@@ -40,6 +40,10 @@ public abstract class BlockWorldConnection {
 		this.sessionOperationInterface = sessionOperationInterface;
 	}
 
+	public String getBlockWorldAddressString(){
+		return blockWorldConnectionParameters.getBlockWorldAddressString();
+	}
+
 	public SessionOperationInterface getSessionOperationInterface(){
 		return this.sessionOperationInterface;
 	}

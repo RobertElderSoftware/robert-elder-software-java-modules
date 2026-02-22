@@ -104,7 +104,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 			throw new Exception("result.getObject() == null");
 		}
 		//  Set initial player position:
-		this.onPlayerPositionChange((PlayerPositionXYZ)result.getObject());
+		this.onPlayerPositionChange((AuthorizedPlayerPositionXYZ)result.getObject());
 
 		//  Subscribe to new map area flag updates:
 		this.clientBlockModelContext.putBlockingWorkItem(
@@ -253,8 +253,8 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 		}
 	}
 
-	public void onPlayerPositionChange(PlayerPositionXYZ newPosition) throws Exception{
-		Coordinate newCoordinate = newPosition == null ? null : newPosition.getPosition();
+	public void onPlayerPositionChange(AuthorizedPlayerPositionXYZ newPosition) throws Exception{
+		Coordinate newCoordinate = newPosition == null ? null : newPosition.getPlayerPositionXYZ().getPosition();
 		this.updateMapAreaForPlayerPositionChange(this.playerPosition, newCoordinate);
 
 		Coordinate lastGameInterfacePosition = this.playerPosition;
@@ -287,18 +287,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	public void updateFrameCoordinate() throws Exception {
 		String playerCoordinateString = this.getPlayerPosition() == null ? "null" : "X=" + this.getPlayerPosition().getX() + ", Y=" + this.getPlayerPosition().getY() + ", Z=" + this.getPlayerPosition().getZ() + ", W=" + this.getPlayerPosition().getValueAtIndex(3L);
 
-		int strColumnLength = getConsoleWriterThreadState().measureTextLengthOnTerminal(playerCoordinateString).getDeltaX().intValue();
-
-		ScreenLayer coordinateStringLayer = new ScreenLayer(new Coordinate(Arrays.asList(10L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, strColumnLength, 1));
-
-		this.printTextAtScreenXY(new ColouredTextFragment(playerCoordinateString, UserInterfaceFrameThreadState.getDefaultTextColors()), 0L, 0L, PrintDirection.LEFT_TO_RIGHT, coordinateStringLayer);
-
-		this.drawBorders(
-			new ScreenLayer []{coordinateStringLayer},
-			new ScreenLayer []{},
-			new ScreenLayer []{},
-			new ScreenLayer []{}
-		);
+		drawBorders(this.clientBlockModelContext, "MapArea", playerCoordinateString);
 	}
 
 	public Long getMapXOffsetInCells(CuboidAddress ca) throws Exception{
@@ -423,7 +412,7 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 	public void onUIEventNotification(Object o, UINotificationType notificationType) throws Exception{
 		switch(notificationType){
 			case PLAYER_POSITION:{
-				this.onPlayerPositionChange((PlayerPositionXYZ)o);
+				this.onPlayerPositionChange((AuthorizedPlayerPositionXYZ)o);
 				break;
 			}case UPDATE_MAP_AREA_FLAGS:{
 				this.onUpdateMapAreaFlagsNotify((CuboidAddress)o);

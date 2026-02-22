@@ -43,6 +43,14 @@ public class AuthorizedBlockWorldConnection {
 		this.blockWorldConnection = blockWorldConnection;
 	}
 
+	public String getBlockWorldAddressString(){
+		return this.blockWorldConnection.getBlockWorldAddressString();
+	}
+
+	public String getAuthorizedBlockWorldAddressString(){
+		return this.authorizedClientId + ":" + this.getBlockWorldAddressString();
+	}
+
 	public BlockWorldConnection getBlockWorldConnection(){
 		return this.blockWorldConnection;
 	}
@@ -65,5 +73,9 @@ public class AuthorizedBlockWorldConnection {
 		clientBlockModelContext.putWorkItem(new InitializeYourselfClientBlockModelContextWorkItem(clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
 
 		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(clientBlockModelContext, BlockModelContextWorkItem.class, ClientBlockModelContext.class));
+
+
+		InMemoryChunks imc = blockManagerThreadCollection.getInMemoryChunksForWorld(clientBlockModelContext.getBlockWorldConnection().getBlockWorldConnectionParameters());
+		imc.putWorkItem(new RegisterPlayerToInMemoryChunksWorkItem(imc, clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
 	}
 }

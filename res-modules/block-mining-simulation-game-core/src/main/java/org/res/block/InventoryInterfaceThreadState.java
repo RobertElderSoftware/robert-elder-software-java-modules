@@ -179,12 +179,6 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		return rtn;
 	}
 
-	public void reprintFrame() throws Exception {
-		this.drawBorders();
-
-		this.printTextAtScreenXY(new ColouredTextFragment("- Inventory -", UserInterfaceFrameThreadState.getDefaultTextColors()), 5L, 0L, PrintDirection.LEFT_TO_RIGHT);
-	}
-
 	public void updateListDisplayArea() throws Exception{
 		Long linesOnTop = 0L;
 		Long sidePadding = 0L;
@@ -209,7 +203,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
 		this.updateListDisplayArea();
 		this.inventoryItemList.render(this, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
-		this.drawBorders();
+		this.drawBorders(this.clientBlockModelContext, "Inventory");
 	}
 
 	public UIWorkItem takeWorkItem() throws Exception {

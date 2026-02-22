@@ -31,34 +31,22 @@
 package org.res.block;
 
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
 import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 
-public class WebsocketBlockWorldConnection extends BlockWorldConnection {
+public class RegisterPlayerToInMemoryChunksWorkItem extends InMemoryChunksWorkItem {
 
-	private BlockManagerThreadCollection blockManagerThreadCollection;
-	private WebsocketBlockWorldConnectionParameters websocketBlockWorldConnectionParameters;
-	private SessionOperationInterface sessionOperationInterface;
+	private ClientBlockModelContext clientBlockModelContext;
 
-	public WebsocketBlockWorldConnection(BlockManagerThreadCollection blockManagerThreadCollection, SessionOperationInterface sessionOperationInterface, WebsocketBlockWorldConnectionParameters websocketBlockWorldConnectionParameters) throws Exception {
-		super(websocketBlockWorldConnectionParameters, sessionOperationInterface);
-		this.blockManagerThreadCollection = blockManagerThreadCollection;
-		this.sessionOperationInterface = sessionOperationInterface;
-		this.websocketBlockWorldConnectionParameters = websocketBlockWorldConnectionParameters;
+	public RegisterPlayerToInMemoryChunksWorkItem(InMemoryChunks inMemoryChunks, ClientBlockModelContext clientBlockModelContext){
+		super(inMemoryChunks, false);
+		this.clientBlockModelContext = clientBlockModelContext;
 	}
 
-	public WebsocketBlockWorldConnectionParameters getWebsocketBlockWorldConnectionParameters(){
-		return this.websocketBlockWorldConnectionParameters;
-	}
-
-	public void init() throws Exception{
-
-	}
-
-	public void destroy() throws Exception{
-
-	}
-
-	public WebsocketsCommunicationProcessor getCommunicationProcessor(ClientBlockModelContext clientBlockModelContext) throws Exception{
-		return new WebsocketsCommunicationProcessor(blockManagerThreadCollection, clientBlockModelContext, websocketBlockWorldConnectionParameters);
+	public void doWork() throws Exception{
+		this.inMemoryChunks.registerPlayer(clientBlockModelContext);
 	}
 }

@@ -65,10 +65,6 @@ public class DatabaseBlockWorldConnection extends BlockWorldConnection {
 		this.serverBlockModelContext.shutdown();
 	}
 
-	public String getBlockWorldAddressString() throws Exception{
-		return databaseBlockWorldConnectionParameters.getBlockWorldAddressString();
-	}
-
 	public WebsocketsCommunicationProcessor getCommunicationProcessor(ClientBlockModelContext clientBlockModelContext) throws Exception{
 		return new WebsocketsCommunicationProcessor(blockManagerThreadCollection, clientBlockModelContext, this.serverBlockModelContext);
 	}
