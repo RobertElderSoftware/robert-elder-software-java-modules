@@ -41,11 +41,13 @@ public class AfterWriteCuboidsWorkItem extends BlockModelContextWorkItem {
 
 	private Long numDimensions;
 	private List<CuboidAddress> cuboidAddresses;
+	private Long authorizedClientId;
 
-	public AfterWriteCuboidsWorkItem(BlockModelContext blockModelContext, Long numDimensions, List<CuboidAddress> cuboidAddresses){
+	public AfterWriteCuboidsWorkItem(BlockModelContext blockModelContext, Long numDimensions, List<CuboidAddress> cuboidAddresses, Long authorizedClientId){
 		super(blockModelContext);
 		this.numDimensions = numDimensions;
 		this.cuboidAddresses = cuboidAddresses;
+		this.authorizedClientId = authorizedClientId;
 	}
 
 	public void doWork() throws Exception {
@@ -53,14 +55,14 @@ public class AfterWriteCuboidsWorkItem extends BlockModelContextWorkItem {
 		for(Map.Entry<String, BlockSession> e : blockModelContext.getSessionMap().entrySet()){
 			blockModelContext.logMessage("Enqueing a notify for session " + e.getKey() + " due to subscription intersection.");
 
-			Map<CuboidAddress, Long> intersectingSubscribedCuboids = e.getValue().getSubscriptionIntersections(this.cuboidAddresses);
+			Map<CuboidAddress, Long> intersectingSubscribedCuboids = e.getValue().getSubscriptionIntersections(this.cuboidAddresses, this.authorizedClientId);
 
 			//  TODO:  This could be more efficient.  Group update notifications by conversation id:
 			for(Map.Entry<CuboidAddress, Long> intersectingSubscribedCuboid : intersectingSubscribedCuboids.entrySet()){
 				List<Cuboid> notificationCuboids = blockModelContext.getBlockModelInterface().getBlocksInRegions(Arrays.asList(intersectingSubscribedCuboid.getKey()));
 
 				Long subscriptionConversationId = intersectingSubscribedCuboid.getValue();
-				DescribeRegionsBlockMessage notifyMessage = new DescribeRegionsBlockMessage(this.blockModelContext, this.numDimensions, notificationCuboids, subscriptionConversationId);
+				DescribeRegionsBlockMessage notifyMessage = new DescribeRegionsBlockMessage(this.blockModelContext, this.numDimensions, notificationCuboids, subscriptionConversationId, this.authorizedClientId);
 				SendBlockMessageToSessionWorkItem notifyWorkItem = new SendBlockMessageToSessionWorkItem(this.blockModelContext, e.getValue(), notifyMessage);
 
 				blockModelContext.putWorkItem(notifyWorkItem, WorkItemPriority.PRIORITY_LOW);

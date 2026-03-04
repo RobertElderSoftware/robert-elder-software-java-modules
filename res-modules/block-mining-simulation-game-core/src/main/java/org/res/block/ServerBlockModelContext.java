@@ -137,14 +137,28 @@ public class ServerBlockModelContext extends BlockModelContext {
 		this.logMessage("Ran shutdown of ServerBlockModelContext.");
 	}
 
-	public void inMemoryChunksCallbackOnChunkWasWritten(CuboidAddress ca) throws Exception{
+	public void inMemoryChunksCallbackOnChunkBecomesAvailable(CuboidAddress ca) throws Exception{
+
 	}
 
 	public void inMemoryChunksCallbackOnChunkBecomesPending(CuboidAddress ca) throws Exception{
+
 	}
 
-	public void postCuboidsWrite(Long numDimensions, List<CuboidAddress> cuboidAddresses) throws Exception{
-		AfterWriteCuboidsWorkItem afterWriteCuboidsWorkItem = new AfterWriteCuboidsWorkItem(this, numDimensions, cuboidAddresses);
+	public void inMemoryChunksCallbackOnEnqueueChunkRequestToServer(List<CuboidAddress> cuboidAddresses) throws Exception{
+
+	}
+
+	public void inMemoryChunksCallbackOnEnqueueChunkUnsubscriptionForServer(List<CuboidAddress> cuboidAddresses) throws Exception{
+
+	}
+
+	public Long getAuthorizedClientId() throws Exception{
+		return 0L;
+	}
+
+	public void postCuboidsWrite(Long numDimensions, List<CuboidAddress> cuboidAddresses, Long authorizedClientId) throws Exception{
+		AfterWriteCuboidsWorkItem afterWriteCuboidsWorkItem = new AfterWriteCuboidsWorkItem(this, numDimensions, cuboidAddresses, authorizedClientId);
 		this.putWorkItem(afterWriteCuboidsWorkItem, WorkItemPriority.PRIORITY_LOW);
 	}
 
@@ -181,7 +195,7 @@ public class ServerBlockModelContext extends BlockModelContext {
 		}
 	}
 
-	public void onErrorNotificationBlockMessage(BlockSession blockSession, Long conversationId, BlockMessageErrorType blockMessageErrorType) throws Exception{
+	public void onErrorNotificationBlockMessage(BlockSession blockSession, Long conversationId, Long authorizedClientId, BlockMessageErrorType blockMessageErrorType) throws Exception{
 		switch(blockMessageErrorType){
 			default:{
 				throw new Exception("Message type not expected: " + blockMessageErrorType);
@@ -257,12 +271,12 @@ public class ServerBlockModelContext extends BlockModelContext {
 		List<Cuboid> cuboids = this.getBlockModelInterface().getBlocksInRegions(addresses);
 		if(isRootDictionaryInitialized(cuboids.get(0))){
 			//  Send address back to client:
-			AuthorizedCommandBlockMessage response = new AuthorizedCommandBlockMessage(this, conversationId, authorizedClientId, AuthorizedCommandType.COMMAND_TYPE_RESPOND_ROOT_DICTIONARY_ADDRESS, rootDictionaryAddress);
+			CommandBlockMessage response = new CommandBlockMessage(this, conversationId, authorizedClientId, CommandType.COMMAND_TYPE_RESPOND_ROOT_DICTIONARY_ADDRESS, rootDictionaryAddress);
 			this.sendBlockMessage(response, blockSession);
 		}else{
 			if(allowError){
 				//  Send error notification
-				ErrorNotificationBlockMessage response = new ErrorNotificationBlockMessage(this, BlockMessageErrorType.ROOT_BLOCK_DICTIONARY_UNINITIALIZED, conversationId);
+				ErrorNotificationBlockMessage response = new ErrorNotificationBlockMessage(this, BlockMessageErrorType.ROOT_BLOCK_DICTIONARY_UNINITIALIZED, conversationId, authorizedClientId);
 				this.sendBlockMessage(response, blockSession);
 			}else{
 				throw new Exception("Case not expected.");
@@ -270,7 +284,7 @@ public class ServerBlockModelContext extends BlockModelContext {
 		}
 	}
 
-	public void onAuthorizedCommandBlockMessage(BlockSession blockSession, Long conversationId, Long authorizedClientId, AuthorizedCommandType authorizedCommandType, Coordinate coordinate) throws Exception{
+	public void onCommandBlockMessage(BlockSession blockSession, Long conversationId, Long authorizedClientId, CommandType authorizedCommandType, Coordinate coordinate) throws Exception{
 		switch(authorizedCommandType){
 			case COMMAND_TYPE_REQUEST_ROOT_DICTIONARY_ADDRESS:{
 				this.sendRootDictionaryAddress(blockSession, conversationId, authorizedClientId, true);

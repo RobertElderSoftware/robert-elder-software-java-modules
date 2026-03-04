@@ -40,8 +40,8 @@ public class DescribeRegionsBlockMessage extends BlockMessage {
 	private Long numDimensions = null;
 	private List<Cuboid> cuboids = null;
 
-	public DescribeRegionsBlockMessage(BlockModelContext blockModelContext, Long numDimensions, List<Cuboid> cuboids, Long conversationId) throws Exception {
-		super(blockModelContext, conversationId);
+	public DescribeRegionsBlockMessage(BlockModelContext blockModelContext, Long numDimensions, List<Cuboid> cuboids, Long conversationId, Long authorizedClientId) throws Exception {
+		super(blockModelContext, conversationId, authorizedClientId);
 		this.numDimensions = numDimensions;
 		this.cuboids = cuboids;
 	}
@@ -50,6 +50,7 @@ public class DescribeRegionsBlockMessage extends BlockMessage {
 		BlockMessageBinaryBuffer buffer = new BlockMessageBinaryBuffer();
 		BlockMessage.writeBlockMessageType(buffer, BlockMessageType.BLOCK_MESSAGE_TYPE_DESCRIBE_REGIONS);
 		BlockMessage.writeConversationId(buffer, this.conversationId);
+		BlockMessage.writeAuthorizedClientId(buffer, this.authorizedClientId);
 
 		buffer.writeOneLongValue(this.numDimensions);
 		buffer.writeOneLongValue(this.cuboids.size());
@@ -69,8 +70,8 @@ public class DescribeRegionsBlockMessage extends BlockMessage {
 		return buffer.getUsedBuffer();
 	}
 
-	public DescribeRegionsBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer, Long conversationId) throws Exception {
-		super(blockModelContext, conversationId);
+	public DescribeRegionsBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer, Long conversationId, Long authorizedClientId) throws Exception {
+		super(blockModelContext, conversationId, authorizedClientId);
 		this.numDimensions = buffer.readOneLongValue();
 		Long numCuboids = buffer.readOneLongValue();
 
@@ -109,7 +110,7 @@ public class DescribeRegionsBlockMessage extends BlockMessage {
 		for(Cuboid c : this.cuboids){
 			blockModelContext.logMessage("cuboid.getCuboidAddress()=" + c.getCuboidAddress());
 		}
-		WriteCuboidsWorkItem workItem = new WriteCuboidsWorkItem(this.blockModelContext, this.numDimensions, this.cuboids, this.conversationId, blockSession);
+		WriteCuboidsWorkItem workItem = new WriteCuboidsWorkItem(this.blockModelContext, this.numDimensions, this.cuboids, this.conversationId, this.authorizedClientId, blockSession);
 		blockModelContext.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
 
 	}

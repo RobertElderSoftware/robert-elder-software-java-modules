@@ -37,10 +37,17 @@ public abstract class BlockMessage {
 
 	protected BlockModelContext blockModelContext;
 	protected Long conversationId;
+	protected Long authorizedClientId;
 
-	public BlockMessage(BlockModelContext blockModelContext, Long conversationId){
+	public BlockMessage(BlockModelContext blockModelContext, Long conversationId, Long authorizedClientId){
 		this.blockModelContext = blockModelContext;
 		this.conversationId = conversationId;
+		this.authorizedClientId = authorizedClientId;
+	}
+
+
+	public Long getAuthorizedClientId(){
+		return this.authorizedClientId;
 	}
 
 	public Long getConversationId(){
@@ -60,17 +67,18 @@ public abstract class BlockMessage {
 
 		BlockMessageType blockMessageType = BlockMessage.readBlockMessageType(buffer);
 		Long conversationId = buffer.readOneLongValue();
+		Long authorizedClientId = buffer.readOneLongValue();
 		switch(blockMessageType){
 			case BLOCK_MESSAGE_TYPE_PROBE_REGIONS:{
-				return new ProbeRegionsRequestBlockMessage(blockModelContext, buffer, conversationId);
+				return new ProbeRegionsRequestBlockMessage(blockModelContext, buffer, conversationId, authorizedClientId);
 			}case BLOCK_MESSAGE_TYPE_DESCRIBE_REGIONS:{
-				return new DescribeRegionsBlockMessage(blockModelContext, buffer, conversationId);
+				return new DescribeRegionsBlockMessage(blockModelContext, buffer, conversationId, authorizedClientId);
 			}case BLOCK_MESSAGE_TYPE_ERROR_NOTIFICATION:{
-				return new ErrorNotificationBlockMessage(blockModelContext, buffer, conversationId);
+				return new ErrorNotificationBlockMessage(blockModelContext, buffer, conversationId, authorizedClientId);
 			}case BLOCK_MESSAGE_TYPE_ACKNOWLEDGEMENT:{
-				return new AcknowledgementBlockMessage(blockModelContext, buffer, conversationId);
-			}case BLOCK_MESSAGE_TYPE_AUTHORIZED_COMMAND:{
-				return new AuthorizedCommandBlockMessage(blockModelContext, buffer, conversationId);
+				return new AcknowledgementBlockMessage(blockModelContext, buffer, conversationId, authorizedClientId);
+			}case BLOCK_MESSAGE_TYPE_COMMAND:{
+				return new CommandBlockMessage(blockModelContext, buffer, conversationId, authorizedClientId);
 			}default:{
 				throw new Exception("Unknown message type: " + blockMessageType.toString());
 			}
@@ -96,8 +104,8 @@ public abstract class BlockMessage {
 		buffer.writeOneLongValue(conversationId);
 	}
 
-	public BlockMessage() {
-
+	public static void writeAuthorizedClientId(BlockMessageBinaryBuffer buffer, Long authorizedClientId){
+		buffer.writeOneLongValue(authorizedClientId);
 	}
 
 	public abstract void doWork(BlockSession blockSession) throws Exception;

@@ -57,6 +57,6 @@ public class UpdateRequiredRegionsWorkItem extends InMemoryChunksWorkItem {
 	}
 
 	public void doWork() throws Exception{
-		this.inMemoryChunks.updateRequiredRegions(this.requiredRegions, this.blockModelContext);
+		this.inMemoryChunks.updateRequiredRegions(this.requiredRegions, (ClientBlockModelContext)this.blockModelContext);
 	}
 }

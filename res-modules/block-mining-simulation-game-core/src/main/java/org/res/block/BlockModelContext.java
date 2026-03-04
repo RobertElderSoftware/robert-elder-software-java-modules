@@ -63,7 +63,7 @@ import javax.websocket.Session;
 import javax.websocket.ContainerProvider;
 import javax.websocket.WebSocketContainer;
 
-public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelContextWorkItem> {
+public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelContextWorkItem> implements InMemoryChunksClient{
 
 	public abstract void onOpen(Session session) throws Exception;
 	public abstract void onMessage(String txt, Session session) throws Exception;
@@ -73,14 +73,12 @@ public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelCon
 
 	public abstract BlockModelInterface getBlockModelInterface();
 	public abstract boolean isServer();
-	public abstract void postCuboidsWrite(Long numDimensions, List<CuboidAddress> cuboidAddresses) throws Exception;
-	public abstract void onAuthorizedCommandBlockMessage(BlockSession blockSession, Long conversationId, Long authorizedClientId, AuthorizedCommandType authorizedCommandType, Coordinate coordinate) throws Exception;
-	public abstract void onErrorNotificationBlockMessage(BlockSession blockSession, Long conversationId, BlockMessageErrorType blockMessageErrorType) throws Exception;
+	public abstract void postCuboidsWrite(Long numDimensions, List<CuboidAddress> cuboidAddresses, Long authorizedClientId) throws Exception;
+	public abstract void onCommandBlockMessage(BlockSession blockSession, Long conversationId, Long authorizedClientId, CommandType authorizedCommandType, Coordinate coordinate) throws Exception;
+	public abstract void onErrorNotificationBlockMessage(BlockSession blockSession, Long conversationId, Long authorizedClientid, BlockMessageErrorType blockMessageErrorType) throws Exception;
 	public abstract void onAcknowledgementMessage(Long conversationId) throws Exception;
 	public abstract void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception;
 
-	public abstract void inMemoryChunksCallbackOnChunkWasWritten(CuboidAddress cuboidAddress) throws Exception;
-	public abstract void inMemoryChunksCallbackOnChunkBecomesPending(CuboidAddress cuboidAddress) throws Exception;
 	public abstract SessionOperationInterface getSessionOperationInterface();
 
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
@@ -205,11 +203,7 @@ public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelCon
 	}
 
 	public byte [] getBlockDataForClass(Class<?> c) throws Exception{
-		if(this.getBlockSchema() == null){
-			throw new Exception("Cannot lookup byte pattern for  '" + c.getName() + "' because block schema has not been initialized yet.");
-		}else{
-			return this.getBlockSchema().getBinaryDataForByteComparisonBlockForClass(c);
-		}
+		return this.blockManagerThreadCollection.getBlockDataForClass(c);
 	}
 
 	public static String convertToHex(byte[] data) { 

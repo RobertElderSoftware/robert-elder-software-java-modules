@@ -43,19 +43,20 @@ public class AcknowledgementBlockMessage extends BlockMessage {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	public AcknowledgementBlockMessage(BlockModelContext blockModelContext, Long conversationId){
-		super(blockModelContext, conversationId);
+	public AcknowledgementBlockMessage(BlockModelContext blockModelContext, Long conversationId, Long authorizedClientId){
+		super(blockModelContext, conversationId, authorizedClientId);
 	}
 
 	public byte [] asByteArray() throws Exception{
 		BlockMessageBinaryBuffer buffer = new BlockMessageBinaryBuffer();
 		BlockMessage.writeBlockMessageType(buffer, BlockMessageType.BLOCK_MESSAGE_TYPE_ACKNOWLEDGEMENT);
 		BlockMessage.writeConversationId(buffer, this.conversationId);
+		BlockMessage.writeAuthorizedClientId(buffer, this.authorizedClientId);
 		return buffer.getUsedBuffer();
 	}
 
-	public AcknowledgementBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer, Long conversationId) throws Exception {
-		super(blockModelContext, conversationId);
+	public AcknowledgementBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer, Long conversationId, Long authorizedClientId) throws Exception {
+		super(blockModelContext, conversationId, authorizedClientId);
 	}
 
 	public void doWork(BlockSession blockSession) throws Exception{

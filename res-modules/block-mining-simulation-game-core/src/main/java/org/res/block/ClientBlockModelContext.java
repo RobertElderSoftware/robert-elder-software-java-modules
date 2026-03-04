@@ -116,7 +116,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.chunkInitializerThreadState = new ChunkInitializerThreadState(blockManagerThreadCollection, this, getInMemoryChunks());
 		this.chunkInitializerThreadState.putWorkItem(new InitializeYourselfChunkInitializerWorkItem(this.chunkInitializerThreadState), WorkItemPriority.PRIORITY_LOW);
 
-		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(getInMemoryChunks(), InMemoryChunksWorkItem.class, getInMemoryChunks().getClass()));
 		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ChunkInitializerWorkItem>(this.chunkInitializerThreadState, ChunkInitializerWorkItem.class, this.chunkInitializerThreadState.getClass()));
 
 		this.blockManagerThreadCollection.setupDefaultUIForClient(this);
@@ -519,7 +518,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		if(this.rootBlockDictionary != null){
 			if(this.playerPositionXYZ == null && currentCoordinate.equals(getPlayerPositionBlockAddress())){
 				this.playerPositionXYZ = (PlayerPositionXYZ)this.deserializeBlockData(blockData);
-				this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, new AuthorizedPlayerPositionXYZ(authorizedBlockWorldConnection.getAuthorizedClientId(), this.playerPositionXYZ.copy()), WorkItemPriority.PRIORITY_LOW);
+				this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, new AuthorizedPlayerPositionXYZ(getAuthorizedClientId(), this.playerPositionXYZ.copy()), WorkItemPriority.PRIORITY_LOW);
 				getConsoleWriterThreadState().putWorkItem(new TellClientTerminalChangedWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
 			}else if(currentCoordinate.equals(getPlayerInventoryBlockAddress()) && this.playerInventory.getInventoryItemStackList().size() == 0){
 
@@ -613,7 +612,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		throw new Exception("Not Implemented.");
 	}
 
-	public void inMemoryChunksCallbackOnChunkWasWritten(CuboidAddress ca) throws Exception{
+	public void inMemoryChunksCallbackOnChunkBecomesAvailable(CuboidAddress ca) throws Exception{
 		this.sendUIEventsToSubscribedThreads(UINotificationType.UPDATE_MAP_AREA_FLAGS, ca.copy(), WorkItemPriority.PRIORITY_LOW);
 	}
 
@@ -621,7 +620,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.sendUIEventsToSubscribedThreads(UINotificationType.UPDATE_MAP_AREA_FLAGS, ca.copy(), WorkItemPriority.PRIORITY_LOW);
 	}
 
-	public void postCuboidsWrite(Long numDimensions, List<CuboidAddress> cuboidAddresses) throws Exception{
+	public void postCuboidsWrite(Long numDimensions, List<CuboidAddress> cuboidAddresses, Long authorizedClientId) throws Exception{
 
 	}
 
@@ -651,7 +650,11 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 		this.submitChunkToServer(this.playerPositionXYZ.getPosition().getNumDimensions(), cuboids, WorkItemPriority.PRIORITY_LOW, 12345L);
 
-		this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, new AuthorizedPlayerPositionXYZ(authorizedBlockWorldConnection.getAuthorizedClientId(), this.playerPositionXYZ.copy()), WorkItemPriority.PRIORITY_LOW);
+		this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, new AuthorizedPlayerPositionXYZ(getAuthorizedClientId(), this.playerPositionXYZ.copy()), WorkItemPriority.PRIORITY_LOW);
+	}
+
+	public Long getAuthorizedClientId() throws Exception{
+		return authorizedBlockWorldConnection.getAuthorizedClientId();
 	}
 
 	public CuboidAddress getReachableMapAreaCuboidAddress() throws Exception{
@@ -680,28 +683,25 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.onPlayerInventoryChangeNotify();
 	}
 
-	public void enqueueChunkUnsubscriptionForServer(List<CuboidAddress> cuboidAddresses, WorkItemPriority priority) throws Exception{
+	public void inMemoryChunksCallbackOnEnqueueChunkUnsubscriptionForServer(List<CuboidAddress> cuboidAddresses) throws Exception{
 		BlockSession bs = this.getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
 		Long conversationId = 12345L;// TODO
-		ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddresses.get(0).getNumDimensions(), cuboidAddresses, false, false, conversationId);
+		ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddresses.get(0).getNumDimensions(), cuboidAddresses, false, false, conversationId, getAuthorizedClientId());
 		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, m);
-		this.putWorkItem(workItem, priority);
+		this.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
 	}
 
-	public void enqueueChunkRequestToServer(CuboidAddress cuboidAddress, WorkItemPriority priority) throws Exception{
-		this.logMessage("Doing request to server for chunk=" + cuboidAddress);
-		List<CuboidAddress> l = new ArrayList<CuboidAddress>();
-		l.add(cuboidAddress);
+	public void inMemoryChunksCallbackOnEnqueueChunkRequestToServer(List<CuboidAddress> cuboidAddresses) throws Exception{
 		BlockSession bs = this.getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
 		Long conversationId = 12345L;// TODO
-		ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddress.getNumDimensions(), l, true, true, conversationId);
+		ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddresses.get(0).getNumDimensions(), cuboidAddresses, true, true, conversationId, getAuthorizedClientId());
 		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, m);
-		this.putWorkItem(workItem, priority);
+		this.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
 	}
 
 	public void submitChunkToServer(Long numDimensions, List<Cuboid> cuboids, WorkItemPriority priority, Long conversationId) throws Exception{
 		BlockSession bs = this.getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
-		DescribeRegionsBlockMessage response = new DescribeRegionsBlockMessage(this, numDimensions, cuboids, conversationId);
+		DescribeRegionsBlockMessage response = new DescribeRegionsBlockMessage(this, numDimensions, cuboids, conversationId, getAuthorizedClientId());
 		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, response);
 		this.putWorkItem(workItem, priority);
 	}
@@ -709,7 +709,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	public void requestPlayerProvisioning() throws Exception{
 		BlockSession bs = this.getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
 
-		AuthorizedCommandBlockMessage getRootMessage = new AuthorizedCommandBlockMessage(this, 12345L, authorizedBlockWorldConnection.getAuthorizedClientId(), AuthorizedCommandType.COMMAND_TYPE_PROVISION_PLAYER);
+		CommandBlockMessage getRootMessage = new CommandBlockMessage(this, 12345L, getAuthorizedClientId(), CommandType.COMMAND_TYPE_PROVISION_PLAYER);
 
 		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, getRootMessage);
 		this.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
@@ -722,7 +722,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	public void requestRootBlockDictionary() throws Exception{
 		BlockSession bs = this.getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
 
-		AuthorizedCommandBlockMessage getRootMessage = new AuthorizedCommandBlockMessage(this, 12345L, authorizedBlockWorldConnection.getAuthorizedClientId(), AuthorizedCommandType.COMMAND_TYPE_REQUEST_ROOT_DICTIONARY_ADDRESS);
+		CommandBlockMessage getRootMessage = new CommandBlockMessage(this, 12345L, getAuthorizedClientId(), CommandType.COMMAND_TYPE_REQUEST_ROOT_DICTIONARY_ADDRESS);
 
 		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, getRootMessage);
 		this.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
@@ -733,18 +733,20 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.chunkInitializerThreadState.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
 	}
 
-	public void onErrorNotificationBlockMessage(BlockSession blockSession, Long conversationId, BlockMessageErrorType blockMessageErrorType) throws Exception{
+	public void onErrorNotificationBlockMessage(BlockSession blockSession, Long conversationId, Long authorizedClientId, BlockMessageErrorType blockMessageErrorType) throws Exception{
 		switch(blockMessageErrorType){
 			case ROOT_BLOCK_DICTIONARY_UNINITIALIZED:{
 				this.requestPlayerProvisioning();
 				break;
+			}case IDENTICAL_SUBSCRIPTION:{
+				throw new Exception("IDENTICAL_SUBSCRIPTION: conversationId=" + conversationId + ", authorizedClientId=" + authorizedClientId);
 			}default:{
 				throw new Exception("Message type not expected: " + blockMessageErrorType);
 			}
 		}
 	}
 
-	public void onAuthorizedCommandBlockMessage(BlockSession blockSession, Long conversationId, Long authorizedClientId, AuthorizedCommandType authorizedCommandType, Coordinate coordinate) throws Exception{
+	public void onCommandBlockMessage(BlockSession blockSession, Long conversationId, Long authorizedClientId, CommandType authorizedCommandType, Coordinate coordinate) throws Exception{
 		switch(authorizedCommandType){
 			case COMMAND_TYPE_RESPOND_ROOT_DICTIONARY_ADDRESS:{
 				this.rootBlockDictionaryAddress = coordinate;
@@ -852,7 +854,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 					break;
 				}case PLAYER_POSITION:{
 					PlayerPositionXYZ p = this.playerPositionXYZ == null ? null : this.playerPositionXYZ.copy();
-					AuthorizedPlayerPositionXYZ app = new AuthorizedPlayerPositionXYZ(authorizedBlockWorldConnection.getAuthorizedClientId(), p);
+					AuthorizedPlayerPositionXYZ app = new AuthorizedPlayerPositionXYZ(getAuthorizedClientId(), p);
 					onUIModelObjectResultForThread(blockingType, workItem, notificationType, p, receiverThread);
 					break;
 				}case UPDATE_MAP_AREA_FLAGS:{

@@ -48,15 +48,15 @@ public class HandlePendingChunkWriteWorkItem extends InMemoryChunksWorkItem {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private Cuboid cuboid;
-	private BlockModelContext blockModelContext;
+	private InMemoryChunksClient inMemoryChunksClient;
 
-	public HandlePendingChunkWriteWorkItem(InMemoryChunks inMemoryChunks, Cuboid cuboid, BlockModelContext blockModelContext){
+	public HandlePendingChunkWriteWorkItem(InMemoryChunks inMemoryChunks, Cuboid cuboid, InMemoryChunksClient inMemoryChunksClient){
 		super(inMemoryChunks, false);
 		this.cuboid = cuboid;
-		this.blockModelContext = blockModelContext;
+		this.inMemoryChunksClient = inMemoryChunksClient;
 	}
 
 	public void doWork() throws Exception{
-		this.inMemoryChunks.handlePendingChunkWrite(this.cuboid, this.blockModelContext);
+		this.inMemoryChunks.addInMemoryChunk(this.cuboid, this.inMemoryChunksClient);
 	}
 }

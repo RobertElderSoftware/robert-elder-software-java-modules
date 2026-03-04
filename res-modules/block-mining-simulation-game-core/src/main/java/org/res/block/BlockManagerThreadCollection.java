@@ -200,8 +200,17 @@ public class BlockManagerThreadCollection {
 			InMemoryChunks imc = new InMemoryChunks(this, chunkSizeCuboidAddress);
 			loadedWorldChunks.put(params, imc);
 			imc.putWorkItem(new InitializeYourselfInMemoryChunksWorkItem(imc), WorkItemPriority.PRIORITY_LOW);
+			addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(imc, InMemoryChunksWorkItem.class, imc.getClass()));
 		}
 		return this.blockWorldConnections.get(params);
+	}
+
+	public byte [] getBlockDataForClass(Class<?> c) throws Exception{
+		if(this.getBlockSchema() == null){
+			throw new Exception("Cannot lookup byte pattern for  '" + c.getName() + "' because block schema has not been initialized yet.");
+		}else{
+			return this.getBlockSchema().getBinaryDataForByteComparisonBlockForClass(c);
+		}
 	}
 
 	public InMemoryChunks getInMemoryChunksForWorld(BlockWorldConnectionParameters params){

@@ -33,8 +33,12 @@ package org.res.block;
 public abstract class InMemoryChunksWorkItem extends WorkItem{
 	protected InMemoryChunks inMemoryChunks;
 
-	public InMemoryChunksWorkItem(InMemoryChunks inMemoryChunks, boolean isBlocking){
-		super(isBlocking);
+	public InMemoryChunksWorkItem(InMemoryChunks inMemoryChunks, boolean isBlocking, boolean isPoisonPill){
+		super(isBlocking, isPoisonPill);
 		this.inMemoryChunks = inMemoryChunks;
+	}
+
+	public InMemoryChunksWorkItem(InMemoryChunks inMemoryChunks, boolean isBlocking){
+		this(inMemoryChunks, isBlocking, false);
 	}
 }

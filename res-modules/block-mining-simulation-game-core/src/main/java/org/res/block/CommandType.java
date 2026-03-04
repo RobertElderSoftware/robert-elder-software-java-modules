@@ -33,14 +33,14 @@ package org.res.block;
 import java.util.Map;
 import java.util.HashMap;
 
-public enum AuthorizedCommandType {
+public enum CommandType {
         COMMAND_TYPE_REQUEST_ROOT_DICTIONARY_ADDRESS (1L),
         COMMAND_TYPE_RESPOND_ROOT_DICTIONARY_ADDRESS (2L),
         COMMAND_TYPE_PROVISION_PLAYER (3L);
 
         private final long id;
 
-        private AuthorizedCommandType(long i) {
+        private CommandType(long i) {
                 id = i;
         }
 
@@ -52,15 +52,15 @@ public enum AuthorizedCommandType {
                 return this.id;
         }
 
-	private static final Map<Long, AuthorizedCommandType> authorizedCommandTypesByValue = new HashMap<Long, AuthorizedCommandType>();
+	private static final Map<Long, CommandType> authorizedCommandTypesByValue = new HashMap<Long, CommandType>();
 
 	static {
-		for(AuthorizedCommandType type : AuthorizedCommandType.values()) {
+		for(CommandType type : CommandType.values()) {
 			authorizedCommandTypesByValue.put(type.toLong(), type);
 		}
 	}
 
-	public static AuthorizedCommandType forValue(long value) {
+	public static CommandType forValue(long value) {
 		return authorizedCommandTypesByValue.get(value);
 	}
 }

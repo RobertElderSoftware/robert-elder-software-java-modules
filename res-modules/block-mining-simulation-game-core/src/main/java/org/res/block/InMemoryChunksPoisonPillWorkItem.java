@@ -30,39 +30,18 @@
 //  SOFTWARE.
 package org.res.block;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
+import java.util.List;
+import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 
-public abstract class WorkItem {
+public class InMemoryChunksPoisonPillWorkItem extends InMemoryChunksWorkItem {
 
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private Long threadId;
-	private boolean isBlocking;
-	private boolean isPoisonPill; //  Shut down the thread if the work item is a poison pill.
-
-	public WorkItem(boolean isBlocking, boolean isPoisonPill){
-		this.isBlocking = isBlocking;
-		this.isPoisonPill = isPoisonPill;
-		this.threadId = Thread.currentThread().threadId();
-		logger.info("In constructor for WorkItem: isBlocking=" + isBlocking + ", isPoisonPill=" + this.isPoisonPill + " " + this.getClass().getName() + " and thread_id=" + this.threadId);
+	public InMemoryChunksPoisonPillWorkItem(InMemoryChunks inMemoryChunks){
+		super(inMemoryChunks, false, true);
 	}
 
-	public WorkItem(boolean isBlocking){
-		this(isBlocking, false);
+	public void doWork() throws Exception{
+	
 	}
-
-	public boolean getIsBlocking(){
-		return this.isBlocking;
-	}
-
-	public boolean getIsPoisonPill(){
-		return this.isPoisonPill;
-	}
-
-	public Long getThreadId(){
-		return threadId;
-	}
-
-	public abstract void doWork() throws Exception;
 }

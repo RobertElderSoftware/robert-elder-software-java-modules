@@ -121,7 +121,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 		}
 	}
 
-	public void updateRequiredRegions(Set<CuboidAddress> requiredRegions, BlockModelContext blockModelContext) throws Exception{
+	public void updateRequiredRegions(Set<CuboidAddress> requiredRegions, InMemoryChunksClient inMemoryChunksClient) throws Exception{
 		synchronized(lock){
 			if(!this.lastRequiredRegions.equals(requiredRegions)){ /*  Only do this work if something has changed. */
 				this.lastRequiredRegions = requiredRegions;
@@ -155,7 +155,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 					}else{
 						//logger.info(c + " is a newlyRequiredChunk, add it to pendingNotYetRequestedChunks.");
 						this.pendingNotYetRequestedChunks.add(c);
-						blockModelContext.inMemoryChunksCallbackOnChunkBecomesPending(c.copy());
+						inMemoryChunksClient.inMemoryChunksCallbackOnChunkBecomesPending(c.copy());
 					}
 				}
 
@@ -183,17 +183,17 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 				}
 
 				if(recentlyDiscardedChunks.size() > 0){
-					((ClientBlockModelContext)blockModelContext).enqueueChunkUnsubscriptionForServer(recentlyDiscardedChunks, WorkItemPriority.PRIORITY_LOW);
+					inMemoryChunksClient.inMemoryChunksCallbackOnEnqueueChunkUnsubscriptionForServer(recentlyDiscardedChunks);
 				}
 
 				if(this.pendingNotYetRequestedChunks.size() > 0){
-					this.putWorkItem(new InMemoryChunksHasPendingNotYetRequestedChunksWorkItem(this, blockModelContext), WorkItemPriority.PRIORITY_LOW);
+					this.putWorkItem(new InMemoryChunksHasPendingNotYetRequestedChunksWorkItem(this, inMemoryChunksClient), WorkItemPriority.PRIORITY_LOW);
 				}
 			}
 		}
 	}
 
-	public void onHasPendingNotYetRequestedChunks(BlockModelContext blockModelContext) throws Exception{
+	public void onHasPendingNotYetRequestedChunks(InMemoryChunksClient inMemoryChunksClient) throws Exception{
 		synchronized(lock){
 			Long maxPendingChunks = 2L;
 			//  Only start a request for more chunks if we've not already exceeded the max outstanding chunks.
@@ -227,8 +227,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 							this.pendingAlreadyRequestedChunks.add(cuboidAddress);
 							this.pendingNotYetRequestedChunks.remove(cuboidAddress);
 
-							/*  TODO: Eventually make this generic so it could work on client or server: */
-							((ClientBlockModelContext)blockModelContext).enqueueChunkRequestToServer(cuboidAddress.copy(), WorkItemPriority.PRIORITY_LOW);
+							inMemoryChunksClient.inMemoryChunksCallbackOnEnqueueChunkRequestToServer(Arrays.asList(cuboidAddress.copy()));
 							logger.info("Inside updateRequiredRegions just put a work item into block client for cuboidAddress=" + String.valueOf(cuboidAddress));
 						}
 					}else{
@@ -267,7 +266,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 		return sortedCuboidAddresses;
 	}
 
-	public void handlePendingChunkWrite(Cuboid cuboid, BlockModelContext blockModelContext) throws Exception{
+	public void addInMemoryChunk(Cuboid cuboid, InMemoryChunksClient inMemoryChunksClient) throws Exception{
 		synchronized(lock){
 			CuboidAddress cuboidAddress = cuboid.getCuboidAddress();
 			CuboidDataLengths dataLengths = cuboid.getCuboidDataLengths();
@@ -279,7 +278,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 				this.pendingAlreadyRequestedChunks.remove(cuboidAddress);
 				//logger.info(cuboidAddress + " transitioning from pendingAlreadyRequestedChunks to loaded.");
 				//  We just processed this outstanding chunk...Now check to see if there are more waiting:
-				this.putWorkItem(new InMemoryChunksHasPendingNotYetRequestedChunksWorkItem(this, blockModelContext), WorkItemPriority.PRIORITY_LOW);
+				this.putWorkItem(new InMemoryChunksHasPendingNotYetRequestedChunksWorkItem(this, inMemoryChunksClient), WorkItemPriority.PRIORITY_LOW);
 			}
 
 			RegionIteration regionIteration = new RegionIteration(cuboidAddress.getCanonicalLowerCoordinate(), cuboidAddress);
@@ -293,7 +292,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 					blockToWrite = new UninitializedBlock();
 				}else{
 					byte [] blockData = data.getDataAtOffset(offsetOfBlock, sizeOfBlock);
-					String blockClassName = blockModelContext.getBlockSchema().getFirstBlockMatchDescriptionForByteArray(blockData);
+					String blockClassName = blockManagerThreadCollection.getBlockSchema().getFirstBlockMatchDescriptionForByteArray(blockData);
 					blockToWrite = IndividualBlock.makeBlockInstanceFromClassName(blockClassName, blockData);
 				}
 
@@ -310,7 +309,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 			}while (regionIteration.incrementCoordinateWithinCuboidAddress());
 
 			//  This could also be an update too:
-			blockModelContext.inMemoryChunksCallbackOnChunkWasWritten(cuboidAddress.copy());
+			inMemoryChunksClient.inMemoryChunksCallbackOnChunkBecomesAvailable(cuboidAddress.copy());
 		}
 	}
 

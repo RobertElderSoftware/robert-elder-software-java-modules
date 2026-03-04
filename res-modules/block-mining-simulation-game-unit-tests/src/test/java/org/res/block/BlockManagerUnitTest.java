@@ -70,6 +70,7 @@ import java.lang.ProcessBuilder.Redirect;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.HashSet;
 import java.util.HashMap;
 import java.util.TreeMap;
 
@@ -109,10 +110,40 @@ public class BlockManagerUnitTest {
 		return new Coordinate(l);
 	}
 
-	public CuboidAddress getRandomCuboidAddress(Random rand, Long dimensionsToTest, CuboidAddress previousCuboid, CuboidAddress ca) throws Exception{
+	public Cuboid getRandomCuboid(BlockManagerThreadCollection blockManagerThreadCollection, Random rand, CuboidAddress ca) throws Exception{
+		RegionIteration regionIteration = new RegionIteration(ca.getCanonicalLowerCoordinate(), ca);
+		BlockMessageBinaryBuffer cuboidData = new BlockMessageBinaryBuffer();
+		long [] dataLengths = new long [(int)ca.getVolume()];
+		while(!regionIteration.isDone()){
+			Coordinate currentCoordinate = regionIteration.getCurrentCoordinate();
+			byte [] blockData = blockManagerThreadCollection.getBlockDataForClass(IronPick.class);
+			long blockOffsetInArray = ca.getLinearArrayIndexForCoordinate(currentCoordinate);
+			dataLengths[(int)blockOffsetInArray] = blockData.length;
+			cuboidData.writeBytes(blockData);
+			regionIteration.incrementCoordinateWithinCuboidAddress();
+		}
+		CuboidDataLengths currentCuboidDataLengths = new CuboidDataLengths(ca, dataLengths);
+		CuboidData currentCuboidData = new CuboidData(cuboidData.getUsedBuffer());
+		return new Cuboid(ca, currentCuboidDataLengths, currentCuboidData);
+	}
+
+	public CuboidAddress getRandomCuboidAddress(Random rand, CuboidAddress ca) throws Exception{
+		//  Returns a random cuboid address within 'ca'
+		return new CuboidAddress(getRandomCoordinate(rand, ca), getRandomCoordinate(rand, ca));
+	}
+
+	public Set<CuboidAddress> getRandomCuboidAddressSet(Random rand, CuboidAddress ca, Long maxSetSize) throws Exception{
+		Set<CuboidAddress> rtn = new HashSet<CuboidAddress>();
+
+		for(long i = 0L; i < getRandBetweenRange(rand, 0L, maxSetSize); i++){
+			rtn.add(getRandomCuboidAddress(rand, ca));
+		}
+		return rtn;
+	}
+
+	public CuboidAddress getRandomCuboidAddressForBufferTest(Random rand, Long dimensionsToTest, CuboidAddress previousCuboid, CuboidAddress ca) throws Exception{
 		if(previousCuboid == null || rand.nextInt(10) < 4){
-			//  Returns a random cuboid address within 'ca'
-			CuboidAddress rtn = new CuboidAddress(getRandomCoordinate(rand, ca), getRandomCoordinate(rand, ca));
+			CuboidAddress rtn = getRandomCuboidAddress(rand, ca);
 			System.out.println("Created a new random cuboid " + rtn);
 			return rtn;
 		}else{
@@ -161,7 +192,7 @@ public class BlockManagerUnitTest {
 
 			CuboidAddress previousCuboid = null;
 			for(int i = 0; i < numRegionsToTest; i++){
-				CuboidAddress newCuboidAddress = getRandomCuboidAddress(rand, dimensionsToTest, previousCuboid, testRegion);
+				CuboidAddress newCuboidAddress = getRandomCuboidAddressForBufferTest(rand, dimensionsToTest, previousCuboid, testRegion);
 				CuboidAddress intersectionAddress = previousCuboid == null ? null : newCuboidAddress.getIntersectionCuboidAddress(previousCuboid);
 				System.out.println("Updating region from " + String.valueOf(previousCuboid) + " to " + String.valueOf(newCuboidAddress) + ". Intersection was " + String.valueOf(intersectionAddress) + ".");
 				previousCuboid = newCuboidAddress;
@@ -2406,5 +2437,54 @@ public class BlockManagerUnitTest {
 		System.out.println("Start runExpandChangeRegionTest:");
 		this.expandChangeRegionTest();
 		System.out.println("End runExpandChangeRegionTest:");
+	}
+
+	@Test
+	public void runInMemoryChunksTest() throws Exception {
+		System.out.println("Start runInMemoryChunksTest:");
+		CommandLineArgumentCollection commandLineArgumentCollection = ArgumentParser.parseArguments(new String []{}, ArgumentParser.getDefaultArgumentValues());
+		BlockManagerThreadCollection blockManagerThreadCollection = new BlockManagerThreadCollection(commandLineArgumentCollection, false);
+
+		CuboidAddress chunkSizeCuboidAddress = new CuboidAddress(new Coordinate(Arrays.asList(0L, 0L, 0L, 0L)), new Coordinate(Arrays.asList(3L, 3L, 5L, 1L)));
+
+		InMemoryChunks imc = new InMemoryChunks(blockManagerThreadCollection, chunkSizeCuboidAddress);
+		imc.putWorkItem(new InitializeYourselfInMemoryChunksWorkItem(imc), WorkItemPriority.PRIORITY_LOW);
+		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(imc, InMemoryChunksWorkItem.class, imc.getClass()));
+
+		InMemoryChunksMockClient inMemoryChunksMockClient = new InMemoryChunksMockClient(chunkSizeCuboidAddress);
+
+		CuboidAddress areaToLoadChunksIn = new CuboidAddress(new Coordinate(Arrays.asList(-10L, -10L, -10L, 0L)), new Coordinate(Arrays.asList(10L, 10L, 10L, 1L)));
+
+		/*
+		 *  Possible chunk lifecycles:
+		 *  1) In required regions -> Pending Not Yet Requested -> No longer required (never requested).
+		 *  2) In required regions -> Pending Not Yet Requested -> Request sent to server -> No longer required. ->  Request comes back and is discarded.
+		 *  3)  In required regions -> Pending Not Yet Requested -> Request sent to server -> Request comes back and is passed to client.
+		 *  4)  Block in newly expanded region that's still inside another loaded chunk boundary.  Client needs to receive upldate signal.
+		 *  4)  Block in newly required region for one client that's already loaded into memory from another client.
+		 */
+		Random rand = new Random(1234);
+		int numTests = 100;
+		for(int i = 0; i < numTests; i++){
+			Set<CuboidAddress> requiredRegions = getRandomCuboidAddressSet(rand, areaToLoadChunksIn, 3L);
+			inMemoryChunksMockClient.updateRequiredRegions(requiredRegions);
+
+			imc.updateRequiredRegions(requiredRegions, inMemoryChunksMockClient);
+
+			if(inMemoryChunksMockClient.getChunksExpectedToBecomePending().size() > 0){
+				throw new Exception("Size should be 0 but was: " + inMemoryChunksMockClient.getChunksExpectedToBecomePending().size());
+			}
+
+			CuboidAddress randomCA = getRandomCuboidAddress(rand, areaToLoadChunksIn);
+			Cuboid cuboid = getRandomCuboid(blockManagerThreadCollection, rand, randomCA);
+			//Simualte loading chunk:
+			//addInMemoryChunk(Cuboid cuboid, InMemoryChunksClient inMemoryChunksClient) throws Exception{
+		}
+
+		//  Initiate shutdown of InMemoryChunksThread:
+		imc.putWorkItem(new InMemoryChunksPoisonPillWorkItem(imc), WorkItemPriority.PRIORITY_LOW);
+		blockManagerThreadCollection.blockUntilAllTasksHaveTerminated();
+
+		System.out.println("End runInMemoryChunksTest:");
 	}
 }

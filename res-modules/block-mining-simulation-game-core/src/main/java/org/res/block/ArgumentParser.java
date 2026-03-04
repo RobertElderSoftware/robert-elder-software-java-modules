@@ -169,4 +169,16 @@ class ArgumentParser {
 		}
 		return new CommandLineArgumentCollection(params, defaultArgumentValues);
 	}
+
+	public static Map<String, List<String>> getDefaultArgumentValues(){
+		Map<String, List<String>> defaultArgumentValues = new HashMap<String, List<String>>();
+		defaultArgumentValues.put("--block-world-file", Arrays.asList("world-1.sqlite"));
+		defaultArgumentValues.put("--database-subprotocol", Arrays.asList("sqlite"));
+		defaultArgumentValues.put("--database-hostname", null);
+		defaultArgumentValues.put("--database-port", null);
+		defaultArgumentValues.put("--database-name", null);
+		defaultArgumentValues.put("--database-username", null);
+		defaultArgumentValues.put("--database-password", null);
+		return defaultArgumentValues;
+	}
 }

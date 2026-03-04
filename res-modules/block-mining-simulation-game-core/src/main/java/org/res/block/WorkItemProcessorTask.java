@@ -97,6 +97,10 @@ public class WorkItemProcessorTask<T extends WorkItem> extends BlockManagerThrea
 					WorkItem workItem = this.workItemQueueOwner.takeWorkItem();
 					logger.info("after take " + this.workItemQueueOwner.getClass().getName());
 					workItem.doWork();
+					if(workItem.getIsPoisonPill()){
+						logger.info("Breaking due to poison pill in " + this.workItemQueueOwner.getClass().getName());
+						break;
+					}
 				}catch(InterruptedException e){
 					if(this.getIsThreadFinished()){ // If we're only shutting down the current thread, there is no need to shut down all the others:
 						logger.info("Caught a InterruptedException from takeWorkItem, and this.getIsThreadFinished()=" + this.getIsThreadFinished() + ".  Gracefully exit for " + this.workItemQueueOwner.getClass().getName());

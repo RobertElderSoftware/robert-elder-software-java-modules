@@ -40,13 +40,15 @@ public class WriteCuboidsWorkItem extends BlockModelContextWorkItem {
 	private Long numDimensions;
 	private List<Cuboid> cuboidsToWrite;
 	private Long conversationId;
+	private Long authorizedClientId;
 	private BlockSession blockSession;
 
-	public WriteCuboidsWorkItem(BlockModelContext blockModelContext, Long numDimensions, List<Cuboid> cuboidsToWrite, Long conversationId, BlockSession blockSession){
+	public WriteCuboidsWorkItem(BlockModelContext blockModelContext, Long numDimensions, List<Cuboid> cuboidsToWrite, Long conversationId, Long authorizedClientId, BlockSession blockSession){
 		super(blockModelContext);
 		this.numDimensions = numDimensions;
 		this.cuboidsToWrite = cuboidsToWrite;
 		this.conversationId = conversationId;
+		this.authorizedClientId = authorizedClientId;
 		this.blockSession = blockSession;
 	}
 
@@ -61,9 +63,9 @@ public class WriteCuboidsWorkItem extends BlockModelContextWorkItem {
 			cuboidAddresses.add(c.getCuboidAddress());
 		}
 
-		blockModelContext.postCuboidsWrite(this.numDimensions, cuboidAddresses);
+		blockModelContext.postCuboidsWrite(this.numDimensions, cuboidAddresses, this.authorizedClientId);
 
-		AcknowledgementBlockMessage acknowledgementBlockMessage = new AcknowledgementBlockMessage(this.blockModelContext, this.conversationId);
+		AcknowledgementBlockMessage acknowledgementBlockMessage = new AcknowledgementBlockMessage(this.blockModelContext, this.conversationId, this.authorizedClientId);
 		SendBlockMessageToSessionWorkItem notifyWorkItem = new SendBlockMessageToSessionWorkItem(this.blockModelContext, this.blockSession, acknowledgementBlockMessage);
 		blockModelContext.putWorkItem(notifyWorkItem, WorkItemPriority.PRIORITY_LOW);
 	}

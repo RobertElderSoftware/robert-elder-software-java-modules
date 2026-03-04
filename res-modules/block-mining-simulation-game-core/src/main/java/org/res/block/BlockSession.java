@@ -33,6 +33,7 @@ package org.res.block;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.TreeSet;
 import java.util.TreeMap;
 import java.util.List;
@@ -55,15 +56,20 @@ public abstract class BlockSession {
 	public abstract void close(String reason) throws Exception;
 
 	protected Object monitor = new Object();
-	protected Map<CuboidAddress, Long> subscribedRegions = new TreeMap<CuboidAddress, Long>();
+	//  Map of authorizedClientId -> CuboidAddress -> conversationId
+	protected Map<Long, Map<CuboidAddress, Long>> subscribedRegions = new TreeMap<Long, Map<CuboidAddress, Long>>();
 
 	public BlockSession() throws Exception {
 	}
 
-	public Map<CuboidAddress, Long> getSubscriptionIntersections(List<CuboidAddress> addresses) throws Exception {
+	private Map<CuboidAddress, Long> getCurrentSubscriptions(Long authorizedClientId){
+		return this.subscribedRegions.containsKey(authorizedClientId) ? this.subscribedRegions.get(authorizedClientId) : new HashMap<CuboidAddress, Long>();
+	}
+
+	public Map<CuboidAddress, Long> getSubscriptionIntersections(List<CuboidAddress> addresses, Long authorizedClientId) throws Exception {
 		Map<CuboidAddress, Long> intersections = new TreeMap<CuboidAddress, Long>();
 		for(CuboidAddress address : addresses){
-			for(Map.Entry<CuboidAddress, Long> existingRegionSubscription : this.subscribedRegions.entrySet()){
+			for(Map.Entry<CuboidAddress, Long> existingRegionSubscription : getCurrentSubscriptions(authorizedClientId).entrySet()){
 				CuboidAddress intersection = existingRegionSubscription.getKey().getIntersectionCuboidAddress(address, true);
 				if(intersection != null){
 					intersections.put(intersection, existingRegionSubscription.getValue());
@@ -73,25 +79,25 @@ public abstract class BlockSession {
 		return intersections;
 	}
 
-	public void unsubscribeFromRegions(List<CuboidAddress> regionsToUnsubscribeFrom) throws Exception {
-		Long proposedRegionSubscriptionCount = Long.valueOf(this.subscribedRegions.size() - regionsToUnsubscribeFrom.size());
+	public void unsubscribeFromRegions(List<CuboidAddress> regionsToUnsubscribeFrom, Long authorizedClientId) throws Exception {
+		Long proposedRegionSubscriptionCount = Long.valueOf(getCurrentSubscriptions(authorizedClientId).size() - regionsToUnsubscribeFrom.size());
 		logger.info("-proposedRegionSubscriptionCount=" + proposedRegionSubscriptionCount + ", MAX_REGION_SUBSCRIPTIONS=" + BlockSession.MAX_REGION_SUBSCRIPTIONS);
 		for(CuboidAddress regionToUnsubscribe : regionsToUnsubscribeFrom){
-			this.subscribedRegions.remove(regionToUnsubscribe);
+			getCurrentSubscriptions(authorizedClientId).remove(regionToUnsubscribe);
 		}
 	}
 
-	public void subscribeToRegions(BlockModelContext blockModelContext, List<CuboidAddress> regionsToSubscribeTo, Long conversationId) throws Exception {
+	public void subscribeToRegions(BlockModelContext blockModelContext, List<CuboidAddress> regionsToSubscribeTo, Long conversationId, Long authorizedClientId) throws Exception {
 		List<CuboidAddress> newSubscriptionsToAdd = new ArrayList<CuboidAddress>();
 		List<CuboidAddress> preExistingSubscription = new ArrayList<CuboidAddress>();
 		for(CuboidAddress regionToSubscribeTo : regionsToSubscribeTo){
 			boolean addThisRegion = true;
-			if(this.subscribedRegions.containsKey(regionToSubscribeTo)){
+			if(getCurrentSubscriptions(authorizedClientId).containsKey(regionToSubscribeTo)){
 				//logger.info("Region " + regionToSubscribeTo + " is already subscribed to. Don't add it.");
 				addThisRegion = false;
 				preExistingSubscription.add(regionToSubscribeTo);
 			}else{
-				for(Map.Entry<CuboidAddress, Long> existingRegionSubscription : this.subscribedRegions.entrySet()){
+				for(Map.Entry<CuboidAddress, Long> existingRegionSubscription : getCurrentSubscriptions(authorizedClientId).entrySet()){
 					CuboidAddress intersection = existingRegionSubscription.getKey().getIntersectionCuboidAddress(regionToSubscribeTo, true);
 					if(intersection == null){
 						//logger.info("Region " + regionToSubscribeTo + " has no intersection with " + existingRegionSubscription + ". Add it.");
@@ -107,19 +113,23 @@ public abstract class BlockSession {
 			}
 		}
 
-		Long proposedRegionSubscriptionCount = Long.valueOf(newSubscriptionsToAdd.size() + this.subscribedRegions.size());
+		Long proposedRegionSubscriptionCount = Long.valueOf(newSubscriptionsToAdd.size() + getCurrentSubscriptions(authorizedClientId).size());
 		logger.info("+proposedRegionSubscriptionCount=" + proposedRegionSubscriptionCount + ", MAX_REGION_SUBSCRIPTIONS=" + BlockSession.MAX_REGION_SUBSCRIPTIONS);
 
 		if(preExistingSubscription.size() > 0){
-			ErrorNotificationBlockMessage response = new ErrorNotificationBlockMessage(blockModelContext, BlockMessageErrorType.IDENTICAL_SUBSCRIPTION, conversationId);
+			ErrorNotificationBlockMessage response = new ErrorNotificationBlockMessage(blockModelContext, BlockMessageErrorType.IDENTICAL_SUBSCRIPTION, conversationId, authorizedClientId);
 			blockModelContext.sendBlockMessage(response, this);
 		}else if(proposedRegionSubscriptionCount < BlockSession.MAX_REGION_SUBSCRIPTIONS){
 			for(CuboidAddress subscriptionToAdd : newSubscriptionsToAdd){
+				if(!this.subscribedRegions.containsKey(authorizedClientId)){
+					// First subscription for this client:
+					this.subscribedRegions.put(authorizedClientId, new HashMap<CuboidAddress, Long>());
+				}
 				//  Track the subscription and the correspond conversation id that goes with it:
-				this.subscribedRegions.put(subscriptionToAdd, conversationId);
+				this.subscribedRegions.get(authorizedClientId).put(subscriptionToAdd, conversationId);
 			}
 		}else{
-			ErrorNotificationBlockMessage response = new ErrorNotificationBlockMessage(blockModelContext, BlockMessageErrorType.MAX_REGION_SUBSCRPTIONS_EXCEEDED, conversationId);
+			ErrorNotificationBlockMessage response = new ErrorNotificationBlockMessage(blockModelContext, BlockMessageErrorType.MAX_REGION_SUBSCRPTIONS_EXCEEDED, conversationId, authorizedClientId);
 			blockModelContext.sendBlockMessage(response, this);
 		}
 	}

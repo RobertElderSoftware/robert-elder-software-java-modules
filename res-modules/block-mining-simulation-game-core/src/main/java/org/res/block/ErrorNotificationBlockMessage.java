@@ -39,8 +39,8 @@ public class ErrorNotificationBlockMessage extends BlockMessage {
 
 	private BlockMessageErrorType blockMessageErrorType;
 
-	public ErrorNotificationBlockMessage(BlockModelContext blockModelContext, BlockMessageErrorType blockMessageErrorType, Long conversationId){
-		super(blockModelContext, conversationId);
+	public ErrorNotificationBlockMessage(BlockModelContext blockModelContext, BlockMessageErrorType blockMessageErrorType, Long conversationId, Long authorizedClientId){
+		super(blockModelContext, conversationId, authorizedClientId);
 		this.blockMessageErrorType = blockMessageErrorType;
 	}
 
@@ -48,17 +48,18 @@ public class ErrorNotificationBlockMessage extends BlockMessage {
 		BlockMessageBinaryBuffer buffer = new BlockMessageBinaryBuffer();
 		BlockMessage.writeBlockMessageType(buffer, BlockMessageType.BLOCK_MESSAGE_TYPE_ERROR_NOTIFICATION);
 		BlockMessage.writeConversationId(buffer, this.conversationId);
+		BlockMessage.writeAuthorizedClientId(buffer, this.authorizedClientId);
 		buffer.writeOneLongValue(this.blockMessageErrorType.toLong());
 		return buffer.getUsedBuffer();
 	}
 
-	public ErrorNotificationBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer, Long conversationId) throws Exception {
-		super(blockModelContext, conversationId);
+	public ErrorNotificationBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer, Long conversationId, Long authorizedClientId) throws Exception {
+		super(blockModelContext, conversationId, authorizedClientId);
 		long blockMessageErrorTypeLong = buffer.readOneLongValue();
 		this.blockMessageErrorType = BlockMessageErrorType.forValue(blockMessageErrorTypeLong);
 	}
 
 	public void doWork(BlockSession blockSession) throws Exception{
-		this.blockModelContext.onErrorNotificationBlockMessage(blockSession, conversationId, blockMessageErrorType);
+		this.blockModelContext.onErrorNotificationBlockMessage(blockSession, conversationId, authorizedClientId, blockMessageErrorType);
 	}
 }

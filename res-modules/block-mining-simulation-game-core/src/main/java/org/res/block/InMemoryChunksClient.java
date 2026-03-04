@@ -30,39 +30,27 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Arrays;
+
+import java.util.Set;
+import java.util.HashSet;
+import java.util.TreeSet;
+import java.util.TreeMap;
+import java.util.Collections;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public abstract class WorkItem {
+public interface InMemoryChunksClient {
+	void inMemoryChunksCallbackOnChunkBecomesPending(CuboidAddress ca) throws Exception;
+	void inMemoryChunksCallbackOnEnqueueChunkRequestToServer(List<CuboidAddress> cuboidAddresses) throws Exception;
+	void inMemoryChunksCallbackOnEnqueueChunkUnsubscriptionForServer(List<CuboidAddress> cuboidAddresses) throws Exception;
 
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-	private Long threadId;
-	private boolean isBlocking;
-	private boolean isPoisonPill; //  Shut down the thread if the work item is a poison pill.
-
-	public WorkItem(boolean isBlocking, boolean isPoisonPill){
-		this.isBlocking = isBlocking;
-		this.isPoisonPill = isPoisonPill;
-		this.threadId = Thread.currentThread().threadId();
-		logger.info("In constructor for WorkItem: isBlocking=" + isBlocking + ", isPoisonPill=" + this.isPoisonPill + " " + this.getClass().getName() + " and thread_id=" + this.threadId);
-	}
-
-	public WorkItem(boolean isBlocking){
-		this(isBlocking, false);
-	}
-
-	public boolean getIsBlocking(){
-		return this.isBlocking;
-	}
-
-	public boolean getIsPoisonPill(){
-		return this.isPoisonPill;
-	}
-
-	public Long getThreadId(){
-		return threadId;
-	}
-
-	public abstract void doWork() throws Exception;
+	void inMemoryChunksCallbackOnChunkBecomesAvailable(CuboidAddress ca) throws Exception;
+	Long getAuthorizedClientId() throws Exception;
 }
