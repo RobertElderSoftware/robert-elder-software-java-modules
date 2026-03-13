@@ -48,15 +48,15 @@ public class UpdateRequiredRegionsWorkItem extends InMemoryChunksWorkItem {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private Set<CuboidAddress> requiredRegions;
-	private BlockModelContext blockModelContext;
+	private InMemoryChunksClient inMemoryChunksClient;
 
-	public UpdateRequiredRegionsWorkItem(InMemoryChunks inMemoryChunks, Set<CuboidAddress> requiredRegions, BlockModelContext blockModelContext){
+	public UpdateRequiredRegionsWorkItem(InMemoryChunks inMemoryChunks, Set<CuboidAddress> requiredRegions, InMemoryChunksClient inMemoryChunksClient){
 		super(inMemoryChunks, false);
 		this.requiredRegions = requiredRegions;
-		this.blockModelContext = blockModelContext;
+		this.inMemoryChunksClient = inMemoryChunksClient;
 	}
 
 	public void doWork() throws Exception{
-		this.inMemoryChunks.updateRequiredRegions(this.requiredRegions, (ClientBlockModelContext)this.blockModelContext);
+		this.inMemoryChunks.updateRequiredRegions(this.requiredRegions, this.inMemoryChunksClient);
 	}
 }

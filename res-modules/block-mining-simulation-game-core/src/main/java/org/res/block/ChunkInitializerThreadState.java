@@ -64,7 +64,7 @@ public class ChunkInitializerThreadState extends UIEventReceiverThreadState<Chun
 		this.putWorkItem(new ChunkInitializerWorkItemEventNotificationWorkItem(this, new EventNotificationWorkItem<ChunkInitializerWorkItem>(this, o, notificationType)), priority);
 	}
 
-	private static final Object [] interestingBlocks = new Object [] {
+	public static final Object [] interestingBlocks = new Object [] {
 		Montmorillonite.class,
 		Smectite.class,
 		Kaolin.class,

@@ -197,7 +197,8 @@ public class BlockManagerThreadCollection {
 			}
 
 			//  Start a thread for loading/unloading chunks for this world:
-			InMemoryChunks imc = new InMemoryChunks(this, chunkSizeCuboidAddress);
+			Long maxPendingChunks = 2L;
+			InMemoryChunks imc = new InMemoryChunks(this, chunkSizeCuboidAddress, maxPendingChunks);
 			loadedWorldChunks.put(params, imc);
 			imc.putWorkItem(new InitializeYourselfInMemoryChunksWorkItem(imc), WorkItemPriority.PRIORITY_LOW);
 			addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(imc, InMemoryChunksWorkItem.class, imc.getClass()));

@@ -76,6 +76,9 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 	/*  The map of chunks that currently resides in memory. */
 	private Map<CuboidAddress, IndividualBlock[]> blockChunks = new TreeMap<CuboidAddress, IndividualBlock[]>();
 
+	/*  Max chunks we allow to be in pending state at once: */
+	private Long maxPendingChunks;
+
 	public void receiveEventNotification(UINotificationType notificationType, Object o, WorkItemPriority priority) throws Exception{
 		this.putWorkItem(new InMemoryChunksWorkItemEventNotificationWorkItem(this, new EventNotificationWorkItem<InMemoryChunksWorkItem>(this, o, notificationType)), priority);
 
@@ -131,6 +134,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 				for(CuboidAddress ca : requiredRegions){
 					currentRequiredChunks.addAll(ca.getIntersectingChunkSet(this.chunkSize));
 				}
+
 
 				//  Chunks that are required now that weren't required last time:
 				Set<CuboidAddress> newlyRequiredChunks = new TreeSet<CuboidAddress>(currentRequiredChunks);
@@ -195,7 +199,6 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 
 	public void onHasPendingNotYetRequestedChunks(InMemoryChunksClient inMemoryChunksClient) throws Exception{
 		synchronized(lock){
-			Long maxPendingChunks = 2L;
 			//  Only start a request for more chunks if we've not already exceeded the max outstanding chunks.
 			if(this.pendingAlreadyRequestedChunks.size() < maxPendingChunks){
 				List<CuboidAddress> closestFirstCuboidAddressList = this.getClosestCuboidAddressList(this.pendingNotYetRequestedChunks, this.playerPositions);
@@ -358,10 +361,11 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 		}
 	}
 
-	public InMemoryChunks(BlockManagerThreadCollection blockManagerThreadCollection, CuboidAddress chunkSize) throws Exception{
+	public InMemoryChunks(BlockManagerThreadCollection blockManagerThreadCollection, CuboidAddress chunkSize, Long maxPendingChunks) throws Exception{
 		synchronized(lock){
 			this.blockManagerThreadCollection = blockManagerThreadCollection;
 			this.chunkSize = chunkSize;
+			this.maxPendingChunks = maxPendingChunks;
 			for(long i = 0; i < chunkSize.getNumDimensions(); i++){
 				if(chunkSize.getWidthForIndex(i) < 1L){
 					throw new Exception("Invalid chunk dimension size: " + chunkSize.getWidthForIndex(i));

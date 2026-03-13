@@ -48,14 +48,16 @@ import java.lang.invoke.MethodHandles;
 
 public class InMemoryChunksMockClient implements InMemoryChunksClient {
 
+	protected Object lock = new Object();
+
 	private Set<CuboidAddress> previousRequiredChunks = new TreeSet<CuboidAddress>();
 	private Set<CuboidAddress> previousRequiredRegions = new TreeSet<CuboidAddress>();
 
-	private Set<CuboidAddress> chunksExpectedToBecomePending = new TreeSet<CuboidAddress>();
-	private Set<CuboidAddress> pendingChunks = new TreeSet<CuboidAddress>();
+	private Map<CuboidAddress, Long> expectedPendingChunkSignals = new HashMap<CuboidAddress, Long>();
+	private Map<CuboidAddress, Long> expectedAvailableChunkSignals = new HashMap<CuboidAddress, Long>();
+
 	private Set<CuboidAddress> subscribedChunks = new TreeSet<CuboidAddress>();
 	private Set<CuboidAddress> requestedNotYetReceivedChunks = new TreeSet<CuboidAddress>();
-	private Set<CuboidAddress> receivedAndSubscribedChunks = new TreeSet<CuboidAddress>();
 
 	private CuboidAddress chunkSize;
 
@@ -63,53 +65,162 @@ public class InMemoryChunksMockClient implements InMemoryChunksClient {
 		this.chunkSize = chunkSize;
 	}
 
-	public Set<CuboidAddress> getChunksExpectedToBecomePending(){
-		return this.chunksExpectedToBecomePending;
+	public void updateRequiredRegions(Set<CuboidAddress> currentRequiredRegions) throws Exception{
+		synchronized(lock){
+			System.out.println("MockClient START updateRequiredRegions, saw currentRequiredRegions=" + currentRequiredRegions);
+			Set<CuboidAddress> currentRequiredChunks = new TreeSet<CuboidAddress>();
+			for(CuboidAddress ca : currentRequiredRegions){
+				currentRequiredChunks.addAll(ca.getIntersectingChunkSet(this.chunkSize));
+			}
+			System.out.println("MockClient currentRequiredChunks=" + currentRequiredChunks);
+			System.out.println("MockClient this.previousRequiredChunks=" + this.previousRequiredChunks);
+
+			for(CuboidAddress ca : currentRequiredChunks){
+				//  We should have already gotten a signal from the previously pending chunks:
+				//  TODO:  Maybe don't give signals for already loaded chunks?
+				if(!(this.previousRequiredChunks.contains(ca))){
+					this.incrementExpectedPendingSignalCount(ca);
+				}
+			}
+
+			System.out.println("MockClient this.expectedPendingChunkSignals=" + this.expectedPendingChunkSignals);
+			this.previousRequiredChunks = currentRequiredChunks;
+			this.previousRequiredRegions = currentRequiredRegions;
+			System.out.println("MockClient END updateRequiredRegions");
+		}
 	}
 
-	public void updateRequiredRegions(Set<CuboidAddress> currentRequiredRegions) throws Exception{
-		Set<CuboidAddress> currentRequiredChunks = new TreeSet<CuboidAddress>();
-		for(CuboidAddress ca : currentRequiredRegions){
-			currentRequiredChunks.addAll(ca.getIntersectingChunkSet(this.chunkSize));
+	public void incrementExpectedPendingSignalCount(CuboidAddress ca){
+		if(expectedPendingChunkSignals.containsKey(ca)){
+			Long newCount = expectedPendingChunkSignals.get(ca) + 1L;
+			expectedPendingChunkSignals.put(ca, newCount);
+			System.out.println("Incremented expected becomes pending singal count for ca=" + ca + " to " + newCount);
+		}else{
+			expectedPendingChunkSignals.put(ca, 1L);
+			System.out.println("Incremented expected becomes pending singal count for ca=" + ca + " to " + 1L);
 		}
-		this.chunksExpectedToBecomePending.addAll(currentRequiredChunks);
-		this.chunksExpectedToBecomePending.removeAll(this.previousRequiredChunks);
-		this.previousRequiredChunks = currentRequiredChunks;
-		this.previousRequiredRegions = currentRequiredRegions;
+	}
+
+	public void decrementExpectedPendingSignalCount(CuboidAddress ca) throws Exception{
+		if(expectedPendingChunkSignals.containsKey(ca)){
+			Long currentValue = expectedPendingChunkSignals.get(ca);
+			if(currentValue > 0L){
+				Long newValue = currentValue - 1L;
+				expectedPendingChunkSignals.put(ca, newValue);
+				if(newValue.equals(0L)){ //  Don't consider in map anymore:
+					expectedPendingChunkSignals.remove(ca);
+				}
+				System.out.println("Decremented expected becomes pending singal count for ca=" + ca + " to " + newValue);
+			}else{
+				throw new Exception("This should not happen, signal not expected.");
+			}
+		}else{
+			throw new Exception("This should not happen, becomes pending signal not expected from chunk " + ca);
+		}
+	}
+
+	public void incrementExpectedAvailableSignalCount(CuboidAddress ca){
+		if(expectedAvailableChunkSignals.containsKey(ca)){
+			Long newCount = expectedAvailableChunkSignals.get(ca) + 1L;
+			expectedAvailableChunkSignals.put(ca, newCount);
+			System.out.println("Incremented expected becomes available singal count for ca=" + ca + " to " + newCount);
+		}else{
+			expectedAvailableChunkSignals.put(ca, 1L);
+			System.out.println("Incremented expected becomes available singal count for ca=" + ca + " to " + 1L);
+		}
+	}
+
+	public void decrementExpectedAvailableSignalCount(CuboidAddress ca) throws Exception{
+		if(expectedAvailableChunkSignals.containsKey(ca)){
+			Long currentValue = expectedAvailableChunkSignals.get(ca);
+			if(currentValue > 0L){
+				Long newValue = currentValue - 1L;
+				expectedAvailableChunkSignals.put(ca, newValue);
+				if(newValue.equals(0L)){ //  Don't consider in map anymore:
+					expectedAvailableChunkSignals.remove(ca);
+				}
+				System.out.println("Decremented expected becomes available singal count for ca=" + ca + " to " + newValue);
+			}else{
+				throw new Exception("This should not happen, signal not expected.");
+			}
+		}else{
+			throw new Exception("This should not happen, becomes available signal not expected from chunk " + ca);
+		}
 	}
 
 	public void inMemoryChunksCallbackOnChunkBecomesPending(CuboidAddress ca) throws Exception{
-		if(this.chunksExpectedToBecomePending.contains(ca)){
-			this.chunksExpectedToBecomePending.remove(ca);
-			this.pendingChunks.add(ca);
-		}else{
-			throw new Exception("Did not expect chunk " + ca);
+		synchronized(lock){
+			System.out.println("MockClient inMemoryChunksCallbackOnChunkBecomesPending, saw ca=" + ca);
+			decrementExpectedPendingSignalCount(ca);
 		}
 	}
 
 	public void inMemoryChunksCallbackOnEnqueueChunkUnsubscriptionForServer(List<CuboidAddress> cuboidAddresses) throws Exception{
-		for(CuboidAddress ca : cuboidAddresses){
-			subscribedChunks.remove(ca); //  No longer subscribed to this chunk
-			chunksExpectedToBecomePending.remove(ca); //  No need to request
-			pendingChunks.remove(ca); //  No need to request
-			requestedNotYetReceivedChunks.remove(ca);
-			receivedAndSubscribedChunks.remove(ca);
+		synchronized(lock){
+			System.out.println("MockClient inMemoryChunksCallbackOnEnqueueChunkUnsubscriptionForServer, saw cuboidAddresses=" + cuboidAddresses);
+			for(CuboidAddress ca : cuboidAddresses){
+				subscribedChunks.remove(ca); //  No longer subscribed to this chunk
+				requestedNotYetReceivedChunks.remove(ca);
+				expectedAvailableChunkSignals.remove(ca);
+			}
 		}
 	}
 
 	public void inMemoryChunksCallbackOnEnqueueChunkRequestToServer(List<CuboidAddress> cuboidAddresses) throws Exception{
-		for(CuboidAddress ca : cuboidAddresses){
-			pendingChunks.remove(ca); //  No longer waiting to request
-			requestedNotYetReceivedChunks.add(ca); //  Subscribe to this chunk
+		synchronized(lock){
+			System.out.println("MockClient inMemoryChunksCallbackOnEnqueueChunkRequestToServer, saw cuboidAddresses=" + cuboidAddresses);
+			for(CuboidAddress ca : cuboidAddresses){
+				requestedNotYetReceivedChunks.add(ca); //  Request
+				subscribedChunks.add(ca); // Subscribe
+			}
 		}
 	}
 
 	public void inMemoryChunksCallbackOnChunkBecomesAvailable(CuboidAddress ca) throws Exception{
-		requestedNotYetReceivedChunks.remove(ca);
-		receivedAndSubscribedChunks.add(ca);
+		synchronized(lock){
+			System.out.println("MockClient inMemoryChunksCallbackOnChunkBecomesAvailable, saw ca=" + ca);
+			requestedNotYetReceivedChunks.remove(ca);
+			decrementExpectedAvailableSignalCount(ca);
+		}
+	}
+
+	public void onChunkBecameAvailable(Cuboid cuboid){
+		synchronized(lock){
+			incrementExpectedAvailableSignalCount(cuboid.getCuboidAddress());
+		}
 	}
 
 	public Long getAuthorizedClientId() throws Exception{
 		return 0L;
+	}
+
+	public CuboidAddress takeRequestedNotYetReceivedChunk(){
+		synchronized(lock){
+			if(requestedNotYetReceivedChunks.size() > 0){
+				CuboidAddress rtn = new ArrayList<CuboidAddress>(requestedNotYetReceivedChunks).get(0);
+				requestedNotYetReceivedChunks.remove(rtn);
+				return rtn;
+			}else{
+				return null;
+			}
+		}
+	}
+
+	public Set<CuboidAddress> getExpectedPendingChunks(){
+		synchronized(lock){
+			return new TreeSet<CuboidAddress>(this.expectedPendingChunkSignals.keySet());
+		}
+	}
+
+	public Set<CuboidAddress> getSubscribedChunks(){
+		synchronized(lock){
+			return new TreeSet<CuboidAddress>(this.subscribedChunks);
+		}
+	}
+
+	public Set<CuboidAddress> getExpectedAvailableChunks(){
+		synchronized(lock){
+			return new TreeSet<CuboidAddress>(this.expectedAvailableChunkSignals.keySet());
+		}
 	}
 }

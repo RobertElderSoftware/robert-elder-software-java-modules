@@ -70,7 +70,6 @@ import java.lang.ProcessBuilder.Redirect;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.HashSet;
 import java.util.HashMap;
 import java.util.TreeMap;
 
@@ -116,7 +115,9 @@ public class BlockManagerUnitTest {
 		long [] dataLengths = new long [(int)ca.getVolume()];
 		while(!regionIteration.isDone()){
 			Coordinate currentCoordinate = regionIteration.getCurrentCoordinate();
-			byte [] blockData = blockManagerThreadCollection.getBlockDataForClass(IronPick.class);
+			long numInterestingBlocks = ChunkInitializerThreadState.interestingBlocks.length;
+			int randomBlockIndex = (int)getRandBetweenRange(rand, 0, numInterestingBlocks);
+			byte [] blockData = blockManagerThreadCollection.getBlockDataForClass((Class)ChunkInitializerThreadState.interestingBlocks[randomBlockIndex]);
 			long blockOffsetInArray = ca.getLinearArrayIndexForCoordinate(currentCoordinate);
 			dataLengths[(int)blockOffsetInArray] = blockData.length;
 			cuboidData.writeBytes(blockData);
@@ -133,7 +134,7 @@ public class BlockManagerUnitTest {
 	}
 
 	public Set<CuboidAddress> getRandomCuboidAddressSet(Random rand, CuboidAddress ca, Long maxSetSize) throws Exception{
-		Set<CuboidAddress> rtn = new HashSet<CuboidAddress>();
+		Set<CuboidAddress> rtn = new TreeSet<CuboidAddress>();
 
 		for(long i = 0L; i < getRandBetweenRange(rand, 0L, maxSetSize); i++){
 			rtn.add(getRandomCuboidAddress(rand, ca));
@@ -2439,6 +2440,65 @@ public class BlockManagerUnitTest {
 		System.out.println("End runExpandChangeRegionTest:");
 	}
 
+
+	public void checkForExpectedPendingChunks(BlockManagerThreadCollection blockManagerThreadCollection, Random rand, InMemoryChunks imc, InMemoryChunksMockClient inMemoryChunksMockClient) throws Exception{
+		//  Block until we see a signal for all pending chunks becomming available:
+		Long i = 0L;
+		Long timeoutLimit = 100000000L;
+		do{
+			Set<CuboidAddress> expectedPendingChunks = inMemoryChunksMockClient.getExpectedPendingChunks();
+			i++;
+			if(expectedPendingChunks.size() > 0 && i > timeoutLimit){
+				throw new Exception("Test timed at i=" + i + " waiting for chunks to become pending. You might need to increase the timeout.  Still waiting pending signl from " + expectedPendingChunks.size() + " chunks:" + expectedPendingChunks);
+			}else{
+				break;
+			}
+		}while(true);
+		System.out.println("Got signs for all pending chunks.");
+	}
+
+	public boolean simulateChunkLoadingProgress(BlockManagerThreadCollection blockManagerThreadCollection, Random rand, InMemoryChunks imc, InMemoryChunksMockClient inMemoryChunksMockClient) throws Exception{
+
+		Set<CuboidAddress> expectedPendingChunks = inMemoryChunksMockClient.getExpectedPendingChunks();
+		CuboidAddress chunkToSimulateLoading = inMemoryChunksMockClient.takeRequestedNotYetReceivedChunk();
+		if(chunkToSimulateLoading == null){
+			if(expectedPendingChunks.size() == 0){
+				System.out.println("No requested chunks to simulate loading.");
+				return false; //  There are no pending chunks to load.
+			}else{
+				System.out.println("!!!!!No requested chunks to simulate loading, but there are chunks expected to become pending still: " + expectedPendingChunks);
+				return false; //  Wait for the pending chunk signals to be received.
+			}
+		}else{
+			//Simulate loading chunk:
+			Cuboid cuboid = getRandomCuboid(blockManagerThreadCollection, rand, chunkToSimulateLoading);
+			System.out.println("Simulate loading chunk " + chunkToSimulateLoading);
+			inMemoryChunksMockClient.onChunkBecameAvailable(cuboid);
+			imc.addInMemoryChunk(cuboid, inMemoryChunksMockClient);
+			return true;
+		}
+	}
+
+	public void waitUntilAllChunksAreUnloaded(InMemoryChunksMockClient inMemoryChunksMockClient) throws Exception{
+		//  Wait for all chunks to unload...
+		Set<CuboidAddress> expectedPendingChunks;
+		Set<CuboidAddress> subscribedChunks;
+		Set<CuboidAddress> expectedAvailableChunks;
+		Long i = 0L;
+		while(true){
+			expectedPendingChunks = inMemoryChunksMockClient.getExpectedPendingChunks();
+			subscribedChunks = inMemoryChunksMockClient.getSubscribedChunks();
+			expectedAvailableChunks = inMemoryChunksMockClient.getExpectedAvailableChunks();
+			if(i > 1000000L || (expectedPendingChunks.size() == 0 && subscribedChunks.size() == 0 && expectedAvailableChunks.size() == 0)){
+				break;
+			}
+			i++;
+		}
+		if((expectedPendingChunks.size() != 0 || subscribedChunks.size() != 0 || expectedAvailableChunks.size() != 0)){
+			throw new Exception("expectedPendingChunks.size() = " + expectedPendingChunks.size() + ", subscribedChunks.size()=" + subscribedChunks.size() + ", expectedAvailableChunks.size()=" + expectedAvailableChunks.size());
+		}
+	}
+
 	@Test
 	public void runInMemoryChunksTest() throws Exception {
 		System.out.println("Start runInMemoryChunksTest:");
@@ -2447,13 +2507,14 @@ public class BlockManagerUnitTest {
 
 		CuboidAddress chunkSizeCuboidAddress = new CuboidAddress(new Coordinate(Arrays.asList(0L, 0L, 0L, 0L)), new Coordinate(Arrays.asList(3L, 3L, 5L, 1L)));
 
-		InMemoryChunks imc = new InMemoryChunks(blockManagerThreadCollection, chunkSizeCuboidAddress);
+		Long maxPendingChunks = 1L;
+		InMemoryChunks imc = new InMemoryChunks(blockManagerThreadCollection, chunkSizeCuboidAddress, maxPendingChunks);
 		imc.putWorkItem(new InitializeYourselfInMemoryChunksWorkItem(imc), WorkItemPriority.PRIORITY_LOW);
 		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(imc, InMemoryChunksWorkItem.class, imc.getClass()));
 
 		InMemoryChunksMockClient inMemoryChunksMockClient = new InMemoryChunksMockClient(chunkSizeCuboidAddress);
 
-		CuboidAddress areaToLoadChunksIn = new CuboidAddress(new Coordinate(Arrays.asList(-10L, -10L, -10L, 0L)), new Coordinate(Arrays.asList(10L, 10L, 10L, 1L)));
+		CuboidAddress areaToLoadChunksIn = new CuboidAddress(new Coordinate(Arrays.asList(-10L, -10L, -10L, 0L)), new Coordinate(Arrays.asList(10L, 10L, 10L, 2L)));
 
 		/*
 		 *  Possible chunk lifecycles:
@@ -2466,24 +2527,45 @@ public class BlockManagerUnitTest {
 		Random rand = new Random(1234);
 		int numTests = 100;
 		for(int i = 0; i < numTests; i++){
+			System.out.println("-----BEGIN TEST=" + i);
+			
 			Set<CuboidAddress> requiredRegions = getRandomCuboidAddressSet(rand, areaToLoadChunksIn, 3L);
 			inMemoryChunksMockClient.updateRequiredRegions(requiredRegions);
 
-			imc.updateRequiredRegions(requiredRegions, inMemoryChunksMockClient);
+			imc.putWorkItem(new UpdateRequiredRegionsWorkItem(imc, requiredRegions, inMemoryChunksMockClient), WorkItemPriority.PRIORITY_LOW);
 
-			if(inMemoryChunksMockClient.getChunksExpectedToBecomePending().size() > 0){
-				throw new Exception("Size should be 0 but was: " + inMemoryChunksMockClient.getChunksExpectedToBecomePending().size());
-			}
-
-			CuboidAddress randomCA = getRandomCuboidAddress(rand, areaToLoadChunksIn);
-			Cuboid cuboid = getRandomCuboid(blockManagerThreadCollection, rand, randomCA);
-			//Simualte loading chunk:
-			//addInMemoryChunk(Cuboid cuboid, InMemoryChunksClient inMemoryChunksClient) throws Exception{
+			this.checkForExpectedPendingChunks(blockManagerThreadCollection, rand, imc, inMemoryChunksMockClient);
+			this.simulateChunkLoadingProgress(blockManagerThreadCollection, rand, imc, inMemoryChunksMockClient);
+			System.out.println("-----END TEST=" + i);
 		}
+
+
+		//  Simulate unloading all chunks:
+		inMemoryChunksMockClient.updateRequiredRegions(new TreeSet<CuboidAddress>());
+		imc.putWorkItem(new UpdateRequiredRegionsWorkItem(imc, new TreeSet<CuboidAddress>(), inMemoryChunksMockClient), WorkItemPriority.PRIORITY_LOW);
+
+		System.out.println("Finished simulating loading all remaining chunks.");
+		while(this.simulateChunkLoadingProgress(blockManagerThreadCollection, rand, imc, inMemoryChunksMockClient)){
+			//  Simulate loading in all remaining chunks...
+		}
+
+		this.waitUntilAllChunksAreUnloaded(inMemoryChunksMockClient);
 
 		//  Initiate shutdown of InMemoryChunksThread:
 		imc.putWorkItem(new InMemoryChunksPoisonPillWorkItem(imc), WorkItemPriority.PRIORITY_LOW);
 		blockManagerThreadCollection.blockUntilAllTasksHaveTerminated();
+
+		List<Exception> offendingExceptions = blockManagerThreadCollection.getOffendingExceptions();
+		if(offendingExceptions.size() == 0){
+			System.out.println("Exited gracefully without any exceptions.");
+		}else{
+			System.out.println("This game contains a programming bug that caused it to crash.  Here is the stack trace:");
+			System.out.println("");
+			for(Exception e : offendingExceptions){
+				e.printStackTrace();
+			}
+			throw new Exception("Failed test.");
+		}
 
 		System.out.println("End runInMemoryChunksTest:");
 	}
