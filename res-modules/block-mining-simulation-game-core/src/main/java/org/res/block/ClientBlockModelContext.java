@@ -50,7 +50,7 @@ import javax.websocket.WebSocketContainer;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-public class ClientBlockModelContext extends BlockModelContext implements BlockModelInterface {
+public class ClientBlockModelContext extends BlockModelContext implements BlockModelInterface, Comparable<InMemoryChunksClient>{
 	@SuppressWarnings("unused")
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private ChunkInitializerThreadState chunkInitializerThreadState;
@@ -105,6 +105,11 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	public InMemoryChunks getInMemoryChunks() throws Exception{
 		return blockManagerThreadCollection.getInMemoryChunksForWorld(this.authorizedBlockWorldConnection.getBlockWorldConnection().getBlockWorldConnectionParameters());
+	}
+
+	@Override
+	public int compareTo(InMemoryChunksClient other) {
+		return this.getAuthorizedClientId().compareTo(other.getAuthorizedClientId());
 	}
 
 	public void init(Object o) throws Exception{
@@ -612,6 +617,33 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		throw new Exception("Not Implemented.");
 	}
 
+	public void onChunkSignal(ChunkSignal signal) throws Exception{
+		MemoryChunkStateType state = signal.getMemoryChunkStateType();
+		if(state == null){
+			//  No state, chunk discarded:
+			inMemoryChunksCallbackOnEnqueueChunkUnsubscriptionForServer(signal.getCuboidAddresses());
+		}else{
+			switch(state){
+				case PENDING:{
+					for(CuboidAddress ca : signal.getCuboidAddresses()){
+						inMemoryChunksCallbackOnChunkBecomesPending(ca);
+					}
+					break;
+				}case REQUESTED:{
+					inMemoryChunksCallbackOnEnqueueChunkRequestToServer(signal.getCuboidAddresses());
+					break;
+				}case AVAILABLE:{
+					for(CuboidAddress ca : signal.getCuboidAddresses()){
+						inMemoryChunksCallbackOnChunkBecomesAvailable(ca);
+					}
+					break;
+				}default:{
+					throw new Exception("Unknown signal type.");
+				}
+			}
+		}
+	}
+
 	public void inMemoryChunksCallbackOnChunkBecomesAvailable(CuboidAddress ca) throws Exception{
 		this.sendUIEventsToSubscribedThreads(UINotificationType.UPDATE_MAP_AREA_FLAGS, ca.copy(), WorkItemPriority.PRIORITY_LOW);
 	}
@@ -653,7 +685,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.sendUIEventsToSubscribedThreads(UINotificationType.PLAYER_POSITION, new AuthorizedPlayerPositionXYZ(getAuthorizedClientId(), this.playerPositionXYZ.copy()), WorkItemPriority.PRIORITY_LOW);
 	}
 
-	public Long getAuthorizedClientId() throws Exception{
+	public Long getAuthorizedClientId() {
 		return authorizedBlockWorldConnection.getAuthorizedClientId();
 	}
 
@@ -684,19 +716,23 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void inMemoryChunksCallbackOnEnqueueChunkUnsubscriptionForServer(List<CuboidAddress> cuboidAddresses) throws Exception{
-		BlockSession bs = this.getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
-		Long conversationId = 12345L;// TODO
-		ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddresses.get(0).getNumDimensions(), cuboidAddresses, false, false, conversationId, getAuthorizedClientId());
-		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, m);
-		this.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
+		if(cuboidAddresses.size() > 0){
+			BlockSession bs = this.getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
+			Long conversationId = 12345L;// TODO
+			ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddresses.get(0).getNumDimensions(), cuboidAddresses, false, false, conversationId, getAuthorizedClientId());
+			SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, m);
+			this.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
+		}
 	}
 
 	public void inMemoryChunksCallbackOnEnqueueChunkRequestToServer(List<CuboidAddress> cuboidAddresses) throws Exception{
-		BlockSession bs = this.getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
-		Long conversationId = 12345L;// TODO
-		ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddresses.get(0).getNumDimensions(), cuboidAddresses, true, true, conversationId, getAuthorizedClientId());
-		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, m);
-		this.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
+		if(cuboidAddresses.size() > 0){
+			BlockSession bs = this.getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
+			Long conversationId = 12345L;// TODO
+			ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddresses.get(0).getNumDimensions(), cuboidAddresses, true, true, conversationId, getAuthorizedClientId());
+			SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, m);
+			this.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
+		}
 	}
 
 	public void submitChunkToServer(Long numDimensions, List<Cuboid> cuboids, WorkItemPriority priority, Long conversationId) throws Exception{

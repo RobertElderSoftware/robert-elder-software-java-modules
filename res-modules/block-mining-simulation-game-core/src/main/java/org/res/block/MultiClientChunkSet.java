@@ -41,13 +41,69 @@ import java.util.HashSet;
 import java.util.TreeSet;
 import java.util.TreeMap;
 import java.util.Collections;
-import java.lang.Comparable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public interface InMemoryChunksClient extends Comparable<InMemoryChunksClient>{
-	void onChunkSignal(ChunkSignal signal) throws Exception;
-	Long getAuthorizedClientId();
+public class MultiClientChunkSet {
+
+	private Map<InMemoryChunksClient, Set<CuboidAddress>> chunkSet = new TreeMap<InMemoryChunksClient, Set<CuboidAddress>>();
+
+	public MultiClientChunkSet() {
+
+	}
+
+	public boolean contains(InMemoryChunksClient inMemoryChunksClient, CuboidAddress ca){
+		if(chunkSet.containsKey(inMemoryChunksClient)){
+			if(chunkSet.get(inMemoryChunksClient).contains(ca)){
+				return true;
+			}else{
+				return false;
+			}
+		}else{
+			return false;
+		}
+	}
+
+	public void add(InMemoryChunksClient inMemoryChunksClient, CuboidAddress ca){
+		if(!chunkSet.containsKey(inMemoryChunksClient)){
+			chunkSet.put(inMemoryChunksClient, new TreeSet<CuboidAddress>());
+		}
+		chunkSet.get(inMemoryChunksClient).add(ca);
+	}
+
+	public void remove(InMemoryChunksClient inMemoryChunksClient, CuboidAddress ca) throws Exception{
+		if(!chunkSet.containsKey(inMemoryChunksClient)){
+			throw new Exception("No entry for this client.");
+		}
+		chunkSet.get(inMemoryChunksClient).remove(ca);
+	}
+
+	public List<Map.Entry<InMemoryChunksClient, CuboidAddress>> getEntireChunkList(){
+		List<Map.Entry<InMemoryChunksClient, CuboidAddress>> rtn = new ArrayList<Map.Entry<InMemoryChunksClient, CuboidAddress>>();
+		for(Map.Entry<InMemoryChunksClient, Set<CuboidAddress>> e : this.chunkSet.entrySet()){
+			for(CuboidAddress ca : e.getValue()){
+				rtn.add(Map.entry(e.getKey(), ca));
+			}
+		}
+		return rtn;
+	}
+
+	public int getEntireChunkListSize(){
+		return getEntireChunkList().size();
+	}
+
+	public Map.Entry<InMemoryChunksClient, CuboidAddress> removeOne() throws Exception{
+		List<Map.Entry<InMemoryChunksClient, CuboidAddress>> entireChunkList = this.getEntireChunkList();
+		if(entireChunkList.size() > 0){
+			Map.Entry<InMemoryChunksClient, CuboidAddress> first = entireChunkList.get(0);
+			InMemoryChunksClient inMemoryChunksClient = first.getKey();
+			CuboidAddress firstAddress = first.getValue();
+			this.remove(inMemoryChunksClient, firstAddress);
+			return Map.entry(inMemoryChunksClient, firstAddress);
+		}else{
+			throw new Exception("Cannot remove one: No entires.");
+		}
+	}
 }

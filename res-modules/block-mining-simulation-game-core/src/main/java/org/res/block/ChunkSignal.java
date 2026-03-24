@@ -47,7 +47,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public interface InMemoryChunksClient extends Comparable<InMemoryChunksClient>{
-	void onChunkSignal(ChunkSignal signal) throws Exception;
-	Long getAuthorizedClientId();
+public class ChunkSignal{
+
+	private MemoryChunkStateType memoryChunkStateType;
+	private List<CuboidAddress> cuboidAddresses;
+
+	public ChunkSignal(MemoryChunkStateType memoryChunkStateType, List<CuboidAddress> cuboidAddresses){
+		this.memoryChunkStateType = memoryChunkStateType;
+		this.cuboidAddresses = cuboidAddresses;
+	}
+
+	public MemoryChunkStateType getMemoryChunkStateType(){
+		return this.memoryChunkStateType;
+	}
+
+	public List<CuboidAddress> getCuboidAddresses(){
+		return this.cuboidAddresses;
+	}
 }

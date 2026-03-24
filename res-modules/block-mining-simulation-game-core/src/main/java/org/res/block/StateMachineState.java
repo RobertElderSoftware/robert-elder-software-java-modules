@@ -41,13 +41,21 @@ import java.util.HashSet;
 import java.util.TreeSet;
 import java.util.TreeMap;
 import java.util.Collections;
-import java.lang.Comparable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public interface InMemoryChunksClient extends Comparable<InMemoryChunksClient>{
-	void onChunkSignal(ChunkSignal signal) throws Exception;
-	Long getAuthorizedClientId();
+public abstract class StateMachineState implements Comparable<StateMachineState> {
+
+	public static Set<StateMachineState> getAllStatesSet() throws Exception{
+		return new TreeSet<StateMachineState>();
+	}
+
+	public abstract int compareTo(StateMachineState other);
+
+	@Override
+	public boolean equals(Object other){
+		return this.compareTo((StateMachineState )other) == 0;
+	}
 }

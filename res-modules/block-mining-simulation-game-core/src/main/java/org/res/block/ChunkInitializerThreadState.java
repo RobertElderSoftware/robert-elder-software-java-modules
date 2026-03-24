@@ -296,7 +296,7 @@ public class ChunkInitializerThreadState extends UIEventReceiverThreadState<Chun
 				//  This could still discard a few chunks from the initialization queue if they are outside the visible game area, but in the
 				//  initially loaded area before inMemoryChunks has had a chance to issue the pending request.  You can just move around to correctly load the area though.
 				if(
-					(!this.inMemoryChunks.isChunkLoadedOrPending(cuboidAddressToInitialize)) &&
+					(!this.inMemoryChunks.isChunkLoadedOrPending(clientBlockModelContext, cuboidAddressToInitialize)) &&
 					this.reachableMapArea != null && this.reachableMapArea.getIntersectionCuboidAddress(cuboidAddressToInitialize) == null
 				){
 					//  If the area we're trying to initialize is off screen, then just ignore this chunk and move on.

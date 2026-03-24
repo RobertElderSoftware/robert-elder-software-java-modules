@@ -30,24 +30,34 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.TreeSet;
+import java.util.Set;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Arrays;
-
-import java.util.Set;
-import java.util.HashSet;
-import java.util.TreeSet;
-import java.util.TreeMap;
-import java.util.Collections;
 import java.lang.Comparable;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
+public class ChunkMemoryState extends StateMachineState{
 
-public interface InMemoryChunksClient extends Comparable<InMemoryChunksClient>{
-	void onChunkSignal(ChunkSignal signal) throws Exception;
-	Long getAuthorizedClientId();
+	private MemoryChunkStateType memoryChunkStateType;
+
+        public ChunkMemoryState(MemoryChunkStateType memoryChunkStateType) {
+                this.memoryChunkStateType = memoryChunkStateType;
+        }
+
+	public MemoryChunkStateType getMemoryChunkStateType(){
+		return this.memoryChunkStateType;
+	}
+
+	public static Set<StateMachineState> getAllStatesSet() throws Exception{
+		Set<StateMachineState> rtn = new TreeSet<StateMachineState>();
+		for(Map.Entry<Long, MemoryChunkStateType> e : MemoryChunkStateType.memoryChunkStateTypesByValue.entrySet()){
+			rtn.add(new ChunkMemoryState(e.getValue()));
+		}
+		return rtn;
+	}
+
+	@Override
+	public int compareTo(StateMachineState other) {
+		return this.memoryChunkStateType.compareTo(((ChunkMemoryState)other).getMemoryChunkStateType());
+	}
 }

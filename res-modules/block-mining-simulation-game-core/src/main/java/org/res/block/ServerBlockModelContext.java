@@ -71,7 +71,7 @@ import javax.websocket.Session;
 import javax.websocket.ContainerProvider;
 import javax.websocket.WebSocketContainer;
 
-public class ServerBlockModelContext extends BlockModelContext {
+public class ServerBlockModelContext extends BlockModelContext implements Comparable<InMemoryChunksClient>{
 
 	private AbstractApplicationContext context = null;
 	private BlockDAO blockDAO = null;
@@ -92,6 +92,11 @@ public class ServerBlockModelContext extends BlockModelContext {
 		super(blockManagerThreadCollection);
 		this.sessionOperationInterface = sessionOperationInterface;
 		this.databaseBlockWorldConnection = databaseBlockWorldConnection;
+	}
+
+	@Override
+	public int compareTo(InMemoryChunksClient other) {
+		return this.getAuthorizedClientId().compareTo(other.getAuthorizedClientId());
 	}
 
 	public void init(Object o) throws Exception{
@@ -137,23 +142,11 @@ public class ServerBlockModelContext extends BlockModelContext {
 		this.logMessage("Ran shutdown of ServerBlockModelContext.");
 	}
 
-	public void inMemoryChunksCallbackOnChunkBecomesAvailable(CuboidAddress ca) throws Exception{
+	public void onChunkSignal(ChunkSignal signal) throws Exception{
 
 	}
 
-	public void inMemoryChunksCallbackOnChunkBecomesPending(CuboidAddress ca) throws Exception{
-
-	}
-
-	public void inMemoryChunksCallbackOnEnqueueChunkRequestToServer(List<CuboidAddress> cuboidAddresses) throws Exception{
-
-	}
-
-	public void inMemoryChunksCallbackOnEnqueueChunkUnsubscriptionForServer(List<CuboidAddress> cuboidAddresses) throws Exception{
-
-	}
-
-	public Long getAuthorizedClientId() throws Exception{
+	public Long getAuthorizedClientId() {
 		return 0L;
 	}
 

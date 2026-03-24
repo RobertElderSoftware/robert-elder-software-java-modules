@@ -30,21 +30,40 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
+import java.util.Map;
+import java.util.HashMap;
 
-public class InMemoryChunksHasPendingNotYetRequestedChunksWorkItem extends InMemoryChunksWorkItem {
+public enum MemoryChunkStateType {
 
-	private InMemoryChunksClient inMemoryChunksClient;
+        PENDING (1L),
+        REQUESTED (2L),
+        DISCARDED (3L),
+        AVAILABLE (4L),
+        REQUIRED_REGIONS_CHANGED (5L);
 
-	public InMemoryChunksHasPendingNotYetRequestedChunksWorkItem(InMemoryChunks inMemoryChunks, InMemoryChunksClient inMemoryChunksClient){
-		super(inMemoryChunks, false);
-		this.inMemoryChunksClient = inMemoryChunksClient;
+        private final long id;
+
+        private MemoryChunkStateType(long i) {
+                id = i;
+        }
+
+        public boolean equalsId(long i) {
+                return id == i;
+        }
+
+        public long toLong() {
+                return this.id;
+        }
+
+	public static final Map<Long, MemoryChunkStateType> memoryChunkStateTypesByValue = new HashMap<Long, MemoryChunkStateType>();
+
+	static {
+		for(MemoryChunkStateType type : MemoryChunkStateType.values()) {
+			memoryChunkStateTypesByValue.put(type.toLong(), type);
+		}
 	}
 
-	public void doWork() throws Exception{
-		this.inMemoryChunks.onHasPendingNotYetRequestedChunks(this.inMemoryChunksClient);
+	public static MemoryChunkStateType forValue(long value) {
+		return memoryChunkStateTypesByValue.get(value);
 	}
 }
