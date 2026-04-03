@@ -52,6 +52,14 @@ public class BlockMessageBinaryBuffer {
 		return l;
 	}
 
+	public long peekLongAtOffset(int offset){
+		ByteBuffer messageTypeBuffer = ByteBuffer.wrap(this.data, Long.BYTES * offset, Long.BYTES * 1);
+		LongBuffer longBuffer = messageTypeBuffer.asLongBuffer();
+		long[] l = new long[1];
+		longBuffer.get(l);
+		return l[0];
+	}
+
 	public void writeLongValues(long [] values){
 		ByteBuffer bb = ByteBuffer.allocate(values.length * Long.BYTES);
 		bb.asLongBuffer().put(values);

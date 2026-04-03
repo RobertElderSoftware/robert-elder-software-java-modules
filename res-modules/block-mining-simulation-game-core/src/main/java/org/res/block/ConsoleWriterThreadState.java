@@ -107,7 +107,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 			this.screenLayers[i] = new ScreenLayer(new Coordinate(Arrays.asList(0L,0L)), ScreenLayer.makeDimensionsCA(0, 0, 0, 0));
 			this.screenLayers[i].setIsLayerActive(true);
 		}
-		this.initializeConsole(80L, 24L); // Early setup is necessary so we can do text width calculations before drawing frame
+		this.initializeConsole(10L, 4L); // Early setup is necessary so we can do text width calculations before drawing frame
 
 
 	}

@@ -51,7 +51,7 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected Object lock = new Object();
 
-	private Map<InMemoryChunksClient, MemoryChunkStateMachine> chunkStateMachines;
+	private Map<InMemoryChunksClient, MemoryChunkStateMachine> chunkStateMachines = new TreeMap<InMemoryChunksClient, MemoryChunkStateMachine>();
 
 	private Map<Long, PlayerPositionXYZ> playerPositions = new HashMap<Long, PlayerPositionXYZ>();
 
@@ -62,18 +62,6 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 
 	/*  A list of regions of space that we need to maintain in memory.  These regions are not necessarily aligned to chunk boundaries.  */
 	private Set<CuboidAddress> lastRequiredRegions = new HashSet<CuboidAddress>();
-
-	/*  A list of the required chunks that are needed to satisfy the cuboids described in 'requiredRegions' */
-	//private Set<CuboidAddress> lastRequiredChunks = new TreeSet<CuboidAddress>();
-
-	/*  Chunks for which a request needs to be made to the remote server to load the block data. */
-	//private MultiClientChunkSet pendingNotYetRequestedChunks = new MultiClientChunkSet();
-
-	/*  Chunks that we're discarding and we need to unsubscribe from:  */
-	//private MultiClientChunkSet discardedChunks = new MultiClientChunkSet();
-
-	/*  Chunks for which for which an outstanding request to the server has been made, but a response has not been returned yet. */
-	//private Set<CuboidAddress> pendingAlreadyRequestedChunks = new TreeSet<CuboidAddress>();
 
 	/*  The map of chunks that currently resides in memory. */
 	private Map<CuboidAddress, IndividualBlock[]> blockChunks = new TreeMap<CuboidAddress, IndividualBlock[]>();
@@ -87,15 +75,13 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 	}
 
 	protected void init(Object o) throws Exception{
-		this.chunkStateMachines = new TreeMap<InMemoryChunksClient, MemoryChunkStateMachine>();
 	}
 
 	public boolean isEmptyAndFinished(){
 		synchronized(lock){
 			return (
-				//this.pendingNotYetRequestedChunks.getEntireChunkListSize() == 0 &&
-				//this.pendingAlreadyRequestedChunks.size() == 0 && 
-				//this.discardedChunks.getEntireChunkListSize() == 0 &&
+				this.getAllChunksInState(MemoryChunkStateType.PENDING).size() == 0 &&
+				this.getAllChunksInState(MemoryChunkStateType.REQUESTED).size() == 0 &&
 				this.getWorkItemQueueSize() == 0
 			);
 		}
@@ -104,9 +90,8 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 	public void printSizes(){
 		synchronized(lock){
 			logger.info(
-				//"this.pendingNotYetRequestedChunks.getEntireChunkListSize()=" + this.pendingNotYetRequestedChunks.getEntireChunkListSize() +
-				//", this.pendingAlreadyRequestedChunks.size()=" + this.pendingAlreadyRequestedChunks.size() +
-				//", this.discardedChunks.getEntireChunkListSize()=" + this.discardedChunks.getEntireChunkListSize() +
+				"this.getAllChunksInState(MemoryChunkStateType.PENDING).size()=" + this.getAllChunksInState(MemoryChunkStateType.PENDING).size() +
+				", this.getAllChunksInState(MemoryChunkStateType.REQUESTED).size()=" + this.getAllChunksInState(MemoryChunkStateType.REQUESTED).size() +
 				", this.getWorkItemQueueSize()=" + this.getWorkItemQueueSize()
 			);
 		}
@@ -176,8 +161,8 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 				this.sendSignal(clientThatDiscarded, new ChunkSignal(null, Arrays.asList(ca)));
 				break;
 			}case REQUESTED:{
-				//  Let the chunk come back and then discard it.
-				//  TODO:  This will leak the chunk right now.
+				//  Discard:
+				this.sendSignal(clientThatDiscarded, new ChunkSignal(null, Arrays.asList(ca)));
 				break;
 			}case AVAILABLE:{
 				//  Remove the chunk to free up memory.
@@ -212,78 +197,11 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 					}
 				}
 				this.chunkStateMachines.get(inMemoryChunksClient).discardUnusedChunks(currentRequiredChunks, inMemoryChunksClient);
-				/*
-				//  Chunks that are required now that weren't required last time:
-				Set<CuboidAddress> newlyRequiredChunks = new TreeSet<CuboidAddress>(currentRequiredChunks);
-				newlyRequiredChunks.removeAll(this.lastRequiredChunks);
-				//  Chunks that are not needed right now, but were needed last time:
-				Set<CuboidAddress> currentlyObsoleteChunks = new TreeSet<CuboidAddress>(this.lastRequiredChunks);
-				currentlyObsoleteChunks.removeAll(currentRequiredChunks);
-
-				this.lastRequiredChunks = currentRequiredChunks;
-
-				//  Set up a pending request for all chunks that need to be loaded:
-				for(CuboidAddress c : newlyRequiredChunks){
-					if(this.pendingNotYetRequestedChunks.contains(inMemoryChunksClient, c)){
-						throw new Exception("Chunk=" + c + " just became newly required, but it was already listed in pendingNotYetRequestedChunks?");
-					}else if(this.pendingAlreadyRequestedChunks.contains(c)){
-						//logger.info(c + " is a newlyRequiredChunk that's in pendingAlreadyRequestedChunks. Keep waiting.");
-						//  Still waiting for the chunk to come back.
-					}else if(this.blockChunks.containsKey(c)){
-						//  This chunk is already loaded.
-						//logger.info(c + " is a newlyRequiredChunk that's still loaded. Do nothing.");
-					}else{
-						//logger.info(c + " is a newlyRequiredChunk, add it to pendingNotYetRequestedChunks.");
-						this.pendingNotYetRequestedChunks.add(inMemoryChunksClient, c);
-						logger.info(c + " added to pendingNotYetRequestedChunks.");
-						this.sendSignal(inMemoryChunksClient, new ChunkSignal(MemoryChunkStateType.PENDING, Arrays.asList(c.copy())));
-					}
-				}
-
-				//  Remove old chunks that we don't need anymore:
-				for(CuboidAddress c : currentlyObsoleteChunks){
-					if(this.pendingNotYetRequestedChunks.contains(inMemoryChunksClient, c)){
-						//  Don't bother even requesting it if we're just going to dicard it anyway:
-						this.pendingNotYetRequestedChunks.remove(inMemoryChunksClient, c);
-						//logger.info(c + " is a newlyObsoleteChunks, remove it from pendingNotYetRequestedChunks.");
-						this.discardedChunks.add(inMemoryChunksClient, c.copy());
-						logger.info(c + " added to discardedChunks, it was pending not yet requested.");
-					}else if(this.pendingAlreadyRequestedChunks.contains(c)){
-						//logger.info(c + " is a newlyObsoleteChunks, that's in pendingAlreadyRequestedChunks. Discard.");
-						logger.info(c + " NOT added to discardedChunks, it was pending already requested.");
-					}else if(this.blockChunks.containsKey(c)){
-						//  Remove the chunk to free up memory.
-						this.blockChunks.remove(c);
-						//logger.info(c + " is a newlyObsoleteChunks that's currently loaded.  Evict this chunk.");
-						this.discardedChunks.add(inMemoryChunksClient, c.copy());
-						logger.info(c + " added to discardedChunks, it was loaded and available.");
-					}else{
-						logger.info(c + " is not pending in any way, or initialized, but it's 'obsolete'.  This should not happen.");
-						throw new Exception("Obsolete chunk is not pending or found in blockChunk map: " + c + ".  This should not happen.");
-					}
-				}
-				//this.sendSignal(inMemoryChunksClient, new ChunkSignal(MemoryChunkStateType.REQUIRED_REGIONS_CHANGED, new ArrayList<CuboidAddress>(requiredRegions)));
-				*/
 			}else{
 				logger.info("Required regions has not changed.  Do nothing.");
 			}
 		}
 	}
-
-	/*
-	public boolean onHasDiscardedChunks() throws Exception{
-		synchronized(lock){
-			Map.Entry<InMemoryChunksClient, CuboidAddress> discarded = this.discardedChunks.removeOne();
-			logger.info(discarded + " was discarded.");
-			this.sendSignal(discarded.getKey(), new ChunkSignal(MemoryChunkStateType.DISCARDED, Arrays.asList(discarded.getValue())));
-			if(this.discardedChunks.getEntireChunkListSize() > 0){
-				return true; //  More work.
-			}else{
-				return false; //  No more work.
-			}
-		}
-	}
-	*/
 
 	public List<Map.Entry<InMemoryChunksClient, CuboidAddress>> getAllChunksInState(MemoryChunkStateType stateType){
 		ChunkMemoryState state = new ChunkMemoryState(stateType);
@@ -374,6 +292,15 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 			CuboidAddress cuboidAddress = cuboid.getCuboidAddress();
 			CuboidDataLengths dataLengths = cuboid.getCuboidDataLengths();
 			CuboidData data = cuboid.getCuboidData();
+			if(cuboidAddress == null){
+				throw new Exception("cuboidAddress null");
+			}
+			if(inMemoryChunksClient == null){
+				throw new Exception("inMemoryChunksClient null");
+			}
+			if(this.chunkStateMachines.get(inMemoryChunksClient) == null){
+				throw new Exception("this.chunkStateMachines.get(inMemoryChunksClient) null");
+			}
 			ChunkMemoryState chunkState = this.chunkStateMachines.get(inMemoryChunksClient).getStateOfObject(cuboidAddress);
 
 			if(chunkState == null){
@@ -486,13 +413,6 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 	}
 
 	public boolean doBackgroundProcessing() throws Exception{
-		/*
-		if(this.discardedChunks.getEntireChunkListSize() > 0){
-			if(onHasDiscardedChunks()){
-				return true; // More background work to do.
-			}
-		}
-		*/
 		if(this.getAllChunksInState(MemoryChunkStateType.PENDING).size() > 0){
 			if(onHasPendingNotYetRequestedChunks()){
 				return true; // More background work to do.

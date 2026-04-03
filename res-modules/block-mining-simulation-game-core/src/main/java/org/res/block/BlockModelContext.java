@@ -65,12 +65,6 @@ import javax.websocket.WebSocketContainer;
 
 public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelContextWorkItem> implements InMemoryChunksClient{
 
-	public abstract void onOpen(Session session) throws Exception;
-	public abstract void onMessage(String txt, Session session) throws Exception;
-	public abstract void onBinaryMessage(byte[] inputBytes, boolean last, Session session) throws Exception;
-	public abstract void onClose(CloseReason reason, Session session) throws Exception;
-	public abstract void onError(Session session, Throwable t) throws Throwable;
-
 	public abstract BlockModelInterface getBlockModelInterface();
 	public abstract boolean isServer();
 	public abstract void postCuboidsWrite(Long numDimensions, List<CuboidAddress> cuboidAddresses, Long authorizedClientId) throws Exception;
@@ -80,11 +74,10 @@ public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelCon
 	public abstract void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception;
 
 	public abstract SessionOperationInterface getSessionOperationInterface();
+	public abstract BlockWorldConnection getBlockWorldConnection();
 
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
-	private ConcurrentHashMap<String, BlockSession> sessionMap = new ConcurrentHashMap<String, BlockSession>();
 
-	private ByteArrayOutputStream partialBinaryMessage = new ByteArrayOutputStream();
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
@@ -114,71 +107,6 @@ public abstract class BlockModelContext extends WorkItemQueueOwner<BlockModelCon
 		logger.info(errors.toString());
 	}
 
-	public void onMessage(String txt, BlockSession session) throws Exception {
-		throw new Exception("Not expected.");
-	}
-
-	public void onBinaryMessage(byte[] inputBytes, boolean last, BlockSession session) throws Exception {
-		partialBinaryMessage.write(inputBytes);
-		logger.info("Partial message received of length " + inputBytes.length + " last=" + last);
-		if(last){
-			BlockSession blockSession = this.getBlockSession(session.getId());
-			ProcessBinaryMessageWorkItem workItem = new ProcessBinaryMessageWorkItem(this, blockSession, partialBinaryMessage.toByteArray());
-			this.partialBinaryMessage = new ByteArrayOutputStream();  //  Clear the buffer. 
-			this.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
-		}
-	}
-
-	public void onOpen(BlockSession blockSession) throws Exception {
-		logger.info("Opened a session id=" + blockSession.getId());
-		if(sessionMap.containsKey(blockSession.getId())){
-			throw new Exception("Duplicate openning of a session for session id = " + blockSession.getId());
-		}else{
-			sessionMap.put(blockSession.getId(), blockSession);
-		}
-		SessionOpenWorkItem workItem = new SessionOpenWorkItem(this, blockSession);
-		this.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
-	}
-
-	public void onClose(String closeReason, BlockSession session, boolean doClose) throws Exception {
-		logger.info("In onClose for session id = '" + session.getId() + "' reason = " + closeReason);
-		SessionCloseWorkItem workItem = new SessionCloseWorkItem(this, closeReason, session, doClose);
-		this.putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
-		this.removeBlockSession(session.getId());
-	}
-
-	public void onError(BlockSession session, Throwable t) throws Throwable {
-		if(session == null){
-			logger.info("Error in a null session?");
-			throw t;
-		}else{
-			BlockSession blockSession = getBlockSession(session.getId());
-			SessionErrorWorkItem workItem = new SessionErrorWorkItem(this, blockSession, t);
-			putWorkItem(workItem, WorkItemPriority.PRIORITY_LOW);
-			removeBlockSession(blockSession.getId());
-		}
-	}
-
-	public ConcurrentHashMap<String, BlockSession> getSessionMap(){
-		return this.sessionMap;
-	}
-
-	public BlockSession getBlockSession(String id) throws Exception{
-		if(sessionMap.containsKey(id)){
-			return sessionMap.get(id);
-		}else{
-			throw new Exception("Session not found id = " + id);
-		}
-	}
-
-	public void removeBlockSession(String sessionId) throws Exception{
-		if(sessionMap.containsKey(sessionId)){
-			sessionMap.remove(sessionId);
-			logger.info("Removed block session '" + sessionId + "'");
-		}else{
-			logger.info("Trying to remove session id = '" + sessionId + "', but it was not in the session map.  Must have already been removed.");
-		}
-	}
 
 	public BlockModelContextWorkItem takeWorkItem() throws Exception {
 		//logger.info("Before this.workItemQueue.takeWorkItem() " + this.getClass().getName() + " size=" + this.workItemQueue.size());

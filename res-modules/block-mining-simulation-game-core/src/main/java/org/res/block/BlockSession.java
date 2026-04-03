@@ -66,13 +66,22 @@ public abstract class BlockSession {
 		return this.subscribedRegions.containsKey(authorizedClientId) ? this.subscribedRegions.get(authorizedClientId) : new HashMap<CuboidAddress, Long>();
 	}
 
-	public Map<CuboidAddress, Long> getSubscriptionIntersections(List<CuboidAddress> addresses, Long authorizedClientId) throws Exception {
-		Map<CuboidAddress, Long> intersections = new TreeMap<CuboidAddress, Long>();
+	public Map<Long, Map<CuboidAddress, Long>> getSubscriptionIntersections(List<CuboidAddress> addresses) throws Exception {
+		Map<Long, Map<CuboidAddress, Long>> intersections = new TreeMap<Long, Map<CuboidAddress, Long>>();
 		for(CuboidAddress address : addresses){
-			for(Map.Entry<CuboidAddress, Long> existingRegionSubscription : getCurrentSubscriptions(authorizedClientId).entrySet()){
-				CuboidAddress intersection = existingRegionSubscription.getKey().getIntersectionCuboidAddress(address, true);
-				if(intersection != null){
-					intersections.put(intersection, existingRegionSubscription.getValue());
+			for(Map.Entry<Long, Map<CuboidAddress, Long>> e : subscribedRegions.entrySet()){
+				Long authorizedClientId = e.getKey();
+				if(!intersections.containsKey(authorizedClientId)){
+					intersections.put(authorizedClientId, new TreeMap<CuboidAddress, Long>());
+				}
+				Map<CuboidAddress, Long> regionSubscription = e.getValue();
+				for(Map.Entry<CuboidAddress, Long> r : regionSubscription.entrySet()){
+					CuboidAddress subscribedAddress = r.getKey();
+					Long conversationId = r.getValue();
+					CuboidAddress intersection = subscribedAddress.getIntersectionCuboidAddress(address, true);
+					if(intersection != null){
+						intersections.get(authorizedClientId).put(intersection, conversationId);
+					}
 				}
 			}
 		}

@@ -65,7 +65,10 @@ public class DatabaseBlockWorldConnection extends BlockWorldConnection {
 		this.serverBlockModelContext.shutdown();
 	}
 
-	public WebsocketsCommunicationProcessor getCommunicationProcessor(ClientBlockModelContext clientBlockModelContext) throws Exception{
-		return new WebsocketsCommunicationProcessor(blockManagerThreadCollection, clientBlockModelContext, this.serverBlockModelContext);
+	public WebsocketsCommunicationProcessor getCommunicationProcessor() throws Exception{
+		if(websocketsCommunicationProcessor == null){
+			this.websocketsCommunicationProcessor = new WebsocketsCommunicationProcessor(blockManagerThreadCollection, this.serverBlockModelContext);
+		}
+		return this.websocketsCommunicationProcessor;
 	}
 }

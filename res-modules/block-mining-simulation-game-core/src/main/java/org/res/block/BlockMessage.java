@@ -62,9 +62,14 @@ public abstract class BlockMessage {
 		return this.blockModelContext;
 	}
 
-	public static BlockMessage consumeBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer) throws Exception {
-		int byteOffsetIntoMessage = 0;
+	public static long extractAuthorizedClientId(BlockMessageBinaryBuffer buffer) throws Exception {
+		//  Long offset 0 is message type
+		//  Long offset 1 is conversation id
+		//  Long offset 2 is authorized client id
+		return buffer.peekLongAtOffset(2);
+	}
 
+	public static BlockMessage consumeBlockMessage(BlockModelContext blockModelContext, BlockMessageBinaryBuffer buffer) throws Exception {
 		BlockMessageType blockMessageType = BlockMessage.readBlockMessageType(buffer);
 		Long conversationId = buffer.readOneLongValue();
 		Long authorizedClientId = buffer.readOneLongValue();

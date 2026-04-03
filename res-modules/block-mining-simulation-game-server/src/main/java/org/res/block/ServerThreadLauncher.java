@@ -65,6 +65,7 @@ import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfigurat
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
+import java.io.ByteArrayOutputStream;
 
 @EnableAutoConfiguration(
 	exclude={
@@ -120,25 +121,19 @@ public class ServerThreadLauncher {
 	}
 
 	public void onOpen(Session session) throws Exception {
-		WebsocketBlockSession bs = new WebsocketBlockSession(session);
-		bs.setMaxBinaryMessageBufferSize(1024*4);
-		this.serverBlockModelContext.onOpen(bs);
-	}
-
-	public void onMessage(String txt, Session session) throws Exception {
-		this.serverBlockModelContext.onMessage(txt, new WebsocketBlockSession(session));
+		this.blockManagerThreadCollection.onOpen(this.serverBlockModelContext.getBlockWorldConnection(), new WebsocketBlockSession(session));
 	}
 
 	public void onBinaryMessage(byte[] inputBytes, boolean last, Session session) throws Exception {
-		this.serverBlockModelContext.onBinaryMessage(inputBytes, last, new WebsocketBlockSession(session));
+		BlockSession blockSession = serverBlockModelContext.getBlockWorldConnection().getBlockSession(session.getId());
+		this.blockManagerThreadCollection.onBinaryMessage(serverBlockModelContext, inputBytes, last, blockSession);
 	}
 
 	public void onClose(String reason, Session session, boolean doClose) throws Exception {
-
-		this.serverBlockModelContext.onClose(reason, new WebsocketBlockSession(session), doClose);
+		this.blockManagerThreadCollection.onClose(serverBlockModelContext.getBlockWorldConnection(), reason, session.getId());
 	}
 
 	public void onError(Session session, Throwable t) throws Throwable {
-		this.serverBlockModelContext.onError(new WebsocketBlockSession(session), t);
+		this.blockManagerThreadCollection.onError(serverBlockModelContext.getBlockWorldConnection(), session.getId(), t);
 	}
 }

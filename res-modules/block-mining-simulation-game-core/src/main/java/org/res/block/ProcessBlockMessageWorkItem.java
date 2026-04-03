@@ -50,7 +50,6 @@ public class ProcessBlockMessageWorkItem extends BlockModelContextWorkItem {
 		return this.blockSession;
 	}
 
-
 	public void doWork() throws Exception{
 		blockMessage.doWork(this.blockSession);
 	}

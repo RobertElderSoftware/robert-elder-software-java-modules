@@ -30,26 +30,17 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.List;
+import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 
-import org.res.block.WorkItem;
-import org.res.block.BlockSession;
-import org.res.block.BlockModelContext;
+public class InMemoryChunksMockClientPoisonPillWorkItem extends InMemoryChunksMockClientWorkItem {
 
-
-public class SessionOpenWorkItem extends BlockModelContextWorkItem {
-
-	private BlockSession blockSession;
-
-	public SessionOpenWorkItem(BlockModelContext blockModelContext, BlockSession blockSession){
-		super(blockModelContext);
-		this.blockSession = blockSession;
-	}
-
-	public BlockSession getBlockSession(){
-		return this.blockSession;
+	public InMemoryChunksMockClientPoisonPillWorkItem(InMemoryChunksMockClient inMemoryChunksMockClient){
+		super(inMemoryChunksMockClient, false, true);
 	}
 
 	public void doWork() throws Exception{
-		this.blockModelContext.getSessionOperationInterface().onBlockSessionOpen(blockSession);
 	}
 }

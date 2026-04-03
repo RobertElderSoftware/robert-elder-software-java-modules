@@ -280,7 +280,7 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 			Long authorizedClientId = Long.valueOf(authorizedClientIdString);
 
 			BlockWorldConnection worldConnection = this.worldConnections.get(worldConnectionIndex).getValue();
-			blockManagerThreadCollection.makeOrGetAuthorizedBlockWorldConnection(authorizedClientId, worldConnection);
+			blockManagerThreadCollection.makeOrGetAuthorizedBlockWorldConnection(authorizedClientId, worldConnection.getBlockWorldConnectionParameters());
 
 			blockManagerThreadCollection.connectAndStart();
 		}else{

@@ -59,22 +59,6 @@ public class LocalSessionOperationInterface implements SessionOperationInterface
 	public LocalSessionOperationInterface(){
 	}
 
-	public void onBlockSessionOpen(BlockSession blockSession) throws Exception{
-		if(blockSession instanceof LocalBlockSession){
-			logger.info(String.format("Opened local session for id '%s'.", blockSession.getId()));
-		}else{
-			throw new Exception("Expected sesion to be of type LocalBlockSession but it had type " + blockSession.getClass().getName());
-		}
-	}
-
-	public void onBlockSessionClose(BlockSession blockSession, String closeReason, boolean doClose) throws Exception{
-		if(blockSession instanceof LocalBlockSession){
-			logger.info(String.format("Closed websocket session for id '%s' for reason '%s'.", blockSession.getId(), closeReason));	
-		}else{
-			throw new Exception("Expected sesion to be of type LocalBlockSession but it had type " + blockSession.getClass().getName());
-		}
-	}
-
 	public void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception{
 		//  Swap all the block model context references from server to client and vice versa:
 

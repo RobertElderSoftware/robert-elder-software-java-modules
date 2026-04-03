@@ -189,7 +189,7 @@ public class BlockManagerEndpoint {
 
 	@OnMessage
 	public void onMessage(String txt, Session session) throws Exception {
-		this.getServerThreadLauncher().onMessage(txt, session);
+		throw new Exception("Not expected.");
 	}
 
 	@OnMessage

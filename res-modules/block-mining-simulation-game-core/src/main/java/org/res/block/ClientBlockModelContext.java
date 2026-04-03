@@ -134,10 +134,10 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		return this.authorizedBlockWorldConnection.getBlockWorldConnection();
 	}
 
-	public void connect() throws Exception{
+	public void authorizedClientConnect() throws Exception{
 		if(this.websocketsCommunicationProcessor == null){
-			this.websocketsCommunicationProcessor = this.authorizedBlockWorldConnection.getBlockWorldConnection().getCommunicationProcessor(this);
-			this.websocketsCommunicationProcessor.connect();
+			this.websocketsCommunicationProcessor = this.authorizedBlockWorldConnection.getBlockWorldConnection().getCommunicationProcessor();
+			this.websocketsCommunicationProcessor.authorizedClientConnect(this);
 		}else{
 			logger.info("Already connected for " + authorizedBlockWorldConnection.getBlockWorldConnection().getBlockWorldConnectionParameters().getBlockWorldAddressString());
 		}
@@ -473,7 +473,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void shutdown() throws Exception {
-		for(Map.Entry<String, BlockSession> e : this.getSessionMap().entrySet()){
+		for(Map.Entry<String, BlockSession> e : getBlockWorldConnection().getSessionMap().entrySet()){
 			//  Gracefully close all sessions:
 			this.logMessage("Closing session '" + e.getKey() + "' TODO:  Send some kind of notify to the server here.");
 			e.getValue().close("Gracefully closing due to shutdown sequence...");
@@ -717,7 +717,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	public void inMemoryChunksCallbackOnEnqueueChunkUnsubscriptionForServer(List<CuboidAddress> cuboidAddresses) throws Exception{
 		if(cuboidAddresses.size() > 0){
-			BlockSession bs = this.getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
+			BlockSession bs = getBlockWorldConnection().getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
 			Long conversationId = 12345L;// TODO
 			ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddresses.get(0).getNumDimensions(), cuboidAddresses, false, false, conversationId, getAuthorizedClientId());
 			SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, m);
@@ -727,7 +727,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	public void inMemoryChunksCallbackOnEnqueueChunkRequestToServer(List<CuboidAddress> cuboidAddresses) throws Exception{
 		if(cuboidAddresses.size() > 0){
-			BlockSession bs = this.getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
+			BlockSession bs = getBlockWorldConnection().getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
 			Long conversationId = 12345L;// TODO
 			ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddresses.get(0).getNumDimensions(), cuboidAddresses, true, true, conversationId, getAuthorizedClientId());
 			SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, m);
@@ -736,14 +736,14 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void submitChunkToServer(Long numDimensions, List<Cuboid> cuboids, WorkItemPriority priority, Long conversationId) throws Exception{
-		BlockSession bs = this.getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
+		BlockSession bs = getBlockWorldConnection().getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
 		DescribeRegionsBlockMessage response = new DescribeRegionsBlockMessage(this, numDimensions, cuboids, conversationId, getAuthorizedClientId());
 		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, response);
 		this.putWorkItem(workItem, priority);
 	}
 
 	public void requestPlayerProvisioning() throws Exception{
-		BlockSession bs = this.getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
+		BlockSession bs = getBlockWorldConnection().getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
 
 		CommandBlockMessage getRootMessage = new CommandBlockMessage(this, 12345L, getAuthorizedClientId(), CommandType.COMMAND_TYPE_PROVISION_PLAYER);
 
@@ -756,7 +756,8 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void requestRootBlockDictionary() throws Exception{
-		BlockSession bs = this.getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
+		String sessionId = this.websocketsCommunicationProcessor.getClientSessionId();
+		BlockSession bs = getBlockWorldConnection().getSessionMap().get(sessionId);
 
 		CommandBlockMessage getRootMessage = new CommandBlockMessage(this, 12345L, getAuthorizedClientId(), CommandType.COMMAND_TYPE_REQUEST_ROOT_DICTIONARY_ADDRESS);
 
@@ -916,49 +917,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	public String getClientSessionId() throws Exception{
 		if(this.getSessionOperationInterface() instanceof WebsocketsSessionOperationInterface){
 			return this.websocketsCommunicationProcessor.getClientSessionId();
-		}else{
-			throw new Exception("Not expected.");
-		}
-	}
-
-	public void onOpen(Session session) throws Exception {
-		logger.info("In onOpen...");
-		if(this.getSessionOperationInterface() instanceof WebsocketsSessionOperationInterface){
-			this.onOpen(new WebsocketBlockSession(session));
-		}else{
-			throw new Exception("Not expected.");
-		}
-	}
-
-	public void onMessage(String txt, Session session) throws Exception {
-		if(this.getSessionOperationInterface() instanceof WebsocketsSessionOperationInterface){
-			this.onMessage(txt, new WebsocketBlockSession(session));
-		}else{
-			throw new Exception("Not expected.");
-		}
-	}
-
-	public void onBinaryMessage(byte[] inputBytes, boolean last, Session session) throws Exception {
-		if(this.getSessionOperationInterface() instanceof WebsocketsSessionOperationInterface){
-			this.onBinaryMessage(inputBytes, last, new WebsocketBlockSession(session));
-		}else{
-			throw new Exception("Not expected.");
-		}
-	}
-
-	public void onClose(CloseReason reason, Session session) throws Exception {
-		logger.info("In onClose...");
-		if(this.getSessionOperationInterface() instanceof WebsocketsSessionOperationInterface){
-			boolean doClose = true;
-			this.onClose(String.valueOf(reason), new WebsocketBlockSession(session), doClose);
-		}else{
-			throw new Exception("Not expected.");
-		}
-	}
-
-	public void onError(Session session, Throwable t) throws Throwable {
-		if(this.getSessionOperationInterface() instanceof WebsocketsSessionOperationInterface){
-			this.onError(new WebsocketBlockSession(session), t);
 		}else{
 			throw new Exception("Not expected.");
 		}

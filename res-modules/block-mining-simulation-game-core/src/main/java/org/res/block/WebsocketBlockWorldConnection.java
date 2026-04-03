@@ -58,7 +58,10 @@ public class WebsocketBlockWorldConnection extends BlockWorldConnection {
 
 	}
 
-	public WebsocketsCommunicationProcessor getCommunicationProcessor(ClientBlockModelContext clientBlockModelContext) throws Exception{
-		return new WebsocketsCommunicationProcessor(blockManagerThreadCollection, clientBlockModelContext, websocketBlockWorldConnectionParameters);
+	public WebsocketsCommunicationProcessor getCommunicationProcessor() throws Exception{
+		if(websocketsCommunicationProcessor == null){
+			this.websocketsCommunicationProcessor = new WebsocketsCommunicationProcessor(blockManagerThreadCollection, websocketBlockWorldConnectionParameters);
+		}
+		return this.websocketsCommunicationProcessor;
 	}
 }

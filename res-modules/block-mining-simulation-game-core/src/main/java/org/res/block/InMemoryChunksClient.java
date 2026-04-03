@@ -48,6 +48,6 @@ import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
 public interface InMemoryChunksClient extends Comparable<InMemoryChunksClient>{
-	void onChunkSignal(ChunkSignal signal) throws Exception;
+	void onChunkSignal(ChunkSignal chunkSignal) throws Exception;
 	Long getAuthorizedClientId();
 }

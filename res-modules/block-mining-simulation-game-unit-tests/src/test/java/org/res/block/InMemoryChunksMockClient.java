@@ -41,21 +41,31 @@ import java.util.HashSet;
 import java.util.TreeSet;
 import java.util.TreeMap;
 import java.util.Collections;
+import java.util.Random;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class InMemoryChunksMockClient implements InMemoryChunksClient, Comparable<InMemoryChunksClient>{
+public class InMemoryChunksMockClient extends WorkItemQueueOwner<InMemoryChunksMockClientWorkItem>  implements InMemoryChunksClient, Comparable<InMemoryChunksClient>{
 
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected Object lock = new Object();
+	protected BlockManagerThreadCollection blockManagerThreadCollection;
 
 	private Set<CuboidAddress> pendingChunks = new TreeSet<CuboidAddress>();
 	private Set<CuboidAddress> requestedChunks = new TreeSet<CuboidAddress>();
 	private Set<CuboidAddress> availableChunks = new TreeSet<CuboidAddress>();
+	private Set<CuboidAddress> chunksBeingSubmitted = new TreeSet<CuboidAddress>();
 
-	public InMemoryChunksMockClient(CuboidAddress chunkSize){
+	public InMemoryChunksMockClient(BlockManagerThreadCollection blockManagerThreadCollection, CuboidAddress chunkSize){
+		this.blockManagerThreadCollection = blockManagerThreadCollection;
+	}
 
+	public void init(Object o){
+	}
+
+	public void destroy(Object o){
 	}
 
 	public Long getAuthorizedClientId() {
@@ -80,73 +90,127 @@ public class InMemoryChunksMockClient implements InMemoryChunksClient, Comparabl
 	}
 
 	public void doStateTransition(MemoryChunkStateType signalType, CuboidAddress cuboidAddress) throws Exception{
-		switch(signalType){
-			case PENDING:{
-				assertDoesNotContain(requestedChunks, cuboidAddress, "Requested Chunks");
-				assertDoesNotContain(availableChunks, cuboidAddress, "Available Chunks");
-				assertDoesNotContain(pendingChunks, cuboidAddress, "Pending Chunks");
-				pendingChunks.add(cuboidAddress);
-				System.out.println("Got signal " + signalType + ": Chunk " + cuboidAddress + " transitioned from nothing to state PENDING.");
-				break;
-			}case REQUESTED:{
-				assertDoesContain(pendingChunks, cuboidAddress, "Pending Chunks");
-				assertDoesNotContain(requestedChunks, cuboidAddress, "Requested Chunks");
-				assertDoesNotContain(availableChunks, cuboidAddress, "Available Chunks");
-
+		if(signalType == null){
+			//  Chunk is discarded:
+			if(pendingChunks.contains(cuboidAddress)){
 				pendingChunks.remove(cuboidAddress);
-				requestedChunks.add(cuboidAddress);
-				System.out.println("Got signal " + signalType + ": Chunk " + cuboidAddress + " transitioned from PENDING to state REQUESTED.");
-				break;
-			}case DISCARDED:{
-				if(pendingChunks.contains(cuboidAddress)){
-					pendingChunks.remove(cuboidAddress);
-					assertDoesNotContain(requestedChunks, cuboidAddress, "Requested Chunks");
-					assertDoesNotContain(availableChunks, cuboidAddress, "Available Chunks");
-					System.out.println("Got signal " + signalType + ": Chunk " + cuboidAddress + " transitioned from PENDING to state nothing.");
-				}else if(availableChunks.contains(cuboidAddress)){
-					availableChunks.remove(cuboidAddress);
-					assertDoesNotContain(requestedChunks, cuboidAddress, "Requested Chunks");
-					assertDoesNotContain(pendingChunks, cuboidAddress, "Pending Chunks");
-					System.out.println("Got signal " + signalType + ": Chunk " + cuboidAddress + " transitioned from AVAILABLE to state nothing.");
-				}else if(requestedChunks.contains(cuboidAddress)){
-					assertDoesNotContain(availableChunks, cuboidAddress, "Available Chunks");
-					assertDoesNotContain(pendingChunks, cuboidAddress, "Pending Chunks");
-					System.out.println("Got signal " + signalType + ": Signal to dicard chunk " + cuboidAddress + ", but it's in requested state. Ignore.");
-				}else{
-					throw new Exception("Unexpected state transition.");
-				}
-				break;
-			}case AVAILABLE:{
-				assertDoesContain(requestedChunks, cuboidAddress, "Requested Chunks");
-				assertDoesNotContain(pendingChunks, cuboidAddress, "Pending Chunks");
+				assertDoesNotContain(requestedChunks, cuboidAddress, "Requested Chunks");
 				assertDoesNotContain(availableChunks, cuboidAddress, "Available Chunks");
-
+				logger.info("Got signal " + signalType + ": Chunk " + cuboidAddress + " transitioned from PENDING to state nothing.");
+			}else if(availableChunks.contains(cuboidAddress)){
+				availableChunks.remove(cuboidAddress);
+				assertDoesNotContain(requestedChunks, cuboidAddress, "Requested Chunks");
+				assertDoesNotContain(pendingChunks, cuboidAddress, "Pending Chunks");
+				logger.info("Got signal " + signalType + ": Chunk " + cuboidAddress + " transitioned from AVAILABLE to state nothing.");
+			}else if(requestedChunks.contains(cuboidAddress)){
 				requestedChunks.remove(cuboidAddress);
-				availableChunks.add(cuboidAddress);
-				System.out.println("Got signal " + signalType + ": Chunk " + cuboidAddress + " transitioned from REQUESTED to state AVAILABLE.");
-				break;
-			}default:{
-				throw new Exception("Unknown signal type.");
-			}
-		}
-	}
-
-	public CuboidAddress giveRandomRequestedChunk() throws Exception{
-		synchronized(lock){
-			if(requestedChunks.size() > 0){
-				List<CuboidAddress> l = new ArrayList<CuboidAddress>(requestedChunks);
-				return l.get(0);
+				assertDoesNotContain(availableChunks, cuboidAddress, "Available Chunks");
+				assertDoesNotContain(pendingChunks, cuboidAddress, "Pending Chunks");
+				logger.info("Got signal " + signalType + ": Signal to dicard chunk " + cuboidAddress + ", but it's in requested state.");
 			}else{
-				return null;
+				throw new Exception("Unexpected state transition.");
+			}
+		}else{
+			switch(signalType){
+				case PENDING:{
+					assertDoesNotContain(requestedChunks, cuboidAddress, "Requested Chunks");
+					assertDoesNotContain(availableChunks, cuboidAddress, "Available Chunks");
+					assertDoesNotContain(pendingChunks, cuboidAddress, "Pending Chunks");
+					pendingChunks.add(cuboidAddress);
+					logger.info("Got signal " + signalType + ": Chunk " + cuboidAddress + " transitioned from nothing to state PENDING.");
+					break;
+				}case REQUESTED:{
+					assertDoesContain(pendingChunks, cuboidAddress, "Pending Chunks");
+					assertDoesNotContain(requestedChunks, cuboidAddress, "Requested Chunks");
+					assertDoesNotContain(availableChunks, cuboidAddress, "Available Chunks");
+
+					pendingChunks.remove(cuboidAddress);
+					requestedChunks.add(cuboidAddress);
+					logger.info("Got signal " + signalType + ": Chunk " + cuboidAddress + " transitioned from PENDING to state REQUESTED.");
+					break;
+
+				}case AVAILABLE:{
+					//assertDoesContain(requestedChunks, cuboidAddress, "Requested Chunks");
+					assertDoesNotContain(pendingChunks, cuboidAddress, "Pending Chunks");
+					assertDoesNotContain(availableChunks, cuboidAddress, "Available Chunks");
+
+					requestedChunks.remove(cuboidAddress);
+					availableChunks.add(cuboidAddress);
+					chunksBeingSubmitted.remove(cuboidAddress);
+					logger.info("Got signal " + signalType + ": Chunk " + cuboidAddress + " transitioned from REQUESTED to state AVAILABLE.");
+					break;
+				}default:{
+					throw new Exception("Unknown signal type.");
+				}
 			}
 		}
 	}
 
-	public void onChunkSignal(ChunkSignal signal) throws Exception{
+	public void giveRandomRequestedChunk(BlockManagerThreadCollection blockManagerThreadCollection, Random rand, InMemoryChunks imc, BlockManagerUnitTest bmut, boolean doShutdown) throws Exception{
+
+		Long i = 0L;
+		Long timeoutNumber = 100000L; //  This is just an arbitrary to timeout on.  You may need to increase if it you get premature failures!
+		while(true){
+			synchronized(lock){
+				if(requestedChunks.size() > 0){
+					List<CuboidAddress> l = new ArrayList<CuboidAddress>(requestedChunks);
+					CuboidAddress firstRequestedChunk = l.get(0);
+					if(chunksBeingSubmitted.contains(firstRequestedChunk)){
+						//  Don't try to submit the same chunk multiple times.
+					}else{
+						chunksBeingSubmitted.add(firstRequestedChunk); //  Keep track of this chunk so we don't submit it twice.
+						// Simulate loading chunk:
+						Cuboid cuboid = bmut.getRandomCuboid(blockManagerThreadCollection, rand, firstRequestedChunk);
+						System.out.println("Simulate loading chunk " + firstRequestedChunk);
+						imc.addInMemoryChunk(cuboid, this);
+					}
+				}
+			}
+			if(doShutdown){
+				if(i > timeoutNumber || (imc.isEmptyAndFinished() && this.getWorkItemQueueSize() == 0)){
+					break;
+				}
+			}else{
+				break;
+			}
+			i++;
+			//if(rand.nextInt() % 1000 == 1){
+			//	imc.printSizes();
+			//}
+		}
+		if(doShutdown && !(imc.isEmptyAndFinished() && this.getWorkItemQueueSize() == 0)){
+			logger.info("i=" + i  + ", this.getWorkItemQueueSize()=" + this.getWorkItemQueueSize());
+			imc.printSizes();
+			throw new Exception("imc.isEmptyAndFinished=" + imc.isEmptyAndFinished());
+		}
+	}
+
+	public void processChunkSignal(ChunkSignal signal) throws Exception{
 		synchronized(lock){
 			for(CuboidAddress ca : signal.getCuboidAddresses()){
 				this.doStateTransition(signal.getMemoryChunkStateType(), ca);
 			}
 		}
+	}
+
+	public void onChunkSignal(ChunkSignal signal) throws Exception{
+		this.putWorkItem(new ChunkSignalWorkItem(this, signal), WorkItemPriority.PRIORITY_LOW);
+	}
+
+	public boolean doBackgroundProcessing() throws Exception{
+		return false;
+	}
+
+	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
+		return this.blockManagerThreadCollection;
+	}
+
+	public void putWorkItem(InMemoryChunksMockClientWorkItem workItem, WorkItemPriority priority) throws Exception{
+		this.workItemQueue.putWorkItem(workItem, priority);
+	}
+
+	public InMemoryChunksMockClientWorkItem takeWorkItem() throws Exception {
+		InMemoryChunksMockClientWorkItem workItem = this.workItemQueue.takeWorkItem();
+		return workItem;
 	}
 }

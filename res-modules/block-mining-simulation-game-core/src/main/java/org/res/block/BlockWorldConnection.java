@@ -30,10 +30,50 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
+
 public abstract class BlockWorldConnection {
 
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
+	protected WebsocketsCommunicationProcessor websocketsCommunicationProcessor;
 	private BlockWorldConnectionParameters blockWorldConnectionParameters;
 	private SessionOperationInterface sessionOperationInterface;
+	private ConcurrentHashMap<String, BlockSession> sessionMap = new ConcurrentHashMap<String, BlockSession>();
+	public ConcurrentHashMap<String, BlockSession> getSessionMap(){
+		return this.sessionMap;
+	}
+
+	public void removeBlockSession(String sessionId) throws Exception{
+		if(sessionMap.containsKey(sessionId)){
+			sessionMap.remove(sessionId);
+			logger.info("Removed block session '" + sessionId + "'");
+		}else{
+			logger.info("Trying to remove session id = '" + sessionId + "', but it was not in the session map.  Must have already been removed.");
+		}
+	}
+
+	public void addBlockSession(BlockSession blockSession) throws Exception{
+		logger.info("Opened a session id=" + blockSession.getId());
+		if(sessionMap.containsKey(blockSession.getId())){
+			throw new Exception("Duplicate openning of a session for session id = " + blockSession.getId());
+		}else{
+			sessionMap.put(blockSession.getId(), blockSession);
+		}
+	}
+
+	public BlockSession getBlockSession(String id) throws Exception{
+		if(sessionMap.containsKey(id)){
+			return sessionMap.get(id);
+		}else{
+			throw new Exception("Session not found id = " + id);
+		}
+	}
 
 	public BlockWorldConnection(BlockWorldConnectionParameters blockWorldConnectionParameters, SessionOperationInterface sessionOperationInterface) throws Exception {
 		this.blockWorldConnectionParameters = blockWorldConnectionParameters;
@@ -54,5 +94,5 @@ public abstract class BlockWorldConnection {
 
 	public abstract void init() throws Exception;
 	public abstract void destroy() throws Exception;
-	public abstract WebsocketsCommunicationProcessor getCommunicationProcessor(ClientBlockModelContext clientBlockModelContext) throws Exception;
+	public abstract WebsocketsCommunicationProcessor getCommunicationProcessor() throws Exception;
 }

@@ -58,56 +58,48 @@ public class WebsocketsCommunicationProcessor{
 	protected WebSocketContainer container;
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private ServerBlockModelContext serverBlockModelContext;
-	private ClientBlockModelContext clientBlockModelContext;
 	private BlockManagerThreadCollection blockManagerThreadCollection;
 	private WebsocketBlockWorldConnectionParameters websocketBlockWorldConnectionParameters;
 	private Session userSession = null;
+	private String localClientSessionId = null;
 
-	public WebsocketsCommunicationProcessor(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, ServerBlockModelContext serverBlockModelContext){
-		this.clientBlockModelContext = clientBlockModelContext;
+	public WebsocketsCommunicationProcessor(BlockManagerThreadCollection blockManagerThreadCollection, ServerBlockModelContext serverBlockModelContext){
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.serverBlockModelContext = serverBlockModelContext;
 	}
 
-	public WebsocketsCommunicationProcessor(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, WebsocketBlockWorldConnectionParameters websocketBlockWorldConnectionParameters){
-		this.clientBlockModelContext = clientBlockModelContext;
+	public WebsocketsCommunicationProcessor(BlockManagerThreadCollection blockManagerThreadCollection, WebsocketBlockWorldConnectionParameters websocketBlockWorldConnectionParameters){
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 		this.websocketBlockWorldConnectionParameters = websocketBlockWorldConnectionParameters;
 	}
 
-	public String getSessionIdPrefixString() throws Exception{
-		AuthorizedBlockWorldConnection abwc = this.clientBlockModelContext.getAuthorizedBlockWorldConnection();
+	public String getSessionIdPrefixString(ClientBlockModelContext clientBlockModelContext) throws Exception{
+		AuthorizedBlockWorldConnection abwc = clientBlockModelContext.getAuthorizedBlockWorldConnection();
 		String worldAddress = abwc.getBlockWorldConnection().getBlockWorldConnectionParameters().getBlockWorldAddressString();
 		String idString = String.valueOf(abwc.getAuthorizedClientId());
 		String prefix = worldAddress + ":" + idString;
 		return prefix;
 	}
 
-	public String getServerToClientSessionIdString() throws Exception{
-		return getSessionIdPrefixString() + "local_server_to_client_connection";
+	public BlockWorldConnection getBlockWorldConnection() throws Exception{
+		if(this.serverBlockModelContext == null){
+			return this.blockManagerThreadCollection.getBlockWorldConnectionByParams(websocketBlockWorldConnectionParameters);
+		}else{
+			return this.serverBlockModelContext.getBlockWorldConnection();
+		}
 	}
 
-	//public String getClientToServerSessionIdString() throws Exception{
-	//	return getSessionIdPrefixString() + "local_client_to_server_connection";
-	//}
+	public String getServerToClientSessionIdString(ClientBlockModelContext clientBlockModelContext) throws Exception{
+		return getSessionIdPrefixString(clientBlockModelContext) + "local_server_to_client_connection";
+	}
 
-	public void connect() throws Exception{
+	public String getClientToServerSessionIdString(ClientBlockModelContext clientBlockModelContext) throws Exception{
+		return getSessionIdPrefixString(clientBlockModelContext) + "local_client_to_server_connection";
+	}
+
+	public void worldConnect() throws Exception{
 		if(this.websocketBlockWorldConnectionParameters == null){
-			AuthorizedBlockWorldConnection abwc = this.clientBlockModelContext.getAuthorizedBlockWorldConnection();
-			String worldAddress = abwc.getBlockWorldConnection().getBlockWorldConnectionParameters().getBlockWorldAddressString();
-			String idString = String.valueOf(abwc.getAuthorizedClientId());
-			String prefix = worldAddress + ":" + idString;
-
-			LocalBlockSession serverToClientSession = new LocalBlockSession(serverBlockModelContext, getServerToClientSessionIdString());
-			LocalBlockSession clientToServerSession = new LocalBlockSession(clientBlockModelContext, getServerToClientSessionIdString());
-
-			//  Add the sessions to manually set up the connection
-			serverBlockModelContext.onOpen(serverToClientSession);
-			clientBlockModelContext.onOpen(clientToServerSession);
-
-			//  Connection the sessions to each others' remote endpoint:
-			serverToClientSession.setRemoteSession(clientToServerSession);
-			clientToServerSession.setRemoteSession(serverToClientSession);
+			//  Nothing to do.
 		}else{
 			String websocketsServerURL = this.websocketBlockWorldConnectionParameters.getBlockWorldAddressString();
 			this.userSession = ContainerProvider.getWebSocketContainer().connectToServer(this, new URI(websocketsServerURL));
@@ -115,9 +107,35 @@ public class WebsocketsCommunicationProcessor{
 		}
 	}
 
+	public void authorizedClientConnect(ClientBlockModelContext clientBlockModelContext) throws Exception{
+		if(this.websocketBlockWorldConnectionParameters == null){
+			//  Local in-memory connection to server, manually set up connection:
+			AuthorizedBlockWorldConnection abwc = clientBlockModelContext.getAuthorizedBlockWorldConnection();
+			String worldAddress = abwc.getBlockWorldConnection().getBlockWorldConnectionParameters().getBlockWorldAddressString();
+			String idString = String.valueOf(abwc.getAuthorizedClientId());
+			String prefix = worldAddress + ":" + idString;
+
+			this.localClientSessionId = getClientToServerSessionIdString(clientBlockModelContext);
+
+			LocalBlockSession serverToClientSession = new LocalBlockSession(serverBlockModelContext, getServerToClientSessionIdString(clientBlockModelContext));
+			LocalBlockSession clientToServerSession = new LocalBlockSession(clientBlockModelContext, this.localClientSessionId);
+
+			//  Add the sessions to manually set up the connection
+			this.blockManagerThreadCollection.onOpen(serverBlockModelContext.getBlockWorldConnection(), serverToClientSession);
+			this.blockManagerThreadCollection.onOpen(clientBlockModelContext.getBlockWorldConnection(), clientToServerSession);
+
+			//  Connection the sessions to each others' remote endpoint:
+			serverToClientSession.setRemoteSession(clientToServerSession);
+			clientToServerSession.setRemoteSession(serverToClientSession);
+		}else{
+			//  The 'onOpen' will be called later automatically by the websockets open event...
+		}
+	}
+
 	public void disconnect() throws Exception{
 		if(this.websocketBlockWorldConnectionParameters == null){
 			// Do nothing
+			this.localClientSessionId = null; // Clear id.
 		}else{
 			this.userSession.close();
 		}
@@ -125,7 +143,7 @@ public class WebsocketsCommunicationProcessor{
 
 	public String getClientSessionId() throws Exception{
 		if(this.websocketBlockWorldConnectionParameters == null){
-			return getServerToClientSessionIdString();
+			return this.localClientSessionId;
 		}else{
 			return this.userSession.getId();
 		}
@@ -134,28 +152,29 @@ public class WebsocketsCommunicationProcessor{
 	@OnOpen
 	public void onOpen(Session session) throws Exception {
 		logger.info("In onOpen...");
-		this.blockManagerThreadCollection.onOpen(clientBlockModelContext, session);
+		this.blockManagerThreadCollection.onOpen(getBlockWorldConnection(), new WebsocketBlockSession(session));
 	}
 
 	@OnMessage
 	public void onMessage(String txt, Session session) throws Exception {
-		this.blockManagerThreadCollection.onMessage(clientBlockModelContext, txt, session);
+		throw new Exception("Not expected.");
 	}
 
 	@OnMessage
 	public void onBinaryMessage(byte[] inputBytes, boolean last, Session session) throws Exception {
-		this.blockManagerThreadCollection.onBinaryMessage(clientBlockModelContext, inputBytes, last, session);
+		BlockSession blockSession = getBlockWorldConnection().getBlockSession(session.getId());
+		this.blockManagerThreadCollection.onBinaryMessage(getBlockWorldConnection(), inputBytes, last, blockSession);
 	}
 
 	@OnClose
 	public void onClose(CloseReason reason, Session session) throws Exception {
 		logger.info("In onClose...");
-		this.blockManagerThreadCollection.onClose(clientBlockModelContext, reason, session);
+		this.blockManagerThreadCollection.onClose(getBlockWorldConnection(), String.valueOf(reason), session.getId());
 	}
 
 	@OnError
 	public void onError(Session session, Throwable t) throws Throwable {
 		logger.info("In onError...");
-		this.blockManagerThreadCollection.onError(clientBlockModelContext, session, t);
+		this.blockManagerThreadCollection.onError(getBlockWorldConnection(), session.getId(), t);
 	}
 }

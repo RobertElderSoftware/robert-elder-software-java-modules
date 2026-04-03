@@ -134,7 +134,7 @@ public class ServerBlockModelContext extends BlockModelContext implements Compar
 	}
 
 	public void shutdown() throws Exception {
-		for(Map.Entry<String, BlockSession> e : getSessionMap().entrySet()){
+		for(Map.Entry<String, BlockSession> e : getBlockWorldConnection().getSessionMap().entrySet()){
 			//  Gracefully close all sessions:
 			this.logMessage("Closing session '" + e.getKey() + "' TODO:  Send some kind of notify to the client here.");
 			e.getValue().close("Gracefully closing due to shutdown sequence...");
@@ -292,22 +292,12 @@ public class ServerBlockModelContext extends BlockModelContext implements Compar
 		}
 	}
 
+
+	public BlockWorldConnection getBlockWorldConnection(){
+		return this.databaseBlockWorldConnection;
+	}
+
 	public String getClientSessionId() throws Exception{
 		throw new Exception("Not expected.");
-	}
-
-	public void onOpen(Session session) throws Exception {
-	}
-
-	public void onMessage(String txt, Session session) throws Exception {
-	}
-
-	public void onBinaryMessage(byte[] inputBytes, boolean last, Session session) throws Exception {
-	}
-
-	public void onClose(CloseReason reason, Session session) throws Exception {
-	}
-
-	public void onError(Session session, Throwable t) throws Throwable {
 	}
 }

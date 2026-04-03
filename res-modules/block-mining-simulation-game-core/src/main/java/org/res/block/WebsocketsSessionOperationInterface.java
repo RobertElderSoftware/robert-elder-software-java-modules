@@ -55,31 +55,18 @@ import java.lang.invoke.MethodHandles;
 public class WebsocketsSessionOperationInterface implements SessionOperationInterface{
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+	protected Object lock = new Object();
 
 	public WebsocketsSessionOperationInterface(){
 	}
 
-	public void onBlockSessionOpen(BlockSession blockSession) throws Exception{
-		if(blockSession instanceof WebsocketBlockSession){
-			logger.info(String.format("Opened websocket session for id '%s'.", blockSession.getId()));
-			((WebsocketBlockSession)blockSession).setMaxBinaryMessageBufferSize(1024*4);
-		}else{
-			throw new Exception("Expected sesion to be of type WebsocketBlockSession but it had type " + blockSession.getClass().getName());
-		}
-	}
-
-	public void onBlockSessionClose(BlockSession blockSession, String closeReason, boolean doClose) throws Exception{
-		if(blockSession instanceof WebsocketBlockSession){
-			logger.info(String.format("Closed websocket session for id '%s' for reason '%s'.", blockSession.getId(), closeReason));	
-		}else{
-			throw new Exception("Expected sesion to be of type WebsocketBlockSession but it had type " + blockSession.getClass().getName());
-		}
-	}
 
 	public void sendBlockMessage(BlockMessage m, BlockSession session) throws Exception{
 		if(session instanceof WebsocketBlockSession){
-			byte [] byteEncodedResponse = m.asByteArray();
-			((WebsocketBlockSession)session).sendBytes(byteEncodedResponse);
+			synchronized(lock){
+				byte [] byteEncodedResponse = m.asByteArray();
+				((WebsocketBlockSession)session).sendBytes(byteEncodedResponse);
+			}
 		}else{
 			throw new Exception("Expected sesion to be of type WebsocketBlockSession but it had type " + session.getClass().getName());
 		}

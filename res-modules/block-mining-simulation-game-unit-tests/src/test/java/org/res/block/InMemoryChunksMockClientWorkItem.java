@@ -30,34 +30,16 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.io.EOFException;
-import java.io.IOException;
+public abstract class InMemoryChunksMockClientWorkItem extends WorkItem{
 
+	protected InMemoryChunksMockClient InMemoryChunksMockClient;
 
-public class SessionErrorWorkItem extends BlockModelContextWorkItem {
-
-	private BlockSession blockSession;
-	private Throwable throwable;
-
-	public SessionErrorWorkItem(BlockModelContext blockModelContext, BlockSession blockSession, Throwable throwable){
-		super(blockModelContext);
-		this.blockSession = blockSession;
-		this.throwable = throwable;
+	public InMemoryChunksMockClientWorkItem(InMemoryChunksMockClient InMemoryChunksMockClient, boolean isBlocking, boolean isPoisonPill){
+		super(isBlocking, isPoisonPill);
+		this.InMemoryChunksMockClient = InMemoryChunksMockClient;
 	}
 
-	public BlockSession getBlockSession(){
-		return this.blockSession;
-	}
-
-	public void doWork() throws Exception{
-		String sessionId = this.blockSession == null ? "null" : blockSession.getId();
-		if(this.throwable instanceof EOFException){
-			blockModelContext.logMessage(String.format("Observed an '%s' error in webSocket session '%s'.  Continuing...", this.throwable.getClass().getName(), sessionId));
-		}else if(this.throwable instanceof IOException){
-			blockModelContext.logMessage(String.format("Observed an '%s' error in webSocket session '%s'.  Continuing...", this.throwable.getClass().getName(), sessionId));
-		}else{
-			blockModelContext.logMessage(String.format("Observed unexpeced '%s' error in webSocket session '%s'.  Throwing exception...", this.throwable.getClass().getName(), sessionId));
-			throw new Exception("Session experienced this unhandled throwable:", this.throwable);
-		}
+	public InMemoryChunksMockClientWorkItem(InMemoryChunksMockClient InMemoryChunksMockClient, boolean isBlocking){
+		this(InMemoryChunksMockClient, isBlocking, false);
 	}
 }

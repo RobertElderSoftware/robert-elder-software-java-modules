@@ -52,23 +52,26 @@ public class AfterWriteCuboidsWorkItem extends BlockModelContextWorkItem {
 
 	public void doWork() throws Exception {
 		/*  For each user session, check if they're subscribed to this region and if so, notify them: */
-		for(Map.Entry<String, BlockSession> e : blockModelContext.getSessionMap().entrySet()){
+		for(Map.Entry<String, BlockSession> e : blockModelContext.getBlockWorldConnection().getSessionMap().entrySet()){
 			blockModelContext.logMessage("Enqueing a notify for session " + e.getKey() + " due to subscription intersection.");
 
-			Map<CuboidAddress, Long> intersectingSubscribedCuboids = e.getValue().getSubscriptionIntersections(this.cuboidAddresses, this.authorizedClientId);
+			Map<Long, Map<CuboidAddress, Long>> intersectingSubscribedCuboids = e.getValue().getSubscriptionIntersections(this.cuboidAddresses);
 
-			//  TODO:  This could be more efficient.  Group update notifications by conversation id:
-			for(Map.Entry<CuboidAddress, Long> intersectingSubscribedCuboid : intersectingSubscribedCuboids.entrySet()){
-				List<Cuboid> notificationCuboids = blockModelContext.getBlockModelInterface().getBlocksInRegions(Arrays.asList(intersectingSubscribedCuboid.getKey()));
+			//  For every authorized client:
+			for(Map.Entry<Long, Map<CuboidAddress, Long>> clientEntry : intersectingSubscribedCuboids.entrySet()){
+				Long acid = clientEntry.getKey();
+				Map<CuboidAddress, Long> regions = clientEntry.getValue();
+				//  For every intersecting subscribed region:
+				for(Map.Entry<CuboidAddress, Long> intersectingSubscribedCuboid : regions.entrySet()){
+					List<Cuboid> notificationCuboids = blockModelContext.getBlockModelInterface().getBlocksInRegions(Arrays.asList(intersectingSubscribedCuboid.getKey()));
 
-				Long subscriptionConversationId = intersectingSubscribedCuboid.getValue();
-				DescribeRegionsBlockMessage notifyMessage = new DescribeRegionsBlockMessage(this.blockModelContext, this.numDimensions, notificationCuboids, subscriptionConversationId, this.authorizedClientId);
-				SendBlockMessageToSessionWorkItem notifyWorkItem = new SendBlockMessageToSessionWorkItem(this.blockModelContext, e.getValue(), notifyMessage);
+					Long subscriptionConversationId = intersectingSubscribedCuboid.getValue();
+					DescribeRegionsBlockMessage notifyMessage = new DescribeRegionsBlockMessage(this.blockModelContext, this.numDimensions, notificationCuboids, subscriptionConversationId, acid);
+					SendBlockMessageToSessionWorkItem notifyWorkItem = new SendBlockMessageToSessionWorkItem(this.blockModelContext, e.getValue(), notifyMessage);
 
-				blockModelContext.putWorkItem(notifyWorkItem, WorkItemPriority.PRIORITY_LOW);
+					blockModelContext.putWorkItem(notifyWorkItem, WorkItemPriority.PRIORITY_LOW);
+				}
 			}
-
 		}
-
 	}
 }

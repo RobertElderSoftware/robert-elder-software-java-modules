@@ -30,29 +30,16 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.nio.ByteBuffer;
-import java.nio.LongBuffer;
+public class ChunkSignalWorkItem extends InMemoryChunksMockClientWorkItem{
 
-public class ProcessBinaryMessageWorkItem extends BlockModelContextWorkItem {
+	protected ChunkSignal chunkSignal;
 
-	private BlockSession blockSession;
-	private byte [] messageBytes;
-
-	public ProcessBinaryMessageWorkItem(BlockModelContext blockModelContext, BlockSession blockSession, byte [] messageBytes){
-		super(blockModelContext);
-		this.blockSession = blockSession;
-		this.messageBytes = messageBytes;
+	public ChunkSignalWorkItem(InMemoryChunksMockClient InMemoryChunksMockClient, ChunkSignal chunkSignal){
+		super(InMemoryChunksMockClient, false);
+		this.chunkSignal = chunkSignal;
 	}
-
-	public BlockSession getBlockSession(){
-		return this.blockSession;
-	}
-
 
 	public void doWork() throws Exception{
-		ProcessBlockMessageWorkItem w = new ProcessBlockMessageWorkItem(this.blockModelContext, this.blockSession, BlockMessage.consumeBlockMessage(this.blockModelContext, new BlockMessageBinaryBuffer(this.messageBytes, 0)));
-		this.blockModelContext.putWorkItem(w, WorkItemPriority.PRIORITY_LOW);
+		this.InMemoryChunksMockClient.processChunkSignal(this.chunkSignal);
 	}
 }

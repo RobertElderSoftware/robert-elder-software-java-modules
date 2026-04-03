@@ -43,6 +43,8 @@ import java.util.concurrent.Executors;
 import java.io.StringWriter;
 import java.io.PrintWriter;
 
+import java.io.EOFException;
+import java.io.IOException;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.Set;
@@ -82,6 +84,7 @@ public class BlockManagerThreadCollection {
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
 	protected Object lock = new Object();
+	protected Object messageLock = new Object();
 	protected boolean enableJNI;
 	protected boolean isProcessFinished = false;
 	protected List<Exception> offendingExceptions = new ArrayList<Exception>();
@@ -100,6 +103,7 @@ public class BlockManagerThreadCollection {
 	private Map<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>> authorizedBlockWorldConnections = new HashMap<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>>();
 
 	private Map<BlockWorldConnectionParameters, InMemoryChunks> loadedWorldChunks = new HashMap<BlockWorldConnectionParameters, InMemoryChunks>();
+	private ByteArrayOutputStream partialBinaryMessage = new ByteArrayOutputStream();
 
 	/*  This defines the dimensions of the 'chunks' that are loaded into memory as we move around */
 	private final CuboidAddress chunkSizeCuboidAddress = new CuboidAddress(new Coordinate(Arrays.asList(0L, 0L, 0L, 0L)), new Coordinate(Arrays.asList(3L, 3L, 5L, 1L)));
@@ -164,9 +168,17 @@ public class BlockManagerThreadCollection {
 			getConsoleWriterThreadState().putWorkItem(new TellClientTerminalChangedWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
 		}else{
 			for(Map.Entry<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>> worldConnectionEntry : authorizedBlockWorldConnections.entrySet()){
-				for(Map.Entry<Long, AuthorizedBlockWorldConnection> playerConnectionEntry : worldConnectionEntry.getValue().entrySet()){
+				BlockWorldConnectionParameters params = worldConnectionEntry.getKey();
+				Map<Long, AuthorizedBlockWorldConnection> authorizedClients = worldConnectionEntry.getValue();
+				BlockWorldConnection worldConnection = getBlockWorldConnectionByParams(params);
+				//  Set up the connection to the world for all authorized
+				//  clients in that world:
+				worldConnection.getCommunicationProcessor().worldConnect();
+				//  Now set up a connection for each individual authorized client:
+				for(Map.Entry<Long, AuthorizedBlockWorldConnection> playerConnectionEntry : authorizedClients.entrySet()){
+					//  Connect every client:
 					ClientBlockModelContext clientBlockModelContext = playerConnectionEntry.getValue().getClientBlockModelContext();
-					clientBlockModelContext.connect();
+					clientBlockModelContext.authorizedClientConnect();
 					clientBlockModelContext.startRunningClient();
 				}
 			}
@@ -179,6 +191,10 @@ public class BlockManagerThreadCollection {
 
 	public List<Map.Entry<BlockWorldConnectionParameters, BlockWorldConnection>> getAllBlockWorldConnectionEntries(){
 		return new ArrayList<Map.Entry<BlockWorldConnectionParameters, BlockWorldConnection>>(blockWorldConnections.entrySet());
+	}
+
+	public final BlockWorldConnection getBlockWorldConnectionByParams(BlockWorldConnectionParameters params) throws Exception{
+		return this.blockWorldConnections.get(params);
 	}
 
 	public final BlockWorldConnection makeOrGetBlockWorldConnection(BlockWorldConnectionParameters params, SessionOperationInterface sessionOperationInterface) throws Exception{
@@ -218,14 +234,21 @@ public class BlockManagerThreadCollection {
 		return loadedWorldChunks.get(params);
 	}
 
-	public final AuthorizedBlockWorldConnection makeOrGetAuthorizedBlockWorldConnection(Long authorizedClientId, BlockWorldConnection blockWorldConnection) throws Exception{
+	public final AuthorizedBlockWorldConnection getAuthorizedBlockWorldConnection(Long authorizedClientId, BlockWorldConnectionParameters params) throws Exception{
+		if(this.authorizedBlockWorldConnections.get(params).containsKey(authorizedClientId)){
+			return this.authorizedBlockWorldConnections.get(params).get(authorizedClientId);
+		}else{
+			throw new Exception("Unknown authorizedClientId=" + authorizedClientId);
+		}
+	}
+
+	public final AuthorizedBlockWorldConnection makeOrGetAuthorizedBlockWorldConnection(Long authorizedClientId, BlockWorldConnectionParameters params) throws Exception{
 		
-		BlockWorldConnectionParameters params = blockWorldConnection.getBlockWorldConnectionParameters();
 		if(!this.authorizedBlockWorldConnections.containsKey(params)){
 			this.authorizedBlockWorldConnections.put(params, new HashMap<Long, AuthorizedBlockWorldConnection>());
 		}
 		if(!this.authorizedBlockWorldConnections.get(params).containsKey(authorizedClientId)){
-			AuthorizedBlockWorldConnection abwc = new AuthorizedBlockWorldConnection(this, authorizedClientId, blockWorldConnection);
+			AuthorizedBlockWorldConnection abwc = new AuthorizedBlockWorldConnection(this, authorizedClientId, blockWorldConnections.get(params));
 			abwc.init();
 			this.authorizedBlockWorldConnections.get(params).put(authorizedClientId, abwc);
 		}
@@ -585,26 +608,71 @@ public class BlockManagerThreadCollection {
 		}
 	}
 
-	public void onOpen(BlockModelContext blockModelContext, Session session) throws Exception {
-		logger.info("In onOpen...");
-		blockModelContext.onOpen(session);
+	public void onOpen(BlockWorldConnection blockWorldConnection, BlockSession blockSession) throws Exception {
+		logger.info("Opened a session id=" + blockSession.getId());
+		blockWorldConnection.addBlockSession(blockSession);
+		if(blockSession instanceof WebsocketBlockSession){
+			logger.info(String.format("Opened websocket session for id '%s'.", blockSession.getId()));
+			((WebsocketBlockSession)blockSession).setMaxBinaryMessageBufferSize(1024*4);
+		}else if(blockSession instanceof LocalBlockSession){
+			// Do nothing.
+		}else{
+			throw new Exception("Expected sesion to be of type WebsocketBlockSession but it had type " + blockSession.getClass().getName());
+		}
 	}
 
-	public void onMessage(BlockModelContext blockModelContext, String txt, Session session) throws Exception {
-		blockModelContext.onMessage(txt, session);
+	public void onBlockModelMessage(BlockModelContext blockModelContext, BlockMessage blockMessage, BlockSession blockSession) throws Exception {
+		ProcessBlockMessageWorkItem w = new ProcessBlockMessageWorkItem(blockModelContext, blockSession, blockMessage);
+		blockModelContext.putWorkItem(w, WorkItemPriority.PRIORITY_LOW);
 	}
 
-	public void onBinaryMessage(BlockModelContext blockModelContext, byte[] inputBytes, boolean last, Session session) throws Exception {
-		blockModelContext.onBinaryMessage(inputBytes, last, session);
+	public void onBinaryMessage(BlockWorldConnection bwc, byte[] inputBytes, boolean last, BlockSession blockSession) throws Exception {
+		synchronized(messageLock){
+			partialBinaryMessage.write(inputBytes);
+			logger.info("Partial message received of length " + inputBytes.length + " last=" + last);
+			if(last){
+				byte [] messageByteArray = partialBinaryMessage.toByteArray();
+				long authorizedClientId = BlockMessage.extractAuthorizedClientId(new BlockMessageBinaryBuffer(messageByteArray, 0));
+				AuthorizedBlockWorldConnection abwc = this.getAuthorizedBlockWorldConnection(authorizedClientId, bwc.getBlockWorldConnectionParameters());
+				BlockModelContext blockModelContext = abwc.getClientBlockModelContext();
+				BlockMessage blockMessage = BlockMessage.consumeBlockMessage(blockModelContext, new BlockMessageBinaryBuffer(messageByteArray, 0));
+
+				this.onBlockModelMessage(blockModelContext, blockMessage, blockSession);
+				this.partialBinaryMessage = new ByteArrayOutputStream();  //  Clear the buffer.
+			}
+		}
 	}
 
-	public void onClose(BlockModelContext blockModelContext, CloseReason reason, Session session) throws Exception {
-		logger.info("In onClose...");
-		blockModelContext.onClose(reason, session);
+	public void onBinaryMessage(BlockModelContext blockModelContext, byte[] inputBytes, boolean last, BlockSession blockSession) throws Exception {
+		synchronized(messageLock){
+			partialBinaryMessage.write(inputBytes);
+			logger.info("Partial message received of length " + inputBytes.length + " last=" + last);
+			if(last){
+				byte [] messageByteArray = partialBinaryMessage.toByteArray();
+				BlockMessage blockMessage = BlockMessage.consumeBlockMessage(blockModelContext, new BlockMessageBinaryBuffer(messageByteArray, 0));
+
+				this.onBlockModelMessage(blockModelContext, blockMessage, blockSession);
+				this.partialBinaryMessage = new ByteArrayOutputStream();  //  Clear the buffer. 
+			}
+		}
 	}
 
-	public void onError(BlockModelContext blockModelContext, Session session, Throwable t) throws Throwable {
-		blockModelContext.onError(session, t);
+	public void onClose(BlockWorldConnection blockWorldConnection, String reason, String sessionId) throws Exception {
+		logger.info("In onClose for blockSession id = '" + String.valueOf(sessionId) + "' reason = " + reason);
+		blockWorldConnection.removeBlockSession(sessionId);
+		logger.info(String.format("Closed websocket session for id '%s' for reason '%s'.", sessionId, reason));	
+	}
+
+	public void onError(BlockWorldConnection blockWorldConnection, String sessionId, Throwable throwable) throws Throwable {
+		blockWorldConnection.removeBlockSession(sessionId);
+		if(throwable instanceof EOFException){
+			logger.info(String.format("Observed an '%s' error in webSocket session '%s'.  Continuing...", throwable.getClass().getName(), sessionId), throwable);
+		}else if(throwable instanceof IOException){
+			logger.info(String.format("Observed an '%s' error in webSocket session '%s'.  Continuing...", throwable.getClass().getName(), sessionId), throwable);
+		}else{
+			logger.info(String.format("Observed unexpeced '%s' error in webSocket session '%s'.  Throwing exception...", throwable.getClass().getName(), sessionId));
+			throw new Exception("Session experienced this unhandled throwable:", throwable);
+		}
 	}
 
 	public static String exceptionToString(Throwable t){
