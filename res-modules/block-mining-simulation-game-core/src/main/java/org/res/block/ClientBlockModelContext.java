@@ -529,8 +529,15 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 				PlayerInventory playerInventory = (PlayerInventory)this.deserializeBlockData(blockData);
 				this.onPlayerInventoryChange(new PlayerInventory(new String(playerInventory.getBlockData(), "UTF-8")));
-			}else if(this.playerPositionXYZ != null && currentCoordinate.equals(this.playerPositionXYZ.getPosition())){
-				this.playerObject = (PlayerObject)this.deserializeBlockData(blockData);
+			}else if(this.playerPositionXYZ != null && blockData != null){
+				IndividualBlock b = this.deserializeBlockData(blockData);
+				if(b instanceof PlayerObject){
+					PlayerObject po = (PlayerObject)b;
+					if(("player:" + po.getPlayerUUID()).equals(this.playerPositionXYZ.getPlayerUUID())){
+						this.playerObject = po;
+					}
+					//throw new Exception(po.getPlayerUUID() + " " + this.playerPositionXYZ.getPlayerUUID());
+				}
 			}
 		}
 	}

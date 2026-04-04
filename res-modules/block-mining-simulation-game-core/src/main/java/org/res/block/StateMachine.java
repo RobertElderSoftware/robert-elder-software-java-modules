@@ -50,25 +50,33 @@ public abstract class StateMachine<T extends Comparable<T>, U extends StateMachi
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	//protected Map<U, Set<T>> stateToObjectsMap = new TreeMap<U, Set<T>>();
+	protected Map<U, Set<T>> stateToObjectsMap = new TreeMap<U, Set<T>>();
 	protected Map<T, U> objectToStateMap = new TreeMap<T, U>();
-	protected Class<U> classType;
+	protected Set<U> allStatesSet;
 
-	public StateMachine(Class<U> classType) throws Exception{
-		this.classType = classType;
-		/*
-		for(StateMachineState state : U.getAllStatesSet()){
-			U castedState = classType.cast(state);
-			stateToObjectsMap.put(castedState, new TreeSet<T>());
+	public StateMachine(Set<U> allStatesSet) throws Exception{
+		this.allStatesSet = allStatesSet;
+		for(U state : this.allStatesSet){
+			stateToObjectsMap.put(state, new TreeSet<T>());
 		}
-		*/
+	}
+
+	public void addObjectIntoStateNoCheck(T object, U state) throws Exception{
+		objectToStateMap.put(object, state);
+		if(state != null){
+			if(stateToObjectsMap.containsKey(state)){
+				stateToObjectsMap.get(state).add(object);
+			}else{
+				throw new Exception("state=" + state);
+			}
+		}
 	}
 
 	public void addObjectIntoState(T object, U state) throws Exception{
 		if(objectToStateMap.containsKey(object)){
 			throw new Exception("Object " + object + " is already in the map.");
 		}else{
-			objectToStateMap.put(object, state);
+			this.addObjectIntoStateNoCheck(object, state);
 		}
 	}
 
@@ -76,33 +84,31 @@ public abstract class StateMachine<T extends Comparable<T>, U extends StateMachi
 		return objectToStateMap.get(obj);
 	}
 
-	public void putObjectIntoState(T obj, U state){
-		objectToStateMap.put(obj, state);
+	public void putObjectIntoState(T obj, U state) throws Exception{
+		removeObject(obj);
+		this.addObjectIntoStateNoCheck(obj, state);
 	}
 
 	public Set<T> getObjectSet(){
-		Set<T> rtn = new TreeSet<T>();
-		for(T o : objectToStateMap.keySet()){
-			rtn.add(o);
-		}
-		return rtn;
+		return new TreeSet<T>(objectToStateMap.keySet());
 	}
 
 	public void removeObject(T obj){
+		U currentState = objectToStateMap.get(obj);
+		if(currentState != null){
+			stateToObjectsMap.get(currentState).remove(obj);
+		}
 		objectToStateMap.remove(obj);
 	}
 
-	public void removeAllObjects(Set<T> objs){
+	public void removeAllObjects(Set<T> objs) throws Exception{
 		objectToStateMap.keySet().removeAll(objs);
+		for(U state : this.allStatesSet){
+			stateToObjectsMap.get(state).removeAll(objs);
+		}
 	}
 
 	public Set<T> getObjectsInState(U state){
-		Set<T> rtn = new TreeSet<T>();
-		for(Map.Entry<T, U> e : objectToStateMap.entrySet()){
-			if(e.getValue().equals(state)){
-				rtn.add(e.getKey());
-			}
-		}
-		return rtn;
+		return new TreeSet<T>(stateToObjectsMap.get(state));
 	}
 }

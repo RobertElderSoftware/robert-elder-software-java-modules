@@ -51,8 +51,16 @@ public class MemoryChunkStateMachine extends StateMachine<CuboidAddress, ChunkMe
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private InMemoryChunks inMemoryChunks;
 
+	public static Set<ChunkMemoryState> getAllStatesSet() throws Exception{
+		Set<ChunkMemoryState> rtn = new TreeSet<ChunkMemoryState>();
+		for(Map.Entry<Long, MemoryChunkStateType> e : MemoryChunkStateType.memoryChunkStateTypesByValue.entrySet()){
+			rtn.add(new ChunkMemoryState(e.getValue()));
+		}
+		return rtn;
+	}
+
 	public MemoryChunkStateMachine(InMemoryChunks inMemoryChunks) throws Exception{
-		super(ChunkMemoryState.class);
+		super(MemoryChunkStateMachine.getAllStatesSet());
 		this.inMemoryChunks = inMemoryChunks;
 	}
 
@@ -87,7 +95,9 @@ public class MemoryChunkStateMachine extends StateMachine<CuboidAddress, ChunkMe
 		}else{
 			switch(chunkState.getMemoryChunkStateType()){
 				case PENDING:{
-					throw new Exception("Should not be possible.");
+					//  TODO: This is not supposed to be possible:
+					this.putObjectIntoState(ca, new ChunkMemoryState(MemoryChunkStateType.AVAILABLE));
+					break;
 				}case REQUESTED:{
 					this.putObjectIntoState(ca, new ChunkMemoryState(MemoryChunkStateType.AVAILABLE));
 					break;

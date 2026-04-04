@@ -48,12 +48,10 @@ public class ChunkMemoryState extends StateMachineState{
 		return this.memoryChunkStateType;
 	}
 
-	public static Set<StateMachineState> getAllStatesSet() throws Exception{
-		Set<StateMachineState> rtn = new TreeSet<StateMachineState>();
-		for(Map.Entry<Long, MemoryChunkStateType> e : MemoryChunkStateType.memoryChunkStateTypesByValue.entrySet()){
-			rtn.add(new ChunkMemoryState(e.getValue()));
-		}
-		return rtn;
+
+	@Override
+	public String toString(){
+		return this.memoryChunkStateType.toString();
 	}
 
 	@Override

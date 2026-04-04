@@ -48,14 +48,11 @@ import java.lang.invoke.MethodHandles;
 
 public abstract class StateMachineState implements Comparable<StateMachineState> {
 
-	public static Set<StateMachineState> getAllStatesSet() throws Exception{
-		return new TreeSet<StateMachineState>();
-	}
-
 	public abstract int compareTo(StateMachineState other);
+	public abstract String toString();
 
 	@Override
 	public boolean equals(Object other){
-		return this.compareTo((StateMachineState )other) == 0;
+		return this.compareTo((StateMachineState)other) == 0;
 	}
 }
