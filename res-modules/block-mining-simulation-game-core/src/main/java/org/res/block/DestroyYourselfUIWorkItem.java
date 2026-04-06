@@ -31,31 +31,19 @@
 package org.res.block;
 
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
 import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
+public class DestroyYourselfUIWorkItem extends UIWorkItem {
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
-
-public class CloseFrameWorkItem extends ConsoleQueueableWorkItem {
-
-	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-
-	private Long frameId;
-
-	public CloseFrameWorkItem(ConsoleWriterThreadState consoleWriterThreadState, Long frameId){
-		super(consoleWriterThreadState, true);
-		this.frameId = frameId;
-	}
-
-	public WorkItemResult executeQueuedWork() throws Exception{
-		return new CloseFrameWorkItemResult(this.consoleWriterThreadState.onCloseFrame(this.frameId));
+	public DestroyYourselfUIWorkItem(UserInterfaceFrameThreadState userInterfaceFrameThreadState){
+		super(userInterfaceFrameThreadState, false, true);
 	}
 
 	public void doWork() throws Exception{
-		this.consoleWriterThreadState.addPendingQueueableWorkItem(this);
+		this.userInterfaceFrameThreadState.destroy(new Object());
 	}
 }

@@ -58,6 +58,7 @@ import java.lang.invoke.MethodHandles;
 public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState implements RenderableListContainer {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+	public static String DISPLAY_TITLE = "Inventory";
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 	private Long selectedInventoryItemIndex = null;
 	private RenderableList<InventoryItemRenderableListItem> inventoryItemList;
@@ -251,5 +252,8 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 				throw new Exception("Unknown event notification type: " + notificationType);
 			}
 		}
+	}
+
+	public void destroy(Object o) throws Exception{
 	}
 }

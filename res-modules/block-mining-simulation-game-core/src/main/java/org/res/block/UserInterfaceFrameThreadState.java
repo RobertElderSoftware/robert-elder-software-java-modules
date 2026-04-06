@@ -1111,15 +1111,6 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 	public void onCloseCurrentFrame() throws Exception {
 		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
 
-		//  TODO:  This needs to be generalized once there are multiple clients:
-		List<ClientBlockModelContext> clients = this.blockManagerThreadCollection.getClientBlockModelContexts();
-		ClientBlockModelContext client = null;
-		if(clients.size() > 0){
-			client = clients.get(0);
-		}
-
-
-
 		//  Get id of currently focused frame
 		GetFocusedFrameWorkItem getFocusedFrameWorkItem = new GetFocusedFrameWorkItem(cwts);
 		WorkItemResult getFocusedFrameWorkItemResult = cwts.putBlockingWorkItem(getFocusedFrameWorkItem, WorkItemPriority.PRIORITY_LOW);
@@ -1136,7 +1127,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 			this.removeSplitWithFrameId(rootSplitId, focusedFrameId);
 
 			//  Close the focused frame
-			ConsoleWriterWorkItem w = new CloseFrameWorkItem(cwts, focusedFrameId, client);
+			ConsoleWriterWorkItem w = new CloseFrameWorkItem(cwts, focusedFrameId);
 			CloseFrameWorkItemResult r = (CloseFrameWorkItemResult)cwts.putBlockingWorkItem(w, WorkItemPriority.PRIORITY_LOW);
 		}
 	}
@@ -1164,7 +1155,23 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		return getConsoleWriterThreadState().measureTextLengthOnTerminal(text).getDeltaX();
 	}
 
-	public void destroy(Object o) throws Exception{
 
+	public void unsubscribeFromAllEvents(ClientBlockModelContext clientBlockModelContext) throws Exception{
+		//  Unsubscribe that frame from all events, otherwise
+		//  the client will continue to send events to a dead 
+		//  frame and the work item queue will overflow:
+		for(UINotificationType n : UINotificationType.values()){
+			UserInterfaceFrameThreadState ui = this;
+			clientBlockModelContext.putBlockingWorkItem(
+				new UIModelProbeWorkItem(
+					clientBlockModelContext,
+					n,
+					UINotificationSubscriptionType.UNSUBSCRIBE,
+					ui,
+					BlockingType.BLOCK
+				),
+				WorkItemPriority.PRIORITY_LOW
+			);
+		}
 	}
 }

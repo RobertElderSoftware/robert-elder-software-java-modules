@@ -60,6 +60,7 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
+	public static String DISPLAY_TITLE = "Crafting Menu";
 	private RenderableList<CraftingRecipeRenderableListItem> recipeList;
 	private ClientBlockModelContext clientBlockModelContext;
 
@@ -237,5 +238,9 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 				throw new Exception("Unknown event notification type: " + notificationType);
 			}
 		}
+	}
+
+	public void destroy(Object o) throws Exception{
+		this.unsubscribeFromAllEvents(this.clientBlockModelContext);
 	}
 }

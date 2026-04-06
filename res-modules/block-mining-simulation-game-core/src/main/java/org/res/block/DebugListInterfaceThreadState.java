@@ -57,16 +57,15 @@ import java.lang.invoke.MethodHandles;
 
 public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState implements RenderableListContainer {
 
+	public static String DISPLAY_TITLE = "Debug List";
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
 	private RenderableList<DebugRendererListItem> recipeList;
-	private ClientBlockModelContext clientBlockModelContext;
 
-	public DebugListInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
+	public DebugListInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
 		super(blockManagerThreadCollection, consoleWriterThreadState, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
-		this.clientBlockModelContext = clientBlockModelContext;
 
 	}
 
@@ -86,7 +85,7 @@ public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState
 	}
 
 	private byte [] gbd(Class<?> c) throws Exception {
-		return clientBlockModelContext.getBlockDataForClass(c);
+		return this.getConsoleWriterThreadState().getBlockManagerThreadCollection().getBlockDataForClass(c);
 	}
 
 	public void onKeyboardInput(String actionString) throws Exception {
@@ -175,5 +174,9 @@ public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState
 				throw new Exception("Unknown event notification type: " + notificationType);
 			}
 		}
+	}
+
+	public void destroy(Object o) throws Exception{
+
 	}
 }

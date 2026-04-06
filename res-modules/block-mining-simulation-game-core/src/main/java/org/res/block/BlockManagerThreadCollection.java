@@ -234,6 +234,10 @@ public class BlockManagerThreadCollection {
 		return loadedWorldChunks.get(params);
 	}
 
+	public final Map<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>> getAuthorizedBlockWorldConnections() throws Exception{
+		return this.authorizedBlockWorldConnections;
+	}
+
 	public final AuthorizedBlockWorldConnection getAuthorizedBlockWorldConnection(Long authorizedClientId, BlockWorldConnectionParameters params) throws Exception{
 		if(this.authorizedBlockWorldConnections.get(params).containsKey(authorizedClientId)){
 			return this.authorizedBlockWorldConnections.get(params).get(authorizedClientId);

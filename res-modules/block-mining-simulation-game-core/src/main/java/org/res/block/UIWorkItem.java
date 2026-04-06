@@ -33,8 +33,12 @@ package org.res.block;
 public abstract class UIWorkItem extends WorkItem{
 	protected UserInterfaceFrameThreadState userInterfaceFrameThreadState;
 
-	public UIWorkItem(UserInterfaceFrameThreadState userInterfaceFrameThreadState, boolean isBlocking){
-		super(isBlocking);
+	public UIWorkItem(UserInterfaceFrameThreadState userInterfaceFrameThreadState, boolean isBlocking, boolean isPoisonPill){
+		super(isBlocking, isPoisonPill);
 		this.userInterfaceFrameThreadState = userInterfaceFrameThreadState;
+	}
+
+	public UIWorkItem(UserInterfaceFrameThreadState userInterfaceFrameThreadState, boolean isBlocking){
+		this(userInterfaceFrameThreadState, isBlocking, false);
 	}
 }

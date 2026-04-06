@@ -265,7 +265,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public void destroyFrameThreadById(Long frameId) throws Exception{
 		if(activeFrameThreads.containsKey(frameId)){
 			this.getFrameThreadById(frameId).setIsThreadFinished(true);
-			this.getFrameThreadById(frameId).interrupt();
+			//this.getFrameThreadById(frameId).interrupt();
 			this.blockManagerThreadCollection.removeThread(this.getFrameThreadById(frameId));
 			activeFrameThreads.remove(frameId);
 		}else{
@@ -326,35 +326,21 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		this.userInterfaceSplits.remove(splitId);
 	}
 
-	public void destroyFrameStateById(Long frameId, ClientBlockModelContext clientBlockModelContext) throws Exception{
+	public void destroyFrameStateById(Long frameId) throws Exception{
 		if(activeFrameStates.containsKey(frameId)){
-			if(clientBlockModelContext != null){
-				//  Unsubscribe that frame from all events, otherwise
-				//  the client will continue to send events to a dead 
-				//  frame and the work item queue will overflow:
-				for(UINotificationType n : UINotificationType.values()){
-					UserInterfaceFrameThreadState ui = getFrameStateById(frameId);
-					clientBlockModelContext.putBlockingWorkItem(
-						new UIModelProbeWorkItem(
-							clientBlockModelContext,
-							n,
-							UINotificationSubscriptionType.UNSUBSCRIBE,
-							ui,
-							BlockingType.BLOCK
-						),
-						WorkItemPriority.PRIORITY_LOW
-					);
-				}
-			}
-
+			UserInterfaceFrameThreadState ui = getFrameStateById(frameId);
+			ui.putWorkItem(
+				new DestroyYourselfUIWorkItem(ui),
+				WorkItemPriority.PRIORITY_LOW
+			);
 			activeFrameStates.remove(frameId);
 		}else{
 			throw new Exception("destroyFrameStateById: Frame id for thread: " + frameId);
 		}
 	}
 
-	public void destroyFrameStateAndThreadById(Long frameId, ClientBlockModelContext clientBlockModelContext) throws Exception{
-		this.destroyFrameStateById(frameId, clientBlockModelContext);
+	public void destroyFrameStateAndThreadById(Long frameId) throws Exception{
+		this.destroyFrameStateById(frameId);
 		this.destroyFrameThreadById(frameId);
 	}
 
@@ -449,8 +435,8 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 		return new EmptyWorkItemResult();
 	}
 
-	public Long onCloseFrame(Long frameId, ClientBlockModelContext clientBlockModelContext) throws Exception{
-		this.destroyFrameStateAndThreadById(frameId, clientBlockModelContext);
+	public Long onCloseFrame(Long frameId) throws Exception{
+		this.destroyFrameStateAndThreadById(frameId);
 		this.focusedFrameId = null;
 		this.onTerminalWindowChanged();
 		return frameId;

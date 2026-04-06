@@ -61,16 +61,15 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
-	private ClientBlockModelContext clientBlockModelContext;
+	public static String DISPLAY_TITLE = "Open World Connection";
 	private InputForm textInputAreaCollection;
 	private String initialFocus = "local_world_name";
 	private List<Map.Entry<BlockWorldConnectionParameters, BlockWorldConnection>> worldConnections;
 	private List<ColouredTextFragmentList> statusMessages = new ArrayList<ColouredTextFragmentList>();
 
-	public OpenWorldConnectionInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
+	public OpenWorldConnectionInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
 		super(blockManagerThreadCollection, consoleWriterThreadState, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
-		this.clientBlockModelContext = clientBlockModelContext;
 	}
 
 	public void onCursorPositionChange(Coordinate c){
@@ -384,5 +383,8 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 				}
 			}
 		}
+	}
+
+	public void destroy(Object o) throws Exception{
 	}
 }

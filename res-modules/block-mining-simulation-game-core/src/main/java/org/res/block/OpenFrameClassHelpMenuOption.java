@@ -58,13 +58,23 @@ public class OpenFrameClassHelpMenuOption extends SimpleHelpMenuOption {
 
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private Class<?> frameStateClass;
+	private ClientBlockModelContext clientBlockModelContext = null;
 
-	public OpenFrameClassHelpMenuOption(String title, HelpMenuOptionType helpMenuOptionType, Class<?> frameStateClass) throws Exception {
+	public OpenFrameClassHelpMenuOption(String title, HelpMenuOptionType helpMenuOptionType, Class<?> frameStateClass, ClientBlockModelContext clientBlockModelContext) throws Exception {
 		super(title, helpMenuOptionType);
 		this.frameStateClass = frameStateClass;
+		this.clientBlockModelContext = clientBlockModelContext;
+	}
+
+	public OpenFrameClassHelpMenuOption(String title, HelpMenuOptionType helpMenuOptionType, Class<?> frameStateClass) throws Exception {
+		this(title, helpMenuOptionType, frameStateClass, null);
 	}
 
 	public Class<?> getFrameStateClass(){
 		return this.frameStateClass;
+	}
+
+	public ClientBlockModelContext getClientBlockModelContext(){
+		return this.clientBlockModelContext;
 	}
 }

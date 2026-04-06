@@ -60,8 +60,10 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 	/*  A description of how many blocks the 'chunk' should be on each side: */
 	private CuboidAddress chunkSize = null;
 
-	/*  A list of regions of space that we need to maintain in memory.  These regions are not necessarily aligned to chunk boundaries.  */
-	private Map<Long, Set<CuboidAddress>> lastRequiredRegions = new TreeMap<Long, Set<CuboidAddress>>();
+	/*  A list of regions of space that we need to maintain in memory.  These regions
+	 *  are not necessarily aligned to chunk boundaries. 
+	 *  Map of authorized client id -> required regions:  */
+	private Map<InMemoryChunksClient, Set<CuboidAddress>> lastRequiredRegions = new TreeMap<InMemoryChunksClient, Set<CuboidAddress>>();
 
 	/*  The map of chunks that currently resides in memory. */
 	private Map<CuboidAddress, IndividualBlock[]> blockChunks = new TreeMap<CuboidAddress, IndividualBlock[]>();
@@ -183,23 +185,21 @@ public class InMemoryChunks extends UIEventReceiverThreadState<InMemoryChunksWor
 
 	public void updateRequiredRegions(Set<CuboidAddress> requiredRegions, InMemoryChunksClient inMemoryChunksClient) throws Exception{
 		synchronized(lock){
-			if(!this.lastRequiredRegions.containsKey(inMemoryChunksClient.getAuthorizedClientId())){
-				this.lastRequiredRegions.put(inMemoryChunksClient.getAuthorizedClientId(), new TreeSet<CuboidAddress>());
+			if(!this.lastRequiredRegions.containsKey(inMemoryChunksClient)){
+				this.lastRequiredRegions.put(inMemoryChunksClient, new TreeSet<CuboidAddress>());
 			}
-			if(!this.lastRequiredRegions.get(inMemoryChunksClient.getAuthorizedClientId()).equals(requiredRegions)){ /*  Only do this work if something has changed. */
-				this.lastRequiredRegions.put(inMemoryChunksClient.getAuthorizedClientId(), requiredRegions);
+			if(!this.lastRequiredRegions.get(inMemoryChunksClient).equals(requiredRegions)){ /*  Only do this work if something has changed. */
+				this.lastRequiredRegions.put(inMemoryChunksClient, requiredRegions);
 				this.setupClientStateMachine(inMemoryChunksClient);
 
 				/*  Calculate the entire set of required chunks that are needed at this moment: */
 				Set<CuboidAddress> currentRequiredChunks = new TreeSet<CuboidAddress>();
-				for(Map.Entry<Long, Set<CuboidAddress>> e : this.lastRequiredRegions.entrySet()){
-					Set<CuboidAddress> currentRegions = e.getValue();
-					for(CuboidAddress ca : currentRegions){
-						Set<CuboidAddress> requiredIntersectingChunks = ca.getIntersectingChunkSet(this.chunkSize);
-						currentRequiredChunks.addAll(requiredIntersectingChunks);
-						for(CuboidAddress requiredCA : requiredIntersectingChunks){
-							this.chunkStateMachines.get(inMemoryChunksClient).requireChunk(requiredCA, inMemoryChunksClient);
-						}
+				Set<CuboidAddress> currentRegions = this.lastRequiredRegions.get(inMemoryChunksClient);
+				for(CuboidAddress ca : currentRegions){
+					Set<CuboidAddress> requiredIntersectingChunks = ca.getIntersectingChunkSet(this.chunkSize);
+					currentRequiredChunks.addAll(requiredIntersectingChunks);
+					for(CuboidAddress requiredCA : requiredIntersectingChunks){
+						this.chunkStateMachines.get(inMemoryChunksClient).requireChunk(requiredCA, inMemoryChunksClient);
 					}
 				}
 				this.chunkStateMachines.get(inMemoryChunksClient).discardUnusedChunks(currentRequiredChunks, inMemoryChunksClient);

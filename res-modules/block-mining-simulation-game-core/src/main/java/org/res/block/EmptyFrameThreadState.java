@@ -57,15 +57,13 @@ import java.lang.invoke.MethodHandles;
 
 public class EmptyFrameThreadState extends UserInterfaceFrameThreadState {
 
+	public static String DISPLAY_TITLE = "Empty Frame";
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
-	private ClientBlockModelContext clientBlockModelContext;
-
-	public EmptyFrameThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
+	public EmptyFrameThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
 		super(blockManagerThreadCollection, consoleWriterThreadState, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
-		this.clientBlockModelContext = clientBlockModelContext;
 	}
 
 	protected void init(Object o){
@@ -134,5 +132,8 @@ public class EmptyFrameThreadState extends UserInterfaceFrameThreadState {
 				throw new Exception("Unknown event notification type: " + notificationType);
 			}
 		}
+	}
+
+	public void destroy(Object o) throws Exception{
 	}
 }

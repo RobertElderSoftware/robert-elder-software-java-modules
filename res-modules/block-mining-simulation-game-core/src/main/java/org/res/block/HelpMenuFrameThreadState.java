@@ -69,6 +69,8 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 	private Long previousRootSplitId = null;
 	private HelpMenu helpMenu = null;
 
+	public static String DISPLAY_TITLE = "Help Menu Overlay";
+
 	public HelpMenuFrameThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
 		super(blockManagerThreadCollection, consoleWriterThreadState, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_MENU}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_INPUT_TRANSPARENCY});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
@@ -77,6 +79,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 
 	protected void init(Object o){
 	}
+
 
 	public SubMenuHelpMenuOption makeMoveToSubmenu(String menuTitle, SplitInfoWorkItemResult parentSplitInfo, SplitInfoWorkItemResult info, int numSiblings) throws Exception{
 		List<HelpMenuOption> options = new ArrayList<HelpMenuOption>();
@@ -188,6 +191,57 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		return rtn;
 	}
 
+	public HelpMenuOption getOptionForClientFrame(Class<?> frameStateClass) throws Exception{
+		String displayTitle = (String)frameStateClass.getDeclaredField("DISPLAY_TITLE").get(null);
+
+		List<HelpMenuOption> worldConnectionOptions = new ArrayList<HelpMenuOption>();
+		Map<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>> authorizedBlockWorldConnections = getBlockManagerThreadCollection().getAuthorizedBlockWorldConnections();
+		for(Map.Entry<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>> worldConnectionEntry : authorizedBlockWorldConnections.entrySet()){
+			BlockWorldConnectionParameters params = worldConnectionEntry.getKey();
+			Map<Long, AuthorizedBlockWorldConnection> authorizedClients = worldConnectionEntry.getValue();
+			for(Map.Entry<Long, AuthorizedBlockWorldConnection> playerConnectionEntry : authorizedClients.entrySet()){
+				AuthorizedBlockWorldConnection abwc = playerConnectionEntry.getValue();
+				worldConnectionOptions.add(new OpenFrameClassHelpMenuOption(params.getBlockWorldAddressString() + ":" + playerConnectionEntry.getKey(), HelpMenuOptionType.OPEN_NEW_FRAME, frameStateClass, abwc.getClientBlockModelContext()));
+			}
+		}
+		worldConnectionOptions.add(new SimpleHelpMenuOption("Back", HelpMenuOptionType.BACK_UP_LEVEL));
+
+		return new SubMenuHelpMenuOption(
+			displayTitle,
+			HelpMenuOptionType.DO_SUBMENU, 
+			new HelpMenuLevel(worldConnectionOptions)
+		);
+	}
+
+	public HelpMenuOption getOptionForNonClientFrame(Class<?> frameStateClass) throws Exception{
+		String displayTitle = (String)frameStateClass.getDeclaredField("DISPLAY_TITLE").get(null);
+		return new OpenFrameClassHelpMenuOption("Open " + displayTitle, HelpMenuOptionType.OPEN_NEW_FRAME, frameStateClass);
+	}
+
+	public List<HelpMenuOption> getOpenFrameOptions() throws Exception{
+		List<HelpMenuOption> rtn = new ArrayList<HelpMenuOption>();
+		rtn.add(getOptionForNonClientFrame(HelpDetailsFrameThreadState.class));
+		rtn.add(getOptionForNonClientFrame(OpenWorldConnectionInterfaceThreadState.class));
+		rtn.add(getOptionForNonClientFrame(OpenAuthorizedWorldConnectionInterfaceThreadState.class));
+		rtn.add(getOptionForClientFrame(MapAreaInterfaceThreadState.class));
+		rtn.add(getOptionForClientFrame(CraftingInterfaceThreadState.class));
+		rtn.add(getOptionForClientFrame(InventoryInterfaceThreadState.class));
+		rtn.add(new SubMenuHelpMenuOption(
+			"Debugging & Testing Frames",
+			HelpMenuOptionType.DO_SUBMENU,
+			new HelpMenuLevel(
+				Arrays.asList(
+					getOptionForNonClientFrame(DebugListInterfaceThreadState.class),
+					getOptionForNonClientFrame(DebugInputInterfaceThreadState.class),
+					getOptionForNonClientFrame(EmptyFrameThreadState.class),
+					new SimpleHelpMenuOption("Back", HelpMenuOptionType.BACK_UP_LEVEL)
+				)
+			)
+		));
+		rtn.add(new SimpleHelpMenuOption("Back", HelpMenuOptionType.BACK_UP_LEVEL));
+		return rtn;
+	}
+
 	public void rebuildHelpMenu(HelpMenu previousHelpMenu) throws Exception{
 		List<HelpMenuOption> moveToOptionsList = this.getSplitMoveToOptionsList();
 		List<HelpMenuOption> changeSplitTypeOptionsList = this.getChangeSplitTypeOptionsList();
@@ -199,22 +253,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 					new SubMenuHelpMenuOption(
 						"Open Custom Frame",
 						HelpMenuOptionType.DO_SUBMENU, 
-						new HelpMenuLevel(
-							Arrays.asList(
-								new OpenFrameClassHelpMenuOption("Open Help Menu", HelpMenuOptionType.OPEN_NEW_FRAME, HelpDetailsFrameThreadState.class),
-								new OpenFrameClassHelpMenuOption("Open Open World Connection Menu", HelpMenuOptionType.OPEN_NEW_FRAME, OpenWorldConnectionInterfaceThreadState.class),
-								new OpenFrameClassHelpMenuOption("Open Open Authorized World Connection Menu", HelpMenuOptionType.OPEN_NEW_FRAME, OpenAuthorizedWorldConnectionInterfaceThreadState.class),
-								new OpenFrameClassHelpMenuOption("Open Map Area", HelpMenuOptionType.OPEN_NEW_FRAME, MapAreaInterfaceThreadState.class),
-								new OpenFrameClassHelpMenuOption("Open Crafting Menu", HelpMenuOptionType.OPEN_NEW_FRAME, CraftingInterfaceThreadState.class),
-								new OpenFrameClassHelpMenuOption("Open Debug List", HelpMenuOptionType.OPEN_NEW_FRAME, DebugListInterfaceThreadState.class),
-								new OpenFrameClassHelpMenuOption("Open Debug Input", HelpMenuOptionType.OPEN_NEW_FRAME, DebugInputInterfaceThreadState.class),
-
-								new OpenFrameClassHelpMenuOption("Open Inventory", HelpMenuOptionType.OPEN_NEW_FRAME, InventoryInterfaceThreadState.class),
-								new OpenFrameClassHelpMenuOption("Empty Frame", HelpMenuOptionType.OPEN_NEW_FRAME, EmptyFrameThreadState.class),
-
-								new SimpleHelpMenuOption("Back", HelpMenuOptionType.BACK_UP_LEVEL)
-							)
-						)
+						new HelpMenuLevel(this.getOpenFrameOptions())
 					),
 					new SubMenuHelpMenuOption(
 						"Move Split",
@@ -293,21 +332,10 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 		cwts.putWorkItem(new TellClientTerminalChangedWorkItem(cwts), WorkItemPriority.PRIORITY_LOW);
 	}
 
-
-
-
-	public void onOpenFrame(Class<?> frameStateClass) throws Exception {
-
-		//  TODO:  This needs to be generalized once there are multiple clients:
-		List<ClientBlockModelContext> clients = this.blockManagerThreadCollection.getClientBlockModelContexts();
-		ClientBlockModelContext client = null;
-		if(clients.size() > 0){
-			client = clients.get(0);
-		}
-
+	public void onOpenFrame(Class<?> frameStateClass, ClientBlockModelContext clientBlockModelContext) throws Exception {
 		ConsoleWriterThreadState cwts = getConsoleWriterThreadState();
 		//  Open the required frame:
-		OpenFrameWorkItem openFrameWorkItem = new OpenFrameWorkItem(cwts, frameStateClass, client);
+		OpenFrameWorkItem openFrameWorkItem = new OpenFrameWorkItem(cwts, frameStateClass, clientBlockModelContext);
 		WorkItemResult openFrameWorkItemResult = cwts.putBlockingWorkItem(openFrameWorkItem, WorkItemPriority.PRIORITY_LOW);
 		Long newFrameId = ((OpenFrameWorkItemResult)openFrameWorkItemResult).getFrameId();
 
@@ -367,7 +395,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 				break;
 			} case HelpMenuOptionType.OPEN_NEW_FRAME:{
 				OpenFrameClassHelpMenuOption co = (OpenFrameClassHelpMenuOption)option;
-				this.onOpenFrame(co.getFrameStateClass());
+				this.onOpenFrame(co.getFrameStateClass(), co.getClientBlockModelContext());
 				this.helpMenu.resetMenuState();
 				this.helpMenu.setActiveState(false);
 				break;
@@ -526,5 +554,8 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 				throw new Exception("Unknown event notification type: " + notificationType);
 			}
 		}
+	}
+
+	public void destroy(Object o) throws Exception{
 	}
 }

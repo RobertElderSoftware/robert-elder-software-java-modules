@@ -61,16 +61,14 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
-	private ClientBlockModelContext clientBlockModelContext;
+	public static String DISPLAY_TITLE = "Open Authorized World Connection";
 	private InputForm textInputAreaCollection;
 	private String initialFocus = "active_connection_index";
 	private List<Map.Entry<BlockWorldConnectionParameters, BlockWorldConnection>> worldConnections;
 
-	public OpenAuthorizedWorldConnectionInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
+	public OpenAuthorizedWorldConnectionInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
 		super(blockManagerThreadCollection, consoleWriterThreadState, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
-		this.clientBlockModelContext = clientBlockModelContext;
-
 	}
 
 	public void onCursorPositionChange(Coordinate c){
@@ -287,5 +285,8 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 		}else{
 			throw new Exception("Unknown button.");
 		}
+	}
+
+	public void destroy(Object o) throws Exception{
 	}
 }

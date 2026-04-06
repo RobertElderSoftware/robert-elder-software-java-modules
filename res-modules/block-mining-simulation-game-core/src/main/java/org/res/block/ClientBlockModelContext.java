@@ -898,8 +898,8 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 					break;
 				}case PLAYER_POSITION:{
 					PlayerPositionXYZ p = this.playerPositionXYZ == null ? null : this.playerPositionXYZ.copy();
-					AuthorizedPlayerPositionXYZ app = new AuthorizedPlayerPositionXYZ(getAuthorizedClientId(), p);
-					onUIModelObjectResultForThread(blockingType, workItem, notificationType, p, receiverThread);
+					AuthorizedPlayerPositionXYZ app = p == null ? null : new AuthorizedPlayerPositionXYZ(getAuthorizedClientId(), p);
+					onUIModelObjectResultForThread(blockingType, workItem, notificationType, app, receiverThread);
 					break;
 				}case UPDATE_MAP_AREA_FLAGS:{
 					onUIModelObjectResultForThread(blockingType, workItem, notificationType, new Object(), receiverThread);

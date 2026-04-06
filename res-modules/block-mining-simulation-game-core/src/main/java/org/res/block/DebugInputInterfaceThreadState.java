@@ -58,17 +58,16 @@ import java.lang.invoke.MethodHandles;
 
 public class DebugInputInterfaceThreadState extends UserInterfaceFrameThreadState implements InputFormContainer{
 
+	public static String DISPLAY_TITLE = "Debug Input";
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
-	private ClientBlockModelContext clientBlockModelContext;
 	private InputForm textInputAreaCollection;
 	private String initialFocus = "coding_input_area";
 
-	public DebugInputInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
+	public DebugInputInterfaceThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
 		super(blockManagerThreadCollection, consoleWriterThreadState, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
-		this.clientBlockModelContext = clientBlockModelContext;
 	}
 
 	public void onCursorPositionChange(Coordinate c){
@@ -221,5 +220,8 @@ public class DebugInputInterfaceThreadState extends UserInterfaceFrameThreadStat
 		if(buttonName.equals("close_frame_button")){
 			this.onCloseCurrentFrame();
 		}
+	}
+
+	public void destroy(Object o) throws Exception{
 	}
 }

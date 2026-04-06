@@ -57,6 +57,7 @@ import java.lang.invoke.MethodHandles;
 
 public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 
+	public static String DISPLAY_TITLE = "Map Area";
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	//  Padding columns on right edge of map area where only part of a cell could fit:
 	private Long mapAreaPaddingColumnsRight;
@@ -421,5 +422,9 @@ public class MapAreaInterfaceThreadState extends UserInterfaceFrameThreadState {
 				throw new Exception("Unknown event notification type: " + notificationType);
 			}
 		}
+	}
+
+	public void destroy(Object o) throws Exception{
+		this.unsubscribeFromAllEvents(this.clientBlockModelContext);
 	}
 }
