@@ -283,6 +283,7 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 			blockManagerThreadCollection.makeOrGetAuthorizedBlockWorldConnection(authorizedClientId, worldConnection.getBlockWorldConnectionParameters());
 
 			blockManagerThreadCollection.connectAndStart();
+			getConsoleWriterThreadState().putWorkItem(new TellClientTerminalChangedWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
 		}else{
 			throw new Exception("Unknown button.");
 		}

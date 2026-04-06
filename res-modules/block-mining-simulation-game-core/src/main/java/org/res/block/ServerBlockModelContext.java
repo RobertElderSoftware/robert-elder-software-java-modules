@@ -296,8 +296,4 @@ public class ServerBlockModelContext extends BlockModelContext implements Compar
 	public BlockWorldConnection getBlockWorldConnection(){
 		return this.databaseBlockWorldConnection;
 	}
-
-	public String getClientSessionId() throws Exception{
-		throw new Exception("Not expected.");
-	}
 }

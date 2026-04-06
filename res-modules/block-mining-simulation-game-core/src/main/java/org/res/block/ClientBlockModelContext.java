@@ -724,7 +724,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	public void inMemoryChunksCallbackOnEnqueueChunkUnsubscriptionForServer(List<CuboidAddress> cuboidAddresses) throws Exception{
 		if(cuboidAddresses.size() > 0){
-			BlockSession bs = getBlockWorldConnection().getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
+			BlockSession bs = getBlockWorldConnection().getSessionMap().get(getClientSessionId());
 			Long conversationId = 12345L;// TODO
 			ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddresses.get(0).getNumDimensions(), cuboidAddresses, false, false, conversationId, getAuthorizedClientId());
 			SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, m);
@@ -734,7 +734,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 
 	public void inMemoryChunksCallbackOnEnqueueChunkRequestToServer(List<CuboidAddress> cuboidAddresses) throws Exception{
 		if(cuboidAddresses.size() > 0){
-			BlockSession bs = getBlockWorldConnection().getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
+			BlockSession bs = getBlockWorldConnection().getSessionMap().get(getClientSessionId());
 			Long conversationId = 12345L;// TODO
 			ProbeRegionsRequestBlockMessage m = new ProbeRegionsRequestBlockMessage(this, cuboidAddresses.get(0).getNumDimensions(), cuboidAddresses, true, true, conversationId, getAuthorizedClientId());
 			SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, m);
@@ -743,14 +743,14 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void submitChunkToServer(Long numDimensions, List<Cuboid> cuboids, WorkItemPriority priority, Long conversationId) throws Exception{
-		BlockSession bs = getBlockWorldConnection().getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
+		BlockSession bs = getBlockWorldConnection().getSessionMap().get(getClientSessionId());
 		DescribeRegionsBlockMessage response = new DescribeRegionsBlockMessage(this, numDimensions, cuboids, conversationId, getAuthorizedClientId());
 		SendBlockMessageToSessionWorkItem workItem = new SendBlockMessageToSessionWorkItem(this, bs, response);
 		this.putWorkItem(workItem, priority);
 	}
 
 	public void requestPlayerProvisioning() throws Exception{
-		BlockSession bs = getBlockWorldConnection().getSessionMap().get(this.websocketsCommunicationProcessor.getClientSessionId());
+		BlockSession bs = getBlockWorldConnection().getSessionMap().get(getClientSessionId());
 
 		CommandBlockMessage getRootMessage = new CommandBlockMessage(this, 12345L, getAuthorizedClientId(), CommandType.COMMAND_TYPE_PROVISION_PLAYER);
 
@@ -763,7 +763,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public void requestRootBlockDictionary() throws Exception{
-		String sessionId = this.websocketsCommunicationProcessor.getClientSessionId();
+		String sessionId = getClientSessionId();
 		BlockSession bs = getBlockWorldConnection().getSessionMap().get(sessionId);
 
 		CommandBlockMessage getRootMessage = new CommandBlockMessage(this, 12345L, getAuthorizedClientId(), CommandType.COMMAND_TYPE_REQUEST_ROOT_DICTIONARY_ADDRESS);
@@ -922,10 +922,6 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public String getClientSessionId() throws Exception{
-		if(this.getSessionOperationInterface() instanceof WebsocketsSessionOperationInterface){
-			return this.websocketsCommunicationProcessor.getClientSessionId();
-		}else{
-			throw new Exception("Not expected.");
-		}
+		return this.websocketsCommunicationProcessor.getClientSessionId(this);
 	}
 }

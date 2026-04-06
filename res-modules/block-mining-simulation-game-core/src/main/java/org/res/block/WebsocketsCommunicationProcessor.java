@@ -32,6 +32,8 @@ package org.res.block;
 
 import java.util.Set;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.ArrayList;
 
 import java.net.URI;
@@ -61,7 +63,7 @@ public class WebsocketsCommunicationProcessor{
 	private BlockManagerThreadCollection blockManagerThreadCollection;
 	private WebsocketBlockWorldConnectionParameters websocketBlockWorldConnectionParameters;
 	private Session userSession = null;
-	private String localClientSessionId = null;
+	private Map<Long, String> localClientSessionIds = new TreeMap<Long, String>();
 
 	public WebsocketsCommunicationProcessor(BlockManagerThreadCollection blockManagerThreadCollection, ServerBlockModelContext serverBlockModelContext){
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
@@ -112,13 +114,13 @@ public class WebsocketsCommunicationProcessor{
 			//  Local in-memory connection to server, manually set up connection:
 			AuthorizedBlockWorldConnection abwc = clientBlockModelContext.getAuthorizedBlockWorldConnection();
 			String worldAddress = abwc.getBlockWorldConnection().getBlockWorldConnectionParameters().getBlockWorldAddressString();
-			String idString = String.valueOf(abwc.getAuthorizedClientId());
-			String prefix = worldAddress + ":" + idString;
 
-			this.localClientSessionId = getClientToServerSessionIdString(clientBlockModelContext);
+			Long authorizedClientId = clientBlockModelContext.getAuthorizedClientId();
+			String localClientSessionId = getClientToServerSessionIdString(clientBlockModelContext);
+			this.localClientSessionIds.put(authorizedClientId, localClientSessionId);
 
 			LocalBlockSession serverToClientSession = new LocalBlockSession(serverBlockModelContext, getServerToClientSessionIdString(clientBlockModelContext));
-			LocalBlockSession clientToServerSession = new LocalBlockSession(clientBlockModelContext, this.localClientSessionId);
+			LocalBlockSession clientToServerSession = new LocalBlockSession(clientBlockModelContext, localClientSessionId);
 
 			//  Add the sessions to manually set up the connection
 			this.blockManagerThreadCollection.onOpen(serverBlockModelContext.getBlockWorldConnection(), serverToClientSession);
@@ -134,16 +136,17 @@ public class WebsocketsCommunicationProcessor{
 
 	public void disconnect() throws Exception{
 		if(this.websocketBlockWorldConnectionParameters == null){
-			// Do nothing
-			this.localClientSessionId = null; // Clear id.
+			// TODO:  Figure out how to clear id for this client:
+			//this.localClientSessionId = null; // Clear id.
 		}else{
 			this.userSession.close();
 		}
 	}
 
-	public String getClientSessionId() throws Exception{
+	public String getClientSessionId(ClientBlockModelContext clientBlockModelContext) throws Exception{
 		if(this.websocketBlockWorldConnectionParameters == null){
-			return this.localClientSessionId;
+			Long authorizedClientId = clientBlockModelContext.getAuthorizedClientId();
+			return this.localClientSessionIds.get(authorizedClientId);
 		}else{
 			return this.userSession.getId();
 		}
