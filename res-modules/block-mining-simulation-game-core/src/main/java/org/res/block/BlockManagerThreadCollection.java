@@ -102,7 +102,7 @@ public class BlockManagerThreadCollection {
 	private Map<BlockWorldConnectionParameters, BlockWorldConnection> blockWorldConnections = new HashMap<BlockWorldConnectionParameters, BlockWorldConnection>();
 	private Map<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>> authorizedBlockWorldConnections = new HashMap<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>>();
 
-	private Map<BlockWorldConnectionParameters, InMemoryChunks> loadedWorldChunks = new HashMap<BlockWorldConnectionParameters, InMemoryChunks>();
+	private Map<String, InMemoryChunks> loadedWorldChunks = new HashMap<String, InMemoryChunks>();
 	private ByteArrayOutputStream partialBinaryMessage = new ByteArrayOutputStream();
 
 	/*  This defines the dimensions of the 'chunks' that are loaded into memory as we move around */
@@ -212,12 +212,6 @@ public class BlockManagerThreadCollection {
 				throw new Exception("Unexpected params type.");
 			}
 
-			//  Start a thread for loading/unloading chunks for this world:
-			Long maxPendingChunks = 2L;
-			InMemoryChunks imc = new InMemoryChunks(this, chunkSizeCuboidAddress, maxPendingChunks);
-			loadedWorldChunks.put(params, imc);
-			imc.putWorkItem(new InitializeYourselfInMemoryChunksWorkItem(imc), WorkItemPriority.PRIORITY_LOW);
-			addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(imc, InMemoryChunksWorkItem.class, imc.getClass()));
 		}
 		return this.blockWorldConnections.get(params);
 	}
@@ -230,8 +224,8 @@ public class BlockManagerThreadCollection {
 		}
 	}
 
-	public InMemoryChunks getInMemoryChunksForWorld(BlockWorldConnectionParameters params){
-		return loadedWorldChunks.get(params);
+	public InMemoryChunks getInMemoryChunksForWorld(BlockWorldConnectionParameters params, Long authorizedClientId){
+		return loadedWorldChunks.get(params.getBlockWorldAddressString() +  ":" + authorizedClientId);
 	}
 
 	public final Map<BlockWorldConnectionParameters, Map<Long, AuthorizedBlockWorldConnection>> getAuthorizedBlockWorldConnections() throws Exception{
@@ -252,9 +246,18 @@ public class BlockManagerThreadCollection {
 			this.authorizedBlockWorldConnections.put(params, new HashMap<Long, AuthorizedBlockWorldConnection>());
 		}
 		if(!this.authorizedBlockWorldConnections.get(params).containsKey(authorizedClientId)){
+			//  Start a thread for loading/unloading chunks for this world:
+			Long maxPendingChunks = 2L;
+			InMemoryChunks imc = new InMemoryChunks(this, chunkSizeCuboidAddress, maxPendingChunks);
+			loadedWorldChunks.put(params.getBlockWorldAddressString() + ":" + authorizedClientId, imc);
+			imc.putWorkItem(new InitializeYourselfInMemoryChunksWorkItem(imc), WorkItemPriority.PRIORITY_LOW);
+			addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(imc, InMemoryChunksWorkItem.class, imc.getClass()));
+
+
 			AuthorizedBlockWorldConnection abwc = new AuthorizedBlockWorldConnection(this, authorizedClientId, blockWorldConnections.get(params));
 			abwc.init();
 			this.authorizedBlockWorldConnections.get(params).put(authorizedClientId, abwc);
+
 		}
 		return this.authorizedBlockWorldConnections.get(params).get(authorizedClientId);
 	}

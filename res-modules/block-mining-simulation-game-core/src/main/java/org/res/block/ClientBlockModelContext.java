@@ -104,7 +104,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 	}
 
 	public InMemoryChunks getInMemoryChunks() throws Exception{
-		return blockManagerThreadCollection.getInMemoryChunksForWorld(this.authorizedBlockWorldConnection.getBlockWorldConnection().getBlockWorldConnectionParameters());
+		return blockManagerThreadCollection.getInMemoryChunksForWorld(this.authorizedBlockWorldConnection.getBlockWorldConnection().getBlockWorldConnectionParameters(), this.getAuthorizedClientId());
 	}
 
 	@Override
