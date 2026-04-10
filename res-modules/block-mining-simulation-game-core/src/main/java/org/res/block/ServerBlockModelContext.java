@@ -196,12 +196,28 @@ public class ServerBlockModelContext extends BlockModelContext implements Compar
 		}
 	}
 
+	public Coordinate getNearestEmptyCoordinate(Coordinate c) throws Exception{
+		while(true){
+			Coordinate lower = c;
+			Coordinate upper = c.add(Coordinate.makeUnitCoordinate(4L));
+			CuboidAddress blockAddress = new CuboidAddress(lower, upper);
+			List<Cuboid> cuboids = this.getBlockModelInterface().getBlocksInRegions(Arrays.asList(blockAddress));
+			long blockDataLength = cuboids.get(0).getCuboidDataLengths().getLengths()[0];
+			// Is block at that coordinate empty?
+			if(blockDataLength <= 0L){
+				return c;
+			}
+			//  Try the next block...
+			c = c.addZ(1L);
+		}
+	}
+
 	public void provisionNewPlayer(Long authorizedClientId) throws Exception{
 		UUID playerUUID = UUID.randomUUID();
 		String playerUUIDString = playerUUID.toString();
 
 		Coordinate rootDictionaryAddress = getPlayerModelBlockForAuthorizedClientId(PlayerDataModelBlockType.ROOT_DICTIONARY, authorizedClientId);
-		Coordinate spawnCoordinate = Coordinate.makeOriginCoordinate(4L);
+		Coordinate spawnCoordinate = this.getNearestEmptyCoordinate(Coordinate.makeOriginCoordinate(4L));
 
 		PlayerObject newPlayerObject = new PlayerObject(
 			playerUUIDString,
@@ -210,7 +226,8 @@ public class ServerBlockModelContext extends BlockModelContext implements Compar
 
 		this.writeSingleBlockAtPosition(
 			newPlayerObject.getBlockData(),
-			spawnCoordinate
+			spawnCoordinate,
+			authorizedClientId
 		);
 
 		BlockDictionary newRootDictionary = new BlockDictionary();
@@ -223,20 +240,22 @@ public class ServerBlockModelContext extends BlockModelContext implements Compar
 			getPlayerModelBlockForAuthorizedClientId(PlayerDataModelBlockType.PLAYER_INVENTORY, authorizedClientId)
 		);
 
-		this.writeSingleBlockAtPosition(newRootDictionary.getBlockData(), rootDictionaryAddress);
+		this.writeSingleBlockAtPosition(newRootDictionary.getBlockData(), rootDictionaryAddress, authorizedClientId);
 
 		this.writeSingleBlockAtPosition(
-			(new PlayerPositionXYZ("player:" + playerUUIDString, Coordinate.makeOriginCoordinate(4L))).getBlockData(),
-			getPlayerModelBlockForAuthorizedClientId(PlayerDataModelBlockType.PLAYER_POSITION, authorizedClientId)
+			(new PlayerPositionXYZ("player:" + playerUUIDString, spawnCoordinate)).getBlockData(),
+			getPlayerModelBlockForAuthorizedClientId(PlayerDataModelBlockType.PLAYER_POSITION, authorizedClientId),
+			authorizedClientId
 		);
 
 		this.writeSingleBlockAtPosition(
 			(new PlayerInventory()).getBlockData(),
-			getPlayerModelBlockForAuthorizedClientId(PlayerDataModelBlockType.PLAYER_INVENTORY, authorizedClientId)
+			getPlayerModelBlockForAuthorizedClientId(PlayerDataModelBlockType.PLAYER_INVENTORY, authorizedClientId),
+			authorizedClientId
 		);
 	}
 
-	public void writeSingleBlockAtPosition(byte [] data, Coordinate position) throws Exception{
+	public void writeSingleBlockAtPosition(byte [] data, Coordinate position, Long authorizedClientId) throws Exception{
 		Long numDimensions = position.getNumDimensions();
 
 		CuboidAddress blocksToChangeAddress = new CuboidAddress(position, position.add(Coordinate.makeUnitCoordinate(4L)));
@@ -254,6 +273,8 @@ public class ServerBlockModelContext extends BlockModelContext implements Compar
 
 		Cuboid c = new Cuboid(blocksToChangeAddress, currentCuboidDataLengths, currentCuboidData);
 		this.getBlockModelInterface().writeBlocksInRegion(c);
+
+		this.postCuboidsWrite(c.getNumDimensions(), Arrays.asList(c.getCuboidAddress()), authorizedClientId);
 	}
 
 	public void sendRootDictionaryAddress(BlockSession blockSession, Long conversationId, Long authorizedClientId, boolean allowError) throws Exception{

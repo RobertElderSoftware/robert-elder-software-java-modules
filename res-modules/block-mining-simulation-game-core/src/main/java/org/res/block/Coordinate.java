@@ -101,6 +101,18 @@ public class Coordinate extends Vector{
 		return new Coordinate(super.changeValueAtIndex(2L, v));
 	}
 
+	public Coordinate addX(Long v) throws Exception {
+		return new Coordinate(super.addValueAtIndex(0L, v));
+	}
+
+	public Coordinate addY(Long v) throws Exception {
+		return new Coordinate(super.addValueAtIndex(1L, v));
+	}
+
+	public Coordinate addZ(Long v) throws Exception {
+		return new Coordinate(super.addValueAtIndex(2L, v));
+	}
+
 	public Coordinate changeByDeltaXYZ(Long deltaX, Long deltaY, Long deltaZ) throws Exception {
 		return new Coordinate(super.changeValues(Arrays.asList(this.getX() + deltaX, this.getY() + deltaY, this.getZ() + deltaZ)));
 	}

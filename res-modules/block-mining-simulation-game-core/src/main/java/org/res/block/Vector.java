@@ -182,6 +182,10 @@ public class Vector implements Comparable<Vector>{
 		}
 	}
 
+	public Vector addValueAtIndex(Long i, Long v) throws Exception {
+		return this.changeValueAtIndex(i, v + this.getValueAtIndex(i));
+	}
+
 	public Vector changeValueAtIndex(Long i, Long v) throws Exception {
 		/*
 			Don't mutate the existing vector, instead create a new one
