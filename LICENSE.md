@@ -1,6 +1,6 @@
-Copyright (c) 2025 Robert Elder Software Inc.
+Copyright (c) 2026 Robert Elder Software Inc.
  
-Robert Elder Software Proprietary License
+Robert Elder Software Proprietary License (Version 2026-04-09)
 
 In the context of this license, a 'Patron' means any individual who has made a membership pledge, a purchase of merchandise, a donation, or any other completed and committed financial contribution to Robert Elder Software Inc. for an amount of money greater than $1.  For a list of ways to contribute financially, visit https://blog.robertelder.org/patron
 
@@ -8,7 +8,7 @@ Permission is hereby granted, to any 'Patron' the right to use this software and
 
 1) The 'Patron' must be a natural person and NOT a commercial entity.
 2) The 'Patron' may use or modify the software for personal use only.
-3) The 'Patron' is NOT permitted to re-distribute this software in any way, either unmodified, modified, or incorporated into another software product.
+3) The 'Patron' is NOT permitted to re-distribute this software in any way, either unmodified, modified, or incorporated into another software product, except as described in the document "REDISTRIBUTION.md" (a file with SHA256 hash value 'c39a6c8200a22caf30eac97095b78def80c9cab1b6f7ddd3fca7fdae71df43da').
 
 An individual natural person may use this software for a temporary one-time trial period of up to 30 calendar days without becoming a 'Patron'.  After these 30 days have elapsed, the individual must either become a 'Patron' or stop using the software.
 
