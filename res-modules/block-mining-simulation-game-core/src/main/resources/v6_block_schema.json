@@ -203,6 +203,12 @@
                         "byte_pattern_base_64": "Q0FTOjEzMTgtOTMtMA==",
                         "block_class": "org.res.block.Montmorillonite",
                         "dedication": "harley"
+                },
+                {
+                        "match_type": "byte_comparison",
+                        "byte_pattern_base_64": "Q0FTOjEyMTc0LTExLTc=",
+                        "block_class": "org.res.block.Attapulgite",
+                        "dedication": "Ranrom"
                 }
 	]
 }

@@ -1,0 +1,141 @@
+//  Copyright (c) 2026 Robert Elder Software Inc.
+//   
+//  Robert Elder Software Proprietary License (Version 2026-04-09)
+//  
+//  In the context of this license, a 'Patron' means any individual who has made a 
+//  membership pledge, a purchase of merchandise, a donation, or any other 
+//  completed and committed financial contribution to Robert Elder Software Inc. 
+//  for an amount of money greater than $1.  For a list of ways to contribute 
+//  financially, visit https://blog.robertelder.org/patron
+//  
+//  Permission is hereby granted, to any 'Patron' the right to use this software 
+//  and associated documentation under the following conditions:
+//  
+//  1) The 'Patron' must be a natural person and NOT a commercial entity.
+//  2) The 'Patron' may use or modify the software for personal use only.
+//  3) The 'Patron' is NOT permitted to re-distribute this software in any way, 
+//  either unmodified, modified, or incorporated into another software product, 
+//  except as described in the document "REDISTRIBUTION.md" (a file with SHA256 
+//  hash value 'c39a6c8200a22caf30eac97095b78def80c9cab1b6f7ddd3fca7fdae71df43da').
+//  
+//  An individual natural person may use this software for a temporary one-time 
+//  trial period of up to 30 calendar days without becoming a 'Patron'.  After 
+//  these 30 days have elapsed, the individual must either become a 'Patron' or 
+//  stop using the software.
+//  
+//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+//  SOFTWARE.
+package org.res.block;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
+
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.io.ByteArrayOutputStream;
+
+import java.util.Date;
+import java.util.Set;
+import java.util.HashSet;
+import java.io.BufferedWriter;
+import java.text.SimpleDateFormat;
+import java.io.File;
+import java.io.FileOutputStream;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.lang.invoke.MethodHandles;
+
+public class DebugScrollableScreenLayerThreadState extends UserInterfaceFrameThreadState {
+
+	public static String DISPLAY_TITLE = "Debug Scollable Screen Layer";
+	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
+
+	public DebugScrollableScreenLayerThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
+		super(blockManagerThreadCollection, consoleWriterThreadState, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
+		this.blockManagerThreadCollection = blockManagerThreadCollection;
+	}
+
+	protected void init(Object o){
+	}
+
+	public void onKeyboardInput(String actionString) throws Exception {
+		UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
+		UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
+
+		if(action == null){
+			logger.info("Ignoring " + actionString);
+		}else{
+			switch(action){
+				case ACTION_QUIT:{
+					//  Open help menu
+					getConsoleWriterThreadState().putBlockingWorkItem(new OpenHelpMenuWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
+					break;
+				}case ACTION_TAB_NEXT_FRAME:{
+					getConsoleWriterThreadState().putBlockingWorkItem(new FocusOnNextFrameWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
+					break;
+				}default:{
+					logger.info("Crafting frame, discarding keyboard input: " + actionString);
+				}
+			}
+		}
+	}
+
+	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{
+		logger.info("DebugScrollableScreenLayerThreadState, discarding ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
+	}
+
+	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
+		return this.blockManagerThreadCollection;
+	}
+
+	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
+		this.render();
+	}
+
+	public void render() throws Exception{
+		this.reprintFrame();
+	}
+
+	public void reprintFrame() throws Exception {
+		this.drawBorders();
+		String theText = "Debug Scrollable Screen Layer.";
+		this.printTextAtScreenXY(new ColouredTextFragment(theText, UserInterfaceFrameThreadState.getDefaultTextColors()), this.getFrameWidth() > theText.length() ? ((this.getFrameWidth() - theText.length()) / 2L) : 0L, this.getFrameHeight() / 2L, PrintDirection.LEFT_TO_RIGHT);
+	}
+
+	public UIWorkItem takeWorkItem() throws Exception {
+		UIWorkItem workItem = this.workItemQueue.takeWorkItem();
+		return workItem;
+	}
+
+	public void putWorkItem(UIWorkItem workItem, WorkItemPriority priority) throws Exception{
+		this.workItemQueue.putWorkItem(workItem, priority);
+	}
+
+	public boolean doBackgroundProcessing() throws Exception{
+		return false;
+	}
+
+	public void onUIEventNotification(Object o, UINotificationType notificationType)throws Exception{
+		switch(notificationType){
+			default:{
+				throw new Exception("Unknown event notification type: " + notificationType);
+			}
+		}
+	}
+
+	public void destroy(Object o) throws Exception{
+	}
+}

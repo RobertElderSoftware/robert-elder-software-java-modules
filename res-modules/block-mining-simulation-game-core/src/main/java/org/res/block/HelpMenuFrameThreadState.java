@@ -235,6 +235,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 				Arrays.asList(
 					getOptionForNonClientFrame(DebugListInterfaceThreadState.class),
 					getOptionForNonClientFrame(DebugInputInterfaceThreadState.class),
+					getOptionForNonClientFrame(DebugScrollableScreenLayerThreadState.class),
 					getOptionForNonClientFrame(EmptyFrameThreadState.class),
 					new SimpleHelpMenuOption("Back", HelpMenuOptionType.BACK_UP_LEVEL)
 				)

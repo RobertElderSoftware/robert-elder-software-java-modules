@@ -77,6 +77,7 @@ public class BlockSkins {
 		patternsTmp.put(Magnetite.class.getName(),"\u2B1B");
 		patternsTmp.put(Kaolin.class.getName(),"\u26AA");
 		patternsTmp.put(Smectite.class.getName(),"\u26AA");
+		patternsTmp.put(Attapulgite.class.getName(),"\u26AA");
 		patternsTmp.put(Montmorillonite.class.getName(),"\u26AA");
 		patternsTmp.put(CalcinedAnthracite.class.getName(),"\u26AB");
 
@@ -116,6 +117,7 @@ public class BlockSkins {
 		descriptionsTmp.put(Wuestite.class.getName(),"One cubic meter of Wüstite, the natural mineral with chemical formula of the form FeO.");
 		descriptionsTmp.put(Kaolin.class.getName(),"One cubic meter of Kaolin, a hydrated aluminum silicate with formula Al₂Si₂O₅(OH)₄");
 		descriptionsTmp.put(Smectite.class.getName(),"One cubic meter of Smectite, a mineral mixture of various swelling sheet silicates (phyllosilicates), which have a three-layer 2:1 (TOT) structure and belong to the clay minerals.");
+		descriptionsTmp.put(Attapulgite.class.getName(),"One cubic meter of Attapulgite, a magnesium aluminium phyllosilicate with the chemical formula (Mg,Al)₂Si₄O₁₀(OH)·4(H₂O) that occurs in a type of clay soil.");
 		descriptionsTmp.put(Montmorillonite.class.getName(),"One cubic meter of Montmorillonite, a very soft, hydrated sodium/calcium aluminum magnesium silicate hydroxide mineral, classified as a 2:1 phyllosilicate in the smectite group.");
 		descriptionsTmp.put(CalcinedAnthracite.class.getName(),"One cubic meter of Calcined Anthracite, an extremely high carbon form of coal.");
 
