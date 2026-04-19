@@ -150,16 +150,16 @@ public class BlockManagerThreadCollection {
 		//  Console Writer Thread
 		this.consoleWriterThreadState = new ConsoleWriterThreadState(this);
 		this.consoleWriterThreadState.putWorkItem(new InitializeYourselfConsoleWriterWorkItem(this.consoleWriterThreadState), WorkItemPriority.PRIORITY_LOW);
-		this.addThread(new WorkItemProcessorTask<ConsoleWriterWorkItem>(this.consoleWriterThreadState, ConsoleWriterWorkItem.class, this.consoleWriterThreadState.getClass()));
+		this.addThread(new WorkItemProcessorTask<ConsoleWriterWorkItem>(this, this.consoleWriterThreadState, ConsoleWriterWorkItem.class, this.consoleWriterThreadState.getClass()));
 
 
 		//  Console Reader Thread
-		this.addThread(new StandardInputReaderTask(getConsoleWriterThreadState()));
+		this.addThread(new StandardInputReaderTask(this, getConsoleWriterThreadState()));
 
 		//  SIGWINCHListener Thread
 		if(this.getIsJNIEnabled()){
 			this.sigwinchListenerThreadState = new SIGWINCHListenerThreadState(this);
-			this.addThread(new WorkItemProcessorTask<SIGWINCHListenerWorkItem>(this.sigwinchListenerThreadState, SIGWINCHListenerWorkItem.class, this.sigwinchListenerThreadState.getClass()));
+			this.addThread(new WorkItemProcessorTask<SIGWINCHListenerWorkItem>(this, this.sigwinchListenerThreadState, SIGWINCHListenerWorkItem.class, this.sigwinchListenerThreadState.getClass()));
 		}
 	}
 
@@ -185,6 +185,10 @@ public class BlockManagerThreadCollection {
 				}
 			}
 		}
+	}
+
+	public Long textWidth(String text) throws Exception{
+		return getConsoleWriterThreadState().measureTextLengthOnTerminal(text).getDeltaX();
 	}
 
 	public ConsoleWriterThreadState getConsoleWriterThreadState(){
@@ -253,7 +257,7 @@ public class BlockManagerThreadCollection {
 			InMemoryChunks imc = new InMemoryChunks(this, chunkSizeCuboidAddress, maxPendingChunks);
 			loadedWorldChunks.put(params.getBlockWorldAddressString() + ":" + authorizedClientId, imc);
 			imc.putWorkItem(new InitializeYourselfInMemoryChunksWorkItem(imc), WorkItemPriority.PRIORITY_LOW);
-			addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(imc, InMemoryChunksWorkItem.class, imc.getClass()));
+			addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(this, imc, InMemoryChunksWorkItem.class, imc.getClass()));
 
 
 			AuthorizedBlockWorldConnection abwc = new AuthorizedBlockWorldConnection(this, authorizedClientId, blockWorldConnections.get(params));
@@ -594,10 +598,12 @@ public class BlockManagerThreadCollection {
 			Long root = cwts.makeVerticalSplit();
 			List<Long> topSplits = new ArrayList<Long>();
 			topSplits.add(subSplit);
-			topSplits.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(CraftingInterfaceThreadState.class, client)));
+			//topSplits.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(CraftingInterfaceThreadState.class, client)));
+			topSplits.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(DebugScrollableScreenLayerThreadState.class, client)));
+
 			List<Double> topSplitPercents = new ArrayList<Double>();
-			topSplitPercents.add(0.75);
-			topSplitPercents.add(0.25);
+			topSplitPercents.add(0.50);
+			topSplitPercents.add(0.50);
 			cwts.addSplitPartsByIds(root, topSplits);
 			((UserInterfaceSplitMulti)cwts.getUserInterfaceSplitById(root)).setSplitPercentages(topSplitPercents);
 

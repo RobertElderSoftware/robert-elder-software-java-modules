@@ -39,7 +39,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public abstract class BlockManagerThread extends Thread {
+public abstract class BlockManagerThread extends Thread implements BlockManagerThreadCollectionProvider {
 	public abstract String getBetterClassName() throws Exception;
 
+	private BlockManagerThreadCollection blockManagerThreadCollection;
+
+	public BlockManagerThread(BlockManagerThreadCollection blockManagerThreadCollection){
+		this.blockManagerThreadCollection = blockManagerThreadCollection;
+	}
+
+	public BlockManagerThreadCollection getBlockManagerThreadCollection() throws Exception{
+		return this.blockManagerThreadCollection;
+	}
 }

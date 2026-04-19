@@ -63,20 +63,82 @@ public class DebugScrollableScreenLayerThreadState extends UserInterfaceFrameThr
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	protected BlockManagerThreadCollection blockManagerThreadCollection = null;
 
+	private DebugScrollableScreenLayer debugScrollableScreenLayer;
+	private boolean isChangingLayer = true;   //  Are we moving the layer or scrolling the layer?
+
 	public DebugScrollableScreenLayerThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ConsoleWriterThreadState consoleWriterThreadState) throws Exception {
 		super(blockManagerThreadCollection, consoleWriterThreadState, new int [] {ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT}, new ScreenLayerMergeType [] {ScreenLayerMergeType.PREFER_BOTTOM_LAYER});
 		this.blockManagerThreadCollection = blockManagerThreadCollection;
 	}
 
-	protected void init(Object o){
+	protected void init(Object o) throws Exception{
+		this.debugScrollableScreenLayer = new DebugScrollableScreenLayer();
+		this.debugScrollableScreenLayer.setVisibleWidth(12L);
+		this.debugScrollableScreenLayer.setVisibleHeight(14L);
+
+		this.debugScrollableScreenLayer.setContentColumnHeight(50L);
+		this.debugScrollableScreenLayer.setContentColumnWidth(100L);
+	}
+
+	public void updateVisibleWidth(Long newWidth) throws Exception{
+		this.debugScrollableScreenLayer.setVisibleWidth(newWidth);
+		this.render();
+		this.onFinalizeFrame();
+	}
+
+	public void updateVisibleHeight(Long newHeight) throws Exception{
+		this.debugScrollableScreenLayer.setVisibleHeight(newHeight);
+		this.render();
+		this.onFinalizeFrame();
 	}
 
 	public void onKeyboardInput(String actionString) throws Exception {
+		logger.info("DebugScrollableScreenLayerThreadState keyboard input: " + actionString);
 		UserInteractionConfig ki = this.blockManagerThreadCollection.getUserInteractionConfig();
 		UserInterfaceActionType action = ki.getKeyboardActionFromString(actionString);
 
+		if(actionString.equals("W")){
+			if(isChangingLayer){
+				this.updateVisibleWidth(this.debugScrollableScreenLayer.getWidth() + 1L);
+			}else{
+				this.debugScrollableScreenLayer.setContentColumnWidth(this.debugScrollableScreenLayer.getContentColumnWidth() + 1);
+				this.render();
+				this.onFinalizeFrame();
+			}
+		}else if(actionString.equals("w")){
+			if(isChangingLayer){
+				this.updateVisibleWidth(this.debugScrollableScreenLayer.getWidth() -1L);
+			}else{
+				this.debugScrollableScreenLayer.setContentColumnWidth(this.debugScrollableScreenLayer.getContentColumnWidth() - 1);
+				this.render();
+				this.onFinalizeFrame();
+			}
+		}else if(actionString.equals("H")){
+			if(isChangingLayer){
+				this.updateVisibleHeight(this.debugScrollableScreenLayer.getHeight() + 1L);
+			}else{
+				this.debugScrollableScreenLayer.setContentColumnHeight(this.debugScrollableScreenLayer.getContentColumnHeight() + 1);
+				this.render();
+				this.onFinalizeFrame();
+			}
+		}else if(actionString.equals("h")){
+			if(isChangingLayer){
+				this.updateVisibleHeight(this.debugScrollableScreenLayer.getHeight() -1L);
+			}else{
+				this.debugScrollableScreenLayer.setContentColumnHeight(this.debugScrollableScreenLayer.getContentColumnHeight() - 1);
+				this.render();
+				this.onFinalizeFrame();
+			}
+		}else if(actionString.equals("m")){
+			this.isChangingLayer = !this.isChangingLayer;
+			this.render();
+			this.onFinalizeFrame();
+		}else{
+			logger.info("Discarding " + actionString);
+		}
+
 		if(action == null){
-			logger.info("Ignoring " + actionString);
+
 		}else{
 			switch(action){
 				case ACTION_QUIT:{
@@ -87,14 +149,71 @@ public class DebugScrollableScreenLayerThreadState extends UserInterfaceFrameThr
 					getConsoleWriterThreadState().putBlockingWorkItem(new FocusOnNextFrameWorkItem(getConsoleWriterThreadState()), WorkItemPriority.PRIORITY_LOW);
 					break;
 				}default:{
-					logger.info("Crafting frame, discarding keyboard input: " + actionString);
+					logger.info("Discarding Unexpected action=" + action.toString());
 				}
 			}
 		}
 	}
 
+	public void moveLayer(Long deltaX, Long deltaY) throws Exception{
+		Coordinate oldPlacement = this.debugScrollableScreenLayer.getPlacementOffset();
+		this.debugScrollableScreenLayer.setPlacementOffset(oldPlacement.changeByDeltaXY(deltaX, deltaY));
+		this.render();
+		this.onFinalizeFrame();
+	}
+
+	public void onUp() throws Exception{
+		if(isChangingLayer){
+			this.moveLayer(0L, -1L);
+		}else{
+			this.debugScrollableScreenLayer.setScrollColumnOffsetY(this.debugScrollableScreenLayer.getScrollColumnOffsetY() -1L);
+			this.render();
+			this.onFinalizeFrame();
+		}
+	}
+
+	public void onRight()throws Exception{
+		if(isChangingLayer){
+			this.moveLayer(1L, 0L);
+		}else{
+			this.debugScrollableScreenLayer.setScrollColumnOffsetX(this.debugScrollableScreenLayer.getScrollColumnOffsetX() +1L);
+			this.render();
+			this.onFinalizeFrame();
+		}
+	}
+
+	public void onDown()throws Exception{
+		if(isChangingLayer){
+			this.moveLayer(0L, 1L);
+		}else{
+			this.debugScrollableScreenLayer.setScrollColumnOffsetY(this.debugScrollableScreenLayer.getScrollColumnOffsetY() +1L);
+			this.render();
+			this.onFinalizeFrame();
+		}
+	}
+
+	public void onLeft()throws Exception{
+		if(isChangingLayer){
+			this.moveLayer(-1L, 0L);
+		}else{
+			this.debugScrollableScreenLayer.setScrollColumnOffsetX(this.debugScrollableScreenLayer.getScrollColumnOffsetX() -1L);
+			this.render();
+			this.onFinalizeFrame();
+		}
+	}
+
 	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{
-		logger.info("DebugScrollableScreenLayerThreadState, discarding ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
+		if(ansiEscapeSequence instanceof AnsiEscapeSequenceUpArrowKey){
+			this.onUp();
+		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceRightArrowKey){
+			this.onRight();
+		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceDownArrowKey){
+			this.onDown();
+		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceLeftArrowKey){
+			this.onLeft();
+		}else{
+			logger.info("DebugScrollableScreenLayerThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
+		}
 	}
 
 	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
@@ -106,13 +225,35 @@ public class DebugScrollableScreenLayerThreadState extends UserInterfaceFrameThr
 	}
 
 	public void render() throws Exception{
-		this.reprintFrame();
-	}
-
-	public void reprintFrame() throws Exception {
+		this.clearFrame();
 		this.drawBorders();
-		String theText = "Debug Scrollable Screen Layer.";
-		this.printTextAtScreenXY(new ColouredTextFragment(theText, UserInterfaceFrameThreadState.getDefaultTextColors()), this.getFrameWidth() > theText.length() ? ((this.getFrameWidth() - theText.length()) / 2L) : 0L, this.getFrameHeight() / 2L, PrintDirection.LEFT_TO_RIGHT);
+		Coordinate placement = this.debugScrollableScreenLayer.getPlacementOffset();
+		List<String> theText = new ArrayList<String>();
+		theText.add("placement.getX()=" + placement.getX() + ",  this.placement.getY()=" + placement.getY());
+		theText.add("");
+		theText.add("visibleWidth=" + this.debugScrollableScreenLayer.getWidth() + ",  visibleHeight)=" + this.debugScrollableScreenLayer.getHeight());
+		theText.add("");
+		theText.add("contentWidth=" + this.debugScrollableScreenLayer.getContentColumnWidth() + ",  contentHeight)=" + this.debugScrollableScreenLayer.getContentColumnHeight());
+		theText.add("");
+		theText.add("this.isChangingLayer=" + this.isChangingLayer + ",  (Press 'm' to toggle");
+		theText.add("between moving the layer and scrolling within it.)");
+		theText.add("");
+		theText.add("This is the debug frame for scrollable screen layers.");
+		theText.add("");
+		theText.add("Use arrows keys or wasd to move layer around.");
+		theText.add("");
+		theText.add("Use 'W' and 'w' to increase/decrease visible width.");
+		theText.add("");
+		theText.add("Use 'H' and 'h' to increase/decrease visible height.");
+
+		for(int i = 0; i < theText.size(); i++){
+			boolean xOverflow = this.getFrameWidth() > theText.get(i).length();
+			Long xOffset = xOverflow ? ((this.getFrameWidth() - theText.get(i).length()) / 2L) : 0L;
+			Long yOffset = (this.getFrameHeight() / 2L) - (theText.size() / 2) + i;
+			this.printTextAtScreenXY(new ColouredTextFragment(theText.get(i), UserInterfaceFrameThreadState.getDefaultTextColors()), xOffset, yOffset, PrintDirection.LEFT_TO_RIGHT);
+		}
+
+		this.debugScrollableScreenLayer.render(this, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
 	}
 
 	public UIWorkItem takeWorkItem() throws Exception {

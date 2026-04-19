@@ -32,11 +32,31 @@
 //  SOFTWARE.
 package org.res.block;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
+
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.io.ByteArrayOutputStream;
+
+import java.util.Date;
+import java.util.Set;
+import java.util.HashSet;
+import java.io.BufferedWriter;
+import java.text.SimpleDateFormat;
+import java.io.File;
+import java.io.FileOutputStream;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public interface RenderableListContainer {
-	public void onSelectionChange(Long selectedIndex) throws Exception;
+public interface BlockManagerThreadCollectionProvider {
 	public BlockManagerThreadCollection getBlockManagerThreadCollection() throws Exception;
 }

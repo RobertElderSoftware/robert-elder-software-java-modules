@@ -252,7 +252,7 @@ public class ConsoleWriterThreadState extends WorkItemQueueOwner<ConsoleWriterWo
 	public Long createFrameThread(Long frameId, Class<?> frameStateClass) throws Exception{
 		UserInterfaceFrameThreadState frame = this.getFrameStateById(frameId);
 
-		WorkItemProcessorTask<UIWorkItem> thread = new WorkItemProcessorTask<UIWorkItem>(frame, UIWorkItem.class, frame.getClass());
+		WorkItemProcessorTask<UIWorkItem> thread = new WorkItemProcessorTask<UIWorkItem>(getBlockManagerThreadCollection(), frame, UIWorkItem.class, frame.getClass());
 		this.blockManagerThreadCollection.addThread(thread);
 
 		if(activeFrameThreads.containsKey(frameId)){

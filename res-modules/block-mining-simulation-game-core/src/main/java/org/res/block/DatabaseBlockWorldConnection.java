@@ -60,7 +60,7 @@ public class DatabaseBlockWorldConnection extends BlockWorldConnection {
 	public void init() throws Exception{
 		this.serverBlockModelContext = new ServerBlockModelContext(blockManagerThreadCollection, sessionOperationInterface, this);
 		this.serverBlockModelContext.putWorkItem(new InitializeYourselfServerBlockModelContextWorkItem(this.serverBlockModelContext, new ArrayList<ClientBlockModelContext>()), WorkItemPriority.PRIORITY_LOW);
-		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(serverBlockModelContext, BlockModelContextWorkItem.class, ServerBlockModelContext.class));
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(blockManagerThreadCollection, serverBlockModelContext, BlockModelContextWorkItem.class, ServerBlockModelContext.class));
 	}
 
 	public void destroy() throws Exception{

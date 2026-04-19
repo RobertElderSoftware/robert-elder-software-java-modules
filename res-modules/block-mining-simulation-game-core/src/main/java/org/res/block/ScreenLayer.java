@@ -171,6 +171,13 @@ public class ScreenLayer {
 		);
 	}
 
+	public static CuboidAddress makeDimensionsCA(long startX, long startY, long endX, long endY) throws Exception{
+		return new CuboidAddress(
+			new Coordinate(Arrays.asList(startX, startY)),
+			new Coordinate(Arrays.asList(endX, endY))
+		);
+	}
+
 	public final boolean setIsLayerActive(boolean isLayerActive) throws Exception{
 		if(this.isLayerActive != isLayerActive){
 			this.isLayerActive = isLayerActive;
@@ -260,6 +267,52 @@ public class ScreenLayer {
 		}
 		this.dimensions = dimensions;
 		this.placementOffset = placementOffset;
+	}
+
+	public void resizeLayer(CuboidAddress newDimensions) throws Exception{
+		int oldWidth = (int)dimensions.getWidth();
+		int oldHeight = (int)dimensions.getHeight();
+		int newWidth = (int)newDimensions.getWidth();
+		int newHeight = (int)newDimensions.getHeight();
+		ScreenLayerColumn [][] newColumns = new ScreenLayerColumn[newWidth][newHeight];
+
+		//  Preserved the common unchanged screen area:
+		int unchangedAreaWidth = Math.min(oldWidth, newWidth);
+		int unchangedAreaHeight = Math.min(oldHeight, newHeight);
+		for(int i = 0; i < unchangedAreaWidth; i++){
+			for(int j = 0; j < unchangedAreaHeight; j++){
+				newColumns[i][j] = this.columns[i][j];
+			}
+		}
+
+		//  Initialize any new area on right edge of screen layer:
+		for(int i = Math.min(newWidth, oldWidth); i < newWidth; i++){
+			for(int j = 0; j < newHeight; j++){
+				newColumns[i][j] =  new ScreenLayerColumn(
+					0,
+					new int [] {},
+					null,
+					false,
+					false
+				);
+			}
+		}
+
+		//  Initialize any new area on bottom edge of screen layer:
+		for(int i = 0; i < newWidth; i++){
+			for(int j = Math.min(newHeight, oldHeight); j < newHeight; j++){
+				newColumns[i][j] =  new ScreenLayerColumn(
+					0,
+					new int [] {},
+					null,
+					false,
+					false
+				);
+			}
+		}
+
+		this.columns = newColumns;
+		this.dimensions = newDimensions;
 	}
 
 	public void setAllChangedFlagStates(boolean state){
@@ -1095,5 +1148,67 @@ public class ScreenLayer {
 			}
 		}
 		return null;
+	}
+
+
+	public static void printTextAtScreenXY(BlockManagerThreadCollection blockManagerThreadCollection, ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, PrintDirection direction, ScreenLayer bottomLayer) throws Exception{
+		ScreenLayer.printTextAtScreenXY(blockManagerThreadCollection, colouredTextFragmentList, drawOffsetX, drawOffsetY, direction, new ScreenLayerMergeParameters(bottomLayer, ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
+	}
+
+	public static void printTextAtScreenXY(BlockManagerThreadCollection blockManagerThreadCollection, ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, PrintDirection direction, ScreenLayerMergeParameters mergeParams) throws Exception{
+		List<ColouredCharacter> colouredCharacters = colouredTextFragmentList.getColouredCharacters();
+		List<String> charactersToPrint = new ArrayList<String>();
+		int [][] newColourCodes = new int [colouredCharacters.size()][];
+		for(int i = 0; i < colouredCharacters.size(); i++){
+			ColouredCharacter c = colouredCharacters.get(i);
+			newColourCodes[i] = c.getAnsiColourCodes();
+			charactersToPrint.add(c.getCharacter());
+		}
+		//  Print a string in either the X or Y Direction.
+		//logger.info("charactersToPrint=" + charactersToPrint);
+		if(charactersToPrint.size() != newColourCodes.length){
+			throw new Exception("Size missmatch in colour code array: " + charactersToPrint.size() + " verus " + newColourCodes.length);
+		}
+
+		int totalWidth = 0;
+		int maximumCharacterWidth = 0;
+		for(String s : charactersToPrint){
+			int chrWidth = blockManagerThreadCollection.getConsoleWriterThreadState().measureTextLengthOnTerminal(s).getDeltaX().intValue();
+			if(chrWidth > maximumCharacterWidth){
+				maximumCharacterWidth = chrWidth;
+			}
+			//logger.info("chrWidth=" + chrWidth + " for '" + s + "' (" + BlockModelContext.convertToHex(s.getBytes("UTF-8")) + " in hex).");
+			totalWidth += (chrWidth < 1 ? 1 : chrWidth);
+		}
+
+		int xDimSize = direction.equals(PrintDirection.LEFT_TO_RIGHT) ? totalWidth : maximumCharacterWidth;
+		int yDimSize = direction.equals(PrintDirection.LEFT_TO_RIGHT) ? 1 : charactersToPrint.size();
+
+		Coordinate drawOffset = new Coordinate(Arrays.asList(drawOffsetX, drawOffsetY));
+		ScreenLayer changes = new ScreenLayer(drawOffset, ScreenLayer.makeDimensionsCA(0, 0, xDimSize, yDimSize));
+		changes.setAllChangedFlagStates(false);
+
+		int currentXOffset = 0;
+		int currentYOffset = 0;
+		for(int i = 0; i < charactersToPrint.size(); i++){
+			String s = charactersToPrint.get(i);
+			int chrWidth = blockManagerThreadCollection.getConsoleWriterThreadState().measureTextLengthOnTerminal(s).getDeltaX().intValue();
+			if(direction.equals(PrintDirection.LEFT_TO_RIGHT)){
+				changes.setMultiColumnCharacter(currentXOffset, currentYOffset, s, chrWidth, newColourCodes[i], true, true);
+				currentXOffset += chrWidth;
+			}else{
+				changes.setMultiColumnCharacter(currentXOffset, currentYOffset, s, chrWidth, newColourCodes[i], true, true);
+				currentYOffset += 1;
+			}
+		}
+
+		int xSize = xDimSize;
+		int ySize = yDimSize;
+
+		ScreenRegion region = new ScreenRegion(
+			ScreenRegion.makeScreenRegionCA(0, 0, xDimSize, yDimSize)
+		);
+		changes.addChangedRegion(region);
+		mergeParams.getScreenLayer().mergeDown(changes, false, mergeParams.getScreenLayerMergeType());
 	}
 }

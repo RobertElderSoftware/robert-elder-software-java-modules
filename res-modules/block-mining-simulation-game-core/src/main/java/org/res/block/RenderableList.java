@@ -102,7 +102,7 @@ public class RenderableList<T extends RenderableListItem> {
 	}
 
 	public Long spw(UserInterfaceFrameThreadState frame) throws Exception{
-		return frame.textWidth(CharacterConstants.SPACE);
+		return this.container.getBlockManagerThreadCollection().textWidth(CharacterConstants.SPACE);
 	}
 
 	public Long lnh(){
@@ -110,7 +110,7 @@ public class RenderableList<T extends RenderableListItem> {
 	}
 
 	public Long getRightScrollBarCrossSection(UserInterfaceFrameThreadState frame) throws Exception{
-		return 2L * frame.textWidth(RenderableList.VERTICAL_SCROLL_BAR_CHARACTER);
+		return 2L * this.container.getBlockManagerThreadCollection().textWidth(RenderableList.VERTICAL_SCROLL_BAR_CHARACTER);
 	}
 
 	public Long getBottomScrollBarCrossSection(UserInterfaceFrameThreadState frame) throws Exception{
@@ -357,7 +357,7 @@ public class RenderableList<T extends RenderableListItem> {
 	
 		//  Right Scroll bar
 		for(long i = 0; i < actualRightScrollBarWidth; i++){
-			frame.printTextAtScreenXY(makeScrollTextFragmentList(frame, rightScrollBarCharacterHeight, true, useAscii), rightScrollBarOffset + i, 0L, PrintDirection.TOP_TO_BOTTOM, this.listAreaLayer);
+			ScreenLayer.printTextAtScreenXY(container.getBlockManagerThreadCollection(), makeScrollTextFragmentList(frame, rightScrollBarCharacterHeight, true, useAscii), rightScrollBarOffset + i, 0L, PrintDirection.TOP_TO_BOTTOM, this.listAreaLayer);
 		}
 
 
@@ -366,7 +366,7 @@ public class RenderableList<T extends RenderableListItem> {
 		//  Bottom Scroll bar
 		Long bottomScrollBarOffset = listAreaLayer.getHeight() - actualBottomScrollBarHeight;
 		for(long i = 0; i < getBottomScrollBarCrossSection(frame); i++){
-			frame.printTextAtScreenXY(makeScrollTextFragmentList(frame, bottomScrollBarCharacterWidth, false, useAscii), 0L, bottomScrollBarOffset + i, PrintDirection.LEFT_TO_RIGHT, this.listAreaLayer);
+			ScreenLayer.printTextAtScreenXY(container.getBlockManagerThreadCollection(), makeScrollTextFragmentList(frame, bottomScrollBarCharacterWidth, false, useAscii), 0L, bottomScrollBarOffset + i, PrintDirection.LEFT_TO_RIGHT, this.listAreaLayer);
 		}
 
 		//  Initialize any empty area to right of list any before any scroll bar/right edge of frame:

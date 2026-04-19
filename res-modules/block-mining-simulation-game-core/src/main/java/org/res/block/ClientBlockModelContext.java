@@ -123,7 +123,7 @@ public class ClientBlockModelContext extends BlockModelContext implements BlockM
 		this.chunkInitializerThreadState = new ChunkInitializerThreadState(blockManagerThreadCollection, this, getInMemoryChunks());
 		this.chunkInitializerThreadState.putWorkItem(new InitializeYourselfChunkInitializerWorkItem(this.chunkInitializerThreadState), WorkItemPriority.PRIORITY_LOW);
 
-		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ChunkInitializerWorkItem>(this.chunkInitializerThreadState, ChunkInitializerWorkItem.class, this.chunkInitializerThreadState.getClass()));
+		this.blockManagerThreadCollection.addThread(new WorkItemProcessorTask<ChunkInitializerWorkItem>(getBlockManagerThreadCollection(), this.chunkInitializerThreadState, ChunkInitializerWorkItem.class, this.chunkInitializerThreadState.getClass()));
 
 		this.blockManagerThreadCollection.setupDefaultUIForClient(this);
 	}

@@ -61,7 +61,8 @@ public class StandardInputReaderTask extends BlockManagerThread {
 	private AnsiEscapeSequenceExtractor ansiEscapeSequenceExtractor = new AnsiEscapeSequenceExtractor();
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-	public StandardInputReaderTask(ConsoleWriterThreadState consoleWriterThreadState) throws Exception{
+	public StandardInputReaderTask(BlockManagerThreadCollection blockManagerThreadCollection, ConsoleWriterThreadState consoleWriterThreadState) throws Exception{
+		super(blockManagerThreadCollection);
 		this.consoleWriterThreadState = consoleWriterThreadState;
 	}
 

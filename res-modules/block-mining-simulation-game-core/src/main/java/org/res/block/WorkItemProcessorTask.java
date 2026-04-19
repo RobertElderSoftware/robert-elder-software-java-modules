@@ -48,7 +48,8 @@ public class WorkItemProcessorTask<T extends WorkItem> extends BlockManagerThrea
 	private static final Logger logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 	private boolean isThreadFinished = false;
 
-	public WorkItemProcessorTask(WorkItemQueueOwner<T> workItemQueueOwner, Class<T> workItemClass, Class<?> descriptiveClass){
+	public WorkItemProcessorTask(BlockManagerThreadCollection blockManagerThreadCollection, WorkItemQueueOwner<T> workItemQueueOwner, Class<T> workItemClass, Class<?> descriptiveClass){
+		super(blockManagerThreadCollection);
 		this.workItemQueueOwner = workItemQueueOwner;
 		this.workItemClass = workItemClass;
 		this.descriptiveClass = descriptiveClass;

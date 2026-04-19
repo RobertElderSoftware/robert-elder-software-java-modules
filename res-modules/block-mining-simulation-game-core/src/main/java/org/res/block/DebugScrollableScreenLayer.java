@@ -57,35 +57,66 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public abstract class ScrollableScreenLayer extends ScreenLayer {
-	public abstract void render(UserInterfaceFrameThreadState frame, ScreenLayer bottomLayer) throws Exception;
-	public abstract Long getContentColumnHeight() throws Exception;
-	public abstract Long getContentColumnWidth() throws Exception;
+public class DebugScrollableScreenLayer extends ScrollableScreenLayer {
 
-	public Long scrollColumnOffsetX = 0L;
-	public Long scrollColumnOffsetY = 0L;
+	private Long contentColumnWidth = 0L;
+	private Long contentColumnHeight = 0L;
 
-	public Long getScrollColumnOffsetX(){
-		return scrollColumnOffsetX;
+	public Long getContentColumnHeight() throws Exception{
+		return contentColumnHeight;
 	}
 
-	public Long getScrollColumnOffsetY(){
-		return scrollColumnOffsetY;
+	public Long getContentColumnWidth() throws Exception{
+		return contentColumnWidth;
 	}
 
-	public void setScrollColumnOffsetX(Long x){
-		this.scrollColumnOffsetX = x;
+	public void renderDebugArea(UserInterfaceFrameThreadState frame) throws Exception{
+		for(long x = 0L; x < this.getWidth(); x++){
+			for(long y = 0L; y < this.getHeight(); y++){
+				boolean isOutOfBounds = (x < 0 || x > contentColumnWidth || y < 0 || y > contentColumnHeight);
+				long xO = x - this.getScrollColumnOffsetX();
+				long yO = y - this.getScrollColumnOffsetY();
+				int [] bgColors = isOutOfBounds ? UserInterfaceFrameThreadState.getRGBBackgroundColor(0, 0, 255) : UserInterfaceFrameThreadState.getRGBBackgroundColor((int)xO * 5, (int)yO * 5, 0);
+				int [] fgColors = UserInterfaceFrameThreadState.getDefaultTextFGColors();
+
+				int [] colors = UserInterfaceFrameThreadState.concatIntArrays(bgColors, fgColors);
+				String cellText = isOutOfBounds ? "." : String.valueOf((xO+yO) % 10L);
+				frame.printTextAtScreenXY(new ColouredTextFragment(cellText, colors), x, y, PrintDirection.LEFT_TO_RIGHT, this);
+			}
+		}
 	}
 
-	public void setScrollColumnOffsetY(Long y){
-		this.scrollColumnOffsetY = y;
+	public void render(UserInterfaceFrameThreadState frame, ScreenLayer bottomLayer) throws Exception{
+		renderDebugArea(frame);
+		bottomLayer.mergeDown(this, true, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
 	}
 
-	public ScrollableScreenLayer() throws Exception{
-		super();
+	public void updateLayerBoundary(Coordinate upper) throws Exception{
+		this.resizeLayer(
+			new CuboidAddress(
+				new Coordinate(Arrays.asList(0L, 0L)),
+				upper
+			)
+		);
 	}
 
-	public ScrollableScreenLayer(Coordinate placementOffset, CuboidAddress dimensions) throws Exception{
-		super(placementOffset, dimensions);
+	public void setVisibleWidth(Long w) throws Exception{
+		this.updateLayerBoundary(new Coordinate(Arrays.asList(w, (long)this.getHeight())));
+	}
+
+	public void setVisibleHeight(Long h) throws Exception{
+		this.updateLayerBoundary(new Coordinate(Arrays.asList((long)this.getWidth(), h)));
+	}
+
+	public void setContentColumnWidth(Long w) throws Exception{
+		this.contentColumnWidth = w;
+	}
+
+	public void setContentColumnHeight(Long h) throws Exception{
+		this.contentColumnHeight = h;
+	}
+
+	public DebugScrollableScreenLayer() throws Exception{
+
 	}
 }

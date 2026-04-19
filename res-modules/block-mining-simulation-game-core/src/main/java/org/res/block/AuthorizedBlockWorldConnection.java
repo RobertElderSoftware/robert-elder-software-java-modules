@@ -74,7 +74,7 @@ public class AuthorizedBlockWorldConnection {
 
 		clientBlockModelContext.putWorkItem(new InitializeYourselfClientBlockModelContextWorkItem(clientBlockModelContext), WorkItemPriority.PRIORITY_LOW);
 
-		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(clientBlockModelContext, BlockModelContextWorkItem.class, ClientBlockModelContext.class));
+		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<BlockModelContextWorkItem>(blockManagerThreadCollection, clientBlockModelContext, BlockModelContextWorkItem.class, ClientBlockModelContext.class));
 
 
 		InMemoryChunks imc = blockManagerThreadCollection.getInMemoryChunksForWorld(clientBlockModelContext.getBlockWorldConnection().getBlockWorldConnectionParameters(), clientBlockModelContext.getAuthorizedClientId());
