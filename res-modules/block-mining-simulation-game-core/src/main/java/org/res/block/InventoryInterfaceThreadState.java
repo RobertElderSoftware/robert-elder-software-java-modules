@@ -75,6 +75,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	
 	protected void init(Object o) throws Exception{
 		this.inventoryItemList = new RenderableList<InventoryItemRenderableListItem>(this, 3L, 3L, 25L, 1L, "There are no inventory items.");
+		this.inventoryItemList.init();
 
 		UIModelProbeWorkItemResult result = (UIModelProbeWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(
 			new UIModelProbeWorkItem(
@@ -89,7 +90,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 
 		PlayerInventory playerInventory = (PlayerInventory)result.getObject();
 		for(PlayerInventoryItemStack stack : playerInventory.getInventoryItemStackList()){
-			this.inventoryItemList.addItem(new InventoryItemRenderableListItem(stack));
+			this.inventoryItemList.addItem(new InventoryItemRenderableListItem(this, stack));
 		}
 
 		//  Get initial remembered selection, and subscribe to updates from other frames:
@@ -115,13 +116,13 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{
 		ScreenLayer bottomLayer = this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT];
 		if(ansiEscapeSequence instanceof AnsiEscapeSequenceUpArrowKey){
-			this.inventoryItemList.onUpArrowPressed(this, bottomLayer);
+			this.inventoryItemList.onUpArrowPressed(bottomLayer);
 		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceRightArrowKey){
-			this.inventoryItemList.onRightArrowPressed(this, bottomLayer);
+			this.inventoryItemList.onRightArrowPressed(bottomLayer);
 		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceDownArrowKey){
-			this.inventoryItemList.onDownArrowPressed(this, bottomLayer);
+			this.inventoryItemList.onDownArrowPressed(bottomLayer);
 		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceLeftArrowKey){
-			this.inventoryItemList.onLeftArrowPressed(this, bottomLayer);
+			this.inventoryItemList.onLeftArrowPressed(bottomLayer);
 		}else{
 			logger.info("CraftingInterfaceThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
 		}
@@ -194,7 +195,6 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 		Coordinate bottomRightCorner = new Coordinate(Arrays.asList(x2, y2));
 
 		this.inventoryItemList.updateRenderableArea(
-			this,
 			new CuboidAddress(
 				topLeftCorner,
 				bottomRightCorner
@@ -205,7 +205,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 
 	public void onRenderFrame(boolean hasThisFrameDimensionsChanged, boolean hasOtherFrameDimensionsChanged) throws Exception{
 		this.updateListDisplayArea();
-		this.inventoryItemList.render(this, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
+		this.inventoryItemList.render(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
 		this.drawBorders(this.clientBlockModelContext, "Inventory");
 	}
 
@@ -228,7 +228,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 
 	public void onClientNotifySelectionChanged(Integer newIndex) throws Exception{
 		if(newIndex != null && !this.inventoryItemList.getCurrentlySelectedListIndex().equals(newIndex)){
-			this.inventoryItemList.setSelectedListIndex(this, (long)newIndex);
+			this.inventoryItemList.setSelectedListIndex((long)newIndex);
 		}
 	}
 
@@ -238,7 +238,7 @@ public class InventoryInterfaceThreadState extends UserInterfaceFrameThreadState
 				PlayerInventory playerInventory = (PlayerInventory)o;
 				List<InventoryItemRenderableListItem> renderers = new ArrayList<InventoryItemRenderableListItem>();
 				for(PlayerInventoryItemStack stack : playerInventory.getInventoryItemStackList()){
-					renderers.add(new InventoryItemRenderableListItem(stack));
+					renderers.add(new InventoryItemRenderableListItem(this, stack));
 				}
 				this.inventoryItemList.replaceList(renderers);
 				this.onSelectionChange(this.inventoryItemList.getCurrentlySelectedListIndex());

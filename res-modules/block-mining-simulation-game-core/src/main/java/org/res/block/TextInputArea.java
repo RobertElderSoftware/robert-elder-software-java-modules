@@ -170,7 +170,7 @@ public class TextInputArea {
 		for(int i = 0; i < this.text.size(); i++){
 			ColouredTextFragment tf = new ColouredTextFragment(String.join("", this.text.get(i)), UserInterfaceFrameThreadState.getTextInputAreaColors());
 
-			frame.printTextAtScreenXY(tf, (long)-this.displayedColumnOffsetX, (long)i, PrintDirection.LEFT_TO_RIGHT, this.displayLayer);
+			ScreenLayer.printTextAtScreenXY(container, tf, (long)-this.displayedColumnOffsetX, (long)i, PrintDirection.LEFT_TO_RIGHT, this.displayLayer);
 		}
 
 		this.displayLayer.setPlacementOffset(this.placementOffset);

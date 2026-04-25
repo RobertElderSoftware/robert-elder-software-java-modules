@@ -103,8 +103,8 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 		ColouredTextFragmentList topTitlePart = new ColouredTextFragmentList();
 		topTitlePart.add(new ColouredTextFragment("Block Mining Simulation Game Help Menu\n\n\nInput Keys", titleAnsiCodes));
 
-		List<LinePrintingInstruction> introInstructions = this.getLinePrintingInstructions(topTitlePart, 1L, 1L, false, false, this.getInnerFrameWidth());
-		rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(introInstructions, currentLine, 1L));
+		List<LinePrintingInstruction> introInstructions = ScreenLayer.getLinePrintingInstructions(this, topTitlePart, 1L, 1L, false, false, this.getInnerFrameWidth());
+		rtn.addAll(ScreenLayer.wrapLinePrintingInstructionsAtOffset(introInstructions, currentLine, 1L));
 		currentLine += introInstructions.size() + 1;
 
 		Map<String, String> keyDescriptions = new HashMap<String, String>();
@@ -136,44 +136,44 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 		inputKeys.addAll(ki.getAllKeyboardActions().keySet());
 		for(String inputKey : inputKeys){
 			String keyPresentation = this.getKeyPresentation(inputKey);
-			List<LinePrintingInstruction> keyIns = this.getLinePrintingInstructions(keyPresentation, blockOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
-			rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(keyIns, currentLine, 1L));
+			List<LinePrintingInstruction> keyIns = ScreenLayer.getLinePrintingInstructions(this, keyPresentation, blockOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
+			rtn.addAll(ScreenLayer.wrapLinePrintingInstructionsAtOffset(keyIns, currentLine, 1L));
 
 
 			String keyDescription = keyDescriptions.containsKey(keyPresentation) ? keyDescriptions.get(keyPresentation) : "Key description not found.";
 			ColouredTextFragmentList keyDescriptionPart = new ColouredTextFragmentList();
 			keyDescriptionPart.add(new ColouredTextFragment("KEY DESCRIPTION:", titleAnsiCodes));
 			keyDescriptionPart.add(new ColouredTextFragment(" " + keyDescription, normalAnsiCodes));
-			List<LinePrintingInstruction> keyDescriptionInstructions = this.getLinePrintingInstructions(keyDescriptionPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
-			rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(keyDescriptionInstructions, currentLine, 1L));
+			List<LinePrintingInstruction> keyDescriptionInstructions = ScreenLayer.getLinePrintingInstructions(this, keyDescriptionPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
+			rtn.addAll(ScreenLayer.wrapLinePrintingInstructionsAtOffset(keyDescriptionInstructions, currentLine, 1L));
 			currentLine += keyDescriptionInstructions.size() + 1;
 		}
 
 		ColouredTextFragmentList blockTypesTitlePart = new ColouredTextFragmentList();
 		blockTypesTitlePart.add(new ColouredTextFragment("Block Types", titleAnsiCodes));
 
-		List<LinePrintingInstruction> blockTypesTitleInstructions = this.getLinePrintingInstructions(blockTypesTitlePart, 1L, 1L, false, false, this.getInnerFrameWidth());
-		rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(blockTypesTitleInstructions, currentLine, 1L));
+		List<LinePrintingInstruction> blockTypesTitleInstructions = ScreenLayer.getLinePrintingInstructions(this, blockTypesTitlePart, 1L, 1L, false, false, this.getInnerFrameWidth());
+		rtn.addAll(ScreenLayer.wrapLinePrintingInstructionsAtOffset(blockTypesTitleInstructions, currentLine, 1L));
 		currentLine += blockTypesTitleInstructions.size() + 1;
 
-		List<LinePrintingInstruction> qB = this.getLinePrintingInstructions("'?'", blockOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
-		rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(qB, currentLine, 1L));
+		List<LinePrintingInstruction> qB = ScreenLayer.getLinePrintingInstructions(this, "'?'", blockOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
+		rtn.addAll(ScreenLayer.wrapLinePrintingInstructionsAtOffset(qB, currentLine, 1L));
 
 		ColouredTextFragmentList qBPart = new ColouredTextFragmentList();
 		qBPart.add(new ColouredTextFragment("BLOCK DESCRIPTION:", titleAnsiCodes));
 		qBPart.add(new ColouredTextFragment(" Question marks represent areas on the map that are not currently loaded into the game client's memory.", normalAnsiCodes));
-		List<LinePrintingInstruction> qBInstructions = this.getLinePrintingInstructions(qBPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
-		rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(qBInstructions, currentLine, 1L));
+		List<LinePrintingInstruction> qBInstructions = ScreenLayer.getLinePrintingInstructions(this, qBPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
+		rtn.addAll(ScreenLayer.wrapLinePrintingInstructionsAtOffset(qBInstructions, currentLine, 1L));
 		currentLine += qBInstructions.size() + 1;
 
-		List<LinePrintingInstruction> uB = this.getLinePrintingInstructions("'U'", blockOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
-		rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(uB, currentLine, 1L));
+		List<LinePrintingInstruction> uB = ScreenLayer.getLinePrintingInstructions(this, "'U'", blockOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
+		rtn.addAll(ScreenLayer.wrapLinePrintingInstructionsAtOffset(uB, currentLine, 1L));
 
 		ColouredTextFragmentList uBPart = new ColouredTextFragmentList();
 		uBPart.add(new ColouredTextFragment("BLOCK DESCRIPTION:", titleAnsiCodes));
 		uBPart.add(new ColouredTextFragment(" The 'U' character represents a block that has been loaded into the game's memory, but has not yet been initialized.  Uninitialized terrain occurs in areas of the map that have never been explored before.  Uninitialized blocks will automatically be replaced with generated terrain the first time it's loaded.", normalAnsiCodes));
-		List<LinePrintingInstruction> uBInstructions = this.getLinePrintingInstructions(uBPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
-		rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(uBInstructions, currentLine, 1L));
+		List<LinePrintingInstruction> uBInstructions = ScreenLayer.getLinePrintingInstructions(this, uBPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
+		rtn.addAll(ScreenLayer.wrapLinePrintingInstructionsAtOffset(uBInstructions, currentLine, 1L));
 		currentLine += uBInstructions.size() + 1;
 
 		for(BlockMatchDescription blockMatchDescription : blockManagerThreadCollection.getBlockSchema().getBlockMatchDescriptions()){
@@ -184,30 +184,30 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 				GraphicsMode mode = blockManagerThreadCollection.getGraphicsMode();
 				String blockPresentation = BlockSkins.getPresentation(blockClass, mode.equals(GraphicsMode.ASCII));
 
-				List<LinePrintingInstruction> blockPrint = this.getLinePrintingInstructions("'" + blockPresentation + "'", blockOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
-				rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(blockPrint, currentLine, 1L));
+				List<LinePrintingInstruction> blockPrint = ScreenLayer.getLinePrintingInstructions(this, "'" + blockPresentation + "'", blockOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
+				rtn.addAll(ScreenLayer.wrapLinePrintingInstructionsAtOffset(blockPrint, currentLine, 1L));
 
 				ColouredTextFragmentList descriptionPart = new ColouredTextFragmentList();
 				descriptionPart.add(new ColouredTextFragment("BLOCK DESCRIPTION:", titleAnsiCodes));
 				descriptionPart.add(new ColouredTextFragment(" " + BlockSkins.getBlockDescription(blockClass), normalAnsiCodes));
 
-				List<LinePrintingInstruction> instructions = this.getLinePrintingInstructions(descriptionPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
-				rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(instructions, currentLine, 1L));
+				List<LinePrintingInstruction> instructions = ScreenLayer.getLinePrintingInstructions(this, descriptionPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
+				rtn.addAll(ScreenLayer.wrapLinePrintingInstructionsAtOffset(instructions, currentLine, 1L));
 				currentLine += instructions.size();
 
 				ColouredTextFragmentList classPart = new ColouredTextFragmentList();
 				classPart.add(new ColouredTextFragment("CLASS NAME:", titleAnsiCodes));
 				classPart.add(new ColouredTextFragment(" " + className, normalAnsiCodes));
-				List<LinePrintingInstruction> classIns = this.getLinePrintingInstructions(classPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
-				rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(classIns, currentLine, 1L));
+				List<LinePrintingInstruction> classIns = ScreenLayer.getLinePrintingInstructions(this, classPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
+				rtn.addAll(ScreenLayer.wrapLinePrintingInstructionsAtOffset(classIns, currentLine, 1L));
 				currentLine += classIns.size();
 
 				byte [] bytePattern = blockManagerThreadCollection.getBlockSchema().getBinaryDataForByteComparisonBlockForClass(blockClass);
 				ColouredTextFragmentList bytePatternPart = new ColouredTextFragmentList();
 				bytePatternPart.add(new ColouredTextFragment("BYTE PATTERN:", titleAnsiCodes));
 				bytePatternPart.add(new ColouredTextFragment(" '" + new String(bytePattern, "UTF-8") + "' (0x" + BlockModelContext.convertToHex(bytePattern) + ")", normalAnsiCodes));
-				List<LinePrintingInstruction> bytePatternIns = this.getLinePrintingInstructions(bytePatternPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
-				rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(bytePatternIns, currentLine, 1L));
+				List<LinePrintingInstruction> bytePatternIns = ScreenLayer.getLinePrintingInstructions(this, bytePatternPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
+				rtn.addAll(ScreenLayer.wrapLinePrintingInstructionsAtOffset(bytePatternIns, currentLine, 1L));
 				currentLine += bytePatternIns.size();
 
 				String dedication = blockMatchDescription.getDedication();
@@ -215,8 +215,8 @@ public class HelpDetailsFrameThreadState extends UserInterfaceFrameThreadState {
 					ColouredTextFragmentList dedicationPart = new ColouredTextFragmentList();
 					dedicationPart.add(new ColouredTextFragment("DEDICATION:", titleAnsiCodes));
 					dedicationPart.add(new ColouredTextFragment(" '" + dedication + "'", normalAnsiCodes));
-					List<LinePrintingInstruction> dedicationIns = this.getLinePrintingInstructions(dedicationPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
-					rtn.addAll(this.wrapLinePrintingInstructionsAtOffset(dedicationIns, currentLine, 1L));
+					List<LinePrintingInstruction> dedicationIns = ScreenLayer.getLinePrintingInstructions(this, dedicationPart, descriptionOffsetLeftPadding, rightPadding, true, false, this.getInnerFrameWidth());
+					rtn.addAll(ScreenLayer.wrapLinePrintingInstructionsAtOffset(dedicationIns, currentLine, 1L));
 					currentLine += dedicationIns.size();
 				}
 				currentLine += 1;  //  Space between blocks.

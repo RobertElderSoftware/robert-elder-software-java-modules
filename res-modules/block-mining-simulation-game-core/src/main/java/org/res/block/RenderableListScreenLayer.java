@@ -32,38 +32,73 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
-import org.res.block.WorkItem;
-import org.res.block.BlockSession;
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.io.ByteArrayOutputStream;
+
+import java.util.Date;
+import java.util.Set;
+import java.util.HashSet;
+import java.io.BufferedWriter;
+import java.text.SimpleDateFormat;
+import java.io.File;
+import java.io.FileOutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class DebugRendererListItem extends RenderableListItem{
+public class RenderableListScreenLayer<T extends RenderableListItem> extends ScrollableScreenLayer {
 
-	private String text;
+	private RenderableList<T> renderableList;
 
-	public void render(boolean isSelected, Coordinate placementOffset, ScreenLayer bottomLayer) throws Exception{
-
-
-		int bgColour = isSelected ? UserInterfaceFrameThreadState.RED_BG_COLOR : UserInterfaceFrameThreadState.GREEN_BG_COLOR;
-		this.displayLayer.initializeInRegion(1, "_", new int [] {UserInterfaceFrameThreadState.GREEN_FG_COLOR, bgColour}, null, new ScreenRegion(ScreenRegion.makeScreenRegionCA(0, 0, this.displayLayer.getWidth(), this.displayLayer.getHeight())), true, true);
-
-		Long len = (long)this.text.length();
-		Long x = ((long)this.displayLayer.getWidth() / 2L) - (len / 2L);
-		Long y = ((long)this.displayLayer.getHeight() / 2L);
-		ScreenLayer.printTextAtScreenXY(container, new ColouredTextFragment(this.text, new int [] {UserInterfaceFrameThreadState.RED_FG_COLOR, UserInterfaceFrameThreadState.YELLOW_BG_COLOR}), x, y, PrintDirection.LEFT_TO_RIGHT, this.displayLayer);
-		this.displayLayer.setPlacementOffset(placementOffset);
-		bottomLayer.mergeDown(this.displayLayer, true, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
+	public Long getContentColumnWidth(){
+		return 0L;
 	}
 
-	public DebugRendererListItem(RenderableListContainer container, String text) throws Exception{
-		super(container);
-		this.text = text;
+	public Long getContentColumnHeight(){
+		return 0L;
+	}
+
+	public Long getScrollColumnOffsetX(){
+		return 0L;
+	}
+
+	public Long getScrollColumnOffsetY(){
+		return 0L;
+	}
+
+	public BlockManagerThreadCollectionProvider getProvider(){
+		return this.renderableList.getContainer();
+	}
+
+	public boolean getHasRightScrollBar(){
+		return this.renderableList.getHasRightScrollBar();
+	}
+
+	public boolean getHasBottomScrollBar(){
+		return this.renderableList.getHasBottomScrollBar();
+	}
+
+	public RenderableListScreenLayer(RenderableList<T> renderableList) throws Exception{
+		super();
+		this.renderableList = renderableList;
+	}
+
+	public RenderableListScreenLayer(RenderableList<T> renderableList, Coordinate placementOffset, CuboidAddress dimensions) throws Exception{
+		super(placementOffset, dimensions);
+		this.renderableList = renderableList;
+	}
+
+	public void render(ScreenLayer bottomLayer) throws Exception{
 	}
 }

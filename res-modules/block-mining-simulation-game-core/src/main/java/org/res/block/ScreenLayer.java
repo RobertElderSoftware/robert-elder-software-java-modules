@@ -62,6 +62,7 @@ public class ScreenLayer {
 	private boolean isLayerActive = true;
 	private Coordinate placementOffset;  //  The offset of where the layer should end up once it's merged in.
 	private CuboidAddress dimensions;
+	public static final Long LINE_HEIGHT = 1L;
 	private ScreenLayerColumn [][] columns;
 	private int [] defaultColourCodes = new int [] {};
 	private Set<ScreenRegion> changedRegions = new HashSet<ScreenRegion>();
@@ -1150,12 +1151,142 @@ public class ScreenLayer {
 		return null;
 	}
 
-
-	public static void printTextAtScreenXY(BlockManagerThreadCollection blockManagerThreadCollection, ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, PrintDirection direction, ScreenLayer bottomLayer) throws Exception{
-		ScreenLayer.printTextAtScreenXY(blockManagerThreadCollection, colouredTextFragmentList, drawOffsetX, drawOffsetY, direction, new ScreenLayerMergeParameters(bottomLayer, ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
+	public static List<LinePrintingInstruction> getLinePrintingInstructions(BlockManagerThreadCollectionProvider provider, String text, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign, Long maxLineLength) throws Exception{
+		ColouredTextFragment tf = new ColouredTextFragment(text, UserInterfaceFrameThreadState.getDefaultTextColors());
+		return ScreenLayer.getLinePrintingInstructions(provider, tf, paddingLeft, paddingRight, leftAlign, rightAlign, maxLineLength);
 	}
 
-	public static void printTextAtScreenXY(BlockManagerThreadCollection blockManagerThreadCollection, ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, PrintDirection direction, ScreenLayerMergeParameters mergeParams) throws Exception{
+	public static List<LinePrintingInstruction> getLinePrintingInstructions(BlockManagerThreadCollectionProvider provider, ColouredTextFragment tf, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign, Long maxLineLength) throws Exception{
+		ColouredTextFragmentList tfl = new ColouredTextFragmentList(tf);
+		return ScreenLayer.getLinePrintingInstructions(provider, tfl, paddingLeft, paddingRight, leftAlign, rightAlign, maxLineLength);
+	}
+
+	public static List<LinePrintingInstruction> getLinePrintingInstructions(BlockManagerThreadCollectionProvider provider, ColouredTextFragmentList tfl, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign, Long maxLineLength) throws Exception{
+		List<LinePrintingInstruction> instructions = new ArrayList<LinePrintingInstruction>();
+		List<MeasuredTextFragment> textFragments = ScreenLayer.getMeasuredTextFragments(provider, tfl, maxLineLength - paddingLeft - paddingRight);
+		List<ColouredTextFragment> currentLineFragments = new ArrayList<ColouredTextFragment>();
+		Long lineLengthSoFar = 0L;
+		boolean flushBuffer = false;
+		int i = 0;
+		while(currentLineFragments.size() > 0 || i < textFragments.size()){
+			MeasuredTextFragment textFragment = i < textFragments.size() ? textFragments.get(i) : null;
+
+			if(flushBuffer){
+				Long centeredInExtraSpaceOffset = (maxLineLength / 2L) - (lineLengthSoFar / 2L);
+				Long textOffset = leftAlign ? paddingLeft : centeredInExtraSpaceOffset;
+				instructions.add(new LinePrintingInstruction(textOffset, new ColouredTextFragmentList(new ArrayList<ColouredTextFragment>(currentLineFragments))));
+				currentLineFragments = new ArrayList<ColouredTextFragment>();
+				lineLengthSoFar = 0L;
+				flushBuffer = false;
+			}else if(textFragment.getTextDisplacement().getDeltaY() > 0L){ // A newline
+				flushBuffer = true;
+				i++;
+			}else if((textFragment.getTextDisplacement().getDeltaX() + lineLengthSoFar + paddingLeft + paddingRight) > maxLineLength){ // Line too long
+				if(currentLineFragments.size() == 0){ // Current line is empty, but we're already overflowing with one word?  Just add the word and let it overflow:
+					lineLengthSoFar += textFragment.getTextDisplacement().getDeltaX();
+					currentLineFragments.add(textFragment.getColouredTextFragment());
+					i++;
+				}
+				flushBuffer = true;
+			}else if(i == textFragments.size() -1){ //  End of text
+				lineLengthSoFar += textFragment.getTextDisplacement().getDeltaX();
+				currentLineFragments.add(textFragment.getColouredTextFragment());
+				flushBuffer = true;
+				i++;
+			}else{
+				boolean isSpace = textFragment.getColouredTextFragment().getText().matches("\\s+");
+				//  Do not add leading spaces to the start of a line:
+				if(!isSpace || lineLengthSoFar > 0L || tfl.getPreserveWhitespace()){
+					lineLengthSoFar += textFragment.getTextDisplacement().getDeltaX();
+					currentLineFragments.add(textFragment.getColouredTextFragment());
+				}
+				i++;
+			}
+		}
+		return instructions;
+	}
+
+	public static List<MeasuredTextFragment> getMeasuredTextFragments(BlockManagerThreadCollectionProvider provider, ColouredTextFragmentList fragmentList, Long maxLineWidth) throws Exception{
+		List<MeasuredTextFragment> textFragments = new ArrayList<MeasuredTextFragment>();
+		for(ColouredTextFragment cf : fragmentList.getColouredTextFragments()){
+			String newlineCharacter = "\n";
+			String spaceCharacter = " ";
+			String[] lines = cf.getText().split(newlineCharacter);
+			for(int i = 0; i < lines.length; i++){
+				List<String []> delimitedWords = UserInterfaceFrameThreadState.splitStringByDelimiterPairs(lines[i], "\\s+");
+				for(int j = 0; j < delimitedWords.size(); j++){
+					String word = delimitedWords.get(j)[0];
+					String spaceDelimiter = delimitedWords.get(j)[1];
+					List<String> characters = UserInterfaceFrameThreadState.splitStringIntoCharactersUnicodeAware(word);
+					List<String> charactersSoFar = new ArrayList<String>();
+					Long wordLength = 0L;
+					Long wordHeight = 0L;
+					List<String> wordParts = new ArrayList<String>();
+					for(String c : characters){
+						TextWidthMeasurementWorkItemResult m = provider.getBlockManagerThreadCollection().getConsoleWriterThreadState().measureTextLengthOnTerminal(c);
+						wordLength += m.getDeltaX();
+						wordHeight += m.getDeltaY();
+						charactersSoFar.add(c);
+
+						if(wordLength >= maxLineWidth){
+							textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(String.join("", charactersSoFar), cf.getAnsiColourCodes()), new TextWidthMeasurementWorkItemResult(wordLength, wordHeight)));
+							charactersSoFar.clear();
+							wordLength = 0L;
+							wordHeight = 0L;
+						}
+					}
+					if(charactersSoFar.size() > 0){
+						textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(String.join("", charactersSoFar), cf.getAnsiColourCodes()), new TextWidthMeasurementWorkItemResult(wordLength, wordHeight)));
+					}
+					if(j != delimitedWords.size() -1 || fragmentList.getPreserveWhitespace()){
+						//  Add back any space characters between words
+						//  as long as they're not at the end of lines.
+						if(spaceDelimiter != null){
+							textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(spaceDelimiter, cf.getAnsiColourCodes()), provider.getBlockManagerThreadCollection().getConsoleWriterThreadState().measureTextLengthOnTerminal(spaceDelimiter)));
+						}
+					}
+				}
+				if(i != lines.length -1){
+					textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(newlineCharacter, cf.getAnsiColourCodes()), provider.getBlockManagerThreadCollection().getConsoleWriterThreadState().measureTextLengthOnTerminal(newlineCharacter)));
+				}
+			}
+		}
+
+		return textFragments;
+	}
+
+	public static void executeLinePrintingInstructionsAtYOffset(BlockManagerThreadCollectionProvider provider, List<LinePrintingInstruction> instructions, Long yOffset, ScreenLayer bottomLayer) throws Exception{
+		for(int i = 0; i < instructions.size(); i++){
+			LinePrintingInstruction instruction = instructions.get(i);
+			ScreenLayer.printTextAtScreenXY(provider, instruction.getColouredTextFragmentList(), instruction.getXOffsetInFrame(), yOffset + i, PrintDirection.LEFT_TO_RIGHT, bottomLayer);
+		}
+	}
+
+	public static void executeLinePrintingInstructions(BlockManagerThreadCollectionProvider provider, List<LinePrintingInstructionAtOffset> instructions, Long yOffset, ScreenLayer bottomLayer) throws Exception{
+		for(LinePrintingInstructionAtOffset ins : instructions){
+			LinePrintingInstruction instruction = ins.getLinePrintingInstruction();
+			ScreenLayer.printTextAtScreenXY(provider, instruction.getColouredTextFragmentList(), instruction.getXOffsetInFrame(), yOffset + ins.getOffsetY(), PrintDirection.LEFT_TO_RIGHT, bottomLayer);
+		}
+	}
+
+	public static List<LinePrintingInstructionAtOffset> wrapLinePrintingInstructionsAtOffset(List<LinePrintingInstruction> instructions, Long yOffset, Long step) throws Exception{
+		List<LinePrintingInstructionAtOffset> wrappedInstructions = new ArrayList<LinePrintingInstructionAtOffset>();
+		for(long i = 0; i < instructions.size(); i++){
+			LinePrintingInstruction instruction = instructions.get((int)i);
+			wrappedInstructions.add(new LinePrintingInstructionAtOffset(instruction, yOffset + (i*step)));
+		}
+		return wrappedInstructions;
+	}
+
+	public static void printTextAtScreenXY(BlockManagerThreadCollectionProvider provider, ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, PrintDirection direction, ScreenLayer bottomLayer) throws Exception{
+		ScreenLayer.printTextAtScreenXY(provider, new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, direction, new ScreenLayerMergeParameters(bottomLayer, ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
+	}
+
+	public static void printTextAtScreenXY(BlockManagerThreadCollectionProvider provider, ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, PrintDirection direction, ScreenLayer bottomLayer) throws Exception{
+		ScreenLayer.printTextAtScreenXY(provider, colouredTextFragmentList, drawOffsetX, drawOffsetY, direction, new ScreenLayerMergeParameters(bottomLayer, ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
+	}
+
+	public static void printTextAtScreenXY(BlockManagerThreadCollectionProvider provider, ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, PrintDirection direction, ScreenLayerMergeParameters mergeParams) throws Exception{
 		List<ColouredCharacter> colouredCharacters = colouredTextFragmentList.getColouredCharacters();
 		List<String> charactersToPrint = new ArrayList<String>();
 		int [][] newColourCodes = new int [colouredCharacters.size()][];
@@ -1173,7 +1304,7 @@ public class ScreenLayer {
 		int totalWidth = 0;
 		int maximumCharacterWidth = 0;
 		for(String s : charactersToPrint){
-			int chrWidth = blockManagerThreadCollection.getConsoleWriterThreadState().measureTextLengthOnTerminal(s).getDeltaX().intValue();
+			int chrWidth = provider.getBlockManagerThreadCollection().getConsoleWriterThreadState().measureTextLengthOnTerminal(s).getDeltaX().intValue();
 			if(chrWidth > maximumCharacterWidth){
 				maximumCharacterWidth = chrWidth;
 			}
@@ -1192,7 +1323,7 @@ public class ScreenLayer {
 		int currentYOffset = 0;
 		for(int i = 0; i < charactersToPrint.size(); i++){
 			String s = charactersToPrint.get(i);
-			int chrWidth = blockManagerThreadCollection.getConsoleWriterThreadState().measureTextLengthOnTerminal(s).getDeltaX().intValue();
+			int chrWidth = provider.getBlockManagerThreadCollection().getConsoleWriterThreadState().measureTextLengthOnTerminal(s).getDeltaX().intValue();
 			if(direction.equals(PrintDirection.LEFT_TO_RIGHT)){
 				changes.setMultiColumnCharacter(currentXOffset, currentYOffset, s, chrWidth, newColourCodes[i], true, true);
 				currentXOffset += chrWidth;

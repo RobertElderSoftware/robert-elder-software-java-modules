@@ -493,8 +493,8 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 			int [] ansiColourCodes = (i == this.helpMenu.getCurrentMenuYIndex()) ? UserInterfaceFrameThreadState.getActiveHelpMenuItemColors() : UserInterfaceFrameThreadState.getDefaultTextColors();
 			menuItemTextFragmentList.add(new ColouredTextFragment(menuOption.getTitle(), ansiColourCodes));
 
-			List<LinePrintingInstruction> menuItemLineInstructions = this.getLinePrintingInstructions(menuItemTextFragmentList, leftPadding, rightPadding, false, false, Long.valueOf(terminalWidth));
-			instructions.addAll(this.wrapLinePrintingInstructionsAtOffset(menuItemLineInstructions, currentLine, 1L));
+			List<LinePrintingInstruction> menuItemLineInstructions = ScreenLayer.getLinePrintingInstructions(this, menuItemTextFragmentList, leftPadding, rightPadding, false, false, Long.valueOf(terminalWidth));
+			instructions.addAll(ScreenLayer.wrapLinePrintingInstructionsAtOffset(menuItemLineInstructions, currentLine, 1L));
 			currentLine += menuItemLineInstructions.size() + 1L;
 		}
 
@@ -524,7 +524,7 @@ public class HelpMenuFrameThreadState extends UserInterfaceFrameThreadState {
 
 		for(LinePrintingInstructionAtOffset instruction : instructions){
 			Long lineYOffset = instruction.getOffsetY() + yOffset;
-			this.executeLinePrintingInstructionsAtYOffset(Arrays.asList(instruction.getLinePrintingInstruction()), lineYOffset, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_MENU]);
+			ScreenLayer.executeLinePrintingInstructionsAtYOffset(this, Arrays.asList(instruction.getLinePrintingInstruction()), lineYOffset, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_MENU]);
 		}
 
 		this.setScreenLayerState(ConsoleWriterThreadState.BUFFER_INDEX_MENU, this.helpMenu.getActiveState());

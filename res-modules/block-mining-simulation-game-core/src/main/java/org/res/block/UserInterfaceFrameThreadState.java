@@ -61,7 +61,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThreadState<UIWorkItem>{
+public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThreadState<UIWorkItem> implements BlockManagerThreadCollectionProvider {
 
 	private static final AtomicLong seq = new AtomicLong(0);
 	public final long frameId;
@@ -366,54 +366,6 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		return rtn;
 	}
 
-	private List<MeasuredTextFragment> getMeasuredTextFragments(ColouredTextFragmentList fragmentList, Long maxLineWidth) throws Exception{
-		List<MeasuredTextFragment> textFragments = new ArrayList<MeasuredTextFragment>();
-		for(ColouredTextFragment cf : fragmentList.getColouredTextFragments()){
-			String newlineCharacter = "\n";
-			String spaceCharacter = " ";
-			String[] lines = cf.getText().split(newlineCharacter);
-			for(int i = 0; i < lines.length; i++){
-				List<String []> delimitedWords = UserInterfaceFrameThreadState.splitStringByDelimiterPairs(lines[i], "\\s+");
-				for(int j = 0; j < delimitedWords.size(); j++){
-					String word = delimitedWords.get(j)[0];
-					String spaceDelimiter = delimitedWords.get(j)[1];
-					List<String> characters = UserInterfaceFrameThreadState.splitStringIntoCharactersUnicodeAware(word);
-					List<String> charactersSoFar = new ArrayList<String>();
-					Long wordLength = 0L;
-					Long wordHeight = 0L;
-					List<String> wordParts = new ArrayList<String>();
-					for(String c : characters){
-						TextWidthMeasurementWorkItemResult m = getConsoleWriterThreadState().measureTextLengthOnTerminal(c);
-						wordLength += m.getDeltaX();
-						wordHeight += m.getDeltaY();
-						charactersSoFar.add(c);
-
-						if(wordLength >= maxLineWidth){
-							textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(String.join("", charactersSoFar), cf.getAnsiColourCodes()), new TextWidthMeasurementWorkItemResult(wordLength, wordHeight)));
-							charactersSoFar.clear();
-							wordLength = 0L;
-							wordHeight = 0L;
-						}
-					}
-					if(charactersSoFar.size() > 0){
-						textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(String.join("", charactersSoFar), cf.getAnsiColourCodes()), new TextWidthMeasurementWorkItemResult(wordLength, wordHeight)));
-					}
-					if(j != delimitedWords.size() -1 || fragmentList.getPreserveWhitespace()){
-						//  Add back any space characters between words
-						//  as long as they're not at the end of lines.
-						if(spaceDelimiter != null){
-							textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(spaceDelimiter, cf.getAnsiColourCodes()), getConsoleWriterThreadState().measureTextLengthOnTerminal(spaceDelimiter)));
-						}
-					}
-				}
-				if(i != lines.length -1){
-					textFragments.add(new MeasuredTextFragment(new ColouredTextFragment(newlineCharacter, cf.getAnsiColourCodes()), getConsoleWriterThreadState().measureTextLengthOnTerminal(newlineCharacter)));
-				}
-			}
-		}
-
-		return textFragments;
-	}
 
 	public Long getFrameDimensionsChangeId(){
 		return this.frameDimensionsChangeSeq.get();
@@ -423,72 +375,13 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		return this.frameDimensionsChangeSeq.getAndIncrement();
 	}
 
-	public List<LinePrintingInstruction> getLinePrintingInstructions(String text, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign, Long maxLineLength) throws Exception{
-		ColouredTextFragment tf = new ColouredTextFragment(text, getDefaultTextColors());
-		return getLinePrintingInstructions(tf, paddingLeft, paddingRight, leftAlign, rightAlign, maxLineLength);
-	}
-
-	public List<LinePrintingInstruction> getLinePrintingInstructions(ColouredTextFragment tf, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign, Long maxLineLength) throws Exception{
-		ColouredTextFragmentList tfl = new ColouredTextFragmentList(tf);
-		return getLinePrintingInstructions(tfl, paddingLeft, paddingRight, leftAlign, rightAlign, maxLineLength);
-	}
-
-	public List<LinePrintingInstruction> getLinePrintingInstructions(ColouredTextFragmentList tfl, Long paddingLeft, Long paddingRight, boolean leftAlign, boolean rightAlign, Long maxLineLength) throws Exception{
-		List<LinePrintingInstruction> instructions = new ArrayList<LinePrintingInstruction>();
-		List<MeasuredTextFragment> textFragments = this.getMeasuredTextFragments(tfl, maxLineLength - paddingLeft - paddingRight);
-		List<ColouredTextFragment> currentLineFragments = new ArrayList<ColouredTextFragment>();
-		Long lineLengthSoFar = 0L;
-		boolean flushBuffer = false;
-		int i = 0;
-		while(currentLineFragments.size() > 0 || i < textFragments.size()){
-			MeasuredTextFragment textFragment = i < textFragments.size() ? textFragments.get(i) : null;
-
-			if(flushBuffer){
-				Long centeredInExtraSpaceOffset = (maxLineLength / 2L) - (lineLengthSoFar / 2L);
-				Long textOffset = leftAlign ? paddingLeft : centeredInExtraSpaceOffset;
-				instructions.add(new LinePrintingInstruction(textOffset, new ColouredTextFragmentList(new ArrayList<ColouredTextFragment>(currentLineFragments))));
-				currentLineFragments = new ArrayList<ColouredTextFragment>();
-				lineLengthSoFar = 0L;
-				flushBuffer = false;
-			}else if(textFragment.getTextDisplacement().getDeltaY() > 0L){ // A newline
-				flushBuffer = true;
-				i++;
-			}else if((textFragment.getTextDisplacement().getDeltaX() + lineLengthSoFar + paddingLeft + paddingRight) > maxLineLength){ // Line too long
-				if(currentLineFragments.size() == 0){ // Current line is empty, but we're already overflowing with one word?  Just add the word and let it overflow:
-					lineLengthSoFar += textFragment.getTextDisplacement().getDeltaX();
-					currentLineFragments.add(textFragment.getColouredTextFragment());
-					i++;
-				}
-				flushBuffer = true;
-			}else if(i == textFragments.size() -1){ //  End of text
-				lineLengthSoFar += textFragment.getTextDisplacement().getDeltaX();
-				currentLineFragments.add(textFragment.getColouredTextFragment());
-				flushBuffer = true;
-				i++;
-			}else{
-				boolean isSpace = textFragment.getColouredTextFragment().getText().matches("\\s+");
-				//  Do not add leading spaces to the start of a line:
-				if(!isSpace || lineLengthSoFar > 0L || tfl.getPreserveWhitespace()){
-					lineLengthSoFar += textFragment.getTextDisplacement().getDeltaX();
-					currentLineFragments.add(textFragment.getColouredTextFragment());
-				}
-				i++;
-			}
-		}
-		return instructions;
-	}
-
-	public void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, PrintDirection direction, ScreenLayer bottomLayer) throws Exception{
-		ScreenLayer.printTextAtScreenXY(getBlockManagerThreadCollection(), new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, direction, new ScreenLayerMergeParameters(bottomLayer, ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
-	}
-
 	public void printTextAtScreenXY(ColouredTextFragment colouredTextFragment, Long drawOffsetX, Long drawOffsetY, PrintDirection direction) throws Exception{
-		ScreenLayer.printTextAtScreenXY(getBlockManagerThreadCollection(), new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, direction, new ScreenLayerMergeParameters(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT], ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
+		ScreenLayer.printTextAtScreenXY(this, new ColouredTextFragmentList(Arrays.asList(colouredTextFragment)), drawOffsetX, drawOffsetY, direction, new ScreenLayerMergeParameters(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT], ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
 	}
 
 
 	public void printTextAtScreenXY(ColouredTextFragmentList colouredTextFragmentList, Long drawOffsetX, Long drawOffsetY, PrintDirection direction) throws Exception{
-		ScreenLayer.printTextAtScreenXY(getBlockManagerThreadCollection(), colouredTextFragmentList, drawOffsetX, drawOffsetY, direction, new ScreenLayerMergeParameters(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT], ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
+		ScreenLayer.printTextAtScreenXY(this, colouredTextFragmentList, drawOffsetX, drawOffsetY, direction, new ScreenLayerMergeParameters(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT], ScreenLayerMergeType.PREFER_BOTTOM_LAYER));
 	}
 
 	public boolean sendConsolePrintMessage(List<ScreenLayerPrintParameters> params, FrameDimensions fd) throws Exception{
@@ -510,30 +403,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 	}
 
 	protected void executeLinePrintingInstructionsAtYOffset(List<LinePrintingInstruction> instructions, Long yOffset) throws Exception{
-		this.executeLinePrintingInstructionsAtYOffset(instructions, yOffset, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
-	}
-
-	protected void executeLinePrintingInstructionsAtYOffset(List<LinePrintingInstruction> instructions, Long yOffset, ScreenLayer bottomLayer) throws Exception{
-		for(int i = 0; i < instructions.size(); i++){
-			LinePrintingInstruction instruction = instructions.get(i);
-			ScreenLayer.printTextAtScreenXY(bmtc(), instruction.getColouredTextFragmentList(), instruction.getXOffsetInFrame(), yOffset + i, PrintDirection.LEFT_TO_RIGHT, bottomLayer);
-		}
-	}
-
-	protected void executeLinePrintingInstructions(List<LinePrintingInstructionAtOffset> instructions, Long yOffset, ScreenLayer bottomLayer) throws Exception{
-		for(LinePrintingInstructionAtOffset ins : instructions){
-			LinePrintingInstruction instruction = ins.getLinePrintingInstruction();
-			ScreenLayer.printTextAtScreenXY(bmtc(), instruction.getColouredTextFragmentList(), instruction.getXOffsetInFrame(), yOffset + ins.getOffsetY(), PrintDirection.LEFT_TO_RIGHT, bottomLayer);
-		}
-	}
-
-	protected List<LinePrintingInstructionAtOffset> wrapLinePrintingInstructionsAtOffset(List<LinePrintingInstruction> instructions, Long yOffset, Long step) throws Exception{
-		List<LinePrintingInstructionAtOffset> wrappedInstructions = new ArrayList<LinePrintingInstructionAtOffset>();
-		for(long i = 0; i < instructions.size(); i++){
-			LinePrintingInstruction instruction = instructions.get((int)i);
-			wrappedInstructions.add(new LinePrintingInstructionAtOffset(instruction, yOffset + (i*step)));
-		}
-		return wrappedInstructions;
+		ScreenLayer.executeLinePrintingInstructionsAtYOffset(this, instructions, yOffset, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
 	}
 
 	protected FrameDimensions getFrameDimensions() throws Exception{
@@ -697,7 +567,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 			}
 
 			this.topBorder = new ScreenLayer(new Coordinate(Arrays.asList(0L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, (int)borderLength, (int)borderHeight));
-			ScreenLayer.printTextAtScreenXY(bmtc(), fragmentList, 0L, 0L, PrintDirection.LEFT_TO_RIGHT, this.topBorder);
+			ScreenLayer.printTextAtScreenXY(this, fragmentList, 0L, 0L, PrintDirection.LEFT_TO_RIGHT, this.topBorder);
 		}
 		if(hasLeftBorder){
 			ColouredTextFragmentList fragmentList = new ColouredTextFragmentList();
@@ -716,7 +586,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 				}
 			}
 			this.leftBorder = new ScreenLayer(new Coordinate(Arrays.asList(0L, 1L)), ScreenLayer.makeDimensionsCA(0, 0, (int)borderWidth, (int)borderHeight));
-			ScreenLayer.printTextAtScreenXY(bmtc(), fragmentList, 0L, 0L, PrintDirection.TOP_TO_BOTTOM, this.leftBorder);
+			ScreenLayer.printTextAtScreenXY(this, fragmentList, 0L, 0L, PrintDirection.TOP_TO_BOTTOM, this.leftBorder);
 		}
 		if(hasRightBorder){
 			ColouredTextFragmentList fragmentList = new ColouredTextFragmentList();
@@ -735,7 +605,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 				}
 			}
 			this.rightBorder = new ScreenLayer(new Coordinate(Arrays.asList(this.getFrameWidth() -fchrw, 1L)), ScreenLayer.makeDimensionsCA(0, 0, (int)borderWidth, (int)borderHeight));
-			ScreenLayer.printTextAtScreenXY(bmtc(), fragmentList, 0L, 0L, PrintDirection.TOP_TO_BOTTOM, this.rightBorder);
+			ScreenLayer.printTextAtScreenXY(this, fragmentList, 0L, 0L, PrintDirection.TOP_TO_BOTTOM, this.rightBorder);
 		}
 		if(hasBottomBorder){
 			ColouredTextFragmentList fragmentList = new ColouredTextFragmentList();
@@ -751,7 +621,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 				}
 			}
 			this.bottomBorder = new ScreenLayer(new Coordinate(Arrays.asList(0L, this.getFrameHeight() -1)), ScreenLayer.makeDimensionsCA(0, 0, (int)borderLength, (int)borderHeight));
-			ScreenLayer.printTextAtScreenXY(bmtc(), fragmentList, 0L, 0L, PrintDirection.LEFT_TO_RIGHT, this.bottomBorder);
+			ScreenLayer.printTextAtScreenXY(this, fragmentList, 0L, 0L, PrintDirection.LEFT_TO_RIGHT, this.bottomBorder);
 		}
 	}
 
@@ -785,7 +655,7 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 
 		ScreenLayer titleStringLayer = new ScreenLayer(new Coordinate(Arrays.asList(3L, 0L)), ScreenLayer.makeDimensionsCA(0, 0, strColumnLength, 1));
 
-		this.printTextAtScreenXY(new ColouredTextFragment(entireAddress, UserInterfaceFrameThreadState.getDefaultTextColors()), 0L, 0L, PrintDirection.LEFT_TO_RIGHT, titleStringLayer);
+		ScreenLayer.printTextAtScreenXY(this, new ColouredTextFragment(entireAddress, UserInterfaceFrameThreadState.getDefaultTextColors()), 0L, 0L, PrintDirection.LEFT_TO_RIGHT, titleStringLayer);
 
 		this.drawBorders(
 			new ScreenLayer []{titleStringLayer},
@@ -1082,14 +952,9 @@ public abstract class UserInterfaceFrameThreadState extends UIEventReceiverThrea
 		return this.frameId;
 	}
 
-	public BlockManagerThreadCollection bmtc(){
-		return getBlockManagerThreadCollection();
-	}
-
 	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
 		return this.blockManagerThreadCollection;
 	}
-
 
 	public void throwExceptionIfScreenHasNullCharacters() throws Exception{
 		for(int i = 0; i < this.usedScreenLayers.length; i++){

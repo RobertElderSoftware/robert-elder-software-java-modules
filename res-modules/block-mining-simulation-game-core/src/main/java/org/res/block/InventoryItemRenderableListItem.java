@@ -49,9 +49,9 @@ public class InventoryItemRenderableListItem extends RenderableListItem{
 
 	private PlayerInventoryItemStack stack;
 
-	public void render(UserInterfaceFrameThreadState frame, boolean isSelected, Coordinate placementOffset, ScreenLayer bottomLayer) throws Exception{
+	public void render(boolean isSelected, Coordinate placementOffset, ScreenLayer bottomLayer) throws Exception{
 
-		GraphicsMode mode = frame.getBlockManagerThreadCollection().getGraphicsMode();
+		GraphicsMode mode = container.getBlockManagerThreadCollection().getGraphicsMode();
 		boolean useAscii = mode.equals(GraphicsMode.ASCII);
 
 		int [] bgColours = isSelected ? new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR} : UserInterfaceFrameThreadState.getDefaultBGColors();
@@ -68,20 +68,20 @@ public class InventoryItemRenderableListItem extends RenderableListItem{
 		List<LinePrintingInstructionAtOffset> instructions = new ArrayList<LinePrintingInstructionAtOffset>();
 
 		ColouredTextFragmentList itemFragments = new ColouredTextFragmentList();
-		itemFragments.add(new ColouredTextFragment(getStackDescription(this.stack, frame), defaultColours));
-		List<LinePrintingInstruction> lineInstructions = frame.getLinePrintingInstructions(itemFragments, leftPadding, rightPadding, true, true, (long)this.displayLayer.getWidth());
-		instructions.addAll(frame.wrapLinePrintingInstructionsAtOffset(lineInstructions, currentLine, 1L));
+		itemFragments.add(new ColouredTextFragment(getStackDescription(this.stack), defaultColours));
+		List<LinePrintingInstruction> lineInstructions = ScreenLayer.getLinePrintingInstructions(container, itemFragments, leftPadding, rightPadding, true, true, (long)this.displayLayer.getWidth());
+		instructions.addAll(ScreenLayer.wrapLinePrintingInstructionsAtOffset(lineInstructions, currentLine, 1L));
 		currentLine += instructions.size() + 1;
 
 		Long offsetToPrintAt = 0L;
-		frame.executeLinePrintingInstructions(instructions, offsetToPrintAt, this.displayLayer);
+		ScreenLayer.executeLinePrintingInstructions(container, instructions, offsetToPrintAt, this.displayLayer);
 		this.displayLayer.setPlacementOffset(placementOffset);
 		bottomLayer.mergeDown(this.displayLayer, true, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
 	}
 
-	public String getStackDescription(PlayerInventoryItemStack stack, UserInterfaceFrameThreadState frame) throws Exception{
-		GraphicsMode mode = frame.getBlockManagerThreadCollection().getGraphicsMode();
-		BlockSchema blockSchema = frame.getBlockManagerThreadCollection().getBlockSchema();
+	public String getStackDescription(PlayerInventoryItemStack stack) throws Exception{
+		GraphicsMode mode = container.getBlockManagerThreadCollection().getGraphicsMode();
+		BlockSchema blockSchema = container.getBlockManagerThreadCollection().getBlockSchema();
 		List<String> parts = new ArrayList<String>();
 		IndividualBlock block = stack.getBlock(blockSchema);
 		String blockPresentation = BlockSkins.getPresentation(block.getClass(), mode.equals(GraphicsMode.ASCII));
@@ -89,7 +89,8 @@ public class InventoryItemRenderableListItem extends RenderableListItem{
 		return String.join(" + ", parts);
 	}
 
-	public InventoryItemRenderableListItem(PlayerInventoryItemStack stack) throws Exception{
+	public InventoryItemRenderableListItem(RenderableListContainer container, PlayerInventoryItemStack stack) throws Exception{
+		super(container);
 		this.stack = stack;
 	}
 

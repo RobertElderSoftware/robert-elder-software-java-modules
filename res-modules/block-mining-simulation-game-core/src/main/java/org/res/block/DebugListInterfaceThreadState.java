@@ -73,6 +73,7 @@ public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState
 
 	protected void init(Object o) throws Exception{
 		this.recipeList = new RenderableList<DebugRendererListItem>(this, 3L, 8L, 10L, 40L, "Default list is empty.");
+		this.recipeList.init();
 		this.addDebugRecipeItems();
 	}
 
@@ -82,7 +83,7 @@ public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState
 
 	private void addDebugRecipeItems() throws Exception {
 		for(int i = 0; i < 0; i++){
-			this.recipeList.addItem(new DebugRendererListItem("Foo_" + i));
+			this.recipeList.addItem(new DebugRendererListItem(this, "Foo_" + i));
 		}
 	}
 
@@ -107,7 +108,7 @@ public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState
 					break;
 				}default:{
 
-					this.recipeList.addItem(new DebugRendererListItem("Foo_" + this.recipeList.size()));
+					this.recipeList.addItem(new DebugRendererListItem(this, "Foo_" + this.recipeList.size()));
 					this.onRenderFrame(false, false);
 					this.onFinalizeFrame();
 				}
@@ -118,13 +119,13 @@ public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState
 	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{
 		ScreenLayer bottomLayer = this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT];
 		if(ansiEscapeSequence instanceof AnsiEscapeSequenceUpArrowKey){
-			this.recipeList.onUpArrowPressed(this, bottomLayer);
+			this.recipeList.onUpArrowPressed(bottomLayer);
 		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceRightArrowKey){
-			this.recipeList.onRightArrowPressed(this, bottomLayer);
+			this.recipeList.onRightArrowPressed(bottomLayer);
 		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceDownArrowKey){
-			this.recipeList.onDownArrowPressed(this, bottomLayer);
+			this.recipeList.onDownArrowPressed(bottomLayer);
 		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceLeftArrowKey){
-			this.recipeList.onLeftArrowPressed(this, bottomLayer);
+			this.recipeList.onLeftArrowPressed(bottomLayer);
 		}else{
 			logger.info("CraftingInterfaceThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
 		}
@@ -146,14 +147,13 @@ public class DebugListInterfaceThreadState extends UserInterfaceFrameThreadState
 		Coordinate bottomRightCorner = new Coordinate(Arrays.asList(x2, y2));
 
 		this.recipeList.updateRenderableArea(
-			this,
 			new CuboidAddress(
 				topLeftCorner,
 				bottomRightCorner
 			)
 		);
 
-		this.recipeList.render(this, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
+		this.recipeList.render(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
 		this.drawBorders();
 	}
 

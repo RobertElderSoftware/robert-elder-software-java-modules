@@ -49,9 +49,9 @@ public class CraftingRecipeRenderableListItem extends RenderableListItem{
 
 	private CraftingRecipe recipe;
 
-	public void render(UserInterfaceFrameThreadState frame, boolean isSelected, Coordinate placementOffset, ScreenLayer bottomLayer) throws Exception{
+	public void render(boolean isSelected, Coordinate placementOffset, ScreenLayer bottomLayer) throws Exception{
 
-		GraphicsMode mode = frame.getBlockManagerThreadCollection().getGraphicsMode();
+		GraphicsMode mode = container.getBlockManagerThreadCollection().getGraphicsMode();
 		boolean useAscii = mode.equals(GraphicsMode.ASCII);
 
 		int [] bgColours = isSelected ? new int [] {UserInterfaceFrameThreadState.GREEN_BG_COLOR} : UserInterfaceFrameThreadState.getDefaultListItemBGColor(useAscii);
@@ -72,28 +72,28 @@ public class CraftingRecipeRenderableListItem extends RenderableListItem{
 
 		ColouredTextFragmentList producesFragments = new ColouredTextFragmentList();
 		producesFragments.add(new ColouredTextFragment("PRODUCES:", titleColours));
-		producesFragments.add(new ColouredTextFragment(" " + getStackListDescription(recipe.getProducedItems(), frame), defaultColours));
-		List<LinePrintingInstruction> producesInstructions = frame.getLinePrintingInstructions(producesFragments, leftPadding, rightPadding, true, true, (long)this.displayLayer.getWidth());
-		instructions.addAll(frame.wrapLinePrintingInstructionsAtOffset(producesInstructions, currentLine, 1L));
+		producesFragments.add(new ColouredTextFragment(" " + getStackListDescription(recipe.getProducedItems()), defaultColours));
+		List<LinePrintingInstruction> producesInstructions = ScreenLayer.getLinePrintingInstructions(container, producesFragments, leftPadding, rightPadding, true, true, (long)this.displayLayer.getWidth());
+		instructions.addAll(ScreenLayer.wrapLinePrintingInstructionsAtOffset(producesInstructions, currentLine, 1L));
 		currentLine += producesInstructions.size() + 1;
 
 		ColouredTextFragmentList requiresFragments = new ColouredTextFragmentList();
 		requiresFragments.add(new ColouredTextFragment("CONSUMES:", titleColours));
-		requiresFragments.add(new ColouredTextFragment(" " + getStackListDescription(recipe.getConsumedItems(), frame), defaultColours));
-		List<LinePrintingInstruction> requiresInstructions = frame.getLinePrintingInstructions(requiresFragments, leftPadding, rightPadding, true, true, (long)this.displayLayer.getWidth());
-		instructions.addAll(frame.wrapLinePrintingInstructionsAtOffset(requiresInstructions, currentLine, 1L));
+		requiresFragments.add(new ColouredTextFragment(" " + getStackListDescription(recipe.getConsumedItems()), defaultColours));
+		List<LinePrintingInstruction> requiresInstructions = ScreenLayer.getLinePrintingInstructions(container, requiresFragments, leftPadding, rightPadding, true, true, (long)this.displayLayer.getWidth());
+		instructions.addAll(ScreenLayer.wrapLinePrintingInstructionsAtOffset(requiresInstructions, currentLine, 1L));
 		currentLine += requiresInstructions.size() + 1;
 
 
 		Long offsetToPrintAt = 0L;
-		frame.executeLinePrintingInstructions(instructions, offsetToPrintAt, this.displayLayer);
+		ScreenLayer.executeLinePrintingInstructions(container, instructions, offsetToPrintAt, this.displayLayer);
 		this.displayLayer.setPlacementOffset(placementOffset);
 		bottomLayer.mergeDown(this.displayLayer, true, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
 	}
 
-	public String getStackListDescription(List<PlayerInventoryItemStack> itemStacks, UserInterfaceFrameThreadState frame) throws Exception{
-		GraphicsMode mode = frame.getBlockManagerThreadCollection().getGraphicsMode();
-		BlockSchema blockSchema = frame.getBlockManagerThreadCollection().getBlockSchema();
+	public String getStackListDescription(List<PlayerInventoryItemStack> itemStacks) throws Exception{
+		GraphicsMode mode = container.getBlockManagerThreadCollection().getGraphicsMode();
+		BlockSchema blockSchema = container.getBlockManagerThreadCollection().getBlockSchema();
 		List<String> parts = new ArrayList<String>();
 		for(PlayerInventoryItemStack itemStack : itemStacks){
 			IndividualBlock block = itemStack.getBlock(blockSchema);
@@ -103,7 +103,8 @@ public class CraftingRecipeRenderableListItem extends RenderableListItem{
 		return String.join(" + ", parts);
 	}
 
-	public CraftingRecipeRenderableListItem(CraftingRecipe recipe) throws Exception{
+	public CraftingRecipeRenderableListItem(RenderableListContainer container, CraftingRecipe recipe) throws Exception{
+		super(container);
 		this.recipe = recipe;
 	}
 

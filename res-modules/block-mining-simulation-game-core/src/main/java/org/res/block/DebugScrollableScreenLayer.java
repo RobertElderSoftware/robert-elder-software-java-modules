@@ -57,8 +57,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public class DebugScrollableScreenLayer extends ScrollableScreenLayer {
-
+public class DebugScrollableScreenLayer extends ScrollableScreenLayer implements BlockManagerThreadCollectionProvider {
+	private BlockManagerThreadCollection blockManagerThreadCollection;
 	private Long contentColumnWidth = 0L;
 	private Long contentColumnHeight = 0L;
 
@@ -70,7 +70,19 @@ public class DebugScrollableScreenLayer extends ScrollableScreenLayer {
 		return contentColumnWidth;
 	}
 
-	public void renderDebugArea(UserInterfaceFrameThreadState frame) throws Exception{
+	public BlockManagerThreadCollectionProvider getProvider(){
+		return this;
+	}
+
+	public boolean getHasRightScrollBar(){
+		return true;
+	}
+
+	public boolean getHasBottomScrollBar(){
+		return true;
+	}
+
+	public void renderDebugArea() throws Exception{
 		for(long x = 0L; x < this.getWidth(); x++){
 			for(long y = 0L; y < this.getHeight(); y++){
 				boolean isOutOfBounds = (x < 0 || x > contentColumnWidth || y < 0 || y > contentColumnHeight);
@@ -81,13 +93,13 @@ public class DebugScrollableScreenLayer extends ScrollableScreenLayer {
 
 				int [] colors = UserInterfaceFrameThreadState.concatIntArrays(bgColors, fgColors);
 				String cellText = isOutOfBounds ? "." : String.valueOf((xO+yO) % 10L);
-				frame.printTextAtScreenXY(new ColouredTextFragment(cellText, colors), x, y, PrintDirection.LEFT_TO_RIGHT, this);
+				ScreenLayer.printTextAtScreenXY(this, new ColouredTextFragment(cellText, colors), x, y, PrintDirection.LEFT_TO_RIGHT, this);
 			}
 		}
 	}
 
-	public void render(UserInterfaceFrameThreadState frame, ScreenLayer bottomLayer) throws Exception{
-		renderDebugArea(frame);
+	public void render(ScreenLayer bottomLayer) throws Exception{
+		renderDebugArea();
 		bottomLayer.mergeDown(this, true, ScreenLayerMergeType.PREFER_BOTTOM_LAYER);
 	}
 
@@ -116,7 +128,11 @@ public class DebugScrollableScreenLayer extends ScrollableScreenLayer {
 		this.contentColumnHeight = h;
 	}
 
-	public DebugScrollableScreenLayer() throws Exception{
+	public BlockManagerThreadCollection getBlockManagerThreadCollection(){
+		return this.blockManagerThreadCollection;
+	}
 
+	public DebugScrollableScreenLayer(BlockManagerThreadCollection blockManagerThreadCollection) throws Exception{
+		this.blockManagerThreadCollection = blockManagerThreadCollection;
 	}
 }

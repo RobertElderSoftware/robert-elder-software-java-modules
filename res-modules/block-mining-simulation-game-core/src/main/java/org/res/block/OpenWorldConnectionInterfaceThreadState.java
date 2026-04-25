@@ -155,7 +155,7 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 		ColouredTextFragmentList activeWorldsTitlePart = new ColouredTextFragmentList();
 		activeWorldsTitlePart.add(new ColouredTextFragment("Currently Active World Connection(s):", titleAnsiCodes));
 
-		List<LinePrintingInstruction> activeWorldsTitleInstructions = this.getLinePrintingInstructions(activeWorldsTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+		List<LinePrintingInstruction> activeWorldsTitleInstructions = ScreenLayer.getLinePrintingInstructions(this, activeWorldsTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
 
 		this.executeLinePrintingInstructionsAtYOffset(activeWorldsTitleInstructions, initialOffset);
 		initialOffset += activeWorldsTitleInstructions.size() + 1L;
@@ -169,7 +169,7 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 				ColouredTextFragmentList connectionDescriptionPart = new ColouredTextFragmentList();
 				connectionDescriptionPart.add(new ColouredTextFragment(worldConnectionDescription, getDefaultTextColors()));
 
-				List<LinePrintingInstruction> connectionDescriptionInstructions = this.getLinePrintingInstructions(connectionDescriptionPart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+				List<LinePrintingInstruction> connectionDescriptionInstructions = ScreenLayer.getLinePrintingInstructions(this, connectionDescriptionPart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
 				this.executeLinePrintingInstructionsAtYOffset(connectionDescriptionInstructions, initialOffset);
 				initialOffset += connectionDescriptionInstructions.size();
 			}
@@ -177,14 +177,14 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 			ColouredTextFragmentList connectionDescriptionPart = new ColouredTextFragmentList();
 			connectionDescriptionPart.add(new ColouredTextFragment("There are no active world connections.", getDefaultTextColors()));
 
-			List<LinePrintingInstruction> connectionDescriptionInstructions = this.getLinePrintingInstructions(connectionDescriptionPart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+			List<LinePrintingInstruction> connectionDescriptionInstructions = ScreenLayer.getLinePrintingInstructions(this, connectionDescriptionPart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
 			this.executeLinePrintingInstructionsAtYOffset(connectionDescriptionInstructions, initialOffset);
 			initialOffset += connectionDescriptionInstructions.size();
 
 		}
 		initialOffset += 1L;
 		for(ColouredTextFragmentList fl : statusMessages){
-			List<LinePrintingInstruction> messageLineIns = this.getLinePrintingInstructions(fl, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+			List<LinePrintingInstruction> messageLineIns = ScreenLayer.getLinePrintingInstructions(this, fl, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
 			this.executeLinePrintingInstructionsAtYOffset(messageLineIns, initialOffset);
 			initialOffset += messageLineIns.size();
 		}
@@ -196,7 +196,7 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 		localTitlePart.add(new ColouredTextFragment("Open Local World Connection:", titleAnsiCodes));
 
 
-		List<LinePrintingInstruction> localTitleInstructions = this.getLinePrintingInstructions(localTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+		List<LinePrintingInstruction> localTitleInstructions = ScreenLayer.getLinePrintingInstructions(this, localTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
 
 		this.executeLinePrintingInstructionsAtYOffset(localTitleInstructions, localTitleOffset);
 
@@ -235,7 +235,7 @@ public class OpenWorldConnectionInterfaceThreadState extends UserInterfaceFrameT
 		ColouredTextFragmentList websocketsTitlePart = new ColouredTextFragmentList();
 		websocketsTitlePart.add(new ColouredTextFragment("Open Websockets World Connection:", titleAnsiCodes));
 
-		List<LinePrintingInstruction> websocketsTitleInstructions = this.getLinePrintingInstructions(websocketsTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+		List<LinePrintingInstruction> websocketsTitleInstructions = ScreenLayer.getLinePrintingInstructions(this, websocketsTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
 
 		Long websocketsTitleOffset = localSubmitButtonOffset + 3L;
 		this.executeLinePrintingInstructionsAtYOffset(websocketsTitleInstructions, websocketsTitleOffset);

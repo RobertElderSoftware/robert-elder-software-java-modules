@@ -72,7 +72,7 @@ public class DebugScrollableScreenLayerThreadState extends UserInterfaceFrameThr
 	}
 
 	protected void init(Object o) throws Exception{
-		this.debugScrollableScreenLayer = new DebugScrollableScreenLayer();
+		this.debugScrollableScreenLayer = new DebugScrollableScreenLayer(blockManagerThreadCollection);
 		this.debugScrollableScreenLayer.setVisibleWidth(12L);
 		this.debugScrollableScreenLayer.setVisibleHeight(14L);
 
@@ -253,7 +253,7 @@ public class DebugScrollableScreenLayerThreadState extends UserInterfaceFrameThr
 			this.printTextAtScreenXY(new ColouredTextFragment(theText.get(i), UserInterfaceFrameThreadState.getDefaultTextColors()), xOffset, yOffset, PrintDirection.LEFT_TO_RIGHT);
 		}
 
-		this.debugScrollableScreenLayer.render(this, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
+		this.debugScrollableScreenLayer.render(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
 	}
 
 	public UIWorkItem takeWorkItem() throws Exception {

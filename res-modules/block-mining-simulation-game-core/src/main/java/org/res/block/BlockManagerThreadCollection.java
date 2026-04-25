@@ -602,8 +602,8 @@ public class BlockManagerThreadCollection {
 			topSplits.add(cwts.makeLeafNodeSplit(cwts.createFrameAndThread(DebugScrollableScreenLayerThreadState.class, client)));
 
 			List<Double> topSplitPercents = new ArrayList<Double>();
-			topSplitPercents.add(0.50);
-			topSplitPercents.add(0.50);
+			topSplitPercents.add(0.30);
+			topSplitPercents.add(0.70);
 			cwts.addSplitPartsByIds(root, topSplits);
 			((UserInterfaceSplitMulti)cwts.getUserInterfaceSplitById(root)).setSplitPercentages(topSplitPercents);
 

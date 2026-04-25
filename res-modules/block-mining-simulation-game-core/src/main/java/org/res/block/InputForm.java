@@ -75,7 +75,7 @@ public class InputForm implements InputElementContainer {
 	}
 
 	public void printTextAtScreenXY(ColouredTextFragment ctf, Long x, Long y, PrintDirection direction, ScreenLayer screenLayer) throws Exception{
-		this.container.printTextAtScreenXY(ctf, x, y, direction, screenLayer);
+		ScreenLayer.printTextAtScreenXY(container, ctf, x, y, direction, screenLayer);
 	}
 
 	public void addFormElement(String name, InputFormElement element) throws Exception{

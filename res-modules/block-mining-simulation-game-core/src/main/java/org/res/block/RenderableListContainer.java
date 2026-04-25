@@ -36,7 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
-public interface RenderableListContainer {
+public interface RenderableListContainer extends BlockManagerThreadCollectionProvider {
 	public void onSelectionChange(Long selectedIndex) throws Exception;
 	public BlockManagerThreadCollection getBlockManagerThreadCollection() throws Exception;
 }

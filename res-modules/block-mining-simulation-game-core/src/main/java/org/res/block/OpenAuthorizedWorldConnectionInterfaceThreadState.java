@@ -144,7 +144,7 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 		ColouredTextFragmentList activeWorldsTitlePart = new ColouredTextFragmentList();
 		activeWorldsTitlePart.add(new ColouredTextFragment("Currently Active World Connection(s):", titleAnsiCodes));
 
-		List<LinePrintingInstruction> activeWorldsTitleInstructions = this.getLinePrintingInstructions(activeWorldsTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+		List<LinePrintingInstruction> activeWorldsTitleInstructions = ScreenLayer.getLinePrintingInstructions(this, activeWorldsTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
 
 		this.executeLinePrintingInstructionsAtYOffset(activeWorldsTitleInstructions, initialOffset);
 		initialOffset += activeWorldsTitleInstructions.size() + 1L;
@@ -158,7 +158,7 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 				ColouredTextFragmentList connectionDescriptionPart = new ColouredTextFragmentList();
 				connectionDescriptionPart.add(new ColouredTextFragment(worldConnectionDescription, getDefaultTextColors()));
 
-				List<LinePrintingInstruction> connectionDescriptionInstructions = this.getLinePrintingInstructions(connectionDescriptionPart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+				List<LinePrintingInstruction> connectionDescriptionInstructions = ScreenLayer.getLinePrintingInstructions(this, connectionDescriptionPart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
 				this.executeLinePrintingInstructionsAtYOffset(connectionDescriptionInstructions, initialOffset);
 				initialOffset += connectionDescriptionInstructions.size();
 			}
@@ -166,7 +166,7 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 			ColouredTextFragmentList connectionDescriptionPart = new ColouredTextFragmentList();
 			connectionDescriptionPart.add(new ColouredTextFragment("There are no active world connections.", getDefaultTextColors()));
 
-			List<LinePrintingInstruction> connectionDescriptionInstructions = this.getLinePrintingInstructions(connectionDescriptionPart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+			List<LinePrintingInstruction> connectionDescriptionInstructions = ScreenLayer.getLinePrintingInstructions(this, connectionDescriptionPart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
 			this.executeLinePrintingInstructionsAtYOffset(connectionDescriptionInstructions, initialOffset);
 			initialOffset += connectionDescriptionInstructions.size();
 
@@ -179,7 +179,7 @@ public class OpenAuthorizedWorldConnectionInterfaceThreadState extends UserInter
 		localTitlePart.add(new ColouredTextFragment("Open A New Authorized World Connection:", titleAnsiCodes));
 
 
-		List<LinePrintingInstruction> localTitleInstructions = this.getLinePrintingInstructions(localTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+		List<LinePrintingInstruction> localTitleInstructions = ScreenLayer.getLinePrintingInstructions(this, localTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
 
 		this.executeLinePrintingInstructionsAtYOffset(localTitleInstructions, localTitleOffset);
 

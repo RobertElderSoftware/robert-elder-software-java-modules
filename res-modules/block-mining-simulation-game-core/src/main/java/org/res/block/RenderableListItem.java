@@ -46,10 +46,12 @@ import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
 public abstract class RenderableListItem {
-	public abstract void render(UserInterfaceFrameThreadState frame, boolean isSelected, Coordinate placementOffset, ScreenLayer bottomLayer) throws Exception;
+	public abstract void render(boolean isSelected, Coordinate placementOffset, ScreenLayer bottomLayer) throws Exception;
 	protected ScreenLayer displayLayer = new ScreenLayer();
+	protected RenderableListContainer container;
 
-	public RenderableListItem() throws Exception{
+	public RenderableListItem(RenderableListContainer container) throws Exception{
+		this.container = container;
 	}
 
 	public void updateRenderableArea(CuboidAddress ca) throws Exception{

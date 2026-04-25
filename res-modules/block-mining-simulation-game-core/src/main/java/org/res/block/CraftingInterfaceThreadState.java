@@ -74,6 +74,7 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 
 	protected void init(Object obj) throws Exception{
 		this.recipeList = new RenderableList<CraftingRecipeRenderableListItem>(this, 1L, 1L, 20L, 14L, "There are no crafting recipes.");
+		this.recipeList.init();
 
 		UIModelProbeWorkItemResult recipeResult = (UIModelProbeWorkItemResult)this.clientBlockModelContext.putBlockingWorkItem(
 			new UIModelProbeWorkItem(
@@ -120,7 +121,7 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 	private void onRecipeListChanged(List<CraftingRecipe> recipes) throws Exception {
 		this.recipeList.clear();
 		for(CraftingRecipe r : recipes){
-			this.recipeList.addItem(new CraftingRecipeRenderableListItem(r));
+			this.recipeList.addItem(new CraftingRecipeRenderableListItem(this, r));
 		}
 	}
 
@@ -156,13 +157,13 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 	public void onAnsiEscapeSequence(AnsiEscapeSequence ansiEscapeSequence) throws Exception{
 		ScreenLayer bottomLayer = this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT];
 		if(ansiEscapeSequence instanceof AnsiEscapeSequenceUpArrowKey){
-			this.recipeList.onUpArrowPressed(this, bottomLayer);
+			this.recipeList.onUpArrowPressed(bottomLayer);
 		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceRightArrowKey){
-			this.recipeList.onRightArrowPressed(this, bottomLayer);
+			this.recipeList.onRightArrowPressed(bottomLayer);
 		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceDownArrowKey){
-			this.recipeList.onDownArrowPressed(this, bottomLayer);
+			this.recipeList.onDownArrowPressed(bottomLayer);
 		}else if(ansiEscapeSequence instanceof AnsiEscapeSequenceLeftArrowKey){
-			this.recipeList.onLeftArrowPressed(this, bottomLayer);
+			this.recipeList.onLeftArrowPressed(bottomLayer);
 		}else{
 			logger.info("CraftingInterfaceThreadState, discarding unknown ansi escape sequence of type: " + ansiEscapeSequence.getClass().getName());
 		}
@@ -185,7 +186,6 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 		Coordinate bottomRightCorner = new Coordinate(Arrays.asList(x2, y2));
 
 		this.recipeList.updateRenderableArea(
-			this,
 			new CuboidAddress(
 				topLeftCorner,
 				bottomRightCorner
@@ -202,11 +202,11 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 
 		Long spaceWidth = getConsoleWriterThreadState().measureTextLengthOnTerminal(CharacterConstants.SPACE).getDeltaX();
 
-		List<LinePrintingInstruction> titleInstructions = this.getLinePrintingInstructions(topTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
+		List<LinePrintingInstruction> titleInstructions = ScreenLayer.getLinePrintingInstructions(this, topTitlePart, spaceWidth, spaceWidth, false, false, this.getInnerFrameWidth());
 
 		this.executeLinePrintingInstructionsAtYOffset(titleInstructions, 2L);
 		this.updateListDisplayArea();
-		this.recipeList.render(this, this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
+		this.recipeList.render(this.bufferedScreenLayers[ConsoleWriterThreadState.BUFFER_INDEX_DEFAULT]);
 		this.drawBorders(this.clientBlockModelContext, "Inventory");
 	}
 
@@ -225,7 +225,7 @@ public class CraftingInterfaceThreadState extends UserInterfaceFrameThreadState 
 
 	public void onClientNotifySelectionChanged(Integer newIndex) throws Exception{
 		if(newIndex != null && !this.recipeList.getCurrentlySelectedListIndex().equals(newIndex)){
-			this.recipeList.setSelectedListIndex(this, (long)newIndex);
+			this.recipeList.setSelectedListIndex((long)newIndex);
 		}
 	}
 
