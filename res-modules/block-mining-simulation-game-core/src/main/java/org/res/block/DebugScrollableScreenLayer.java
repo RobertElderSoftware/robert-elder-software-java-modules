@@ -96,6 +96,8 @@ public class DebugScrollableScreenLayer extends ScrollableScreenLayer implements
 				ScreenLayer.printTextAtScreenXY(this, new ColouredTextFragment(cellText, colors), x, y, PrintDirection.LEFT_TO_RIGHT, this);
 			}
 		}
+
+		this.drawScrollBars(this);
 	}
 
 	public void render(ScreenLayer bottomLayer) throws Exception{

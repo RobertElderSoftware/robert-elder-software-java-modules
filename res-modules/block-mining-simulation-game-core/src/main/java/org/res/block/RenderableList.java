@@ -58,8 +58,6 @@ public class RenderableList<T extends RenderableListItem> {
 	private Long defaultHeight;
 	private Long selectedIndexX = 0L;
 	private Long selectedIndexY = 0L;
-	private Long xColumnOffset = 0L;
-	private Long yColumnOffset = 0L;
 	private boolean hasRightScrollBar = false;
 	private boolean hasBottomScrollBar = false;
 
@@ -81,6 +79,22 @@ public class RenderableList<T extends RenderableListItem> {
 		this.defaultHeight = defaultHeight;
 		this.aspectRatio = (double)this.defaultWidth / (double)this.defaultHeight;
 		this.emptyMessage = emptyMessage;
+	}
+
+	public Long getXColumnOffset(){
+		return listAreaLayer.getScrollColumnOffsetX();
+	}
+
+	public Long getYColumnOffset(){
+		return listAreaLayer.getScrollColumnOffsetY();
+	}
+
+	public void setXColumnOffset(Long x){
+		this.listAreaLayer.setScrollColumnOffsetX(x);
+	}
+
+	public void setYColumnOffset(Long y){
+		this.listAreaLayer.setScrollColumnOffsetY(y);
 	}
 
 	public void init() throws Exception{
@@ -145,8 +159,8 @@ public class RenderableList<T extends RenderableListItem> {
 		}
 		Long listItemAndSpace = listItemHeight + lnh();
 		Long selectedItemOffset = this.selectedIndexY * listItemAndSpace;
-		if(selectedItemOffset < yColumnOffset){
-			yColumnOffset = selectedItemOffset;
+		if(selectedItemOffset < getYColumnOffset()){
+			setYColumnOffset(selectedItemOffset);
 		}
 		this.notifySelectionChanged();
 		render(bottomLayer);
@@ -172,7 +186,7 @@ public class RenderableList<T extends RenderableListItem> {
 				Long actualRightScrollBarWidth = this.hasRightScrollBar ? getRightScrollBarCrossSection() : 0L;
 				Long requiredColumnOffset = this.selectedIndexX * listItemAndSpace + itemCross + actualRightScrollBarWidth;
 				if(getUpperVisibleAreaColumnX() < requiredColumnOffset){
-					xColumnOffset = requiredColumnOffset - listAreaLayer.getWidth();
+					setXColumnOffset(requiredColumnOffset - listAreaLayer.getWidth());
 				}
 			}else{
 				//  Item in middle with more items after:
@@ -180,14 +194,13 @@ public class RenderableList<T extends RenderableListItem> {
 				Long requiredColumnOffset = listItemAndSpace * numItemsDown;
 
 				if(getUpperVisibleAreaColumnX() < requiredColumnOffset){
-					xColumnOffset += listItemAndSpace;
+					this.setXColumnOffset(listItemAndSpace + this.getXColumnOffset());
 				}
 			}
 		}
 		this.notifySelectionChanged();
 		render(bottomLayer);
 	}
-
 
 	public void onDownArrowPressed(ScreenLayer bottomLayer) throws Exception{
 		if(
@@ -209,7 +222,7 @@ public class RenderableList<T extends RenderableListItem> {
 				Long actualBottomScrollBarHeight = ScrollableScreenLayer.getActualBottomScrollBarHeight(this.container, this.hasBottomScrollBar);
 				Long requiredColumnOffset = this.selectedIndexY * listItemAndSpace + itemCross + actualBottomScrollBarHeight;
 				if(getUpperVisibleAreaColumnY() < requiredColumnOffset){
-					yColumnOffset = requiredColumnOffset - listAreaLayer.getHeight();
+					setYColumnOffset(requiredColumnOffset - listAreaLayer.getHeight());
 				}
 			}else{
 				//  Item in middle with more items after:
@@ -217,7 +230,7 @@ public class RenderableList<T extends RenderableListItem> {
 				Long requiredColumnOffset = listItemAndSpace * numItemsDown;
 
 				if(getUpperVisibleAreaColumnY() < requiredColumnOffset){
-					yColumnOffset += listItemAndSpace;
+					this.setYColumnOffset(listItemAndSpace + getYColumnOffset());
 				}
 			}
 		}
@@ -234,8 +247,8 @@ public class RenderableList<T extends RenderableListItem> {
 
 		Long listItemAndSpace = listItemWidth + spw();
 		Long selectedItemOffset = this.selectedIndexX * listItemAndSpace;
-		if(selectedItemOffset < xColumnOffset){
-			xColumnOffset = selectedItemOffset;
+		if(selectedItemOffset < getXColumnOffset()){
+			setXColumnOffset(selectedItemOffset);
 		}
 		this.notifySelectionChanged();
 		render(bottomLayer);
@@ -280,8 +293,8 @@ public class RenderableList<T extends RenderableListItem> {
 		boolean useAscii = mode.equals(GraphicsMode.ASCII);
 		for(int i = 0; i < this.gridWidth; i++){
 			for(int j = 0; j < this.gridHeight; j++){
-				Long x = getStartingOffsetForGridItemAtX((long)i) - xColumnOffset;
-				Long y = (j * listItemHeight) + (j * lnh()) - yColumnOffset;
+				Long x = getStartingOffsetForGridItemAtX((long)i) - getXColumnOffset();
+				Long y = (j * listItemHeight) + (j * lnh()) - getYColumnOffset();
 
 				RenderableListItem listItem = this.grid[i][j];
 				if(listItem == null){
@@ -312,23 +325,6 @@ public class RenderableList<T extends RenderableListItem> {
 			}
 		}
 
-		Long entireListColumnWidthRight = getEndingOffsetForGridItemAtY((long)Math.max(0, this.gridHeight -1));
-		Long entireListColumnWidthBottom = getEndingOffsetForGridItemAtX((long)Math.max(0, this.gridWidth -1));
-
-		Long listRightEdgeX = entireListColumnWidthBottom - xColumnOffset;
-		Long listBottomEdgeY = entireListColumnWidthRight - yColumnOffset;
-
-		ScrollableScreenLayer.drawRightScrollBar(this.container, this.hasRightScrollBar, this.hasBottomScrollBar, listAreaLayer, entireListColumnWidthRight, (double)yColumnOffset);
-
-		ScrollableScreenLayer.drawBottomScrollBar(this.container, this.hasRightScrollBar, this.hasBottomScrollBar, listAreaLayer, entireListColumnWidthBottom, (double)xColumnOffset);
-		//  Initialize any empty area to right of list any before any scroll bar/right edge of screen layer:
-		ScrollableScreenLayer.fillUninitializedAreaOnRight(this.container, this.hasRightScrollBar, this.hasBottomScrollBar, listAreaLayer, listRightEdgeX);
-
-		//  Initialize empty uninitialized area under list up to the area before the right of the list:
-		ScrollableScreenLayer.fillUninitializedAreaOnBottom(this.container, this.hasRightScrollBar, this.hasBottomScrollBar, listAreaLayer, listRightEdgeX, listBottomEdgeY);
-
-		ScrollableScreenLayer.fillUninitializedBottomRightCorner(this.container, this.hasRightScrollBar, this.hasBottomScrollBar, listAreaLayer);
-
 		if(list.size() == 0){
 			String msg = this.emptyMessage;
 			Long len = container.getBlockManagerThreadCollection().getConsoleWriterThreadState().measureTextLengthOnTerminal(msg).getDeltaX();
@@ -336,6 +332,16 @@ public class RenderableList<T extends RenderableListItem> {
 			Long y = (listAreaLayer.getHeight() / 2L);
 			ScreenLayer.printTextAtScreenXY(container, new ColouredTextFragment(msg, UserInterfaceFrameThreadState.getDefaultTextColors()), x, y, PrintDirection.LEFT_TO_RIGHT, this.listAreaLayer);
 		}
+
+		listAreaLayer.drawScrollBars(this.container);
+	}
+
+	public int getGridWidth(){
+		return this.gridWidth;
+	}
+
+	public int getGridHeight(){
+		return this.gridHeight;
 	}
 
 	public boolean getHasRightScrollBar(){
@@ -351,19 +357,19 @@ public class RenderableList<T extends RenderableListItem> {
 	}
 
 	public int getLowerVisibleAreaColumnX(){
-		return xColumnOffset.intValue();
+		return getXColumnOffset().intValue();
 	}
 
 	public int getUpperVisibleAreaColumnX(){
-		return (int)(xColumnOffset + listAreaLayer.getWidth());
+		return (int)(getXColumnOffset() + listAreaLayer.getWidth());
 	}
 
 	public int getLowerVisibleAreaColumnY(){
-		return yColumnOffset.intValue();
+		return getYColumnOffset().intValue();
 	}
 
 	public Long getUpperVisibleAreaColumnY(){
-		return yColumnOffset + listAreaLayer.getHeight();
+		return getYColumnOffset() + listAreaLayer.getHeight();
 	}
 
 	public void render(ScreenLayer bottomLayer) throws Exception{
@@ -536,19 +542,19 @@ public class RenderableList<T extends RenderableListItem> {
 		Long currentlySelectedItemEndY = getEndingOffsetForGridItemAtY(this.selectedIndexY);
 
 		//  Selected item appears before start of on screen area:
-		if(currentlySelectedItemStartX < this.xColumnOffset){
-			this.xColumnOffset = currentlySelectedItemStartX;
+		if(currentlySelectedItemStartX < this.getXColumnOffset()){
+			this.setXColumnOffset(currentlySelectedItemStartX);
 		}
-		if(currentlySelectedItemStartY < this.yColumnOffset){
-			this.yColumnOffset = currentlySelectedItemStartY;
+		if(currentlySelectedItemStartY < this.getYColumnOffset()){
+			this.setYColumnOffset(currentlySelectedItemStartY);
 		}
 
 		//  Selected item has endpoint off of visible area:
-		if(currentlySelectedItemEndX > (this.xColumnOffset + listAreaLayer.getWidth())){
-			this.xColumnOffset = currentlySelectedItemStartX;
+		if(currentlySelectedItemEndX > (this.getXColumnOffset() + listAreaLayer.getWidth())){
+			this.setXColumnOffset(currentlySelectedItemStartX);
 		}
-		if(currentlySelectedItemEndY > (this.yColumnOffset + listAreaLayer.getHeight())){
-			this.yColumnOffset = currentlySelectedItemStartY;
+		if(currentlySelectedItemEndY > (this.getYColumnOffset() + listAreaLayer.getHeight())){
+			this.setYColumnOffset(currentlySelectedItemStartY);
 		}
 
 		Long entireListColumnsX = getEndingOffsetForGridItemAtX(this.gridWidth-1L);
@@ -556,13 +562,13 @@ public class RenderableList<T extends RenderableListItem> {
 		Long actualBottomScrollBarHeight = ScrollableScreenLayer.getActualBottomScrollBarHeight(this.container, this.hasBottomScrollBar);
 		Long actualRightScrollBarWidth = ScrollableScreenLayer.getActualRightScrollBarWidth(this.container, this.hasRightScrollBar);
 		//  If there is area after the list showing, move the offset back to show more of the list:
-		if((this.xColumnOffset + listAreaLayer.getWidth() - actualRightScrollBarWidth) > entireListColumnsX){
+		if((this.getXColumnOffset() + listAreaLayer.getWidth() - actualRightScrollBarWidth) > entireListColumnsX){
 			Long newXOffset = entireListColumnsX - (listAreaLayer.getWidth() - actualRightScrollBarWidth);
-			this.xColumnOffset = Math.max(0L, newXOffset);
+			this.setXColumnOffset(Math.max(0L, newXOffset));
 		}
-		if((this.yColumnOffset + listAreaLayer.getHeight() - actualBottomScrollBarHeight) > entireListColumnsY){
+		if((this.getYColumnOffset() + listAreaLayer.getHeight() - actualBottomScrollBarHeight) > entireListColumnsY){
 			Long newYOffset = entireListColumnsY - (listAreaLayer.getHeight() - actualBottomScrollBarHeight);
-			this.yColumnOffset = Math.max(0L, newYOffset);
+			this.setYColumnOffset(Math.max(0L, newYOffset));
 		}
 	}
 

@@ -209,6 +209,30 @@
                         "byte_pattern_base_64": "Q0FTOjEyMTc0LTExLTc=",
                         "block_class": "org.res.block.Attapulgite",
                         "dedication": "Ranrom"
+                },
+                {
+                        "match_type": "byte_comparison",
+                        "byte_pattern_base_64": "MTMxOS00NS01",
+                        "block_class": "org.res.block.Azurite",
+                        "dedication": "Erusolc"
+                },
+                {
+                        "match_type": "byte_comparison",
+                        "byte_pattern_base_64": "MTMxNy0zOS0x",
+                        "block_class": "org.res.block.Cuprite",
+                        "dedication": "Erusolc"
+                },
+                {
+                        "match_type": "byte_comparison",
+                        "byte_pattern_base_64": "MTMwOC04Mi0z",
+                        "block_class": "org.res.block.Bornite",
+                        "dedication": "Erusolc"
+                },
+                {
+                        "match_type": "byte_comparison",
+                        "byte_pattern_base_64": "MTU2MDYtMjUtNA==",
+                        "block_class": "org.res.block.Dioptase",
+                        "dedication": "Erusolc"
                 }
 	]
 }

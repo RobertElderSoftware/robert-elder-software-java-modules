@@ -32,65 +32,35 @@
 //  SOFTWARE.
 package org.res.block;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
-import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.io.ByteArrayOutputStream;
 
-import java.util.Date;
-import java.util.Set;
-import java.util.HashSet;
-import java.io.BufferedWriter;
-import java.text.SimpleDateFormat;
-import java.io.File;
-import java.io.FileOutputStream;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonNull;
+import com.google.gson.reflect.TypeToken;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.lang.invoke.MethodHandles;
+public class Bornite extends IndividualBlock {
 
-public class RenderableListScreenLayer<T extends RenderableListItem> extends ScrollableScreenLayer {
+	private byte [] data;
 
-	private RenderableList<T> renderableList;
-
-	public Long getContentColumnWidth() throws Exception{
-		return this.renderableList.getEndingOffsetForGridItemAtX((long)Math.max(0, this.renderableList.getGridWidth() -1));
+	public Bornite(byte [] data) throws Exception {
+		this.data = data;
 	}
 
-	public Long getContentColumnHeight() throws Exception{
-		return this.renderableList.getEndingOffsetForGridItemAtY((long)Math.max(0, this.renderableList.getGridHeight() -1));
+	public byte [] getBlockData()throws Exception {
+		return this.data;
 	}
 
-	public BlockManagerThreadCollectionProvider getProvider(){
-		return this.renderableList.getContainer();
-	}
-
-	public boolean getHasRightScrollBar(){
-		return this.renderableList.getHasRightScrollBar();
-	}
-
-	public boolean getHasBottomScrollBar(){
-		return this.renderableList.getHasBottomScrollBar();
-	}
-
-	public RenderableListScreenLayer(RenderableList<T> renderableList) throws Exception{
-		super();
-		this.renderableList = renderableList;
-	}
-
-	public RenderableListScreenLayer(RenderableList<T> renderableList, Coordinate placementOffset, CuboidAddress dimensions) throws Exception{
-		super(placementOffset, dimensions);
-		this.renderableList = renderableList;
-	}
-
-	public void render(ScreenLayer bottomLayer) throws Exception{
+	public boolean isMineable() throws Exception{
+		return true;
 	}
 }

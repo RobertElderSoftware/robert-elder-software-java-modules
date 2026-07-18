@@ -80,6 +80,11 @@ public class BlockSkins {
 		patternsTmp.put(Attapulgite.class.getName(),"\u26AA");
 		patternsTmp.put(Montmorillonite.class.getName(),"\u26AA");
 		patternsTmp.put(CalcinedAnthracite.class.getName(),"\u26AB");
+		
+		patternsTmp.put(Azurite.class.getName(),"\uD83D\uDFE6");
+		patternsTmp.put(Cuprite.class.getName(),"\uD83D\uDFE5");
+		patternsTmp.put(Bornite.class.getName(),"\uD83D\uDFE8");
+		patternsTmp.put(Dioptase.class.getName(),"\uD83D\uDFE9");
 
 
 		patternsTmp.put(MetallicIron.class.getName(),"\u2699\uFE0F");
@@ -125,6 +130,13 @@ public class BlockSkins {
 		descriptionsTmp.put(MetallicCopper.class.getName(),"One cubic meter of metallic copper, the element with atomic number 29.");
 		descriptionsTmp.put(MetallicSilver.class.getName(),"One cubic meter of metallic silver, the element with atomic number 47.");
 		descriptionsTmp.put(Chrysoberyl.class.getName(),"One cubic meter of the mineral or gemstone chrysoberyl, an aluminate of beryllium with the formula BeAl₂O₄");
+
+		descriptionsTmp.put(Azurite.class.getName(),"One cubic meter of Azurite, a mineral with chemical formula Cu₃(CO₃)₂(OH)₂.");
+		descriptionsTmp.put(Cuprite.class.getName(),"One cubic meter of Cuprite, a mineral with chemical formula Cu₂O.");
+		descriptionsTmp.put(Bornite.class.getName(),"One cubic meter of Bornite, a mineral with chemical formula Cu₅FeS₄.");
+		descriptionsTmp.put(Dioptase.class.getName(),"One cubic meter of Dioptase, a mineral with chemical formula CuSiO₂(OH)₂.");
+
+
 		descriptionsTmp.put(Pyrite.class.getName(),"One cubic meter of the mineral pyrite (also known as fool's gold).  Chemical formula FeS₂");
 		descriptionsTmp.put(WoodenBlock.class.getName(),"One cubic meter of wooden block.");
 		descriptionsTmp.put(UnrecognizedBlock.class.getName(),"An unrecognized block that is not found existing block schema.");

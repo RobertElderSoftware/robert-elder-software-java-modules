@@ -109,75 +109,90 @@ public abstract class ScrollableScreenLayer extends ScreenLayer {
 		return hasBottomScrollBar ? ScrollableScreenLayer.getBottomScrollBarCrossSection() : 0L;
 	}
 
-	public static void drawRightScrollBar(BlockManagerThreadCollectionProvider provider, boolean hasRightScrollBar, boolean hasBottomScrollBar, ScreenLayer layer, double entireListColumnWidth, double offsetColumns) throws Exception{
+	public void drawScrollBars(BlockManagerThreadCollectionProvider provider) throws Exception{
+		this.drawRightScrollBar(provider);
+		this.drawBottomScrollBar(provider);
+		//  Initialize any empty area to right of list any before any scroll bar/right edge of screen layer:
+		this.fillUninitializedAreaOnRight(provider);
+
+		//  Initialize empty uninitialized area under list up to the area before the right of the list:
+		this.fillUninitializedAreaOnBottom(provider);
+		this.fillUninitializedBottomRightCorner(provider);
+	}
+
+	public void drawRightScrollBar(BlockManagerThreadCollectionProvider provider) throws Exception{
 		GraphicsMode mode = provider.getBlockManagerThreadCollection().getGraphicsMode();
 		boolean useAscii = mode.equals(GraphicsMode.ASCII);
 
-		Long actualRightScrollBarWidth = ScrollableScreenLayer.getActualRightScrollBarWidth(provider, hasRightScrollBar);
-		Long rightScrollBarOffset = layer.getWidth() - actualRightScrollBarWidth;
-		Long rightScrollBarCharacterHeight = hasBottomScrollBar ? (long)layer.getHeight() - ScrollableScreenLayer.getBottomScrollBarCrossSection(): (long)layer.getHeight();
+		Long actualRightScrollBarWidth = ScrollableScreenLayer.getActualRightScrollBarWidth(provider, getHasRightScrollBar());
+		Long rightScrollBarOffset = getWidth() - actualRightScrollBarWidth;
+		Long rightScrollBarCharacterHeight = getHasBottomScrollBar() ? (long)getHeight() - ScrollableScreenLayer.getBottomScrollBarCrossSection(): (long)getHeight();
 	
 		//  Right Scroll bar
 		for(long i = 0; i < actualRightScrollBarWidth; i++){
-			ScreenLayer.printTextAtScreenXY(provider, ScrollableScreenLayer.makeScrollTextFragmentList(rightScrollBarCharacterHeight, entireListColumnWidth, offsetColumns, true, useAscii, layer), rightScrollBarOffset + i, 0L, PrintDirection.TOP_TO_BOTTOM, layer);
+			ScreenLayer.printTextAtScreenXY(provider, ScrollableScreenLayer.makeScrollTextFragmentList(rightScrollBarCharacterHeight, getContentColumnHeight(), getScrollColumnOffsetY(), true, useAscii, this), rightScrollBarOffset + i, 0L, PrintDirection.TOP_TO_BOTTOM, this);
 		}
 	}
 
-	public static Long drawBottomScrollBar(BlockManagerThreadCollectionProvider provider, boolean hasRightScrollBar,boolean hasBottomScrollBar, ScreenLayer layer, double entireListColumnWidth, double offsetColumns) throws Exception{
+	public Long drawBottomScrollBar(BlockManagerThreadCollectionProvider provider) throws Exception{
 
 		GraphicsMode mode = provider.getBlockManagerThreadCollection().getGraphicsMode();
 		boolean useAscii = mode.equals(GraphicsMode.ASCII);
-		Long actualBottomScrollBarHeight = ScrollableScreenLayer.getActualBottomScrollBarHeight(provider, hasBottomScrollBar);
-		Long bottomScrollBarOffset = layer.getHeight() - actualBottomScrollBarHeight;
-		Long bottomScrollBarCharacterWidth = hasRightScrollBar ? (long)layer.getWidth() - getRightScrollBarCrossSection(provider): (long)layer.getWidth();
+		Long actualBottomScrollBarHeight = ScrollableScreenLayer.getActualBottomScrollBarHeight(provider, getHasBottomScrollBar());
+		Long bottomScrollBarOffset = getHeight() - actualBottomScrollBarHeight;
+		Long bottomScrollBarCharacterWidth = getHasRightScrollBar() ? (long)getWidth() - getRightScrollBarCrossSection(provider): (long)getWidth();
 		//  Bottom Scroll bar
 		for(long i = 0; i < getBottomScrollBarCrossSection(); i++){
-			ScreenLayer.printTextAtScreenXY(provider, ScrollableScreenLayer.makeScrollTextFragmentList(bottomScrollBarCharacterWidth, entireListColumnWidth, offsetColumns, false, useAscii, layer), 0L, bottomScrollBarOffset + i, PrintDirection.LEFT_TO_RIGHT, layer);
+			ScreenLayer.printTextAtScreenXY(provider, ScrollableScreenLayer.makeScrollTextFragmentList(bottomScrollBarCharacterWidth, getContentColumnWidth(), getScrollColumnOffsetX(), false, useAscii, this), 0L, bottomScrollBarOffset + i, PrintDirection.LEFT_TO_RIGHT, this);
 		}
 
 		return actualBottomScrollBarHeight;
 	}
 
-	public static void fillUninitializedAreaOnRight(BlockManagerThreadCollectionProvider provider, boolean hasRightScrollBar, boolean hasBottomScrollBar, ScreenLayer layer, Long contentEdgeX) throws Exception{
+	public void fillUninitializedAreaOnRight(BlockManagerThreadCollectionProvider provider) throws Exception{
 
-		Long actualRightScrollBarWidth = ScrollableScreenLayer.getActualRightScrollBarWidth(provider, hasRightScrollBar);
-		Long actualBottomScrollBarHeight = ScrollableScreenLayer.getActualBottomScrollBarHeight(provider, hasBottomScrollBar);
-		Long rightFrameEdgeX = layer.getWidth() - actualRightScrollBarWidth;
+		Long contentEdgeX = getContentColumnWidth() - getScrollColumnOffsetX();
+
+		Long actualRightScrollBarWidth = ScrollableScreenLayer.getActualRightScrollBarWidth(provider, getHasRightScrollBar());
+		Long actualBottomScrollBarHeight = ScrollableScreenLayer.getActualBottomScrollBarHeight(provider, getHasBottomScrollBar());
+		Long rightFrameEdgeX = getWidth() - actualRightScrollBarWidth;
 		int nSpacesOnRight = (int)Math.max(rightFrameEdgeX - contentEdgeX, 0L);
-		Long rightAreaHeight = layer.getHeight() - actualBottomScrollBarHeight;
+		Long rightAreaHeight = getHeight() - actualBottomScrollBarHeight;
 		for(long i = 0L; i < rightAreaHeight; i++){
-			ScreenLayer.printTextAtScreenXY(provider, new ColouredTextFragment("R".repeat(nSpacesOnRight), UserInterfaceFrameThreadState.getDefaultBGColors()), contentEdgeX, i, PrintDirection.LEFT_TO_RIGHT, layer);
+			ScreenLayer.printTextAtScreenXY(provider, new ColouredTextFragment("R".repeat(nSpacesOnRight), UserInterfaceFrameThreadState.getDefaultBGColors()), contentEdgeX, i, PrintDirection.LEFT_TO_RIGHT, this);
 		}
 	}
 
-	public static void fillUninitializedAreaOnBottom(BlockManagerThreadCollectionProvider provider, boolean hasRightScrollBar, boolean hasBottomScrollBar, ScreenLayer layer, Long contentRightEdgeX, Long contentBottomEdgeY) throws Exception{
-		Long actualRightScrollBarWidth = ScrollableScreenLayer.getActualRightScrollBarWidth(provider, hasRightScrollBar);
-		Long actualBottomScrollBarHeight = ScrollableScreenLayer.getActualBottomScrollBarHeight(provider, hasBottomScrollBar);
+	public void fillUninitializedAreaOnBottom(BlockManagerThreadCollectionProvider provider) throws Exception{
+		Long contentRightEdgeX = getContentColumnWidth() - getScrollColumnOffsetX();
+		Long contentBottomEdgeY = getContentColumnHeight() - getScrollColumnOffsetY();
+		Long actualRightScrollBarWidth = ScrollableScreenLayer.getActualRightScrollBarWidth(provider, getHasRightScrollBar());
+		Long actualBottomScrollBarHeight = ScrollableScreenLayer.getActualBottomScrollBarHeight(provider, getHasBottomScrollBar());
 		Long contentBottomLeftEdgeX = 0L;
 		int nSpacesUnderOnLeft = (int)Math.max(contentRightEdgeX - contentBottomLeftEdgeX, 0L);
-		Long leftUnderAreaHeight = layer.getHeight() - actualBottomScrollBarHeight - contentBottomEdgeY;
+		Long leftUnderAreaHeight = getHeight() - actualBottomScrollBarHeight - contentBottomEdgeY;
 		for(long i = 0L; i < leftUnderAreaHeight; i++){
-			ScreenLayer.printTextAtScreenXY(provider, new ColouredTextFragment("B".repeat(nSpacesUnderOnLeft), UserInterfaceFrameThreadState.getDefaultBGColors()), contentBottomLeftEdgeX, contentBottomEdgeY + i, PrintDirection.LEFT_TO_RIGHT, layer);
+			ScreenLayer.printTextAtScreenXY(provider, new ColouredTextFragment("B".repeat(nSpacesUnderOnLeft), UserInterfaceFrameThreadState.getDefaultBGColors()), contentBottomLeftEdgeX, contentBottomEdgeY + i, PrintDirection.LEFT_TO_RIGHT, this);
 		}
 	}
 
-	public static void fillUninitializedBottomRightCorner(BlockManagerThreadCollectionProvider provider, boolean hasRightScrollBar, boolean hasBottomScrollBar, ScreenLayer layer) throws Exception{
-		Long actualRightScrollBarWidth = ScrollableScreenLayer.getActualRightScrollBarWidth(provider, hasRightScrollBar);
-		Long actualBottomScrollBarHeight = ScrollableScreenLayer.getActualBottomScrollBarHeight(provider, hasBottomScrollBar);
+	public void fillUninitializedBottomRightCorner(BlockManagerThreadCollectionProvider provider) throws Exception{
+		Long actualRightScrollBarWidth = ScrollableScreenLayer.getActualRightScrollBarWidth(provider, getHasRightScrollBar());
+		Long actualBottomScrollBarHeight = ScrollableScreenLayer.getActualBottomScrollBarHeight(provider, getHasBottomScrollBar());
 		GraphicsMode mode = provider.getBlockManagerThreadCollection().getGraphicsMode();
 		boolean useAscii = mode.equals(GraphicsMode.ASCII);
-		if(hasRightScrollBar && hasBottomScrollBar){
+		if(getHasRightScrollBar() && getHasBottomScrollBar()){
 			//  When both scroll bars are active there is
 			//  an unitialized area in the bottom right hand corner:
-			Long xDrawOffset = layer.getWidth() - actualRightScrollBarWidth;
-			Long yDrawOffset = layer.getHeight() - actualBottomScrollBarHeight;
+			Long xDrawOffset = getWidth() - actualRightScrollBarWidth;
+			Long yDrawOffset = getHeight() - actualBottomScrollBarHeight;
 			for(long i = 0L; i < actualBottomScrollBarHeight; i++){
-				ScreenLayer.printTextAtScreenXY(provider, new ColouredTextFragment(CharacterConstants.ASTERISK.repeat(actualRightScrollBarWidth.intValue()), UserInterfaceFrameThreadState.getScrollBarDefaultColors(useAscii)), xDrawOffset, yDrawOffset + i, PrintDirection.LEFT_TO_RIGHT, layer);
+				ScreenLayer.printTextAtScreenXY(provider, new ColouredTextFragment(CharacterConstants.ASTERISK.repeat(actualRightScrollBarWidth.intValue()), UserInterfaceFrameThreadState.getScrollBarDefaultColors(useAscii)), xDrawOffset, yDrawOffset + i, PrintDirection.LEFT_TO_RIGHT, this);
 			}
 		}
 	}
 
-	public static ColouredTextFragmentList makeScrollTextFragmentList(Long textColumnHeight, double entireListColumnWidth, double offsetColumns, boolean isVertical, boolean useAscii, ScreenLayer layer) throws Exception{
+	public static ColouredTextFragmentList makeScrollTextFragmentList(Long textColumnHeight, double entireListColumnWidth, double offsetColumns, boolean isVertical, boolean useAscii, ScrollableScreenLayer layer) throws Exception{
 		ColouredTextFragmentList rtn = new ColouredTextFragmentList();
 
 		double visibleListAreaCrossSection = isVertical ? (double)layer.getHeight() : (double)layer.getWidth();
