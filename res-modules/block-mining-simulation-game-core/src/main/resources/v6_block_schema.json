@@ -233,6 +233,12 @@
                         "byte_pattern_base_64": "MTU2MDYtMjUtNA==",
                         "block_class": "org.res.block.Dioptase",
                         "dedication": "Erusolc"
+                },
+                {
+                        "match_type": "byte_comparison",
+                        "byte_pattern_base_64": "MTMwOC01Ni0x",
+                        "block_class": "org.res.block.Chalcopyrite",
+                        "dedication": "astroguy2828"
                 }
 	]
 }

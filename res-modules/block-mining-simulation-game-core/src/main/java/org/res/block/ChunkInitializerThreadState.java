@@ -67,6 +67,7 @@ public class ChunkInitializerThreadState extends UIEventReceiverThreadState<Chun
 	}
 
 	public static final Object [] interestingBlocks = new Object [] {
+		Chalcopyrite.class,
 		Azurite.class,
 		Cuprite.class,
 		Bornite.class,

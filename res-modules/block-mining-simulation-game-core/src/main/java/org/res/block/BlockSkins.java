@@ -85,6 +85,7 @@ public class BlockSkins {
 		patternsTmp.put(Cuprite.class.getName(),"\uD83D\uDFE5");
 		patternsTmp.put(Bornite.class.getName(),"\uD83D\uDFE8");
 		patternsTmp.put(Dioptase.class.getName(),"\uD83D\uDFE9");
+		patternsTmp.put(Chalcopyrite.class.getName(),"\uD83D\uDFE8");
 
 
 		patternsTmp.put(MetallicIron.class.getName(),"\u2699\uFE0F");
@@ -135,7 +136,7 @@ public class BlockSkins {
 		descriptionsTmp.put(Cuprite.class.getName(),"One cubic meter of Cuprite, a mineral with chemical formula Cu₂O.");
 		descriptionsTmp.put(Bornite.class.getName(),"One cubic meter of Bornite, a mineral with chemical formula Cu₅FeS₄.");
 		descriptionsTmp.put(Dioptase.class.getName(),"One cubic meter of Dioptase, a mineral with chemical formula CuSiO₂(OH)₂.");
-
+		descriptionsTmp.put(Chalcopyrite.class.getName(),"One cubic meter of Chalcopyrite, a mineral with chemical formula CuFeS₂.");
 
 		descriptionsTmp.put(Pyrite.class.getName(),"One cubic meter of the mineral pyrite (also known as fool's gold).  Chemical formula FeS₂");
 		descriptionsTmp.put(WoodenBlock.class.getName(),"One cubic meter of wooden block.");
