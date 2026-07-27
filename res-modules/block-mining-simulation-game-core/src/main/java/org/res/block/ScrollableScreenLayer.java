@@ -159,7 +159,9 @@ public abstract class ScrollableScreenLayer extends ScreenLayer {
 		int nSpacesOnRight = (int)Math.max(rightFrameEdgeX - contentEdgeX, 0L);
 		Long rightAreaHeight = getHeight() - actualBottomScrollBarHeight;
 		for(long i = 0L; i < rightAreaHeight; i++){
-			ScreenLayer.printTextAtScreenXY(provider, new ColouredTextFragment("R".repeat(nSpacesOnRight), UserInterfaceFrameThreadState.getDefaultBGColors()), contentEdgeX, i, PrintDirection.LEFT_TO_RIGHT, this);
+			//String uninitializeRightCharacter = "R";
+			String uninitializeBottomCharacter = " ";
+			ScreenLayer.printTextAtScreenXY(provider, new ColouredTextFragment(uninitializeBottomCharacter.repeat(nSpacesOnRight), UserInterfaceFrameThreadState.getDefaultBGColors()), contentEdgeX, i, PrintDirection.LEFT_TO_RIGHT, this);
 		}
 	}
 
@@ -172,7 +174,9 @@ public abstract class ScrollableScreenLayer extends ScreenLayer {
 		int nSpacesUnderOnLeft = (int)Math.max(contentRightEdgeX - contentBottomLeftEdgeX, 0L);
 		Long leftUnderAreaHeight = getHeight() - actualBottomScrollBarHeight - contentBottomEdgeY;
 		for(long i = 0L; i < leftUnderAreaHeight; i++){
-			ScreenLayer.printTextAtScreenXY(provider, new ColouredTextFragment("B".repeat(nSpacesUnderOnLeft), UserInterfaceFrameThreadState.getDefaultBGColors()), contentBottomLeftEdgeX, contentBottomEdgeY + i, PrintDirection.LEFT_TO_RIGHT, this);
+			//String uninitializeBottomCharacter = "B";
+			String uninitializeBottomCharacter = " ";
+			ScreenLayer.printTextAtScreenXY(provider, new ColouredTextFragment(uninitializeBottomCharacter.repeat(nSpacesUnderOnLeft), UserInterfaceFrameThreadState.getDefaultBGColors()), contentBottomLeftEdgeX, contentBottomEdgeY + i, PrintDirection.LEFT_TO_RIGHT, this);
 		}
 	}
 
