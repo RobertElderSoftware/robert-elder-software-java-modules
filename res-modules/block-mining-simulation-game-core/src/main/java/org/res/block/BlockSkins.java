@@ -52,57 +52,55 @@ import com.google.gson.JsonNull;
 import com.google.gson.reflect.TypeToken;
 
 public class BlockSkins {
-	private static final Map<String, String> patterns;
+	private static final Map<String, String> presentationPatterns;
 	private static final Map<String, String> descriptions;
 	static {
-		Map<String, String> patternsTmp = new HashMap<String, String>();
-		patternsTmp.put(Rock.class.getName(), "\uD83E\uDEA8");
-		patternsTmp.put(WoodenPick.class.getName(),"\u26CF\uFE0F");
-		patternsTmp.put(StonePick.class.getName(),"\u26CF\uFE0F");
-		patternsTmp.put(IronPick.class.getName(),"\u26CF\uFE0F");
-		patternsTmp.put(Malachite.class.getName(),"\uD83D\uDFE9");
-		patternsTmp.put(TitaniumDioxide.class.getName(),"\u2B1C");
-		patternsTmp.put(MetallicTitanium.class.getName(),"\u2B1C");
-		patternsTmp.put(SiliconDioxide.class.getName(),"\u2B1C");
-		patternsTmp.put(Ilmenite.class.getName(),"\u2B1B");
-		patternsTmp.put(Taconite.class.getName(),"\u2B1B");
-		patternsTmp.put(Rock.class.getName(),"\uD83E\uDEA8");
-		patternsTmp.put(Bauxite.class.getName(),"\uD83D\uDFEB");
-		patternsTmp.put(IronOxide.class.getName(),"\ud83d\udfe5");
-		patternsTmp.put(Hematite.class.getName(),"\ud83d\udfe5");
-		patternsTmp.put(Goethite.class.getName(),"\uD83D\uDFEB");
-		patternsTmp.put(Limonite.class.getName(),"\uD83D\uDFE7");
-		patternsTmp.put(Siderite.class.getName(),"\uD83D\uDFE8");
-		patternsTmp.put(Wuestite.class.getName(),"\u2B1B");
-		patternsTmp.put(Magnetite.class.getName(),"\u2B1B");
-		patternsTmp.put(Kaolin.class.getName(),"\u26AA");
-		patternsTmp.put(Smectite.class.getName(),"\u26AA");
-		patternsTmp.put(Attapulgite.class.getName(),"\u26AA");
-		patternsTmp.put(Montmorillonite.class.getName(),"\u26AA");
-		patternsTmp.put(CalcinedAnthracite.class.getName(),"\u26AB");
+		Map<String, String> presentationPatternsTmp = new HashMap<String, String>();
+		presentationPatternsTmp.put(Rock.class.getName(), "\uD83E\uDEA8");
+		presentationPatternsTmp.put(WoodenPick.class.getName(),"\u26CF\uFE0F");
+		presentationPatternsTmp.put(StonePick.class.getName(),"\u26CF\uFE0F");
+		presentationPatternsTmp.put(IronPick.class.getName(),"\u26CF\uFE0F");
+		presentationPatternsTmp.put(Malachite.class.getName(),"\uD83D\uDFE9");
+		presentationPatternsTmp.put(TitaniumDioxide.class.getName(),"\u2B1C");
+		presentationPatternsTmp.put(MetallicTitanium.class.getName(),"\u2B1C");
+		presentationPatternsTmp.put(SiliconDioxide.class.getName(),"\u2B1C");
+		presentationPatternsTmp.put(Ilmenite.class.getName(),"\u2B1B");
+		presentationPatternsTmp.put(Taconite.class.getName(),"\u2B1B");
+		presentationPatternsTmp.put(Rock.class.getName(),"\uD83E\uDEA8");
+		presentationPatternsTmp.put(Bauxite.class.getName(),"\uD83D\uDFEB");
+		presentationPatternsTmp.put(IronOxide.class.getName(),"\ud83d\udfe5");
+		presentationPatternsTmp.put(Hematite.class.getName(),"\ud83d\udfe5");
+		presentationPatternsTmp.put(Goethite.class.getName(),"\uD83D\uDFEB");
+		presentationPatternsTmp.put(Limonite.class.getName(),"\uD83D\uDFE7");
+		presentationPatternsTmp.put(Siderite.class.getName(),"\uD83D\uDFE8");
+		presentationPatternsTmp.put(Wuestite.class.getName(),"\u2B1B");
+		presentationPatternsTmp.put(Magnetite.class.getName(),"\u2B1B");
+		presentationPatternsTmp.put(Kaolin.class.getName(),"\u26AA");
+		presentationPatternsTmp.put(Smectite.class.getName(),"\u26AA");
+		presentationPatternsTmp.put(Attapulgite.class.getName(),"\u26AA");
+		presentationPatternsTmp.put(Montmorillonite.class.getName(),"\u26AA");
+		presentationPatternsTmp.put(CalcinedAnthracite.class.getName(),"\u26AB");
 		
-		patternsTmp.put(Azurite.class.getName(),"\uD83D\uDFE6");
-		patternsTmp.put(Cuprite.class.getName(),"\uD83D\uDFE5");
-		patternsTmp.put(Bornite.class.getName(),"\uD83D\uDFE8");
-		patternsTmp.put(Dioptase.class.getName(),"\uD83D\uDFE9");
-		patternsTmp.put(Chalcopyrite.class.getName(),"\uD83D\uDFE8");
-		patternsTmp.put(Covellite.class.getName(),"\uD83D\uDFE6");
-
-
-
-		patternsTmp.put(MetallicIron.class.getName(),"\u2699\uFE0F");
-		patternsTmp.put(MetallicCopper.class.getName(),"\uD83D\uDFE7");
-		patternsTmp.put(MetallicSilver.class.getName(),"\u2B1C");
-		patternsTmp.put(Chrysoberyl.class.getName(),"\uD83D\uDC8E");
-		patternsTmp.put(Pyrite.class.getName(),"\uD83D\uDFE8");
-		patternsTmp.put(WoodenBlock.class.getName(),"\uD83E\uDEB5");
-		patternsTmp.put(UnrecognizedBlock.class.getName(),"\uD83D\uDEAB");
-		patternsTmp.put(EmptyBlock.class.getName(),"");
-		patternsTmp.put(PendingLoadBlock.class.getName(),"?");
-		patternsTmp.put(UninitializedBlock.class.getName(),"U");
-		patternsTmp.put(PlayerPositionXYZ.class.getName(),"P");
-		patternsTmp.put(PlayerInventory.class.getName(),"!");
-		patterns = Collections.unmodifiableMap(patternsTmp);
+		presentationPatternsTmp.put(MetallicIron.class.getName(),"\u2699\uFE0F");
+		presentationPatternsTmp.put(MetallicCopper.class.getName(),"\uD83D\uDFE7");
+		presentationPatternsTmp.put(MetallicSilver.class.getName(),"\u2B1C");
+		presentationPatternsTmp.put(Chrysoberyl.class.getName(),"\uD83D\uDC8E");
+		presentationPatternsTmp.put(Pyrite.class.getName(),"\uD83D\uDFE8");
+		presentationPatternsTmp.put(WoodenBlock.class.getName(),"\uD83E\uDEB5");
+		presentationPatternsTmp.put(UnrecognizedBlock.class.getName(),"\uD83D\uDEAB");
+		presentationPatternsTmp.put(EmptyBlock.class.getName(),"");
+		presentationPatternsTmp.put(PendingLoadBlock.class.getName(),"?");
+		presentationPatternsTmp.put(UninitializedBlock.class.getName(),"U");
+		presentationPatternsTmp.put(PlayerPositionXYZ.class.getName(),"P");
+		presentationPatternsTmp.put(PlayerInventory.class.getName(),"!");
+		presentationPatternsTmp.put(Chalcopyrite.class.getName(),"\uD83D\uDFE8");
+		presentationPatternsTmp.put(Covellite.class.getName(),"\u2B1B");
+		presentationPatternsTmp.put(Bornite.class.getName(),"\uD83D\uDFE8");
+		presentationPatternsTmp.put(Azurite.class.getName(),"\uD83D\uDFE6");
+		presentationPatternsTmp.put(Cuprite.class.getName(),"\uD83D\uDFE5");
+		presentationPatternsTmp.put(Tenorite.class.getName(),"\u2B1B");
+		presentationPatternsTmp.put(Dioptase.class.getName(),"\uD83D\uDFE9");
+		presentationPatterns = Collections.unmodifiableMap(presentationPatternsTmp);
 
 		Map<String, String> descriptionsTmp = new HashMap<String, String>();
 		descriptionsTmp.put(WoodenPick.class.getName(),"A wooden pick axe.  Capable of mining all blocks within a radius of 1 from the player.");
@@ -134,14 +132,6 @@ public class BlockSkins {
 		descriptionsTmp.put(MetallicSilver.class.getName(),"One cubic meter of metallic silver, the element with atomic number 47.");
 		descriptionsTmp.put(Chrysoberyl.class.getName(),"One cubic meter of the mineral or gemstone chrysoberyl, an aluminate of beryllium with the formula BeAl₂O₄");
 
-		descriptionsTmp.put(Azurite.class.getName(),"One cubic meter of Azurite, a mineral with chemical formula Cu₃(CO₃)₂(OH)₂.");
-		descriptionsTmp.put(Cuprite.class.getName(),"One cubic meter of Cuprite, a mineral with chemical formula Cu₂O.");
-		descriptionsTmp.put(Bornite.class.getName(),"One cubic meter of Bornite, a mineral with chemical formula Cu₅FeS₄.");
-		descriptionsTmp.put(Dioptase.class.getName(),"One cubic meter of Dioptase, a mineral with chemical formula CuSiO₂(OH)₂.");
-		descriptionsTmp.put(Chalcopyrite.class.getName(),"One cubic meter of Chalcopyrite, a mineral with chemical formula CuFeS₂.");
-		descriptionsTmp.put(Covellite.class.getName(),"One cubic meter of Covellite, a mineral with chemical formula CuS.");
-
-
 		descriptionsTmp.put(Pyrite.class.getName(),"One cubic meter of the mineral pyrite (also known as fool's gold).  Chemical formula FeS₂");
 		descriptionsTmp.put(WoodenBlock.class.getName(),"One cubic meter of wooden block.");
 		descriptionsTmp.put(UnrecognizedBlock.class.getName(),"An unrecognized block that is not found existing block schema.");
@@ -150,6 +140,13 @@ public class BlockSkins {
 		descriptionsTmp.put(UninitializedBlock.class.getName(),"Uninitialized block.");
 		descriptionsTmp.put(PlayerPositionXYZ.class.getName(),"Player position block.");
 		descriptionsTmp.put(PlayerInventory.class.getName(),"Player inventory block.");
+		descriptionsTmp.put(Chalcopyrite.class.getName(),"One cubic meter of Chalcopyrite, a mineral with chemical formula CuFeS₂.");
+		descriptionsTmp.put(Covellite.class.getName(),"One cubic meter of Covellite, a mineral with chemical formula CuS.");
+		descriptionsTmp.put(Bornite.class.getName(),"One cubic meter of Bornite, a mineral with chemical formula Cu₅FeS₄.");
+		descriptionsTmp.put(Azurite.class.getName(),"One cubic meter of Azurite, a mineral with chemical formula Cu₃(CO₃)₂(OH)₂.");
+		descriptionsTmp.put(Cuprite.class.getName(),"One cubic meter of Cuprite, a mineral with chemical formula Cu₂O.");
+		descriptionsTmp.put(Tenorite.class.getName(),"One cubic meter of Tenorite, a mineral with chemical formula CuO.");
+		descriptionsTmp.put(Dioptase.class.getName(),"One cubic meter of Dioptase, a mineral with chemical formula CuSiO₂(OH)₂.");
 		descriptions = Collections.unmodifiableMap(descriptionsTmp);
 	}
 
@@ -162,7 +159,7 @@ public class BlockSkins {
 	}
 
 	public static String getPresentation(Class<?> c, boolean useASCII) throws Exception{
-		if(patterns.containsKey(c.getName())){
+		if(presentationPatterns.containsKey(c.getName())){
 			if(useASCII){
 				if(c.getName().equals(EmptyBlock.class.getName())){
 					return "";
@@ -170,7 +167,7 @@ public class BlockSkins {
 					return c.getSimpleName().substring(0, 1);
 				}
 			}else{
-				return patterns.get(c.getName());
+				return presentationPatterns.get(c.getName());
 			}
 		}else{
 			throw new Exception("Did not find an entry for " + c.getName());
