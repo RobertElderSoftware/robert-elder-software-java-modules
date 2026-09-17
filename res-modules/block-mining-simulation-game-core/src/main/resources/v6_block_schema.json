@@ -254,6 +254,12 @@
             "byte_pattern_base_64": "MTMxNy0zOC0w",
             "block_class": "org.res.block.Tenorite",
             "dedication": "Shoseki"
+        },
+        {
+            "match_type": "byte_comparison",
+            "byte_pattern_base_64": "MjIyMDUtNDUtNA==",
+            "block_class": "org.res.block.Chalcocite",
+            "dedication": "IlChahuiztle"
         }
     ]
 }

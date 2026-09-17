@@ -94,6 +94,7 @@ public class BlockSkins {
 		presentationPatternsTmp.put(PlayerPositionXYZ.class.getName(),"P");
 		presentationPatternsTmp.put(PlayerInventory.class.getName(),"!");
 		presentationPatternsTmp.put(Chalcopyrite.class.getName(),"\uD83D\uDFE8");
+		presentationPatternsTmp.put(Chalcocite.class.getName(),"\u2B1B");
 		presentationPatternsTmp.put(Covellite.class.getName(),"\u2B1B");
 		presentationPatternsTmp.put(Bornite.class.getName(),"\uD83D\uDFE8");
 		presentationPatternsTmp.put(Azurite.class.getName(),"\uD83D\uDFE6");
@@ -141,6 +142,7 @@ public class BlockSkins {
 		descriptionsTmp.put(PlayerPositionXYZ.class.getName(),"Player position block.");
 		descriptionsTmp.put(PlayerInventory.class.getName(),"Player inventory block.");
 		descriptionsTmp.put(Chalcopyrite.class.getName(),"One cubic meter of Chalcopyrite, a mineral with chemical formula CuFeS₂.");
+		descriptionsTmp.put(Chalcocite.class.getName(),"One cubic meter of Chalcocite, a mineral with chemical formula Cu₂S.");
 		descriptionsTmp.put(Covellite.class.getName(),"One cubic meter of Covellite, a mineral with chemical formula CuS.");
 		descriptionsTmp.put(Bornite.class.getName(),"One cubic meter of Bornite, a mineral with chemical formula Cu₅FeS₄.");
 		descriptionsTmp.put(Azurite.class.getName(),"One cubic meter of Azurite, a mineral with chemical formula Cu₃(CO₃)₂(OH)₂.");
