@@ -56,7 +56,7 @@ public class Goethite extends IndividualBlock {
 		this.data = data;
 	}
 
-	public byte [] getBlockData()throws Exception {
+	public byte [] getBlockData() throws Exception {
 		return this.data;
 	}
 

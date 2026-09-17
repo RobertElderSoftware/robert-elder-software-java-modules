@@ -52,11 +52,11 @@ public class Ilmenite extends IndividualBlock {
 
 	private byte [] data;
 
-	public Ilmenite (byte [] data) throws Exception {
+	public Ilmenite(byte [] data) throws Exception {
 		this.data = data;
 	}
 
-	public byte [] getBlockData()throws Exception {
+	public byte [] getBlockData() throws Exception {
 		return this.data;
 	}
 

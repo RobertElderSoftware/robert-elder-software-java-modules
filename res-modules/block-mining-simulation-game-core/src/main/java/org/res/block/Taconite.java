@@ -52,11 +52,11 @@ public class Taconite extends IndividualBlock {
 
 	private byte [] data;
 
-	public Taconite (byte [] data) throws Exception {
+	public Taconite(byte [] data) throws Exception {
 		this.data = data;
 	}
 
-	public byte [] getBlockData()throws Exception {
+	public byte [] getBlockData() throws Exception {
 		return this.data;
 	}
 
