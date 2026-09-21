@@ -99,7 +99,9 @@ Rock.class,
 		Chalcopyrite.class,
 		Covellite.class,
 		Tenorite.class,
-		Chalcocite.class
+		Chalcocite.class,
+		Diamond.class,
+		Platinum.class
 	};
 
 	public ChunkInitializerThreadState(BlockManagerThreadCollection blockManagerThreadCollection, ClientBlockModelContext clientBlockModelContext, InMemoryChunks inMemoryChunks) throws Exception{

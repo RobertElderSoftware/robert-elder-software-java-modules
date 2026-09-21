@@ -260,6 +260,18 @@
             "byte_pattern_base_64": "Q0FTOjIyMjA1LTQ1LTQ=",
             "block_class": "org.res.block.Chalcocite",
             "dedication": "IlChahuiztle"
+        },
+        {
+            "match_type": "byte_comparison",
+            "byte_pattern_base_64": "Q0FTOjc3ODItNDAtMw==",
+            "block_class": "org.res.block.Diamond",
+            "dedication": "Shoseki"
+        },
+        {
+            "match_type": "byte_comparison",
+            "byte_pattern_base_64": "Q0FTOjc0NDAtMDYtNA==",
+            "block_class": "org.res.block.Platinum",
+            "dedication": "Shoseki"
         }
     ]
 }

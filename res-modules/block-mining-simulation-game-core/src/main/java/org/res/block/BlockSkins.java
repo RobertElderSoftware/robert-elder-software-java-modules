@@ -99,6 +99,8 @@ public class BlockSkins {
 		presentationPatternsTmp.put(Covellite.class.getName(),"\u2B1B");
 		presentationPatternsTmp.put(Tenorite.class.getName(),"\u2B1B");
 		presentationPatternsTmp.put(Chalcocite.class.getName(),"\u2B1B");
+		presentationPatternsTmp.put(Diamond.class.getName(),"\uD83D\uDC8E");
+		presentationPatternsTmp.put(Platinum.class.getName(),"\u2B1C");
 		presentationPatterns = Collections.unmodifiableMap(presentationPatternsTmp);
 
 		Map<String, String> descriptionsTmp = new HashMap<String, String>();
@@ -145,6 +147,8 @@ public class BlockSkins {
 		descriptionsTmp.put(Covellite.class.getName(),"One cubic meter of Covellite, a mineral with chemical formula CuS.");
 		descriptionsTmp.put(Tenorite.class.getName(),"One cubic meter of Tenorite, a mineral with chemical formula CuO.");
 		descriptionsTmp.put(Chalcocite.class.getName(),"One cubic meter of Chalcocite, a mineral with chemical formula Cu₂S.");
+		descriptionsTmp.put(Diamond.class.getName(),"One cubic meter of Diamond, a mineral with chemical formula C.");
+		descriptionsTmp.put(Platinum.class.getName(),"One cubic meter of Platinum, a mineral with chemical formula Pt.");
 		descriptions = Collections.unmodifiableMap(descriptionsTmp);
 	}
 

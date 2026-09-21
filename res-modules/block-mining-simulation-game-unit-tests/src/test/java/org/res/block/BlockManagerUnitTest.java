@@ -2472,10 +2472,10 @@ public class BlockManagerUnitTest {
 		Long maxPendingChunks = 1L;
 		InMemoryChunks imc = new InMemoryChunks(blockManagerThreadCollection, chunkSizeCuboidAddress, maxPendingChunks);
 		imc.putWorkItem(new InitializeYourselfInMemoryChunksWorkItem(imc), WorkItemPriority.PRIORITY_LOW);
-		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(imc, InMemoryChunksWorkItem.class, imc.getClass()));
+		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksWorkItem>(blockManagerThreadCollection, imc, InMemoryChunksWorkItem.class, imc.getClass()));
 
 		InMemoryChunksMockClient inMemoryChunksMockClient = new InMemoryChunksMockClient(blockManagerThreadCollection, chunkSizeCuboidAddress);
-		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksMockClientWorkItem>(inMemoryChunksMockClient, InMemoryChunksMockClientWorkItem.class, inMemoryChunksMockClient.getClass()));
+		blockManagerThreadCollection.addThread(new WorkItemProcessorTask<InMemoryChunksMockClientWorkItem>(blockManagerThreadCollection, inMemoryChunksMockClient, InMemoryChunksMockClientWorkItem.class, inMemoryChunksMockClient.getClass()));
 
 		CuboidAddress areaToLoadChunksIn = new CuboidAddress(new Coordinate(Arrays.asList(-2L, -2L, -2L, 0L)), new Coordinate(Arrays.asList(2L, 2L, 2L, 2L)));
 
