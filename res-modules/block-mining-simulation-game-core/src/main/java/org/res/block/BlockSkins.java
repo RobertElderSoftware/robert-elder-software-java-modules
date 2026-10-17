@@ -100,6 +100,7 @@ public class BlockSkins {
 		presentationPatternsTmp.put(Tenorite.class.getName(),"\u2B1B");
 		presentationPatternsTmp.put(Chalcocite.class.getName(),"\u2B1B");
 		presentationPatternsTmp.put(Diamond.class.getName(),"\uD83D\uDC8E");
+		presentationPatternsTmp.put(Fluorite.class.getName(),"\uD83D\uDFE3");
 		presentationPatternsTmp.put(Platinum.class.getName(),"\u2B1C");
 		presentationPatterns = Collections.unmodifiableMap(presentationPatternsTmp);
 
@@ -148,6 +149,7 @@ public class BlockSkins {
 		descriptionsTmp.put(Tenorite.class.getName(),"One cubic meter of Tenorite, a mineral with chemical formula CuO.");
 		descriptionsTmp.put(Chalcocite.class.getName(),"One cubic meter of Chalcocite, a mineral with chemical formula Cu₂S.");
 		descriptionsTmp.put(Diamond.class.getName(),"One cubic meter of Diamond, a mineral with chemical formula C.");
+		descriptionsTmp.put(Fluorite.class.getName(),"One cubic meter of Fluorite, a mineral with chemical formula CaF₂.");
 		descriptionsTmp.put(Platinum.class.getName(),"One cubic meter of Platinum, a mineral with chemical formula Pt.");
 		descriptions = Collections.unmodifiableMap(descriptionsTmp);
 	}

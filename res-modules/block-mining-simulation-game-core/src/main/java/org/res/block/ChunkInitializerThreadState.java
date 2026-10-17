@@ -101,6 +101,7 @@ Rock.class,
 		Tenorite.class,
 		Chalcocite.class,
 		Diamond.class,
+		Fluorite.class,
 		Platinum.class
 	};
 
